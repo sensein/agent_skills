@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = REPO_ROOT / "global-lab-notebook" / "scripts" / "register_experiment.py"
+SCRIPT = REPO_ROOT / "skills" / "global-lab-notebook" / "scripts" / "register_experiment.py"
 
 
 def register(lab_root: Path, project_root: Path, slug: str) -> Path:

@@ -89,7 +89,7 @@ The random suffix is mandatory. A timestamp plus slug alone is not enough for pa
 4. Create the experiment by running the helper:
 
 ```bash
-python global-lab-notebook/scripts/register_experiment.py \
+python skills/global-lab-notebook/scripts/register_experiment.py \
   --lab-root "$LAB_ROOT" \
   --project-root "$PWD" \
   --project-slug "$PROJECT_SLUG" \

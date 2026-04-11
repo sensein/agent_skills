@@ -8,6 +8,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - tracks experiments across unrelated repos and tasks
 - keeps a simple human-readable experiment index
 - avoids conflicting writes when multiple experiments run in parallel
+- lives under `skills/` in this repository so it can be mirrored into agent skill directories easily
 
 ## Decisions
 
