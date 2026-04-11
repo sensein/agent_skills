@@ -1,0 +1,50 @@
+# Global Lab Notebook Skill Design
+
+## Goal
+
+Create a named skill that adapts the repo-local `.lab/` workflow into a global lab notebook that:
+
+- lives outside project trees
+- tracks experiments across unrelated repos and tasks
+- keeps a simple human-readable experiment index
+- avoids conflicting writes when multiple experiments run in parallel
+
+## Decisions
+
+- [x] Use a global root: `${CODEX_LAB_ROOT:-${CODEX_HOME:-$HOME/.codex}/lab-notebook}`
+- [x] Give every experiment a unique immutable directory created atomically
+- [x] Keep the global index append-only and update it under a lock
+- [x] Regenerate a readable index file with atomic rename while holding the same lock
+- [x] Prefer deterministic helper scripts for directory creation and index updates
+- [x] Add a concurrency test that proves parallel registrations do not collide
+
+## Layout
+
+```text
+lab-notebook/
+  experiments/
+    <experiment-id>/
+      metadata.json
+      log.md
+      summary.md
+      artifacts/
+  index/
+    experiments.tsv
+    index.md
+  locks/
+```
+
+## Conflict-Avoidance Rules
+
+1. Never create experiment directories from a bare slug alone.
+2. Experiment ids must include UTC timestamp plus a random suffix.
+3. Only append to `index/experiments.tsv`; do not rewrite history in place.
+4. Acquire `locks/index.lock` before touching central index files.
+5. Write regenerated index output to a temp file and `rename` it into place.
+
+## Validation
+
+- [x] Script creates the global layout from scratch
+- [x] Script registers one experiment and emits metadata
+- [x] Parallel registrations produce unique experiment ids
+- [x] Parallel registrations append the expected number of index rows
