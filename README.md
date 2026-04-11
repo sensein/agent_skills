@@ -10,4 +10,4 @@ The list below is kept in alphabetical order by skill name.
 
 | Skill | Description |
 | --- | --- |
-| [`global-lab-notebook`](./global-lab-notebook/SKILL.md) | Create and maintain a concurrency-safe global lab notebook outside project roots, with unique experiment directories, append-only indexing, and per-experiment logs for work that spans multiple repos or tasks. |
+| [`global-lab-notebook`](./global-lab-notebook/SKILL.md) | Create and maintain a concurrency-safe global lab notebook outside project roots, with an autoresearch-style improvement loop, unique experiment directories, append-only indexing, and per-experiment logs for work that spans multiple repos or tasks. |

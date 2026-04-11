@@ -23,6 +23,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-slug", required=True)
     parser.add_argument("--experiment-slug", required=True)
     parser.add_argument("--objective", required=True)
+    parser.add_argument("--metric-name", default="")
+    parser.add_argument("--direction", default="")
+    parser.add_argument("--verify-command", default="")
     parser.add_argument("--parent-id", default="")
     return parser.parse_args()
 
@@ -136,12 +139,47 @@ def main() -> int:
         "project_slug": args.project_slug,
         "experiment_slug": args.experiment_slug,
         "objective": args.objective,
+        "metric_name": args.metric_name,
+        "direction": args.direction,
+        "verify_command": args.verify_command,
         "project_root": str(project_root),
         "experiment_dir": str(exp_dir),
         "parent_id": args.parent_id,
     }
     atomic_write(exp_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
+    plan_md = "\n".join(
+        [
+            "# Experiment Plan",
+            "",
+            f"- Goal: {args.objective}",
+            f"- Metric: {args.metric_name or 'TBD'}",
+            f"- Direction: {args.direction or 'TBD'}",
+            f"- Verify command: {args.verify_command or 'TBD'}",
+            f"- Project root: {project_root}",
+            f"- Parent experiment: {args.parent_id or 'None'}",
+            "",
+            "## Next Hypothesis",
+            "",
+            "- ",
+            "",
+        ]
+    )
+    write_if_missing(exp_dir / "plan.md", plan_md)
     write_if_missing(exp_dir / "log.md", "# Experiment Log\n\n")
+    write_if_missing(
+        exp_dir / "results.tsv",
+        "\t".join(
+            [
+                "iteration",
+                "timestamp_utc",
+                "status",
+                "metric_value",
+                "commit",
+                "notes",
+            ]
+        )
+        + "\n",
+    )
     write_if_missing(exp_dir / "summary.md", "# Summary\n\n")
 
     index_tsv = lab_root / "index" / "experiments.tsv"

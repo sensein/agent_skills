@@ -16,6 +16,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - [x] Keep the global index append-only and update it under a lock
 - [x] Regenerate a readable index file with atomic rename while holding the same lock
 - [x] Prefer deterministic helper scripts for directory creation and index updates
+- [x] Bring over the `observe -> modify -> verify -> keep/discard -> log -> repeat` loop from `uditgoenka/autoresearch`
 - [x] Add a concurrency test that proves parallel registrations do not collide
 
 ## Layout
@@ -25,7 +26,9 @@ lab-notebook/
   experiments/
     <experiment-id>/
       metadata.json
+      plan.md
       log.md
+      results.tsv
       summary.md
       artifacts/
   index/
@@ -42,9 +45,18 @@ lab-notebook/
 4. Acquire `locks/index.lock` before touching central index files.
 5. Write regenerated index output to a temp file and `rename` it into place.
 
+## Loop Rules
+
+1. Gather the setup gate first: goal, metric, direction, verify command, scope, and stop condition.
+2. Record a baseline before the first code-changing iteration.
+3. Make one focused change per iteration.
+4. Verify mechanically after each change.
+5. Keep improved or equally good-but-simpler results; discard regressions.
+6. Log every iteration locally in the experiment directory.
+
 ## Validation
 
 - [x] Script creates the global layout from scratch
-- [x] Script registers one experiment and emits metadata
+- [x] Script registers one experiment and emits metadata, a plan, and a per-experiment results log
 - [x] Parallel registrations produce unique experiment ids
 - [x] Parallel registrations append the expected number of index rows

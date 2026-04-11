@@ -44,6 +44,8 @@ class GlobalLabNotebookTests(unittest.TestCase):
 
             self.assertTrue(exp_dir.exists())
             self.assertTrue((exp_dir / "artifacts").exists())
+            self.assertTrue((exp_dir / "plan.md").exists())
+            self.assertTrue((exp_dir / "results.tsv").exists())
             metadata = json.loads((exp_dir / "metadata.json").read_text())
             self.assertEqual(metadata["project_slug"], "demo-project")
             self.assertEqual(metadata["experiment_slug"], "baseline")
@@ -54,6 +56,7 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertTrue(index_md.exists())
             self.assertIn("baseline", index_tsv.read_text())
             self.assertIn("Total experiments: 1", index_md.read_text())
+            self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
 
     def test_parallel_registrations_do_not_collide(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

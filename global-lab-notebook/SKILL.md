@@ -19,6 +19,19 @@ ${CODEX_LAB_ROOT:-${CODEX_HOME:-$HOME/.codex}/lab-notebook}
 
 This keeps the notebook outside any single repo, while still making it easy to override.
 
+## Interactive Setup Gate
+
+Before starting a new experiment, gather or infer these fields:
+
+1. Goal
+2. Mechanical metric
+3. Direction: higher or lower is better
+4. Verify command
+5. Writable scope
+6. Stop condition: target metric, iteration count, or manual stop
+
+If any of the first four are missing and cannot be inferred safely, ask before starting. The notebook is global, but the experiment loop still needs a clear local objective.
+
 ## Required Guarantees
 
 1. Never use a fixed experiment directory name.
@@ -34,7 +47,9 @@ lab-notebook/
   experiments/
     <experiment-id>/
       metadata.json
+      plan.md
       log.md
+      results.tsv
       summary.md
       artifacts/
   index/
@@ -44,6 +59,8 @@ lab-notebook/
 ```
 
 - `experiments/<experiment-id>/`: one experiment per directory; no sharing across active runs
+- `experiments/<experiment-id>/plan.md`: the setup gate plus current hypothesis
+- `experiments/<experiment-id>/results.tsv`: local iteration ledger for this experiment
 - `index/experiments.tsv`: append-only registry of experiments
 - `index/index.md`: generated readable summary of known experiments
 - `locks/`: lock directories used for central updates
@@ -77,20 +94,43 @@ python global-lab-notebook/scripts/register_experiment.py \
   --project-root "$PWD" \
   --project-slug "$PROJECT_SLUG" \
   --experiment-slug "$EXPERIMENT_SLUG" \
-  --objective "Short statement of the experiment goal"
+  --objective "Short statement of the experiment goal" \
+  --metric-name "$METRIC_NAME" \
+  --direction "$DIRECTION" \
+  --verify-command "$VERIFY_COMMAND"
 ```
 
-5. Work inside the returned experiment directory for notes, artifacts, and summaries.
-6. Log progress inside that experiment directory, not in shared files.
+5. Record baseline iteration `0` in `results.tsv` before code changes.
+6. Work inside the returned experiment directory for notes, artifacts, and summaries.
+7. Log progress inside that experiment directory, not in shared files.
 
 ## What Goes In Each Experiment
 
 - `metadata.json`: creation metadata, source repo path, objective, and ids
+- `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
 - `log.md`: chronological notes for the experiment
+- `results.tsv`: one row per iteration or thought with status and metric outcome
 - `summary.md`: final concise outcome
 - `artifacts/`: scratch outputs, plots, reports, and temporary files worth keeping
 
 Keep detailed notes local to the experiment directory. The global index should stay compact.
+
+## Improvement Loop
+
+Use the same tight loop pattern that powers autoresearch, but anchor it in the global notebook:
+
+1. Observe: read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
+2. Pick one focused change. Prefer atomic edits so the outcome is explainable.
+3. If tracked project files change, commit before verification so rollback is cheap.
+4. Run the verify command and capture the metric.
+5. Keep or discard:
+   - keep when the metric improves
+   - keep when the metric ties and the result is clearly simpler
+   - discard or revert when the metric regresses or the run crashes
+6. Log the outcome in both `results.tsv` and `log.md`.
+7. Repeat until the stop condition is reached or the user interrupts.
+
+When the work diverges materially, register a child experiment instead of overloading the current one.
 
 ## Shared Index Rules
 
@@ -127,4 +167,5 @@ When resuming:
 
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, read `index/index.md` first and only inspect specific experiment directories afterward.
+- Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.
