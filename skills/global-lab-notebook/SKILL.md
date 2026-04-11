@@ -52,6 +52,8 @@ lab-notebook/
       results.tsv
       summary.md
       artifacts/
+  workspaces/
+    <experiment-id>/
   index/
     experiments.tsv
     index.md
@@ -61,6 +63,7 @@ lab-notebook/
 - `experiments/<experiment-id>/`: one experiment per directory; no sharing across active runs
 - `experiments/<experiment-id>/plan.md`: the setup gate plus current hypothesis
 - `experiments/<experiment-id>/results.tsv`: local iteration ledger for this experiment
+- `workspaces/<experiment-id>/`: per-experiment working area for an isolated project clone or checkout
 - `index/experiments.tsv`: append-only registry of experiments
 - `index/index.md`: generated readable summary of known experiments
 - `locks/`: lock directories used for central updates
@@ -100,9 +103,11 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
   --verify-command "$VERIFY_COMMAND"
 ```
 
-5. Record baseline iteration `0` in `results.tsv` before code changes.
-6. Work inside the returned experiment directory for notes, artifacts, and summaries.
-7. Log progress inside that experiment directory, not in shared files.
+5. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+6. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+7. Record baseline iteration `0` in `results.tsv` before code changes.
+8. Work inside the returned experiment directory for notes, artifacts, and summaries.
+9. Log progress inside that experiment directory, not in shared files.
 
 ## What Goes In Each Experiment
 
@@ -112,6 +117,7 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
 - `results.tsv`: one row per iteration or thought with status and metric outcome
 - `summary.md`: final concise outcome
 - `artifacts/`: scratch outputs, plots, reports, and temporary files worth keeping
+- dedicated workspace clone path: a safe place to edit without colliding with another agent's git state
 
 Keep detailed notes local to the experiment directory. The global index should stay compact.
 
@@ -120,15 +126,16 @@ Keep detailed notes local to the experiment directory. The global index should s
 Use the same tight loop pattern that powers autoresearch, but anchor it in the global notebook:
 
 1. Observe: read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
-2. Pick one focused change. Prefer atomic edits so the outcome is explainable.
-3. If tracked project files change, commit before verification so rollback is cheap.
-4. Run the verify command and capture the metric.
-5. Keep or discard:
+2. Confirm you are working inside the experiment's dedicated clone if project files will change.
+3. Pick one focused change. Prefer atomic edits so the outcome is explainable.
+4. If tracked project files change, commit before verification so rollback is cheap.
+5. Run the verify command and capture the metric.
+6. Keep or discard:
    - keep when the metric improves
    - keep when the metric ties and the result is clearly simpler
    - discard or revert when the metric regresses or the run crashes
-6. Log the outcome in both `results.tsv` and `log.md`.
-7. Repeat until the stop condition is reached or the user interrupts.
+7. Log the outcome in both `results.tsv` and `log.md`.
+8. Repeat until the stop condition is reached or the user interrupts.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
@@ -150,9 +157,10 @@ If a lock appears stale, only clear it after confirming the owning process is go
 
 1. Every active experiment gets its own directory.
 2. Two agents may read the same project, but they must not share the same new experiment directory.
-3. If multiple agents need related work, give each one a new experiment id and link them in notes instead of co-writing.
-4. Treat `index/experiments.tsv` as append-only history.
-5. If an experiment needs a follow-up, create a child experiment and record the parent id in `metadata.json` or `log.md`.
+3. If two agents will both edit the same codebase, each one must create a separate clone or checkout under its own `workspaces/<experiment-id>/` path.
+4. If multiple agents need related work, give each one a new experiment id and link them in notes instead of co-writing.
+5. Treat `index/experiments.tsv` as append-only history.
+6. If an experiment needs a follow-up, create a child experiment and record the parent id in `metadata.json` or `log.md`.
 
 ## Resume Flow
 
@@ -167,5 +175,6 @@ When resuming:
 
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, read `index/index.md` first and only inspect specific experiment directories afterward.
+- Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.

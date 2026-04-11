@@ -49,6 +49,7 @@ class GlobalLabNotebookTests(unittest.TestCase):
             metadata = json.loads((exp_dir / "metadata.json").read_text())
             self.assertEqual(metadata["project_slug"], "demo-project")
             self.assertEqual(metadata["experiment_slug"], "baseline")
+            self.assertTrue(Path(metadata["workspace_dir"]).exists())
 
             index_tsv = temp_path / "lab" / "index" / "experiments.tsv"
             index_md = temp_path / "lab" / "index" / "index.md"
@@ -57,6 +58,7 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertIn("baseline", index_tsv.read_text())
             self.assertIn("Total experiments: 1", index_md.read_text())
             self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
+            self.assertIn("Workspace dir:", (exp_dir / "plan.md").read_text())
 
     def test_render_index_skips_malformed_rows(self) -> None:
         module_globals: dict[str, object] = {}
@@ -93,6 +95,11 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertEqual(len(index_rows), 7)
             for exp_dir in exp_dirs:
                 self.assertTrue(exp_dir.exists())
+            workspace_dirs = [
+                json.loads((exp_dir / "metadata.json").read_text())["workspace_dir"]
+                for exp_dir in exp_dirs
+            ]
+            self.assertEqual(len(workspace_dirs), len(set(workspace_dirs)))
 
     def test_registration_sanitizes_all_tsv_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

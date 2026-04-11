@@ -73,7 +73,7 @@ def directory_lock(lock_dir: Path, timeout_s: float = 30.0, poll_s: float = 0.05
 
 
 def ensure_layout(lab_root: Path) -> None:
-    for relative in ("experiments", "index", "locks"):
+    for relative in ("experiments", "workspaces", "index", "locks"):
         (lab_root / relative).mkdir(parents=True, exist_ok=True)
 
 
@@ -136,7 +136,9 @@ def main() -> int:
 
     exp_id = experiment_id(args.project_slug, args.experiment_slug)
     exp_dir = lab_root / "experiments" / exp_id
+    workspace_dir = lab_root / "workspaces" / exp_id
     exp_dir.mkdir(parents=False, exist_ok=False)
+    workspace_dir.mkdir(parents=False, exist_ok=False)
     (exp_dir / "artifacts").mkdir()
 
     metadata = {
@@ -150,6 +152,7 @@ def main() -> int:
         "verify_command": args.verify_command,
         "project_root": str(project_root),
         "experiment_dir": str(exp_dir),
+        "workspace_dir": str(workspace_dir),
         "parent_id": args.parent_id,
     }
     atomic_write(exp_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
@@ -162,6 +165,7 @@ def main() -> int:
             f"- Direction: {args.direction or 'TBD'}",
             f"- Verify command: {args.verify_command or 'TBD'}",
             f"- Project root: {project_root}",
+            f"- Workspace dir: {workspace_dir}",
             f"- Parent experiment: {args.parent_id or 'None'}",
             "",
             "## Next Hypothesis",

@@ -18,6 +18,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - [x] Regenerate a readable index file with atomic rename while holding the same lock
 - [x] Prefer deterministic helper scripts for directory creation and index updates
 - [x] Bring over the `observe -> modify -> verify -> keep/discard -> log -> repeat` loop from `uditgoenka/autoresearch`
+- [x] Give each experiment its own workspace path so parallel agents never share a git clone
 - [x] Add a concurrency test that proves parallel registrations do not collide
 
 ## Layout
@@ -32,6 +33,8 @@ lab-notebook/
       results.tsv
       summary.md
       artifacts/
+  workspaces/
+    <experiment-id>/
   index/
     experiments.tsv
     index.md
@@ -45,6 +48,7 @@ lab-notebook/
 3. Only append to `index/experiments.tsv`; do not rewrite history in place.
 4. Acquire `locks/index.lock` before touching central index files.
 5. Write regenerated index output to a temp file and `rename` it into place.
+6. If more than one agent will edit the same codebase, each agent must work from its own clone path under `workspaces/<experiment-id>/`.
 
 ## Loop Rules
 
