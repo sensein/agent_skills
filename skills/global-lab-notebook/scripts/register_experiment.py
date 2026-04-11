@@ -82,6 +82,10 @@ def write_if_missing(path: Path, content: str) -> None:
         path.write_text(content, encoding="utf-8")
 
 
+def sanitize_tsv_field(value: object) -> str:
+    return str(value).replace("\t", " ").replace("\n", " ").strip()
+
+
 def render_index(rows: list[list[str]]) -> str:
     lines = [
         "# Lab Index",
@@ -92,6 +96,8 @@ def render_index(rows: list[list[str]]) -> str:
         "| --- | --- | --- | --- | --- | --- |",
     ]
     for row in rows:
+        if len(row) < 6:
+            continue
         exp_id, created_at, project_slug, experiment_slug, objective, exp_path = row[:6]
         lines.append(
             f"| `{exp_id}` | `{project_slug}` | `{experiment_slug}` | `{created_at}` | {objective} | `{exp_path}` |"
@@ -205,21 +211,17 @@ def main() -> int:
                 + "\n",
             )
         with index_tsv.open("a", encoding="utf-8") as handle:
-            handle.write(
-                "\t".join(
-                    [
-                        exp_id,
-                        metadata["created_at_utc"],
-                        args.project_slug,
-                        args.experiment_slug,
-                        args.objective.replace("\t", " ").replace("\n", " ").strip(),
-                        str(exp_dir),
-                        str(project_root),
-                        args.parent_id,
-                    ]
-                )
-                + "\n"
-            )
+            row_data = [
+                exp_id,
+                metadata["created_at_utc"],
+                args.project_slug,
+                args.experiment_slug,
+                args.objective,
+                exp_dir,
+                project_root,
+                args.parent_id,
+            ]
+            handle.write("\t".join(sanitize_tsv_field(field) for field in row_data) + "\n")
         rows = read_rows(index_tsv)
         atomic_write(index_md, render_index(rows))
 

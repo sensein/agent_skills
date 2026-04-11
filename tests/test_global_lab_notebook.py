@@ -58,6 +58,19 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertIn("Total experiments: 1", index_md.read_text())
             self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
 
+    def test_render_index_skips_malformed_rows(self) -> None:
+        module_globals: dict[str, object] = {}
+        exec(SCRIPT.read_text(encoding="utf-8"), module_globals)
+        render_index = module_globals["render_index"]
+
+        rendered = render_index(  # type: ignore[operator]
+            [["too-short"], ["id", "time", "project", "exp", "goal", "/tmp/path"]]
+        )
+
+        self.assertIn("Total experiments: 2", rendered)
+        self.assertIn("`id`", rendered)
+        self.assertNotIn("too-short", rendered)
+
     def test_parallel_registrations_do_not_collide(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -80,6 +93,39 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertEqual(len(index_rows), 7)
             for exp_dir in exp_dirs:
                 self.assertTrue(exp_dir.exists())
+
+    def test_registration_sanitizes_all_tsv_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--lab-root",
+                    str(temp_path / "lab"),
+                    "--project-root",
+                    str(temp_path / "project\troot"),
+                    "--project-slug",
+                    "demo\tproject",
+                    "--experiment-slug",
+                    "baseline\nrun",
+                    "--objective",
+                    "Objective\twith\nbreaks",
+                    "--parent-id",
+                    "parent\tid",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            lines = (temp_path / "lab" / "index" / "experiments.tsv").read_text().splitlines()
+            self.assertEqual(len(lines), 2)
+            self.assertEqual(lines[1].count("\t"), 7)
+            self.assertNotIn("\n", lines[1])
+            self.assertIn("demo project", lines[1])
+            self.assertIn("baseline run", lines[1])
+            self.assertIn("Objective with breaks", lines[1])
 
 
 if __name__ == "__main__":
