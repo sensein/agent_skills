@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--metric-name", default="")
     parser.add_argument("--direction", default="")
     parser.add_argument("--verify-command", default="")
+    parser.add_argument("--workspace-root", default="")
     parser.add_argument("--parent-id", default="")
     return parser.parse_args()
 
@@ -128,6 +129,21 @@ def atomic_write(path: Path, content: str) -> None:
     os.replace(temp_name, path)
 
 
+def initialize_workspace(lab_root: Path, exp_id: str, workspace_root: str) -> tuple[Path, Path]:
+    workspace_link = lab_root / "workspaces" / exp_id
+    if not workspace_root:
+        workspace_dir = workspace_link
+        workspace_dir.mkdir(parents=False, exist_ok=False)
+        return workspace_dir, workspace_link
+
+    external_root = Path(workspace_root).expanduser().resolve()
+    external_root.mkdir(parents=True, exist_ok=True)
+    workspace_dir = external_root / exp_id
+    workspace_dir.mkdir(parents=False, exist_ok=False)
+    workspace_link.symlink_to(workspace_dir, target_is_directory=True)
+    return workspace_dir, workspace_link
+
+
 def main() -> int:
     args = parse_args()
     lab_root = Path(args.lab_root).expanduser().resolve()
@@ -136,9 +152,12 @@ def main() -> int:
 
     exp_id = experiment_id(args.project_slug, args.experiment_slug)
     exp_dir = lab_root / "experiments" / exp_id
-    workspace_dir = lab_root / "workspaces" / exp_id
     exp_dir.mkdir(parents=False, exist_ok=False)
-    workspace_dir.mkdir(parents=False, exist_ok=False)
+    workspace_dir, workspace_link = initialize_workspace(
+        lab_root=lab_root,
+        exp_id=exp_id,
+        workspace_root=args.workspace_root,
+    )
     (exp_dir / "artifacts").mkdir()
 
     metadata = {
@@ -153,6 +172,7 @@ def main() -> int:
         "project_root": str(project_root),
         "experiment_dir": str(exp_dir),
         "workspace_dir": str(workspace_dir),
+        "workspace_link": str(workspace_link),
         "parent_id": args.parent_id,
     }
     atomic_write(exp_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
@@ -166,6 +186,7 @@ def main() -> int:
             f"- Verify command: {args.verify_command or 'TBD'}",
             f"- Project root: {project_root}",
             f"- Workspace dir: {workspace_dir}",
+            f"- Workspace link: {workspace_link}",
             f"- Parent experiment: {args.parent_id or 'None'}",
             "",
             "## Next Hypothesis",

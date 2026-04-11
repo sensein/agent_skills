@@ -19,6 +19,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - [x] Prefer deterministic helper scripts for directory creation and index updates
 - [x] Bring over the `observe -> modify -> verify -> keep/discard -> log -> repeat` loop from `uditgoenka/autoresearch`
 - [x] Give each experiment its own workspace path so parallel agents never share a git clone
+- [x] Support linking the workspace to an external location while keeping a stable notebook path
 - [x] Add a concurrency test that proves parallel registrations do not collide
 
 ## Layout
@@ -49,6 +50,7 @@ lab-notebook/
 4. Acquire `locks/index.lock` before touching central index files.
 5. Write regenerated index output to a temp file and `rename` it into place.
 6. If more than one agent will edit the same codebase, each agent must work from its own clone path under `workspaces/<experiment-id>/`.
+7. If the real workspace should live elsewhere, create it there and keep `workspaces/<experiment-id>/` as a symlink entry point.
 
 ## Loop Rules
 

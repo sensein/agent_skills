@@ -28,7 +28,8 @@ Before starting a new experiment, gather or infer these fields:
 3. Direction: higher or lower is better
 4. Verify command
 5. Writable scope
-6. Stop condition: target metric, iteration count, or manual stop
+6. Workspace placement: use the default notebook workspace path, or link the workspace to a different location for large clones, datasets, or rich outputs
+7. Stop condition: target metric, iteration count, or manual stop
 
 If any of the first four are missing and cannot be inferred safely, ask before starting. The notebook is global, but the experiment loop still needs a clear local objective.
 
@@ -103,11 +104,12 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
   --verify-command "$VERIFY_COMMAND"
 ```
 
-5. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-6. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-7. Record baseline iteration `0` in `results.tsv` before code changes.
-8. Work inside the returned experiment directory for notes, artifacts, and summaries.
-9. Log progress inside that experiment directory, not in shared files.
+5. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+6. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+7. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+8. Record baseline iteration `0` in `results.tsv` before code changes.
+9. Work inside the returned experiment directory for notes, artifacts, and summaries.
+10. Log progress inside that experiment directory, not in shared files.
 
 ## What Goes In Each Experiment
 
@@ -118,6 +120,7 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
 - `summary.md`: final concise outcome
 - `artifacts/`: scratch outputs, plots, reports, and temporary files worth keeping
 - dedicated workspace clone path: a safe place to edit without colliding with another agent's git state
+- optional workspace link path under the notebook: a stable pointer when the real workspace lives elsewhere
 
 Keep detailed notes local to the experiment directory. The global index should stay compact.
 
@@ -176,5 +179,6 @@ When resuming:
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, read `index/index.md` first and only inspect specific experiment directories afterward.
 - Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
+- Ask whether the workspace should live somewhere else when the repo clone, datasets, or generated artifacts would be better outside the notebook root.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.
