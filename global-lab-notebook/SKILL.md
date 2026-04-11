@@ -14,10 +14,10 @@ The key difference from repo-local `.lab/` workflows is that the lab root lives 
 Use this location unless the user explicitly wants another path:
 
 ```bash
-${CODEX_LAB_ROOT:-${CODEX_HOME:-$HOME/.codex}/lab-notebook}
+${LAB_NOTEBOOK_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/lab-notebook}
 ```
 
-This keeps the notebook outside any single repo, while still making it easy to override.
+This keeps the notebook outside any single repo and outside any specific agent runtime, while still making it easy to override.
 
 ## Interactive Setup Gate
 
@@ -163,7 +163,7 @@ When resuming:
 3. Continue writing only inside that experiment directory unless you are registering a new experiment.
 4. Register a fresh experiment instead of mutating old metadata if the scope or hypothesis changed materially.
 
-## Notes For Codex
+## Notes For Agents
 
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, read `index/index.md` first and only inspect specific experiment directories afterward.

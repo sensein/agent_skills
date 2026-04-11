@@ -1,6 +1,6 @@
 # Agent Skills
 
-This repository is a home for many named Codex skills.
+This repository is a home for many named agent skills.
 
 Each skill lives in its own top-level directory and should include a `SKILL.md` file plus any optional `agents/`, `scripts/`, `references/`, or `assets/` needed to make the skill reliable and reusable.
 

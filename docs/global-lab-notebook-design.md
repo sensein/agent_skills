@@ -11,7 +11,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 
 ## Decisions
 
-- [x] Use a global root: `${CODEX_LAB_ROOT:-${CODEX_HOME:-$HOME/.codex}/lab-notebook}`
+- [x] Use an agent-neutral global root: `${LAB_NOTEBOOK_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/lab-notebook}`
 - [x] Give every experiment a unique immutable directory created atomically
 - [x] Keep the global index append-only and update it under a lock
 - [x] Regenerate a readable index file with atomic rename while holding the same lock
