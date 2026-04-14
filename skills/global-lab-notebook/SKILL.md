@@ -113,16 +113,18 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
   --metric-name "$METRIC_NAME" \
   --direction "$DIRECTION" \
   --verify-command "$VERIFY_COMMAND" \
+  --overall-budget "$OVERALL_BUDGET" \
   --loop-budget "$LOOP_BUDGET"
 ```
 
-5. If the user gave a loop budget, pass it with `--loop-budget "$LOOP_BUDGET"`. Otherwise leave it unset and keep the plan conservative.
-6. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-7. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-8. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-9. Record baseline iteration `0` in `results.tsv` before code changes.
-10. Work inside the returned experiment directory for notes, artifacts, and summaries.
-11. Log progress inside that experiment directory, not in shared files.
+5. If the user gave an overall budget for the full experiment path, pass it with `--overall-budget "$OVERALL_BUDGET"`.
+6. If the user gave a loop budget for just this iteration slice, pass it with `--loop-budget "$LOOP_BUDGET"`.
+7. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+8. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+9. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+10. Record baseline iteration `0` in `results.tsv` before code changes.
+11. Work inside the returned experiment directory for notes, artifacts, and summaries.
+12. Log progress inside that experiment directory, not in shared files.
 
 ## Configurable Options
 
@@ -145,11 +147,12 @@ Use these helper flags when creating an experiment:
 - `--metric-name`: optional metric label
 - `--direction`: optional optimization direction such as `higher` or `lower`
 - `--verify-command`: optional mechanical check command
-- `--loop-budget`: optional budget or timebox for the current loop
+- `--overall-budget`: optional total budget for the whole experiment path, including proposed follow-up or parallel work unless deferred
+- `--loop-budget`: optional budget or timebox for the current loop or iteration slice
 - `--workspace-root`: optional external root for the real workspace location
 - `--parent-id`: optional parent experiment id for child experiments
 
-If `--metric-name`, `--direction`, `--verify-command`, or `--loop-budget` are omitted, the helper records `TBD` in `plan.md` so the experiment can still be registered safely before the plan is fully refined.
+If `--metric-name`, `--direction`, `--verify-command`, `--overall-budget`, or `--loop-budget` are omitted, the helper records `TBD` in `plan.md` so the experiment can still be registered safely before the plan is fully refined.
 
 ## What Goes In Each Experiment
 

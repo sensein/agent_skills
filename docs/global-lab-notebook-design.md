@@ -24,6 +24,7 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - [x] Treat user time budgets as ceilings and require a smallest-useful-iteration plan with an explicit infeasibility path
 - [x] Apply the same budget realism to proposed parallel branches and downstream child experiments
 - [x] Allow an optional loop budget to be recorded directly in experiment registration metadata and plan scaffolding
+- [x] Split overall experiment budget from loop budget so the total plan cap is explicit
 
 ## Layout
 

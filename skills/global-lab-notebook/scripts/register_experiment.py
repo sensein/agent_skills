@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--metric-name", default="")
     parser.add_argument("--direction", default="")
     parser.add_argument("--verify-command", default="")
+    parser.add_argument("--overall-budget", default="")
     parser.add_argument("--loop-budget", default="")
     parser.add_argument("--workspace-root", default="")
     parser.add_argument("--parent-id", default="")
@@ -170,6 +171,7 @@ def main() -> int:
         "metric_name": args.metric_name,
         "direction": args.direction,
         "verify_command": args.verify_command,
+        "overall_budget": args.overall_budget,
         "loop_budget": args.loop_budget,
         "project_root": str(project_root),
         "experiment_dir": str(exp_dir),
@@ -186,6 +188,7 @@ def main() -> int:
             f"- Metric: {args.metric_name or 'TBD'}",
             f"- Direction: {args.direction or 'TBD'}",
             f"- Verify command: {args.verify_command or 'TBD'}",
+            f"- Overall budget: {args.overall_budget or 'TBD'}",
             f"- Loop budget: {args.loop_budget or 'TBD'}",
             f"- Project root: {project_root}",
             f"- Workspace dir: {workspace_dir}",

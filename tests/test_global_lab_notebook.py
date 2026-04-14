@@ -90,6 +90,39 @@ def register_with_loop_budget(
     return Path(result.stdout.strip())
 
 
+def register_with_budgets(
+    lab_root: Path,
+    project_root: Path,
+    slug: str,
+    overall_budget: str,
+    loop_budget: str,
+) -> Path:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--lab-root",
+            str(lab_root),
+            "--project-root",
+            str(project_root),
+            "--project-slug",
+            "demo-project",
+            "--experiment-slug",
+            slug,
+            "--objective",
+            f"Objective for {slug}",
+            "--overall-budget",
+            overall_budget,
+            "--loop-budget",
+            loop_budget,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return Path(result.stdout.strip())
+
+
 class GlobalLabNotebookTests(unittest.TestCase):
     def test_register_experiment_creates_layout_and_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -113,6 +146,7 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertIn("Total experiments: 1", index_md.read_text())
             self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
             self.assertIn("Workspace dir:", (exp_dir / "plan.md").read_text())
+            self.assertIn("Overall budget: TBD", (exp_dir / "plan.md").read_text())
             self.assertIn("Loop budget: TBD", (exp_dir / "plan.md").read_text())
             self.assertIn("## Feasibility And First Slice", (exp_dir / "plan.md").read_text())
             self.assertIn("Smallest useful iteration:", (exp_dir / "plan.md").read_text())
@@ -121,18 +155,21 @@ class GlobalLabNotebookTests(unittest.TestCase):
                 (exp_dir / "plan.md").read_text(),
             )
 
-    def test_register_experiment_records_loop_budget_when_provided(self) -> None:
+    def test_register_experiment_records_budgets_when_provided(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            exp_dir = register_with_loop_budget(
+            exp_dir = register_with_budgets(
                 temp_path / "lab",
                 temp_path / "project",
                 "budgeted",
+                "6 hours total",
                 "2 hours",
             )
 
             metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["overall_budget"], "6 hours total")
             self.assertEqual(metadata["loop_budget"], "2 hours")
+            self.assertIn("Overall budget: 6 hours total", (exp_dir / "plan.md").read_text())
             self.assertIn("Loop budget: 2 hours", (exp_dir / "plan.md").read_text())
 
     def test_register_experiment_can_link_workspace_to_external_root(self) -> None:
