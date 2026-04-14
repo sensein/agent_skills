@@ -14,6 +14,9 @@ Use this subskill when the work is concrete enough to execute now.
 3. If project files will change, work in a dedicated experiment clone or copy, not the shared source tree.
 4. Never let two active experiments write to the same clone, checkout, or output directory.
 5. If write scopes may overlap, separate the workspaces first and only then continue.
+6. Set and review experiment status explicitly, defaulting to `started` unless a better state is known.
+7. Track labnb-managed actions in provenance files, but treat that provenance as best-effort.
+8. Require explicit confirmation before labnb performs deletions of artifacts, workspaces, or entry files.
 
 ## Flow
 

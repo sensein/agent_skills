@@ -12,6 +12,8 @@ Use this subskill when there is a useful direction to remember, but not enough e
 1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
 2. Review the notebook index first so the idea does not duplicate an existing entry unnecessarily.
 3. Capture speculative directions as ideas instead of opening active experiments that would encourage unsafe or premature writes.
+4. Record idea status explicitly, defaulting to `ideation` unless a better status is known.
+5. Treat provenance as best-effort; deletions still require explicit confirmation.
 
 ## Flow
 

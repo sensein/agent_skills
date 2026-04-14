@@ -13,6 +13,19 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+KNOWN_STATUSES = (
+    "ideation",
+    "planned",
+    "started",
+    "stopped",
+    "completed",
+    "terminated",
+    "crashed",
+    "deferred",
+    "promoted",
+    "archived",
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -24,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-slug", required=True)
     parser.add_argument("--objective", required=True)
     parser.add_argument("--entry-kind", choices=("experiment", "idea"), default="experiment")
-    parser.add_argument("--status", default="")
+    parser.add_argument("--status", choices=KNOWN_STATUSES, default="")
     parser.add_argument("--metric-name", default="")
     parser.add_argument("--direction", default="")
     parser.add_argument("--verify-command", default="")
@@ -100,7 +113,7 @@ def normalize_index_row(row: list[str]) -> list[str] | None:
             exp_id,
             created_at,
             "experiment",
-            "active",
+            "started",
             project_slug,
             experiment_slug,
             objective,
@@ -156,6 +169,12 @@ def atomic_write(path: Path, content: str) -> None:
     os.replace(temp_name, path)
 
 
+def append_jsonl(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
 def initialize_workspace(lab_root: Path, exp_id: str, workspace_root: str) -> tuple[Path, Path]:
     workspace_link = lab_root / "workspaces" / exp_id
     if not workspace_root:
@@ -174,7 +193,7 @@ def initialize_workspace(lab_root: Path, exp_id: str, workspace_root: str) -> tu
 def default_status(entry_kind: str, status: str) -> str:
     if status:
         return status
-    return "planned" if entry_kind == "idea" else "active"
+    return "ideation" if entry_kind == "idea" else "started"
 
 
 def main() -> int:
@@ -206,6 +225,7 @@ def main() -> int:
         "project_slug": args.project_slug,
         "entry_slug": args.experiment_slug,
         "objective": args.objective,
+        "provenance_mode": "best_effort",
         "metric_name": args.metric_name,
         "direction": args.direction,
         "verify_command": args.verify_command,
@@ -221,6 +241,33 @@ def main() -> int:
         "experiment_dir": str(entry_dir),
     }
     atomic_write(entry_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
+    append_jsonl(
+        entry_dir / "provenance.jsonl",
+        {
+            "timestamp_utc": metadata["created_at_utc"],
+            "action": "register_entry",
+            "entry_id": exp_id,
+            "entry_kind": entry_kind,
+            "status": status,
+            "path": str(entry_dir),
+            "project_root": metadata["project_root"],
+            "workspace_dir": metadata["workspace_dir"],
+            "note": "Best-effort provenance. External changes may occur outside labnb tracking.",
+        },
+    )
+    write_if_missing(
+        entry_dir / "provenance.md",
+        "\n".join(
+            [
+                "# Provenance",
+                "",
+                "- Mode: best-effort",
+                "- Deletions require explicit user confirmation before labnb performs them.",
+                "- External file changes may still happen outside labnb tracking.",
+                "",
+            ]
+        ),
+    )
     if entry_kind == "idea":
         idea_md = "\n".join(
             [
@@ -228,6 +275,7 @@ def main() -> int:
                 "",
                 f"- Goal: {args.objective}",
                 f"- Status: {status}",
+                "- Provenance: best-effort; external changes may exist outside labnb tracking",
                 f"- Project root: {project_root if args.project_root else 'TBD'}",
                 f"- Parent experiment: {args.parent_id or 'None'}",
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
@@ -256,11 +304,13 @@ def main() -> int:
                 "# Experiment Plan",
                 "",
                 f"- Goal: {args.objective}",
+                f"- Status: {status}",
                 f"- Metric: {args.metric_name or 'TBD'}",
                 f"- Direction: {args.direction or 'TBD'}",
                 f"- Verify command: {args.verify_command or 'TBD'}",
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
                 f"- Loop budget: {args.loop_budget or 'TBD'}",
+                "- Provenance: best-effort; external changes may exist outside labnb tracking",
                 f"- Project root: {project_root}",
                 f"- Workspace dir: {workspace_dir}",
                 f"- Workspace link: {workspace_link}",
@@ -313,7 +363,7 @@ def main() -> int:
                 index_tsv,
                 "\t".join(
                     [
-                        "experiment_id",
+                        "entry_id",
                         "created_at_utc",
                         "entry_kind",
                         "status",

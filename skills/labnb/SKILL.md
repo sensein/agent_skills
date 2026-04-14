@@ -76,6 +76,8 @@ Treat the budget as applying to the whole proposed path, including any parallel 
 3. Never store the only copy of experiment state inside the project being studied.
 4. Never delete or rewrite prior experiment rows from the central index.
 5. Prefer deterministic helpers in [`scripts/register_experiment.py`](./scripts/register_experiment.py) and [`scripts/summarize_index.py`](./scripts/summarize_index.py) instead of ad hoc shell snippets.
+6. Track labnb-managed creates and updates with best-effort provenance inside each entry directory.
+7. Require explicit user confirmation before labnb performs deletions.
 
 ## Local Guardrails
 
@@ -91,6 +93,8 @@ Apply these guardrails even when the parent constitution does not spell them out
 8. Before resuming or branching, summarize related entries so you understand what has already been tried and what constraints still apply.
 9. If the safe workspace strategy is unclear, pause and choose the safer option rather than writing into an ambiguous location.
 10. Keep secrets, auth state, and external credentials outside experiment artifacts unless the parent constitution explicitly allows otherwise.
+11. Treat provenance as best-effort only: external changes or deletions may still occur without labnb observing them.
+12. Do not perform notebook-managed deletions without explicit confirmation from the user.
 
 ## Lab Layout
 
@@ -100,11 +104,15 @@ lab-notebook/
     <idea-id>/
       metadata.json
       idea.md
+      provenance.jsonl
+      provenance.md
   experiments/
     <experiment-id>/
       metadata.json
       plan.md
       log.md
+      provenance.jsonl
+      provenance.md
       results.tsv
       summary.md
       artifacts/
@@ -118,6 +126,8 @@ lab-notebook/
 
 - `ideas/<idea-id>/`: not-yet-started or not-yet-promoted experiment ideas
 - `experiments/<experiment-id>/`: one experiment per directory; no sharing across active runs
+- `provenance.jsonl`: best-effort append-only event log for labnb-managed actions
+- `provenance.md`: human-readable provenance policy and caveats
 - `experiments/<experiment-id>/plan.md`: the setup gate plus current hypothesis
 - `experiments/<experiment-id>/results.tsv`: local iteration ledger for this experiment
 - `workspaces/<experiment-id>/`: per-experiment working area for an isolated project clone or checkout
@@ -206,7 +216,7 @@ Use these helper flags when creating an experiment:
 - `--experiment-slug`: short name for this idea or experiment entry
 - `--objective`: concise goal statement
 - `--entry-kind`: `experiment` or `idea`
-- `--status`: optional explicit state; defaults to `active` for experiments and `planned` for ideas
+- `--status`: optional explicit state; defaults to `started` for experiments and `ideation` for ideas
 - `--metric-name`: optional metric label
 - `--direction`: optional optimization direction such as `higher` or `lower`
 - `--verify-command`: optional mechanical check command
@@ -216,6 +226,19 @@ Use these helper flags when creating an experiment:
 - `--parent-id`: optional parent experiment id for child experiments
 
 If `--metric-name`, `--direction`, `--verify-command`, `--overall-budget`, or `--loop-budget` are omitted, the helper records `TBD` in `plan.md` so the experiment can still be registered safely before the plan is fully refined.
+
+Recommended statuses include:
+
+- `ideation`
+- `planned`
+- `started`
+- `stopped`
+- `completed`
+- `terminated`
+- `crashed`
+- `deferred`
+- `promoted`
+- `archived`
 
 The summary helper also supports:
 
@@ -227,14 +250,18 @@ The summary helper also supports:
 
 For ideas:
 
-- `metadata.json`: creation metadata, status, budgets, and linkage to future work
+- `metadata.json`: creation metadata, status, budgets, provenance mode, and linkage to future work
 - `idea.md`: rationale, prior evidence to revisit, and pickup criteria for promotion into an experiment
+- `provenance.jsonl`: append-only best-effort event log
+- `provenance.md`: provenance rules and deletion policy
 
 For experiments:
 
-- `metadata.json`: creation metadata, source repo path, objective, and ids
+- `metadata.json`: creation metadata, source repo path, objective, ids, status, and provenance mode
 - `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
 - `log.md`: chronological notes for the experiment
+- `provenance.jsonl`: append-only best-effort event log
+- `provenance.md`: provenance rules and deletion policy
 - `results.tsv`: one row per iteration or thought with status and metric outcome
 - `summary.md`: final concise outcome
 - `artifacts/`: scratch outputs, plots, reports, and temporary files worth keeping
@@ -294,6 +321,7 @@ When creating or updating the shared index:
 3. Rebuild `index/index.md` from `experiments.tsv` while the lock is held.
 4. Write the regenerated markdown to a temp file and rename it into place atomically.
 5. Release the lock even on failure.
+6. Keep status current in new rows or explicit follow-up events rather than silently mutating history.
 
 If a lock appears stale, only clear it after confirming the owning process is gone. Prefer waiting over forcing.
 
@@ -327,6 +355,8 @@ When resuming:
 - Ask whether the workspace should live somewhere else when the repo clone, datasets, or generated artifacts would be better outside the notebook root.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.
+- Track labnb-managed changes in provenance files, but say clearly that external changes may exist outside that record.
+- Require explicit confirmation before deleting entry files, artifacts, or workspaces through labnb-driven actions.
 - If the user gives a budget like "two hours," do not stretch the plan to fill two hours by default; start with the smallest decision-making slice and say when the budget is insufficient.
 - If you propose parallel branches or downstream experiments, count them against the same stated budget unless you explicitly mark them as later follow-up outside the current scope.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.

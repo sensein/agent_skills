@@ -149,6 +149,35 @@ def register_idea(lab_root: Path, project_root: Path, slug: str) -> Path:
     return Path(result.stdout.strip())
 
 
+def register_with_status(
+    lab_root: Path, project_root: Path, slug: str, entry_kind: str, status: str
+) -> Path:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--lab-root",
+            str(lab_root),
+            "--project-root",
+            str(project_root),
+            "--project-slug",
+            "demo-project",
+            "--experiment-slug",
+            slug,
+            "--objective",
+            f"Objective for {slug}",
+            "--entry-kind",
+            entry_kind,
+            "--status",
+            status,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return Path(result.stdout.strip())
+
+
 class LabNBTests(unittest.TestCase):
     def test_register_experiment_creates_layout_and_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -158,12 +187,19 @@ class LabNBTests(unittest.TestCase):
             self.assertTrue(exp_dir.exists())
             self.assertTrue((exp_dir / "artifacts").exists())
             self.assertTrue((exp_dir / "plan.md").exists())
+            self.assertTrue((exp_dir / "provenance.jsonl").exists())
+            self.assertTrue((exp_dir / "provenance.md").exists())
             self.assertTrue((exp_dir / "results.tsv").exists())
             metadata = json.loads((exp_dir / "metadata.json").read_text())
             self.assertEqual(metadata["entry_kind"], "experiment")
+            self.assertEqual(metadata["status"], "started")
+            self.assertEqual(metadata["provenance_mode"], "best_effort")
             self.assertEqual(metadata["project_slug"], "demo-project")
             self.assertEqual(metadata["entry_slug"], "baseline")
             self.assertTrue(Path(metadata["workspace_dir"]).exists())
+            self.assertIn("Status: started", (exp_dir / "plan.md").read_text())
+            self.assertIn("Deletions require explicit user confirmation", (exp_dir / "provenance.md").read_text())
+            self.assertIn('"action": "register_entry"', (exp_dir / "provenance.jsonl").read_text())
 
             index_tsv = temp_path / "lab" / "index" / "experiments.tsv"
             index_md = temp_path / "lab" / "index" / "index.md"
@@ -191,11 +227,15 @@ class LabNBTests(unittest.TestCase):
 
             self.assertTrue(idea_dir.exists())
             self.assertTrue((idea_dir / "idea.md").exists())
+            self.assertTrue((idea_dir / "provenance.jsonl").exists())
+            self.assertTrue((idea_dir / "provenance.md").exists())
             self.assertFalse((idea_dir / "results.tsv").exists())
             metadata = json.loads((idea_dir / "metadata.json").read_text())
             self.assertEqual(metadata["entry_kind"], "idea")
-            self.assertEqual(metadata["status"], "planned")
+            self.assertEqual(metadata["status"], "ideation")
             self.assertEqual(metadata["workspace_dir"], "")
+            self.assertIn("Status: ideation", (idea_dir / "idea.md").read_text())
+            self.assertIn('"action": "register_entry"', (idea_dir / "provenance.jsonl").read_text())
 
             index_md = (temp_path / "lab" / "index" / "index.md").read_text()
             self.assertIn("Ideas: 1", index_md)
@@ -217,6 +257,22 @@ class LabNBTests(unittest.TestCase):
             self.assertEqual(metadata["loop_budget"], "2 hours")
             self.assertIn("Overall budget: 6 hours total", (exp_dir / "plan.md").read_text())
             self.assertIn("Loop budget: 2 hours", (exp_dir / "plan.md").read_text())
+
+    def test_register_respects_explicit_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            exp_dir = register_with_status(
+                temp_path / "lab",
+                temp_path / "project",
+                "crashed-run",
+                "experiment",
+                "crashed",
+            )
+
+            metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["status"], "crashed")
+            self.assertIn("Status: crashed", (exp_dir / "plan.md").read_text())
+            self.assertIn("\tcrashed\t", (temp_path / "lab" / "index" / "experiments.tsv").read_text())
 
     def test_register_experiment_can_link_workspace_to_external_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

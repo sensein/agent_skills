@@ -29,6 +29,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Split overall experiment budget from loop budget so the total plan cap is explicit
 - [x] Allow the index to hold both ideas and experiments, with a summary step before starting new work
 - [x] Require parent-constitution review and local safety guardrails around source isolation, index review, and parallel writes
+- [x] Add best-effort provenance scaffolding and explicit status defaults for all notebook entries
 
 ## Layout
 
@@ -38,11 +39,15 @@ lab-notebook/
     <idea-id>/
       metadata.json
       idea.md
+      provenance.jsonl
+      provenance.md
   experiments/
     <experiment-id>/
       metadata.json
       plan.md
       log.md
+      provenance.jsonl
+      provenance.md
       results.tsv
       summary.md
       artifacts/
@@ -70,6 +75,13 @@ lab-notebook/
 2. Before planning or writing, review both the active constitution and the notebook index.
 3. If the parent rules are stricter than the skill guidance, the stricter rule wins.
 4. Add local guardrails when the parent context implies them, even if they are not already written into the experiment prompt.
+
+## Provenance Rules
+
+1. Track labnb-managed creates and updates with append-only provenance files inside each entry directory.
+2. Treat provenance as best-effort, because external changes or deletions may happen outside labnb tracking.
+3. Require explicit confirmation before labnb performs deletions.
+4. Make entry status explicit from the start so ideas and experiments do not silently stay in an ambiguous state.
 
 ## Index And Resume Rules
 
