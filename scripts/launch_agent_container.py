@@ -14,7 +14,7 @@ from typing import Iterable
 
 
 DEFAULT_IMAGE = "node:24-bookworm-slim"
-DEFAULT_APPTAINER_IMAGE = f"docker://{DEFAULT_IMAGE}"
+DEFAULT_APPTAINER_IMAGE = "docker://node:24-bookworm"
 DEFAULT_CONFIG_NAME = ".agent-container.toml"
 SCRIPT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -456,35 +456,44 @@ def shell_quote_args(parts: Iterable[str]) -> str:
     return " ".join(shlex.quote(part) for part in parts)
 
 
-def install_block(spec: AgentSpec) -> list[str]:
+def install_block(spec: AgentSpec, engine: str) -> list[str]:
     if spec.install_mode == "npm":
         return [
             "if command -v npm >/dev/null 2>&1; then npm install -g npm@latest; fi",
             f'if ! command -v {spec.command} >/dev/null 2>&1; then npm install -g {shlex.quote(spec.install_package)}; fi'
         ]
 
+    transport_check = [
+        "if command -v curl >/dev/null 2>&1; then",
+        f"  curl -fsSL {shlex.quote(spec.install_package)} | bash",
+        "elif command -v wget >/dev/null 2>&1; then",
+        f"  wget -qO- {shlex.quote(spec.install_package)} | bash",
+    ]
+    if engine == "docker":
+        transport_check += [
+            "elif command -v apt-get >/dev/null 2>&1; then",
+            "  apt-get update",
+            "  apt-get install -y curl ca-certificates",
+            f"  curl -fsSL {shlex.quote(spec.install_package)} | bash",
+            "elif command -v apk >/dev/null 2>&1; then",
+            "  apk add --no-cache bash curl",
+            f"  curl -fsSL {shlex.quote(spec.install_package)} | bash",
+        ]
+    transport_check += [
+        "else",
+        '  echo "Claude native installer requires curl or wget inside the container." >&2',
+        "  exit 1",
+        "fi",
+    ]
+
     return [
         f"if ! command -v {spec.command} >/dev/null 2>&1; then",
-        "  if command -v curl >/dev/null 2>&1; then",
-        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
-        "  elif command -v wget >/dev/null 2>&1; then",
-        f"    wget -qO- {shlex.quote(spec.install_package)} | bash",
-        "  elif command -v apt-get >/dev/null 2>&1; then",
-        "    apt-get update",
-        "    apt-get install -y curl ca-certificates",
-        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
-        "  elif command -v apk >/dev/null 2>&1; then",
-        "    apk add --no-cache bash curl",
-        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
-        "  else",
-        '    echo "Claude native installer requires curl or wget inside the container." >&2',
-        "    exit 1",
-        "  fi",
+        *["  " + line if line else line for line in transport_check],
         "fi",
     ]
 
 
-def system_package_block() -> list[str]:
+def docker_system_package_block() -> list[str]:
     return [
         "if ! command -v git >/dev/null 2>&1; then",
         "  if command -v apt-get >/dev/null 2>&1; then",
@@ -506,7 +515,32 @@ def system_package_block() -> list[str]:
     ]
 
 
+def apptainer_system_package_block(spec: AgentSpec) -> list[str]:
+    lines = [
+        'missing=""',
+        'for tool in bash git; do',
+        '  if ! command -v "$tool" >/dev/null 2>&1; then',
+        '    missing="${missing} ${tool}"',
+        "  fi",
+        "done",
+    ]
+    if spec.install_mode == "native":
+        lines += [
+            "if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then",
+            '  missing="${missing} curl-or-wget"',
+            "fi",
+        ]
+    lines += [
+        'if [ -n "${missing}" ]; then',
+        '  echo "Apptainer images are treated as immutable. Please choose an image that already includes:${missing}" >&2',
+        "  exit 1",
+        "fi",
+    ]
+    return lines
+
+
 def bootstrap_script(
+    engine: str,
     agent: str,
     workdir: str,
     cli_options: list[str],
@@ -527,7 +561,7 @@ def bootstrap_script(
             "export NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
             "export NPM_CONFIG_UPDATE_NOTIFIER=false",
             'export PATH="$HOME/.local/bin:$NPM_CONFIG_PREFIX/bin:$PATH"',
-            *system_package_block(),
+            *(docker_system_package_block() if engine == "docker" else apptainer_system_package_block(spec)),
             "mkdir -p /opt/agent-skills",
             f'mkdir -p "$HOME/{spec.skills_subdir}"',
             "for mount_root in /opt/agent-skills/*; do",
@@ -545,7 +579,7 @@ def bootstrap_script(
             "    fi",
             "  done",
             "done",
-            *install_block(spec),
+            *install_block(spec, engine),
             f"cd {shlex.quote(workdir)}",
             f"exec {launch_cmd}",
         ]
@@ -622,6 +656,7 @@ def build_command(settings: dict[str, object]) -> tuple[list[str], list[Mount], 
     image = str(settings["image"]) or default_image_for_engine(engine)
     mounts, workdir = build_mounts(settings)
     script = bootstrap_script(
+        engine=engine,
         agent=str(settings["agent"]),
         workdir=workdir,
         cli_options=[str(value) for value in settings["cli_options"]],

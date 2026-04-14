@@ -265,10 +265,13 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 )
             )
             self.assertNotIn("HOME=/home/agent", command)
+            script = command[-1]
+            self.assertIn('Apptainer images are treated as immutable.', script)
+            self.assertNotIn("apt-get install -y git curl ca-certificates bash", script)
 
     def test_codex_bootstrap_updates_npm_before_install(self) -> None:
         script = MODULE.bootstrap_script(
-            "codex", "/workspace/task", ["--model", "gpt-5"], ["login", "status"]
+            "docker", "codex", "/workspace/task", ["--model", "gpt-5"], ["login", "status"]
         )
         self.assertIn("if ! command -v git >/dev/null 2>&1; then", script)
         self.assertIn("apt-get install -y git curl ca-certificates bash", script)
@@ -276,8 +279,19 @@ class LaunchAgentContainerTests(unittest.TestCase):
         self.assertIn("npm install -g @openai/codex", script)
         self.assertIn("exec codex --model gpt-5 -C /workspace/task login status", script)
 
+    def test_claude_apptainer_bootstrap_requires_existing_tools(self) -> None:
+        script = MODULE.bootstrap_script(
+            "apptainer", "claude", "/workspace/task", ["--verbose"], ["auth", "status"]
+        )
+        self.assertIn('for tool in bash git; do', script)
+        self.assertIn('missing="${missing} curl-or-wget"', script)
+        self.assertIn('Apptainer images are treated as immutable.', script)
+        self.assertNotIn("apt-get install -y git curl ca-certificates bash", script)
+        self.assertNotIn("apt-get update", script)
+
     def test_default_image_tracks_recent_node(self) -> None:
         self.assertEqual(MODULE.DEFAULT_IMAGE, "node:24-bookworm-slim")
+        self.assertEqual(MODULE.DEFAULT_APPTAINER_IMAGE, "docker://node:24-bookworm")
 
     def test_help_includes_key_defaults(self) -> None:
         result = subprocess.run(

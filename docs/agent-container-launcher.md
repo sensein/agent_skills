@@ -5,10 +5,10 @@
 ## Defaults
 
 - Engine: auto-select `apptainer` on Linux when available, otherwise `docker`
-- Image: `node:24-bookworm-slim` for Docker, `docker://node:24-bookworm-slim` for Apptainer
+- Image: `node:24-bookworm-slim` for Docker, `docker://node:24-bookworm` for Apptainer
 - Config: `./.agent-container.toml`
 - Skills: mounts this repo's `skills/` directory read-only when present
-- System tools: bootstraps `git` in-container before launching the agent if the base image does not already include it
+- System tools: Docker bootstraps `git` in-container when needed; Apptainer treats the image as immutable and expects `bash`, `git`, and any installer transport like `curl` or `wget` to already be present
 
 ## Example
 
