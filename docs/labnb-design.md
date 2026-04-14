@@ -38,6 +38,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Require a deliberate timer-or-stop decision before leaving background work unattended, and mark exhausted runs explicitly
 - [x] Require any new wait job to check for and reuse or replace existing pending waits for the same experiment
 - [x] Scaffold entry-local rules and durable memory so each action can re-check them instead of relying on recall
+- [x] Prefer minimal asynchronous metric-comparison checkpoints over waiting for full loop completion when comparing alternatives
 
 ## Layout
 
@@ -118,6 +119,7 @@ lab-notebook/
 12. Before leaving background work unattended, either start an explicit timer/watchdog or stop with a resume checkpoint.
 13. Before adding a new wait job, check whether one is already pending for the experiment and either reuse it or replace it.
 14. If the loop or overall budget is exceeded, record that as `budget_exhausted` rather than a generic stop.
+15. When the task compares two alternatives by a metric, plan the smallest asynchronous comparison path and checkpoint rather than assuming the whole loop must stay active until final conclusion.
 
 ## Validation
 

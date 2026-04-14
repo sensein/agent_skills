@@ -288,6 +288,11 @@ class LabNBTests(unittest.TestCase):
             self.assertIn("## Durable Memory", (exp_dir / "memory.md").read_text())
             self.assertIn("## Wait And Resume Memory", (exp_dir / "memory.md").read_text())
             self.assertIn("## Feasibility And First Slice", (exp_dir / "plan.md").read_text())
+            self.assertIn("## Metric Comparison Plan", (exp_dir / "plan.md").read_text())
+            self.assertIn(
+                "Smallest asynchronous evaluation that can decide the comparison:",
+                (exp_dir / "plan.md").read_text(),
+            )
             self.assertIn("## Existing Context Summary", (exp_dir / "plan.md").read_text())
             self.assertIn("Smallest useful iteration:", (exp_dir / "plan.md").read_text())
             self.assertIn(
