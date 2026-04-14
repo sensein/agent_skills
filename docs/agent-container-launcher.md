@@ -28,7 +28,7 @@ On first run, the script writes the config file if it does not already exist. La
 
 - mounts only the directories you list, plus a narrow agent state directory and a launcher-specific tool state directory
 - does not mount the full home directory
-- mounts skill directories read-only
+- mounts each skill read-only directly into the agent's in-container skills directory
 - mounts task code or data directories read-only or read-write based on the provided flags
 
 ## Reusable Config
@@ -74,5 +74,6 @@ Use `agent_args` for trailing subcommands or positional args.
 ## Authentication
 
 The launcher already mounts the selected agent's main state directory, such as `~/.codex` or `~/.claude`, in read-write mode.
+Skill directories are mounted directly into `/home/agent/.codex/skills/<skill-name>` or `/home/agent/.claude/skills/<skill-name>` inside the container, so the host skill directories are not rewritten with container-only symlinks.
 
 If credentials or helper auth files live elsewhere, add them with `--auth-path /path/to/auth-store`. Home-relative auth paths are mounted back into the same relative location under `/home/agent`, and non-home auth paths are mounted under `/home/agent/.agent-auth/`.

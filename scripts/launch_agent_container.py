@@ -402,12 +402,24 @@ def mount_name(path: Path, used: set[str]) -> str:
     return candidate
 
 
+def expand_skill_dirs(skill_roots: list[Path]) -> list[Path]:
+    skill_dirs: list[Path] = []
+    for skill_root in skill_roots:
+        if (skill_root / "SKILL.md").is_file():
+            skill_dirs.append(skill_root)
+            continue
+        for child in sorted(skill_root.iterdir()):
+            if child.is_dir() and (child / "SKILL.md").is_file():
+                skill_dirs.append(child)
+    return skill_dirs
+
+
 def build_mounts(settings: dict[str, object]) -> tuple[list[Mount], str]:
     used_names: set[str] = set()
     mounts: list[Mount] = []
     rw_dirs = [normalize_mount_path(path, "rw-dir") for path in settings["rw_dirs"]]
     ro_dirs = [normalize_mount_path(path, "ro-dir") for path in settings["ro_dirs"]]
-    skill_dirs = [normalize_mount_path(path, "skill-dir") for path in settings["skill_dirs"]]
+    skill_roots = [normalize_mount_path(path, "skill-dir") for path in settings["skill_dirs"]]
     auth_paths = [normalize_mount_path(path, "auth-path") for path in settings["auth_paths"]]
     agent_state_dir = Path(str(settings["agent_state_dir"])).expanduser().resolve()
     tool_state_dir = Path(str(settings["tool_state_dir"])).expanduser().resolve()
@@ -445,9 +457,17 @@ def build_mounts(settings: dict[str, object]) -> tuple[list[Mount], str]:
         if workdir == "/workspace":
             workdir = f"/workspace/ro/{name}"
 
-    for path in skill_dirs:
-        name = mount_name(path, used_names)
-        mounts.append(Mount(path, f"/opt/agent-skills/{name}", "ro"))
+    seen_skills: dict[str, Path] = {}
+    for path in expand_skill_dirs(skill_roots):
+        skill_name = path.name
+        previous = seen_skills.get(skill_name)
+        if previous is not None and previous != path:
+            raise RuntimeError(
+                f"Duplicate skill name '{skill_name}' from {previous} and {path}; "
+                "choose distinct skill directories."
+            )
+        seen_skills[skill_name] = path
+        mounts.append(Mount(path, f"/home/agent/{spec.skills_subdir}/{skill_name}", "ro"))
 
     return mounts, workdir
 
@@ -562,23 +582,7 @@ def bootstrap_script(
             "export NPM_CONFIG_UPDATE_NOTIFIER=false",
             'export PATH="$HOME/.local/bin:$NPM_CONFIG_PREFIX/bin:$PATH"',
             *(docker_system_package_block() if engine == "docker" else apptainer_system_package_block(spec)),
-            "mkdir -p /opt/agent-skills",
             f'mkdir -p "$HOME/{spec.skills_subdir}"',
-            "for mount_root in /opt/agent-skills/*; do",
-            '  [ -e "$mount_root" ] || continue',
-            '  if [ -f "$mount_root/SKILL.md" ]; then',
-            '    skill_dirs="$mount_root"',
-            "  else",
-            '    skill_dirs="$mount_root"/*',
-            "  fi",
-            '  for skill_dir in $skill_dirs; do',
-            '    [ -f "$skill_dir/SKILL.md" ] || continue',
-            '    target="$HOME/' + spec.skills_subdir + '/$(basename "$skill_dir")"',
-            '    if [ ! -e "$target" ]; then',
-            '      ln -s "$skill_dir" "$target"',
-            "    fi",
-            "  done",
-            "done",
             *install_block(spec, engine),
             f"cd {shlex.quote(workdir)}",
             f"exec {launch_cmd}",
@@ -602,8 +606,6 @@ def build_docker_command(
         "NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
         "-e",
         "NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
-        "-e",
-        "AGENT_SKILLS_DIR=/opt/agent-skills",
         "-e",
         "AGENT_AUTH_ROOT=/home/agent/.agent-auth",
     ]
@@ -641,7 +643,6 @@ def build_apptainer_command(
     env_parts = [
         "NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
         "NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
-        "AGENT_SKILLS_DIR=/opt/agent-skills",
         "AGENT_AUTH_ROOT=/home/agent/.agent-auth",
     ]
     for env_var in env_vars:

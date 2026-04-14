@@ -227,10 +227,16 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 command, mounts, engine, image = MODULE.build_command(settings)
             self.assertEqual(engine, "docker")
             self.assertEqual(image, MODULE.DEFAULT_IMAGE)
-            self.assertTrue(any(mount.container_path.startswith("/opt/agent-skills/") for mount in mounts))
+            self.assertTrue(
+                any(
+                    mount.container_path == "/home/agent/.codex/skills/global-lab-notebook"
+                    for mount in mounts
+                )
+            )
             self.assertIn("docker", command[0])
             script = command[-1]
             self.assertIn("exec codex --model gpt-5 -C /workspace/task --full-auto", script)
+            self.assertNotIn("/opt/agent-skills", script)
 
     def test_build_apptainer_command_uses_dedicated_home_and_cache(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -288,6 +294,50 @@ class LaunchAgentContainerTests(unittest.TestCase):
         self.assertIn('Apptainer images are treated as immutable.', script)
         self.assertNotIn("apt-get install -y git curl ca-certificates bash", script)
         self.assertNotIn("apt-get update", script)
+
+    def test_expand_skill_root_mounts_each_skill_into_agent_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            skill_root = temp_path / "skills"
+            skill_root.mkdir()
+            for name in ("alpha", "beta"):
+                skill_dir = skill_root / name
+                skill_dir.mkdir()
+                (skill_dir / "SKILL.md").write_text(f"# {name}\n", encoding="utf-8")
+            settings = {
+                "agent": "claude",
+                "rw_dirs": [],
+                "ro_dirs": [],
+                "skill_dirs": [str(skill_root)],
+                "auth_paths": [],
+                "agent_state_dir": str(temp_path / ".claude"),
+                "tool_state_dir": str(temp_path / ".tool-state"),
+            }
+            mounts, _ = MODULE.build_mounts(settings)
+            container_paths = {mount.container_path for mount in mounts}
+            self.assertIn("/home/agent/.claude/skills/alpha", container_paths)
+            self.assertIn("/home/agent/.claude/skills/beta", container_paths)
+
+    def test_duplicate_skill_names_raise_clear_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            first_root = temp_path / "skills-a"
+            second_root = temp_path / "skills-b"
+            for root in (first_root, second_root):
+                skill_dir = root / "shared-skill"
+                skill_dir.mkdir(parents=True)
+                (skill_dir / "SKILL.md").write_text("# shared\n", encoding="utf-8")
+            settings = {
+                "agent": "claude",
+                "rw_dirs": [],
+                "ro_dirs": [],
+                "skill_dirs": [str(first_root), str(second_root)],
+                "auth_paths": [],
+                "agent_state_dir": str(temp_path / ".claude"),
+                "tool_state_dir": str(temp_path / ".tool-state"),
+            }
+            with self.assertRaisesRegex(RuntimeError, "Duplicate skill name 'shared-skill'"):
+                MODULE.build_mounts(settings)
 
     def test_default_image_tracks_recent_node(self) -> None:
         self.assertEqual(MODULE.DEFAULT_IMAGE, "node:24-bookworm-slim")
