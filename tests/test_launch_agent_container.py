@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -130,6 +131,17 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertEqual(image, MODULE.DEFAULT_IMAGE)
             self.assertTrue(any(mount.container_path.startswith("/opt/agent-skills/") for mount in mounts))
             self.assertIn("docker", command[0])
+
+    def test_help_includes_key_defaults(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT_PATH), "-h"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertIn("container.toml", result.stdout)
+        self.assertIn(MODULE.DEFAULT_IMAGE, result.stdout)
+        self.assertIn("'codex'.", result.stdout)
 
 
 if __name__ == "__main__":

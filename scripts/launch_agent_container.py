@@ -56,27 +56,114 @@ AGENT_SPECS = {
 }
 
 
+class SmartDefaultsFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    def _get_help_string(self, action: argparse.Action) -> str:
+        if action.default in (None, argparse.SUPPRESS):
+            return action.help or ""
+        return super()._get_help_string(action)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Launch a containerized Codex or Claude session with reusable config."
+        description="Launch a containerized Codex or Claude session with reusable config.",
+        formatter_class=SmartDefaultsFormatter,
     )
-    parser.add_argument("--config", default=DEFAULT_CONFIG_NAME)
-    parser.add_argument("--write-config", action="store_true")
-    parser.add_argument("--print-config", action="store_true")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--agent", choices=sorted(AGENT_SPECS), default=None)
-    parser.add_argument("--engine", choices=("auto", "docker", "apptainer"), default=None)
-    parser.add_argument("--image", default=None)
-    parser.add_argument("--workspace-name", default=None)
-    parser.add_argument("--workspace-root", default=None)
-    parser.add_argument("--agent-state-dir", default=None)
-    parser.add_argument("--tool-state-dir", default=None)
-    parser.add_argument("--auth-path", action="append", default=None)
-    parser.add_argument("--rw-dir", action="append", default=None)
-    parser.add_argument("--ro-dir", action="append", default=None)
-    parser.add_argument("--skill-dir", action="append", default=None)
-    parser.add_argument("--env-var", action="append", default=None)
-    parser.add_argument("--agent-arg", action="append", default=None)
+    parser.add_argument(
+        "--config",
+        default=DEFAULT_CONFIG_NAME,
+        help="TOML config file to read or create.",
+    )
+    parser.add_argument(
+        "--write-config",
+        action="store_true",
+        help="Persist the resolved settings back to the config file.",
+    )
+    parser.add_argument(
+        "--print-config",
+        action="store_true",
+        help="Print the config file contents after resolution and exit.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the resolved command and mounts without launching the container.",
+    )
+    parser.add_argument(
+        "--agent",
+        choices=sorted(AGENT_SPECS),
+        default=None,
+        help="Agent CLI to launch. Defaults to the config value or 'codex'.",
+    )
+    parser.add_argument(
+        "--engine",
+        choices=("auto", "docker", "apptainer"),
+        default=None,
+        help="Container engine preference. Defaults to the config value or 'auto'.",
+    )
+    parser.add_argument(
+        "--image",
+        default=None,
+        help=(
+            "Container image to launch. Defaults to the config value or "
+            f"'{DEFAULT_IMAGE}' ('{DEFAULT_APPTAINER_IMAGE}' for Apptainer)."
+        ),
+    )
+    parser.add_argument(
+        "--workspace-name",
+        default=None,
+        help="Label for the task workspace. Defaults to the config value or 'default'.",
+    )
+    parser.add_argument(
+        "--workspace-root",
+        default=None,
+        help="Optional external workspace root. Defaults to the config value or unset.",
+    )
+    parser.add_argument(
+        "--agent-state-dir",
+        default=None,
+        help="Persistent host directory for the agent's own state and auth. Defaults to the config value or ~/.codex / ~/.claude.",
+    )
+    parser.add_argument(
+        "--tool-state-dir",
+        default=None,
+        help="Persistent host directory for launcher-managed caches such as npm installs. Defaults to the config value or .agent-container-state/<agent> next to the config file.",
+    )
+    parser.add_argument(
+        "--auth-path",
+        action="append",
+        default=None,
+        help="Extra authentication file or directory to mount into the container. Repeat as needed.",
+    )
+    parser.add_argument(
+        "--rw-dir",
+        action="append",
+        default=None,
+        help="Host directory to mount read-write for the task. Repeat as needed.",
+    )
+    parser.add_argument(
+        "--ro-dir",
+        action="append",
+        default=None,
+        help="Host directory to mount read-only for the task. Repeat as needed.",
+    )
+    parser.add_argument(
+        "--skill-dir",
+        action="append",
+        default=None,
+        help="Skill directory or skills root to mount read-only. Defaults to the config value or this repo's skills/ directory when present.",
+    )
+    parser.add_argument(
+        "--env-var",
+        action="append",
+        default=None,
+        help="Environment variable name to pass through into the container. Defaults to agent-specific API key variables.",
+    )
+    parser.add_argument(
+        "--agent-arg",
+        action="append",
+        default=None,
+        help="Extra argument to pass to the agent CLI inside the container. Repeat as needed.",
+    )
     return parser.parse_args()
 
 
