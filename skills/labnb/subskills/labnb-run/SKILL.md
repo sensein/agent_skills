@@ -59,10 +59,14 @@ python skills/labnb/scripts/monitor_slice.py start \
    - log outcome
    - continue only if the checkpoint justifies it
 10. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget.
-11. If no timer or watchdog is appropriate or available, stop deliberately instead of leaving the run hanging:
+11. Before scheduling a new wait job, check whether this experiment already has a pending wait:
+   - if the earlier wait still covers the needed follow-up, do not submit a duplicate; just wait on it
+   - if the new wait supersedes the older one, cancel or replace the earlier wait first
+   - do not leave overlapping waits for the same experiment unless you record why in `log.md`
+12. If no timer or watchdog is appropriate or available, stop deliberately instead of leaving the run hanging:
    - `python skills/labnb/scripts/monitor_slice.py finish --experiment-dir "$EXPERIMENT_DIR" --final-status stopped`
    - write a resume checkpoint in `log.md`
    - note what command or verification step to restart on resume
-12. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
+13. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
 
 Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice. If the budget is exceeded, prefer the explicit status `budget_exhausted` and record the safest next resume point.

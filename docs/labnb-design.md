@@ -36,6 +36,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Allow an experiment to stem from one or more upstream ideas or experiments
 - [x] Monitor active slice budgets from provenance rather than a separate mutable state file
 - [x] Require a deliberate timer-or-stop decision before leaving background work unattended, and mark exhausted runs explicitly
+- [x] Require any new wait job to check for and reuse or replace existing pending waits for the same experiment
 
 ## Layout
 
@@ -114,7 +115,8 @@ lab-notebook/
 10. Keep improved or equally good-but-simpler results; discard regressions.
 11. Log every iteration locally in the experiment directory.
 12. Before leaving background work unattended, either start an explicit timer/watchdog or stop with a resume checkpoint.
-13. If the loop or overall budget is exceeded, record that as `budget_exhausted` rather than a generic stop.
+13. Before adding a new wait job, check whether one is already pending for the experiment and either reuse it or replace it.
+14. If the loop or overall budget is exceeded, record that as `budget_exhausted` rather than a generic stop.
 
 ## Validation
 
