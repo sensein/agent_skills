@@ -24,6 +24,7 @@ class AgentSpec:
     name: str
     command: str
     install_package: str
+    install_mode: str
     agent_state_subdir: str
     skills_subdir: str
     default_env_vars: tuple[str, ...]
@@ -41,6 +42,7 @@ AGENT_SPECS = {
         name="codex",
         command="codex",
         install_package="@openai/codex",
+        install_mode="npm",
         agent_state_subdir=".codex",
         skills_subdir=".codex/skills",
         default_env_vars=("OPENAI_API_KEY",),
@@ -48,7 +50,8 @@ AGENT_SPECS = {
     "claude": AgentSpec(
         name="claude",
         command="claude",
-        install_package="@anthropic-ai/claude-code",
+        install_package="https://claude.ai/install.sh",
+        install_mode="native",
         agent_state_subdir=".claude",
         skills_subdir=".claude/skills",
         default_env_vars=("ANTHROPIC_API_KEY",),
@@ -444,6 +447,34 @@ def shell_quote_args(parts: Iterable[str]) -> str:
     return " ".join(shlex.quote(part) for part in parts)
 
 
+def install_block(spec: AgentSpec) -> list[str]:
+    if spec.install_mode == "npm":
+        return [
+            "if command -v npm >/dev/null 2>&1; then npm install -g npm@latest; fi",
+            f'if ! command -v {spec.command} >/dev/null 2>&1; then npm install -g {shlex.quote(spec.install_package)}; fi'
+        ]
+
+    return [
+        f"if ! command -v {spec.command} >/dev/null 2>&1; then",
+        "  if command -v curl >/dev/null 2>&1; then",
+        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
+        "  elif command -v wget >/dev/null 2>&1; then",
+        f"    wget -qO- {shlex.quote(spec.install_package)} | bash",
+        "  elif command -v apt-get >/dev/null 2>&1; then",
+        "    apt-get update",
+        "    apt-get install -y curl ca-certificates",
+        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
+        "  elif command -v apk >/dev/null 2>&1; then",
+        "    apk add --no-cache bash curl",
+        f"    curl -fsSL {shlex.quote(spec.install_package)} | bash",
+        "  else",
+        '    echo "Claude native installer requires curl or wget inside the container." >&2',
+        "    exit 1",
+        "  fi",
+        "fi",
+    ]
+
+
 def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
     spec = AGENT_SPECS[agent]
     launcher_parts = [spec.command]
@@ -458,7 +489,8 @@ def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
             "export HOME=/home/agent",
             "export NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
             "export NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
-            'export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"',
+            "export NPM_CONFIG_UPDATE_NOTIFIER=false",
+            'export PATH="$HOME/.local/bin:$NPM_CONFIG_PREFIX/bin:$PATH"',
             "mkdir -p /opt/agent-skills",
             f'mkdir -p "$HOME/{spec.skills_subdir}"',
             "for mount_root in /opt/agent-skills/*; do",
@@ -476,7 +508,7 @@ def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
             "    fi",
             "  done",
             "done",
-            f'if ! command -v {spec.command} >/dev/null 2>&1; then npm install -g {shlex.quote(spec.install_package)}; fi',
+            *install_block(spec),
             f"cd {shlex.quote(workdir)}",
             f"exec {launch_cmd}",
         ]

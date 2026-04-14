@@ -257,6 +257,11 @@ class LaunchAgentContainerTests(unittest.TestCase):
             )
             self.assertNotIn("HOME=/home/agent", command)
 
+    def test_codex_bootstrap_updates_npm_before_install(self) -> None:
+        script = MODULE.bootstrap_script("codex", "/workspace/task", ["login", "status"])
+        self.assertIn("npm install -g npm@latest", script)
+        self.assertIn("npm install -g @openai/codex", script)
+
     def test_help_includes_key_defaults(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SCRIPT_PATH), "-h"],
