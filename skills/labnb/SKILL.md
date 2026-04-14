@@ -337,11 +337,12 @@ Use the same tight loop pattern that powers autoresearch, but anchor it in the g
    - define the checkpoint for continuing
    - leave explicit slack for logging, verification, and handoff
    - if no useful slice fits, record that the budget is insufficient
-   - if the task compares two alternatives by a metric, plan the smallest route that can produce a trustworthy comparison even if the full loop is not finished
+   - if the task compares two alternatives by a metric, where one side may be one or more prior runs, plan the smallest route that can produce a trustworthy comparison even if the full loop is not finished
 6. Pick one focused change. Prefer atomic edits so the outcome is explainable.
 7. If tracked project files change, commit before verification so rollback is cheap.
 8. Run the verify command and capture the metric.
    - if the metric comparison can be produced asynchronously, prefer launching the minimal measurement path plus an explicit wait/checkpoint over keeping the whole loop in the foreground
+   - if useful, delegate follow-up measurements or comparisons to subagents running in parallel experiments, but count the actual resource usage of those subagents against the stated budget
 9. Keep or discard:
    - keep when the metric improves
    - keep when the metric ties and the result is clearly simpler
@@ -372,13 +373,14 @@ Use time budgets to shape the experiment, not to maximize activity.
 4. Include any proposed parallel experiments, child experiments, or downstream follow-up in the same budget reality check unless you state clearly that they are outside the current budget.
 5. When an experiment draws on multiple ideas or prior runs, list all of them as source entries at creation time.
 6. If the likely useful first slice already exceeds the available budget, say the plan is not feasible as stated.
-7. If the task is a metric comparison between two alternatives, prefer a shortest credible comparison path that can produce the decision asynchronously without requiring the entire loop to finish first.
-8. If the task is open-ended, propose a shortest credible iteration path and stop at the first decision point.
-9. When reporting the plan, distinguish:
+7. If the task is a metric comparison between two alternatives, where one side may be represented by prior run or runs, prefer a shortest credible comparison path that can produce the decision asynchronously without requiring the entire loop to finish first.
+8. If parallel follow-up experiments are delegated to subagents, count their compute time, wait time, and any other meaningful resource usage against the same budget unless you explicitly scope them out as later work.
+9. If the task is open-ended, propose a shortest credible iteration path and stop at the first decision point.
+10. When reporting the plan, distinguish:
    - what fits now
    - what becomes possible only if the first slice succeeds
    - what is out of scope for the current budget
-10. If a running slice exceeds its loop or overall budget, mark it explicitly as `budget_exhausted`, summarize what completed, and record the next safe resume point instead of silently treating it as a normal stop.
+11. If a running slice exceeds its loop or overall budget, mark it explicitly as `budget_exhausted`, summarize what completed, and record the next safe resume point instead of silently treating it as a normal stop.
 
 ## Shared Index Rules
 
@@ -437,7 +439,8 @@ When resuming:
 - Re-read and actively check off the entry-local rules/checklist before each substantive action rather than assuming you already satisfied them.
 - When the local operating rules change, update `idea.md` or `plan.md` so later steps inherit the new constraints instead of rediscovering them.
 - When facts, waits, resume points, or durable constraints change, update `memory.md` so later steps inherit the new memory instead of reconstructing it.
-- If two alternatives are being compared by a metric, prefer designing the smallest trustworthy asynchronous comparison path and an explicit checkpoint rather than keeping the whole experiment loop running until a full conclusion.
+- If two alternatives are being compared by a metric, and one side may be one or more prior runs, prefer designing the smallest trustworthy asynchronous comparison path and an explicit checkpoint rather than keeping the whole experiment loop running until a full conclusion.
+- If parallel follow-up experiments would help, you may use subagents to run them as separate notebook experiments, but count their resource usage against the same budget unless the user explicitly scopes them out.
 - If you cannot supervise or schedule a background command safely, stop the slice deliberately, write a resume checkpoint, and say exactly how to resume.
 - If the time budget is exceeded, treat that as `budget_exhausted` by default, summarize partial results, and record whether the next step is resume, branch, or stop.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.

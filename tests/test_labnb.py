@@ -293,6 +293,10 @@ class LabNBTests(unittest.TestCase):
                 "Smallest asynchronous evaluation that can decide the comparison:",
                 (exp_dir / "plan.md").read_text(),
             )
+            self.assertIn(
+                "Baseline, control, or prior run(s) to compare against:",
+                (exp_dir / "plan.md").read_text(),
+            )
             self.assertIn("## Existing Context Summary", (exp_dir / "plan.md").read_text())
             self.assertIn("Smallest useful iteration:", (exp_dir / "plan.md").read_text())
             self.assertIn(

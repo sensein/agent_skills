@@ -584,7 +584,7 @@ def main() -> int:
                 "",
                 "## Metric Comparison Plan",
                 "",
-                "- Baseline or control to compare against:",
+                "- Baseline, control, or prior run(s) to compare against:",
                 "- Candidate or treatment to compare:",
                 "- Metric comparison route:",
                 "- Smallest asynchronous evaluation that can decide the comparison:",

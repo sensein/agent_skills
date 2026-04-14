@@ -63,7 +63,8 @@ python skills/labnb/scripts/monitor_slice.py start \
    - verify mechanically
    - log outcome
    - continue only if the checkpoint justifies it
-   - if comparing two alternatives by a metric, design the smallest asynchronous evaluation path that can decide the comparison
+   - if comparing two alternatives by a metric, where one side may be one or more prior runs, design the smallest asynchronous evaluation path that can decide the comparison
+   - if parallel follow-up experiments help answer the comparison, you may use subagents to run them as separate experiments, but count their resource usage against the same budget
 10. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget.
 11. Before scheduling a new wait job, check whether this experiment already has a pending wait:
    - if the earlier wait still covers the needed follow-up, do not submit a duplicate; just wait on it
@@ -76,4 +77,4 @@ python skills/labnb/scripts/monitor_slice.py start \
 13. Update `plan.md`, `memory.md`, and `log.md` when the local rules, waits, or safest resume point change.
 14. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
 
-Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice. If the budget is exceeded, prefer the explicit status `budget_exhausted` and record the safest next resume point. If the goal is metric comparison, prefer a minimal asynchronous comparison checkpoint over waiting for the whole loop to conclude.
+Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice. If the budget is exceeded, prefer the explicit status `budget_exhausted` and record the safest next resume point. If the goal is metric comparison, prefer a minimal asynchronous comparison checkpoint over waiting for the whole loop to conclude, and count any subagent follow-up work against the same budget unless it is explicitly deferred.
