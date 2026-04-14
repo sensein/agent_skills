@@ -10,7 +10,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = REPO_ROOT / "skills" / "global-lab-notebook" / "scripts" / "register_experiment.py"
+SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "register_experiment.py"
+SUMMARY_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "summarize_index.py"
 
 
 def register(lab_root: Path, project_root: Path, slug: str) -> Path:
@@ -123,7 +124,32 @@ def register_with_budgets(
     return Path(result.stdout.strip())
 
 
-class GlobalLabNotebookTests(unittest.TestCase):
+def register_idea(lab_root: Path, project_root: Path, slug: str) -> Path:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--lab-root",
+            str(lab_root),
+            "--project-root",
+            str(project_root),
+            "--project-slug",
+            "demo-project",
+            "--experiment-slug",
+            slug,
+            "--objective",
+            f"Idea for {slug}",
+            "--entry-kind",
+            "idea",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return Path(result.stdout.strip())
+
+
+class LabNBTests(unittest.TestCase):
     def test_register_experiment_creates_layout_and_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -134,8 +160,9 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertTrue((exp_dir / "plan.md").exists())
             self.assertTrue((exp_dir / "results.tsv").exists())
             metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["entry_kind"], "experiment")
             self.assertEqual(metadata["project_slug"], "demo-project")
-            self.assertEqual(metadata["experiment_slug"], "baseline")
+            self.assertEqual(metadata["entry_slug"], "baseline")
             self.assertTrue(Path(metadata["workspace_dir"]).exists())
 
             index_tsv = temp_path / "lab" / "index" / "experiments.tsv"
@@ -143,17 +170,36 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertTrue(index_tsv.exists())
             self.assertTrue(index_md.exists())
             self.assertIn("baseline", index_tsv.read_text())
-            self.assertIn("Total experiments: 1", index_md.read_text())
+            self.assertIn("Total entries: 1", index_md.read_text())
+            self.assertIn("Experiments: 1", index_md.read_text())
             self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
             self.assertIn("Workspace dir:", (exp_dir / "plan.md").read_text())
             self.assertIn("Overall budget: TBD", (exp_dir / "plan.md").read_text())
             self.assertIn("Loop budget: TBD", (exp_dir / "plan.md").read_text())
             self.assertIn("## Feasibility And First Slice", (exp_dir / "plan.md").read_text())
+            self.assertIn("## Existing Context Summary", (exp_dir / "plan.md").read_text())
             self.assertIn("Smallest useful iteration:", (exp_dir / "plan.md").read_text())
             self.assertIn(
                 "Parallel or downstream work outside this budget:",
                 (exp_dir / "plan.md").read_text(),
             )
+
+    def test_register_idea_creates_idea_directory_and_index_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            idea_dir = register_idea(temp_path / "lab", temp_path / "project", "future-run")
+
+            self.assertTrue(idea_dir.exists())
+            self.assertTrue((idea_dir / "idea.md").exists())
+            self.assertFalse((idea_dir / "results.tsv").exists())
+            metadata = json.loads((idea_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["entry_kind"], "idea")
+            self.assertEqual(metadata["status"], "planned")
+            self.assertEqual(metadata["workspace_dir"], "")
+
+            index_md = (temp_path / "lab" / "index" / "index.md").read_text()
+            self.assertIn("Ideas: 1", index_md)
+            self.assertIn("future-run", index_md)
 
     def test_register_experiment_records_budgets_when_provided(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -200,10 +246,10 @@ class GlobalLabNotebookTests(unittest.TestCase):
         render_index = module_globals["render_index"]
 
         rendered = render_index(  # type: ignore[operator]
-            [["too-short"], ["id", "time", "project", "exp", "goal", "/tmp/path"]]
+            [["too-short"], ["id", "time", "project", "exp", "goal", "/tmp/path", "/tmp/proj", ""]]
         )
 
-        self.assertIn("Total experiments: 2", rendered)
+        self.assertIn("Total entries: 1", rendered)
         self.assertIn("`id`", rendered)
         self.assertNotIn("too-short", rendered)
 
@@ -262,11 +308,38 @@ class GlobalLabNotebookTests(unittest.TestCase):
 
             lines = (temp_path / "lab" / "index" / "experiments.tsv").read_text().splitlines()
             self.assertEqual(len(lines), 2)
-            self.assertEqual(lines[1].count("\t"), 7)
+            self.assertEqual(lines[1].count("\t"), 9)
             self.assertNotIn("\n", lines[1])
             self.assertIn("demo project", lines[1])
             self.assertIn("baseline run", lines[1])
             self.assertIn("Objective with breaks", lines[1])
+
+    def test_summary_reports_existing_ideas_and_experiments(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            lab_root = temp_path / "lab"
+            project_root = temp_path / "project"
+            register(lab_root, project_root, "baseline")
+            register_idea(lab_root, project_root, "future-run")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SUMMARY_SCRIPT),
+                    "--lab-root",
+                    str(lab_root),
+                    "--project-slug",
+                    "demo-project",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn("Matches: 2", result.stdout)
+            self.assertIn("Ideas: 1", result.stdout)
+            self.assertIn("Experiments: 1", result.stdout)
+            self.assertIn("future-run", result.stdout)
+            self.assertIn("baseline", result.stdout)
 
 
 if __name__ == "__main__":

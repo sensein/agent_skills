@@ -1,7 +1,0 @@
-interface:
-  display_name: "Global Lab Notebook"
-  short_description: "Track experiments safely across repos"
-  default_prompt: "Use $global-lab-notebook to create a shared experiment notebook outside this repo and register a new experiment safely."
-
-policy:
-  allow_implicit_invocation: true
