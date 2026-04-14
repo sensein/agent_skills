@@ -86,6 +86,13 @@ class GlobalLabNotebookTests(unittest.TestCase):
             self.assertIn("Total experiments: 1", index_md.read_text())
             self.assertIn("Goal: Objective for baseline", (exp_dir / "plan.md").read_text())
             self.assertIn("Workspace dir:", (exp_dir / "plan.md").read_text())
+            self.assertIn("Time budget: TBD", (exp_dir / "plan.md").read_text())
+            self.assertIn("## Feasibility And First Slice", (exp_dir / "plan.md").read_text())
+            self.assertIn("Smallest useful iteration:", (exp_dir / "plan.md").read_text())
+            self.assertIn(
+                "Parallel or downstream work outside this budget:",
+                (exp_dir / "plan.md").read_text(),
+            )
 
     def test_register_experiment_can_link_workspace_to_external_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

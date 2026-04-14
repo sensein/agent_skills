@@ -21,6 +21,8 @@ Create a named skill that adapts the repo-local `.lab/` workflow into a global l
 - [x] Give each experiment its own workspace path so parallel agents never share a git clone
 - [x] Support linking the workspace to an external location while keeping a stable notebook path
 - [x] Add a concurrency test that proves parallel registrations do not collide
+- [x] Treat user time budgets as ceilings and require a smallest-useful-iteration plan with an explicit infeasibility path
+- [x] Apply the same budget realism to proposed parallel branches and downstream child experiments
 
 ## Layout
 
@@ -54,12 +56,16 @@ lab-notebook/
 
 ## Loop Rules
 
-1. Gather the setup gate first: goal, metric, direction, verify command, scope, and stop condition.
-2. Record a baseline before the first code-changing iteration.
-3. Make one focused change per iteration.
-4. Verify mechanically after each change.
-5. Keep improved or equally good-but-simpler results; discard regressions.
-6. Log every iteration locally in the experiment directory.
+1. Gather the setup gate first: goal, metric, direction, verify command, scope, stop condition, and any stated time budget.
+2. Treat time budgets as ceilings rather than targets to consume.
+3. Start with the smallest useful iteration that can produce information or a decision.
+4. Count any proposed parallel branch or downstream follow-up against the same budget unless it is explicitly deferred.
+5. Say explicitly when the budget is too small for even one useful slice.
+6. Record a baseline before the first code-changing iteration.
+7. Make one focused change per iteration.
+8. Verify mechanically after each change.
+9. Keep improved or equally good-but-simpler results; discard regressions.
+10. Log every iteration locally in the experiment directory.
 
 ## Validation
 
