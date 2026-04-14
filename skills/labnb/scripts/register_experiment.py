@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import random
+import re
 import socket
 import string
 import tempfile
@@ -29,6 +30,27 @@ KNOWN_STATUSES = (
 PROV_CONTEXT = {
     "prov": "http://www.w3.org/ns/prov#",
     "labnb": "urn:labnb:",
+}
+
+UNIT_SECONDS = {
+    "s": 1,
+    "sec": 1,
+    "secs": 1,
+    "second": 1,
+    "seconds": 1,
+    "m": 60,
+    "min": 60,
+    "mins": 60,
+    "minute": 60,
+    "minutes": 60,
+    "h": 3600,
+    "hr": 3600,
+    "hrs": 3600,
+    "hour": 3600,
+    "hours": 3600,
+    "d": 86400,
+    "day": 86400,
+    "days": 86400,
 }
 
 
@@ -112,6 +134,32 @@ def write_if_missing(path: Path, content: str) -> None:
 
 def sanitize_tsv_field(value: object) -> str:
     return str(value).replace("\t", " ").replace("\n", " ").strip()
+
+
+def parse_duration_seconds(value: str) -> int:
+    text = value.strip().lower()
+    if not text:
+        raise ValueError("empty duration")
+    if text.isdigit():
+        return int(text)
+
+    pattern = re.compile(r"(\d+(?:\.\d+)?)\s*([a-z]+)")
+    matches = pattern.findall(text)
+    if not matches:
+        raise ValueError(f"unrecognized duration: {value}")
+
+    consumed = "".join(f"{amount}{unit}" for amount, unit in matches)
+    normalized = re.sub(r"[\s,]+", "", text)
+    normalized = re.sub(r"(total|budget|overall|loop|slice)", "", normalized)
+    if consumed != normalized:
+        raise ValueError(f"unsupported duration format: {value}")
+
+    total = 0.0
+    for amount_text, unit in matches:
+        if unit not in UNIT_SECONDS:
+            raise ValueError(f"unsupported duration unit: {unit}")
+        total += float(amount_text) * UNIT_SECONDS[unit]
+    return max(int(total), 0)
 
 
 def normalize_index_row(row: list[str]) -> list[str] | None:
@@ -199,6 +247,7 @@ def build_prov_record(
     project_root: str,
     workspace_dir: str,
     source_ids: list[str],
+    state_snapshot: dict[str, object],
 ) -> dict[str, object]:
     activity_id = f"urn:labnb:activity:register-entry:{entry_id}"
     entry_entity_id = f"urn:labnb:entity:entry:{entry_id}"
@@ -270,6 +319,7 @@ def build_prov_record(
         "labnb:entryKind": entry_kind,
         "labnb:status": status,
         "labnb:sourceIds": source_ids,
+        "labnb:stateSnapshot": state_snapshot,
         "labnb:note": "Best-effort provenance. External changes may occur outside labnb tracking.",
     }
 
@@ -308,6 +358,14 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
             parser.error("--overall-budget is required when --entry-kind experiment")
         if not args.loop_budget:
             parser.error("--loop-budget is required when --entry-kind experiment")
+        try:
+            parse_duration_seconds(args.overall_budget)
+        except ValueError as exc:
+            parser.error(f"--overall-budget {exc}")
+        try:
+            parse_duration_seconds(args.loop_budget)
+        except ValueError as exc:
+            parser.error(f"--loop-budget {exc}")
 
 
 def main() -> int:
@@ -322,6 +380,8 @@ def main() -> int:
     entry_kind = args.entry_kind
     status = default_status(entry_kind, args.status)
     source_ids = normalized_source_ids(args)
+    overall_budget_seconds = parse_duration_seconds(args.overall_budget) if args.overall_budget else 0
+    loop_budget_seconds = parse_duration_seconds(args.loop_budget) if args.loop_budget else 0
     entry_dir = lab_root / ("ideas" if entry_kind == "idea" else "experiments") / exp_id
     entry_dir.mkdir(parents=False, exist_ok=False)
     workspace_dir = Path()
@@ -347,7 +407,9 @@ def main() -> int:
         "direction": args.direction,
         "verify_command": args.verify_command,
         "overall_budget": args.overall_budget,
+        "overall_budget_seconds": overall_budget_seconds,
         "loop_budget": args.loop_budget,
+        "loop_budget_seconds": loop_budget_seconds,
         "project_root": str(project_root) if args.project_root else "",
         "entry_dir": str(entry_dir),
         "workspace_dir": str(workspace_dir) if entry_kind == "experiment" else "",
@@ -357,6 +419,21 @@ def main() -> int:
         "experiment_id": exp_id,
         "experiment_slug": args.experiment_slug,
         "experiment_dir": str(entry_dir),
+    }
+    state_snapshot = {
+        "status": "idle" if entry_kind == "experiment" else "not_applicable",
+        "overall_budget": args.overall_budget,
+        "overall_budget_seconds": overall_budget_seconds,
+        "loop_budget": args.loop_budget,
+        "loop_budget_seconds": loop_budget_seconds,
+        "completed_elapsed_seconds": 0,
+        "current_slice_index": 0,
+        "slice_started_at_utc": "",
+        "slice_elapsed_seconds": 0,
+        "overall_elapsed_seconds": 0,
+        "remaining_loop_seconds": loop_budget_seconds,
+        "remaining_overall_seconds": overall_budget_seconds,
+        "last_checked_at_utc": metadata["created_at_utc"],
     }
     atomic_write(entry_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
     append_jsonl(
@@ -370,6 +447,7 @@ def main() -> int:
             project_root=metadata["project_root"],
             workspace_dir=metadata["workspace_dir"],
             source_ids=source_ids,
+            state_snapshot=state_snapshot,
         ),
     )
     write_if_missing(
@@ -463,6 +541,8 @@ def main() -> int:
                     "timestamp_utc",
                     "status",
                     "metric_value",
+                    "slice_elapsed_seconds",
+                    "overall_elapsed_seconds",
                     "commit",
                     "notes",
                 ]

@@ -18,6 +18,7 @@ Use this subskill when the work is concrete enough to execute now.
 7. Track labnb-managed actions in provenance files, but treat that provenance as best-effort.
 8. Require explicit confirmation before labnb performs deletions of artifacts, workspaces, or entry files.
 9. When writing provenance, use W3C PROV-O terms instead of ad hoc event keys.
+10. Use provenance as the source of truth for monitored slice state.
 
 ## Flow
 
@@ -44,11 +45,19 @@ python skills/labnb/scripts/register_experiment.py \
 
 5. Budgets are required at experiment creation time; do not leave them implicit.
 6. Repeat `--source-id` when the run stems from multiple ideas or previous experiments.
-7. Work in the dedicated workspace clone if project files change.
-8. Keep the loop small:
+7. Start the monitored slice:
+
+```bash
+python skills/labnb/scripts/monitor_slice.py start \
+  --experiment-dir "$EXPERIMENT_DIR"
+```
+
+8. Work in the dedicated workspace clone if project files change.
+9. Keep the loop small:
    - smallest useful first slice
    - verify mechanically
    - log outcome
    - continue only if the checkpoint justifies it
+10. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
 
 Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice.

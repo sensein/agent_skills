@@ -78,6 +78,7 @@ Treat the budget as applying to the whole proposed path, including any parallel 
 5. Prefer deterministic helpers in [`scripts/register_experiment.py`](./scripts/register_experiment.py) and [`scripts/summarize_index.py`](./scripts/summarize_index.py) instead of ad hoc shell snippets.
 6. Track labnb-managed creates and updates with best-effort provenance using W3C PROV-O terms inside each entry directory.
 7. Require explicit user confirmation before labnb performs deletions.
+8. Treat provenance as the source of truth for monitored slice state; do not rely on a separate mutable loop-state file.
 
 ## Local Guardrails
 
@@ -191,12 +192,20 @@ python skills/labnb/scripts/register_experiment.py \
 8. To record an idea that is not yet being run, use `--entry-kind idea` and omit experiment-only fields that are still unknown.
 9. Experiments must be created with explicit `--overall-budget` and `--loop-budget`; do not leave them unspecified.
 10. Use one or more `--source-id` flags when an experiment stems from prior ideas or experiments.
-11. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-12. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-13. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-14. Record baseline iteration `0` in `results.tsv` before code changes.
-15. Work inside the returned experiment directory for notes, artifacts, and summaries.
-16. Log progress inside that experiment directory, not in shared files.
+11. Start the monitored loop slice before the first write-bearing iteration:
+
+```bash
+python skills/labnb/scripts/monitor_slice.py start \
+  --experiment-dir "$EXPERIMENT_DIR"
+```
+
+12. Use `monitor_slice.py check` before another iteration or long-running verify step, and `monitor_slice.py finish` when the slice ends.
+13. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+14. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+15. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+16. Record baseline iteration `0` in `results.tsv` before code changes.
+17. Work inside the returned experiment directory for notes, artifacts, and summaries.
+18. Log progress inside that experiment directory, not in shared files.
 
 ## Configurable Options
 
@@ -248,6 +257,12 @@ The summary helper also supports:
 - `--project-slug`: project to summarize
 - `--limit`: maximum number of recent matching entries to show
 
+The slice monitor helper supports:
+
+- `start`: begin a monitored loop slice
+- `check`: refresh elapsed state and stop when the slice or overall budget is exhausted
+- `finish`: close the active slice with a final status
+
 ## What Goes In Each Entry
 
 For ideas:
@@ -279,22 +294,24 @@ Use the same tight loop pattern that powers autoresearch, but anchor it in the g
 
 1. Observe: run the index summary first if you have not already done so for this project, then read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
 2. Re-check the parent constitution and repo rules before any write-bearing step.
-3. Confirm you are working inside the experiment's dedicated clone if project files will change.
-4. Convert any user time budget into a bounded iteration plan:
+3. Start or check the monitored slice with `monitor_slice.py`; use provenance as the source of truth for remaining time.
+4. Confirm you are working inside the experiment's dedicated clone if project files will change.
+5. Convert any user time budget into a bounded iteration plan:
    - pick the smallest useful first slice
    - define the checkpoint for continuing
    - leave explicit slack for logging, verification, and handoff
    - if no useful slice fits, record that the budget is insufficient
-5. Pick one focused change. Prefer atomic edits so the outcome is explainable.
-6. If tracked project files change, commit before verification so rollback is cheap.
-7. Run the verify command and capture the metric.
-8. Keep or discard:
+6. Pick one focused change. Prefer atomic edits so the outcome is explainable.
+7. If tracked project files change, commit before verification so rollback is cheap.
+8. Run the verify command and capture the metric.
+9. Keep or discard:
    - keep when the metric improves
    - keep when the metric ties and the result is clearly simpler
    - discard or revert when the metric regresses or the run crashes
-9. Log the outcome in both `results.tsv` and `log.md`.
-10. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
-11. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
+10. Log the outcome in both `results.tsv` and `log.md`.
+11. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends.
+12. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
+13. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
@@ -362,6 +379,7 @@ When resuming:
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.
 - Track labnb-managed changes in provenance files, but say clearly that external changes may exist outside that record.
 - Use W3C PROV-O terms in provenance records rather than ad hoc event fields.
+- Use provenance as the source of truth for monitored slice state and remaining budget.
 - Require explicit confirmation before deleting entry files, artifacts, or workspaces through labnb-driven actions.
 - If the user gives a budget like "two hours," do not stretch the plan to fill two hours by default; start with the smallest decision-making slice and say when the budget is insufficient.
 - If you propose parallel branches or downstream experiments, count them against the same stated budget unless you explicitly mark them as later follow-up outside the current scope.

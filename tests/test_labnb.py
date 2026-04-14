@@ -12,6 +12,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "register_experiment.py"
 SUMMARY_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "summarize_index.py"
+MONITOR_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "monitor_slice.py"
 
 
 def register(lab_root: Path, project_root: Path, slug: str) -> Path:
@@ -237,6 +238,7 @@ class LabNBTests(unittest.TestCase):
                 "Parallel or downstream work outside this budget:",
                 (exp_dir / "plan.md").read_text(),
             )
+            self.assertNotIn("loop_state.json", "\n".join(path.name for path in exp_dir.iterdir()))
 
     def test_register_idea_creates_idea_directory_and_index_entry(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -319,6 +321,98 @@ class LabNBTests(unittest.TestCase):
             self.assertIn(f"Source entries: {first_id}, {second_id}", (exp_dir / "plan.md").read_text())
             self.assertIn(first_id, (exp_dir / "provenance.jsonl").read_text())
             self.assertIn(second_id, (exp_dir / "provenance.jsonl").read_text())
+
+    def test_monitor_slice_uses_provenance_as_state_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            exp_dir = register_with_budgets(
+                temp_path / "lab",
+                temp_path / "project",
+                "timed-run",
+                "2 hours total",
+                "10 minutes",
+            )
+
+            started = subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "start",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:00:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            started_state = json.loads(started.stdout)
+            self.assertEqual(started_state["status"], "running")
+            self.assertEqual(started_state["current_slice_index"], 1)
+
+            checked = subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "check",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:05:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            checked_state = json.loads(checked.stdout)
+            self.assertEqual(checked_state["slice_elapsed_seconds"], 300)
+            self.assertEqual(checked_state["remaining_loop_seconds"], 300)
+            provenance_text = (exp_dir / "provenance.jsonl").read_text()
+            self.assertIn('"labnb:stateSnapshot"', provenance_text)
+
+    def test_monitor_slice_stops_when_budget_exhausted(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            exp_dir = register_with_budgets(
+                temp_path / "lab",
+                temp_path / "project",
+                "exhausted-run",
+                "30 minutes",
+                "5 minutes",
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "start",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:00:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "check",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:05:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            state = json.loads(result.stdout)
+            self.assertEqual(state["status"], "budget_exhausted")
+            metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["status"], "stopped")
 
     def test_register_respects_explicit_status(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

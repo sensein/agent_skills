@@ -33,6 +33,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Serialize provenance with W3C PROV-O terms rather than custom event keys
 - [x] Require explicit budgets for experiments at creation time
 - [x] Allow an experiment to stem from one or more upstream ideas or experiments
+- [x] Monitor active slice budgets from provenance rather than a separate mutable state file
 
 ## Layout
 
@@ -86,6 +87,7 @@ lab-notebook/
 3. Require explicit confirmation before labnb performs deletions.
 4. Make entry status explicit from the start so ideas and experiments do not silently stay in an ambiguous state.
 5. Use W3C PROV-O terms for recorded provenance so the records have a standard vocabulary.
+6. Derive monitored slice state from provenance snapshots instead of relying on a separate mutable state file.
 
 ## Index And Resume Rules
 
