@@ -40,6 +40,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Scaffold entry-local rules and durable memory so each action can re-check them instead of relying on recall
 - [x] Prefer minimal asynchronous metric-comparison checkpoints over waiting for full loop completion when comparing alternatives
 - [x] Allow parallel subagent follow-up experiments for comparisons, while counting their resource usage against the same budget
+- [x] Require enough instrumentation and external checks that long-running work is not left blind by default
 
 ## Layout
 
@@ -122,6 +123,7 @@ lab-notebook/
 14. If the loop or overall budget is exceeded, record that as `budget_exhausted` rather than a generic stop.
 15. When the task compares two alternatives by a metric, including comparisons against one or more prior runs, plan the smallest asynchronous comparison path and checkpoint rather than assuming the whole loop must stay active until final conclusion.
 16. If parallel follow-up experiments are delegated to subagents, count their resource usage against the same budget unless the later work is explicitly deferred.
+17. Unless absolutely necessary, do not run long-lived work blindly; instrument it with enough logging, checkpoints, and periodic external checks of progress and resource consumption.
 
 ## Validation
 

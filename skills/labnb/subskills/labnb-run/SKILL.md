@@ -61,16 +61,18 @@ python skills/labnb/scripts/monitor_slice.py start \
    - continue only if the checkpoint justifies it
    - if comparing two alternatives by a metric, where one side may be one or more prior runs, design the smallest asynchronous evaluation path that can decide the comparison
    - if parallel follow-up experiments help answer the comparison, you may use subagents to run them as separate experiments, but count their resource usage against the same budget
-10. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget.
-11. Before scheduling a new wait job, check whether this experiment already has a pending wait:
+10. Unless absolutely necessary, do not run long-lived work blindly; add enough logging, checkpoints, and external observability to inspect progress and consumption while it runs.
+11. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget.
+12. Before scheduling a new wait job, check whether this experiment already has a pending wait:
    - if the earlier wait still covers the needed follow-up, do not submit a duplicate; just wait on it
    - if the new wait supersedes the older one, cancel or replace the earlier wait first
    - do not leave overlapping waits for the same experiment unless you record why in `log.md`
-12. If no timer or watchdog is appropriate or available, stop deliberately instead of leaving the run hanging:
+13. Probe the run periodically from the outside by checking logs, checkpoint files, progress signals, and resource/consumption indicators.
+14. If no timer or watchdog is appropriate or available, stop deliberately instead of leaving the run hanging:
    - `python skills/labnb/scripts/monitor_slice.py finish --experiment-dir "$EXPERIMENT_DIR" --final-status stopped`
    - write a resume checkpoint in `log.md`
    - note what command or verification step to restart on resume
-13. Update `plan.md`, `memory.md`, and `log.md` when the local rules, waits, or safest resume point change.
-14. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
+15. Update `plan.md`, `memory.md`, and `log.md` when the local rules, waits, instrumentation, or safest resume point change.
+16. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
 
 Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice. If the budget is exceeded, prefer the explicit status `budget_exhausted` and record the safest next resume point. If the goal is metric comparison, prefer a minimal asynchronous comparison checkpoint over waiting for the whole loop to conclude, and count any subagent follow-up work against the same budget unless it is explicitly deferred.

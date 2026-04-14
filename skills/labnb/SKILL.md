@@ -100,6 +100,7 @@ Apply these guardrails even when the parent constitution does not spell them out
 10. Keep secrets, auth state, and external credentials outside experiment artifacts unless the parent constitution explicitly allows otherwise.
 11. Treat provenance as best-effort only: external changes or deletions may still occur without labnb observing them.
 12. Do not perform notebook-managed deletions without explicit confirmation from the user.
+13. Unless absolutely necessary, do not run work blindly; instrument it well enough to inspect logs, checkpoints, progress, and resource consumption from outside the running process.
 
 ## Action Gate
 
@@ -109,7 +110,8 @@ Before any action that writes, waits, launches background work, or hands off con
 2. Confirm that you have actually completed those checks; do not rely on memory from an earlier step.
 3. If the local rules or checklist are stale, incomplete, or newly contradicted by the current situation, update them before proceeding.
 4. Check whether there is already a pending wait job for this entry before creating another one.
-5. If the action changes the local operating rules or durable memory, write the updated rules and memory back into the idea or experiment entry and note the change in `log.md` when applicable.
+5. Confirm the run is instrumented enough that you can inspect logs, checkpoints, progress, and resource usage periodically without guessing.
+6. If the action changes the local operating rules or durable memory, write the updated rules and memory back into the idea or experiment entry and note the change in `log.md` when applicable.
 
 ## Lab Layout
 
@@ -348,18 +350,20 @@ Use the same tight loop pattern that powers autoresearch, but anchor it in the g
    - keep when the metric ties and the result is clearly simpler
    - discard or revert when the metric regresses or the run crashes
 10. Log the outcome in both `results.tsv` and `log.md`.
-11. Before any background command or long-running job is left unattended, run `monitor_slice.py check` and decide whether the run needs a timer, watchdog, scheduler, or other explicit follow-up tied to the remaining budget.
-12. Before scheduling any new wait job, check whether this experiment already has a pending timer, watchdog, scheduler entry, or other wait condition:
+11. Unless absolutely necessary, do not launch a long-running command blindly. Add enough logging, checkpointing, and external observability that you can inspect what it is doing while it runs.
+12. Before any background command or long-running job is left unattended, run `monitor_slice.py check` and decide whether the run needs a timer, watchdog, scheduler, or other explicit follow-up tied to the remaining budget.
+13. Before scheduling any new wait job, check whether this experiment already has a pending timer, watchdog, scheduler entry, or other wait condition:
    - if the existing wait already covers the needed follow-up, do not schedule a duplicate; just wait on the existing one
    - if the new wait supersedes the old one, cancel or replace the earlier wait first
    - never leave multiple overlapping wait jobs for the same experiment without a clear reason recorded in `log.md`
-13. If no timer or watchdog is appropriate or available, do not leave the run implicitly hanging:
+14. Probe the run periodically from outside the main process by checking logs, checkpoint files, progress signals, and resource/consumption indicators rather than assuming it is healthy.
+15. If no timer or watchdog is appropriate or available, do not leave the run implicitly hanging:
    - finish the current slice with `monitor_slice.py finish --final-status stopped`
    - record a resume checkpoint in `log.md`
    - note what command to restart or re-check on resume
-14. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends.
-15. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
-16. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
+16. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends.
+17. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
+18. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
@@ -441,6 +445,8 @@ When resuming:
 - When facts, waits, resume points, or durable constraints change, update `memory.md` so later steps inherit the new memory instead of reconstructing it.
 - If two alternatives are being compared by a metric, and one side may be one or more prior runs, prefer designing the smallest trustworthy asynchronous comparison path and an explicit checkpoint rather than keeping the whole experiment loop running until a full conclusion.
 - If parallel follow-up experiments would help, you may use subagents to run them as separate notebook experiments, but count their resource usage against the same budget unless the user explicitly scopes them out.
+- Unless absolutely necessary, do not run things blindly; prefer enough logging, checkpointing, and external health checks to inspect logs, progress, and resource consumption periodically.
+- When a run is unattended, monitor it from the outside by probing logs, checkpoint files, and resource/progress signals instead of assuming the internal process is behaving.
 - If you cannot supervise or schedule a background command safely, stop the slice deliberately, write a resume checkpoint, and say exactly how to resume.
 - If the time budget is exceeded, treat that as `budget_exhausted` by default, summarize partial results, and record whether the next step is resume, branch, or stop.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.

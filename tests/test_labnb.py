@@ -287,6 +287,7 @@ class LabNBTests(unittest.TestCase):
             self.assertIn("## Pre-Action Checklist", (exp_dir / "plan.md").read_text())
             self.assertIn("## Durable Memory", (exp_dir / "memory.md").read_text())
             self.assertIn("## Wait And Resume Memory", (exp_dir / "memory.md").read_text())
+            self.assertIn("## Instrumentation Memory", (exp_dir / "memory.md").read_text())
             self.assertIn("## Feasibility And First Slice", (exp_dir / "plan.md").read_text())
             self.assertIn("## Metric Comparison Plan", (exp_dir / "plan.md").read_text())
             self.assertIn(
@@ -325,6 +326,7 @@ class LabNBTests(unittest.TestCase):
             self.assertIn("## Entry-Specific Rules", (idea_dir / "idea.md").read_text())
             self.assertIn("## Pre-Action Checklist", (idea_dir / "idea.md").read_text())
             self.assertIn("## Durable Memory", (idea_dir / "memory.md").read_text())
+            self.assertIn("## Instrumentation Memory", (idea_dir / "memory.md").read_text())
             self.assertIn('"prov:type"', (idea_dir / "provenance.jsonl").read_text())
 
             index_md = (temp_path / "lab" / "index" / "index.md").read_text()
