@@ -14,6 +14,12 @@ SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "register_experiment.py"
 SUMMARY_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "summarize_index.py"
 MONITOR_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "monitor_slice.py"
 PROMOTE_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "promote_idea.py"
+FLAT_SKILLS = (
+    "labnb-idea",
+    "labnb-promote",
+    "labnb-resume",
+    "labnb-run",
+)
 
 
 def register(lab_root: Path, project_root: Path, slug: str) -> Path:
@@ -233,6 +239,12 @@ def register_with_status(
 
 
 class LabNBTests(unittest.TestCase):
+    def test_flat_labnb_skill_entries_exist_for_claude_and_codex(self) -> None:
+        for skill_name in FLAT_SKILLS:
+            skill_dir = REPO_ROOT / "skills" / skill_name
+            self.assertTrue((skill_dir / "SKILL.md").exists(), skill_name)
+            self.assertTrue((skill_dir / "agents" / "openai.yaml").exists(), skill_name)
+
     def test_register_experiment_creates_layout_and_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

@@ -1,0 +1,7 @@
+interface:
+  display_name: "LabNB Resume"
+  short_description: "Review notebook history and choose the next step"
+  default_prompt: "Use $labnb-resume to summarize matching notebook entries and decide whether to resume, promote, branch, or start a new experiment."
+
+policy:
+  allow_implicit_invocation: true

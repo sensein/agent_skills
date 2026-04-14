@@ -1,0 +1,7 @@
+interface:
+  display_name: "LabNB Idea"
+  short_description: "Capture a promising lab notebook idea"
+  default_prompt: "Use $labnb-idea to register a promising experiment idea in the shared lab notebook without starting a run yet."
+
+policy:
+  allow_implicit_invocation: true

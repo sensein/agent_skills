@@ -11,6 +11,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - avoids conflicting writes when multiple experiments run in parallel
 - lives under `skills/` in this repository so it can be mirrored into agent skill directories easily
 - is broken into focused subskills with short `labnb-<action>` invocation names for resume, idea capture, idea promotion, and active experiment execution
+- mirrors those focused `labnb-<action>` entries as top-level skills under `skills/` so flat Claude Code and Codex installs discover them directly
 
 ## Decisions
 

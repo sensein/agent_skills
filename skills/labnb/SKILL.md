@@ -35,6 +35,8 @@ Use these focused subskills when a narrower task is enough:
 - [`labnb-promote`](./subskills/labnb-promote/SKILL.md): turn an existing idea into a concrete experiment with explicit budgets and provenance
 - [`labnb-run`](./subskills/labnb-run/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
 
+These focused actions are also mirrored as top-level `skills/labnb-*` entries so flat Claude Code and Codex skill installs can discover them directly.
+
 ## Default Root
 
 Use this location unless the user explicitly wants another path:

@@ -29,6 +29,7 @@ On first run, the script writes the config file if it does not already exist. La
 - mounts only the directories you list, plus a narrow agent state directory and a launcher-specific tool state directory
 - does not mount the full home directory
 - mounts each skill read-only directly into the agent's in-container skills directory
+- expects each discoverable skill to be a top-level directory under the mounted `skills/` root; focused lab notebook actions are mirrored as top-level `labnb-*` entries for Claude Code and Codex compatibility
 - mounts task code or data directories read-only or read-write based on the provided flags
 
 ## Reusable Config

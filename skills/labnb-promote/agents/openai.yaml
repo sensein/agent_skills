@@ -1,0 +1,7 @@
+interface:
+  display_name: "LabNB Promote"
+  short_description: "Promote an idea into a concrete experiment"
+  default_prompt: "Use $labnb-promote to turn an existing lab notebook idea into a concrete experiment with explicit budgets and provenance."
+
+policy:
+  allow_implicit_invocation: true
