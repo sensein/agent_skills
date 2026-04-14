@@ -63,6 +63,88 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 loaded["auth_paths"], [str(Path(temp_dir) / ".config" / "codex-auth")]
             )
 
+    def test_agent_override_recomputes_agent_specific_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            config_path = temp_path / ".agent-container.toml"
+            MODULE.write_config(
+                config_path,
+                {
+                    "agent": "codex",
+                    "engine": "auto",
+                    "image": "",
+                    "workspace_name": "default",
+                    "workspace_root": "",
+                    "agent_state_dir": str(temp_path / ".codex"),
+                    "tool_state_dir": str(temp_path / ".agent-container-state" / "codex"),
+                    "auth_paths": [],
+                    "rw_dirs": [],
+                    "ro_dirs": [],
+                    "skill_dirs": [str(REPO_ROOT / "skills")],
+                    "env_vars": ["OPENAI_API_KEY"],
+                    "agent_args": [],
+                },
+            )
+            args = MODULE.parse_args.__wrapped__(["--config", str(config_path), "--agent", "claude"]) if hasattr(MODULE.parse_args, "__wrapped__") else None
+            if args is None:
+                import argparse as _argparse
+                args = _argparse.Namespace(
+                    config=str(config_path),
+                    write_config=False,
+                    print_config=False,
+                    dry_run=False,
+                    agent="claude",
+                    engine=None,
+                    image=None,
+                    workspace_name=None,
+                    workspace_root=None,
+                    agent_state_dir=None,
+                    tool_state_dir=None,
+                    auth_path=None,
+                    rw_dir=None,
+                    ro_dir=None,
+                    skill_dir=None,
+                    env_var=None,
+                    agent_arg=None,
+                )
+            settings = MODULE.resolve_settings(args, config_path)
+            self.assertEqual(settings["agent"], "claude")
+            self.assertEqual(settings["env_vars"], ["ANTHROPIC_API_KEY"])
+            self.assertTrue(str(settings["agent_state_dir"]).endswith(".claude"))
+            self.assertTrue(str(settings["tool_state_dir"]).endswith("/claude"))
+
+    def test_print_config_outputs_resolved_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            config_path = temp_path / ".agent-container.toml"
+            MODULE.write_config(
+                config_path,
+                {
+                    "agent": "codex",
+                    "engine": "auto",
+                    "image": "",
+                    "workspace_name": "default",
+                    "workspace_root": "",
+                    "agent_state_dir": str(temp_path / ".codex"),
+                    "tool_state_dir": str(temp_path / ".agent-container-state" / "codex"),
+                    "auth_paths": [],
+                    "rw_dirs": [],
+                    "ro_dirs": [],
+                    "skill_dirs": [str(REPO_ROOT / "skills")],
+                    "env_vars": ["OPENAI_API_KEY"],
+                    "agent_args": [],
+                },
+            )
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT_PATH), "--config", str(config_path), "--print-config", "--agent", "claude"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn('agent = "claude"', result.stdout)
+            self.assertIn('env_vars = ["ANTHROPIC_API_KEY"]', result.stdout)
+            self.assertIn('.claude', result.stdout)
+
     def test_build_mounts_avoids_home_directory_mounts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

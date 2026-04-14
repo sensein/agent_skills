@@ -204,6 +204,27 @@ def load_config(config_path: Path) -> dict[str, object]:
     }
 
 
+def resolved_config_text(settings: dict[str, object]) -> str:
+    return "\n".join(
+        [
+            f'agent = {toml_string(str(settings["agent"]))}',
+            f'engine = {toml_string(str(settings["engine"]))}',
+            f'image = {toml_string(str(settings["image"]))}',
+            f'workspace_name = {toml_string(str(settings["workspace_name"]))}',
+            f'workspace_root = {toml_string(str(settings["workspace_root"]))}',
+            f'agent_state_dir = {toml_string(str(settings["agent_state_dir"]))}',
+            f'tool_state_dir = {toml_string(str(settings["tool_state_dir"]))}',
+            f'auth_paths = {format_toml_list([str(value) for value in settings["auth_paths"]])}',
+            f'rw_dirs = {format_toml_list([str(value) for value in settings["rw_dirs"]])}',
+            f'ro_dirs = {format_toml_list([str(value) for value in settings["ro_dirs"]])}',
+            f'skill_dirs = {format_toml_list([str(value) for value in settings["skill_dirs"]])}',
+            f'env_vars = {format_toml_list([str(value) for value in settings["env_vars"]])}',
+            f'agent_args = {format_toml_list([str(value) for value in settings["agent_args"]])}',
+            "",
+        ]
+    )
+
+
 def config_value(
     cli_value: object | None, loaded_value: object | None, fallback: object
 ) -> object:
@@ -232,14 +253,51 @@ def normalize_mount_path(path_str: str, label: str) -> Path:
     return path
 
 
+def maybe_agent_specific_string(
+    *,
+    cli_value: str | None,
+    loaded_value: object | None,
+    fallback: str,
+    agent_overridden: bool,
+) -> str:
+    if cli_value is not None:
+        return cli_value
+    if agent_overridden:
+        return fallback
+    if loaded_value is None:
+        return fallback
+    return str(loaded_value)
+
+
+def maybe_agent_specific_list(
+    *,
+    cli_value: list[str] | None,
+    loaded_value: object | None,
+    fallback: list[str],
+    agent_overridden: bool,
+) -> list[str]:
+    if cli_value is not None:
+        return cli_value
+    if agent_overridden:
+        return fallback
+    if loaded_value is None:
+        return fallback
+    return ensure_list(loaded_value)
+
+
 def resolve_settings(args: argparse.Namespace, config_path: Path) -> dict[str, object]:
     loaded = load_config(config_path)
+    loaded_agent = str(loaded["agent"]) if loaded.get("agent") else None
     agent = str(config_value(args.agent, loaded.get("agent"), "codex"))
+    agent_overridden = args.agent is not None and args.agent != loaded_agent
     workspace_name = str(
         config_value(args.workspace_name, loaded.get("workspace_name"), "default")
     )
-    env_vars = ensure_list(
-        config_value(args.env_var, loaded.get("env_vars"), list(AGENT_SPECS[agent].default_env_vars))
+    env_vars = maybe_agent_specific_list(
+        cli_value=args.env_var,
+        loaded_value=loaded.get("env_vars"),
+        fallback=list(AGENT_SPECS[agent].default_env_vars),
+        agent_overridden=agent_overridden,
     )
     settings = {
         "agent": agent,
@@ -247,19 +305,17 @@ def resolve_settings(args: argparse.Namespace, config_path: Path) -> dict[str, o
         "image": str(config_value(args.image, loaded.get("image"), "")),
         "workspace_name": workspace_name,
         "workspace_root": str(config_value(args.workspace_root, loaded.get("workspace_root"), "")),
-        "agent_state_dir": str(
-            config_value(
-                args.agent_state_dir,
-                loaded.get("agent_state_dir"),
-                default_agent_state_dir(agent),
-            )
+        "agent_state_dir": maybe_agent_specific_string(
+            cli_value=args.agent_state_dir,
+            loaded_value=loaded.get("agent_state_dir"),
+            fallback=str(default_agent_state_dir(agent)),
+            agent_overridden=agent_overridden,
         ),
-        "tool_state_dir": str(
-            config_value(
-                args.tool_state_dir,
-                loaded.get("tool_state_dir"),
-                default_tool_state_dir(config_path, agent),
-            )
+        "tool_state_dir": maybe_agent_specific_string(
+            cli_value=args.tool_state_dir,
+            loaded_value=loaded.get("tool_state_dir"),
+            fallback=str(default_tool_state_dir(config_path, agent)),
+            agent_overridden=agent_overridden,
         ),
         "auth_paths": ensure_list(config_value(args.auth_path, loaded.get("auth_paths"), [])),
         "rw_dirs": ensure_list(config_value(args.rw_dir, loaded.get("rw_dirs"), [])),
@@ -284,25 +340,7 @@ def format_toml_list(values: Iterable[str]) -> str:
 
 def write_config(config_path: Path, settings: dict[str, object]) -> None:
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    content = "\n".join(
-        [
-            f'agent = {toml_string(str(settings["agent"]))}',
-            f'engine = {toml_string(str(settings["engine"]))}',
-            f'image = {toml_string(str(settings["image"]))}',
-            f'workspace_name = {toml_string(str(settings["workspace_name"]))}',
-            f'workspace_root = {toml_string(str(settings["workspace_root"]))}',
-            f'agent_state_dir = {toml_string(str(settings["agent_state_dir"]))}',
-            f'tool_state_dir = {toml_string(str(settings["tool_state_dir"]))}',
-            f'auth_paths = {format_toml_list([str(value) for value in settings["auth_paths"]])}',
-            f'rw_dirs = {format_toml_list([str(value) for value in settings["rw_dirs"]])}',
-            f'ro_dirs = {format_toml_list([str(value) for value in settings["ro_dirs"]])}',
-            f'skill_dirs = {format_toml_list([str(value) for value in settings["skill_dirs"]])}',
-            f'env_vars = {format_toml_list([str(value) for value in settings["env_vars"]])}',
-            f'agent_args = {format_toml_list([str(value) for value in settings["agent_args"]])}',
-            "",
-        ]
-    )
-    config_path.write_text(content, encoding="utf-8")
+    config_path.write_text(resolved_config_text(settings), encoding="utf-8")
 
 
 def choose_engine(preferred: str) -> str:
@@ -526,7 +564,7 @@ def main() -> int:
     if args.write_config or not config_path.exists():
         write_config(config_path, settings)
     if args.print_config:
-        sys.stdout.write(config_path.read_text(encoding="utf-8"))
+        sys.stdout.write(resolved_config_text(settings))
         return 0
 
     command, mounts, engine, image = build_command(settings)
