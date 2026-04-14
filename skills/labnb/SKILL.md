@@ -184,12 +184,13 @@ python skills/labnb/scripts/register_experiment.py \
   --direction "$DIRECTION" \
   --verify-command "$VERIFY_COMMAND" \
   --overall-budget "$OVERALL_BUDGET" \
-  --loop-budget "$LOOP_BUDGET"
+  --loop-budget "$LOOP_BUDGET" \
+  --source-id "$SOURCE_ENTRY_ID"
 ```
 
 8. To record an idea that is not yet being run, use `--entry-kind idea` and omit experiment-only fields that are still unknown.
-9. If the user gave an overall budget for the full experiment path, pass it with `--overall-budget "$OVERALL_BUDGET"`.
-10. If the user gave a loop budget for just this iteration slice, pass it with `--loop-budget "$LOOP_BUDGET"`.
+9. Experiments must be created with explicit `--overall-budget` and `--loop-budget`; do not leave them unspecified.
+10. Use one or more `--source-id` flags when an experiment stems from prior ideas or experiments.
 11. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
 12. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
 13. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
@@ -220,12 +221,13 @@ Use these helper flags when creating an experiment:
 - `--metric-name`: optional metric label
 - `--direction`: optional optimization direction such as `higher` or `lower`
 - `--verify-command`: optional mechanical check command
-- `--overall-budget`: optional total budget for the whole experiment path, including proposed follow-up or parallel work unless deferred
-- `--loop-budget`: optional budget or timebox for the current loop or iteration slice
+- `--overall-budget`: required for experiments; total budget for the whole experiment path, including proposed follow-up or parallel work unless deferred
+- `--loop-budget`: required for experiments; budget or timebox for the current loop or iteration slice
 - `--workspace-root`: optional external root for the real workspace location
+- `--source-id`: repeatable link to one or more upstream ideas or experiments that this run stems from
 - `--parent-id`: optional parent experiment id for child experiments
 
-If `--metric-name`, `--direction`, `--verify-command`, `--overall-budget`, or `--loop-budget` are omitted, the helper records `TBD` in `plan.md` so the experiment can still be registered safely before the plan is fully refined.
+If `--metric-name`, `--direction`, or `--verify-command` are omitted, the helper records `TBD` in `plan.md`. For experiments, `--overall-budget` and `--loop-budget` must be specified at creation time.
 
 Recommended statuses include:
 
@@ -258,6 +260,7 @@ For ideas:
 For experiments:
 
 - `metadata.json`: creation metadata, source repo path, objective, ids, status, and provenance mode
+- `metadata.json`: creation metadata, source repo path, objective, ids, status, provenance mode, and `source_ids`
 - `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
 - `log.md`: chronological notes for the experiment
 - `provenance.jsonl`: append-only best-effort PROV-O event log
@@ -303,9 +306,10 @@ Use time budgets to shape the experiment, not to maximize activity.
 2. Prefer a plan with one informative first slice and one optional next slice over a long speculative roadmap.
 3. Reserve some of the budget for setup, verification, logging, and summarizing.
 4. Include any proposed parallel experiments, child experiments, or downstream follow-up in the same budget reality check unless you state clearly that they are outside the current budget.
-5. If the likely useful first slice already exceeds the available budget, say the plan is not feasible as stated.
-6. If the task is open-ended, propose a shortest credible iteration path and stop at the first decision point.
-7. When reporting the plan, distinguish:
+5. When an experiment draws on multiple ideas or prior runs, list all of them as source entries at creation time.
+6. If the likely useful first slice already exceeds the available budget, say the plan is not feasible as stated.
+7. If the task is open-ended, propose a shortest credible iteration path and stop at the first decision point.
+8. When reporting the plan, distinguish:
    - what fits now
    - what becomes possible only if the first slice succeeds
    - what is out of scope for the current budget
@@ -349,6 +353,7 @@ When resuming:
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, run `scripts/summarize_index.py` or read `index/index.md` first and only inspect specific entry directories afterward.
 - Before starting a new experiment, summarize relevant prior ideas and experiments and say where you are picking up from.
+- When a run stems from multiple ideas or prior experiments, register all of them as `source_id` links instead of collapsing them into a single parent.
 - Review the parent constitution and local repo guardrails before planning or writing.
 - Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
 - Clone or copy source into the experiment workspace before editing whenever the source tree must stay isolated.

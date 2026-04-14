@@ -32,7 +32,7 @@ PROV_CONTEXT = {
 }
 
 
-def parse_args() -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Register a new experiment or idea in the global lab notebook."
     )
@@ -49,8 +49,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--overall-budget", default="")
     parser.add_argument("--loop-budget", default="")
     parser.add_argument("--workspace-root", default="")
+    parser.add_argument("--source-id", action="append", default=[])
     parser.add_argument("--parent-id", default="")
-    return parser.parse_args()
+    return parser
+
+
+def parse_args() -> argparse.Namespace:
+    return build_parser().parse_args()
 
 
 def utc_now() -> str:
@@ -193,6 +198,7 @@ def build_prov_record(
     entry_dir: Path,
     project_root: str,
     workspace_dir: str,
+    source_ids: list[str],
 ) -> dict[str, object]:
     activity_id = f"urn:labnb:activity:register-entry:{entry_id}"
     entry_entity_id = f"urn:labnb:entity:entry:{entry_id}"
@@ -203,6 +209,7 @@ def build_prov_record(
         used_entities.append(path_entity_id("project-root", project_root))
     if workspace_dir:
         used_entities.append(path_entity_id("workspace-dir", workspace_dir))
+    used_entities.extend(f"urn:labnb:entity:entry:{source_id}" for source_id in source_ids)
 
     entities: list[dict[str, object]] = [
         {
@@ -226,6 +233,13 @@ def build_prov_record(
                 "prov:id": path_entity_id("workspace-dir", workspace_dir),
                 "prov:type": ["prov:Entity", "labnb:WorkspaceDir"],
                 "prov:atLocation": workspace_dir,
+            }
+        )
+    for source_id in source_ids:
+        entities.append(
+            {
+                "prov:id": f"urn:labnb:entity:entry:{source_id}",
+                "prov:type": ["prov:Entity", "labnb:SourceEntry"],
             }
         )
 
@@ -255,6 +269,7 @@ def build_prov_record(
         },
         "labnb:entryKind": entry_kind,
         "labnb:status": status,
+        "labnb:sourceIds": source_ids,
         "labnb:note": "Best-effort provenance. External changes may occur outside labnb tracking.",
     }
 
@@ -280,8 +295,25 @@ def default_status(entry_kind: str, status: str) -> str:
     return "ideation" if entry_kind == "idea" else "started"
 
 
+def normalized_source_ids(args: argparse.Namespace) -> list[str]:
+    source_ids = [value.strip() for value in args.source_id if value.strip()]
+    if args.parent_id and args.parent_id not in source_ids:
+        source_ids.append(args.parent_id)
+    return source_ids
+
+
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.entry_kind == "experiment":
+        if not args.overall_budget:
+            parser.error("--overall-budget is required when --entry-kind experiment")
+        if not args.loop_budget:
+            parser.error("--loop-budget is required when --entry-kind experiment")
+
+
 def main() -> int:
-    args = parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(parser, args)
     lab_root = Path(args.lab_root).expanduser().resolve()
     project_root = Path(args.project_root).expanduser().resolve() if args.project_root else Path()
     ensure_layout(lab_root)
@@ -289,6 +321,7 @@ def main() -> int:
     exp_id = experiment_id(args.project_slug, args.experiment_slug)
     entry_kind = args.entry_kind
     status = default_status(entry_kind, args.status)
+    source_ids = normalized_source_ids(args)
     entry_dir = lab_root / ("ideas" if entry_kind == "idea" else "experiments") / exp_id
     entry_dir.mkdir(parents=False, exist_ok=False)
     workspace_dir = Path()
@@ -319,7 +352,8 @@ def main() -> int:
         "entry_dir": str(entry_dir),
         "workspace_dir": str(workspace_dir) if entry_kind == "experiment" else "",
         "workspace_link": str(workspace_link) if entry_kind == "experiment" else "",
-        "parent_id": args.parent_id,
+        "source_ids": source_ids,
+        "parent_id": source_ids[0] if source_ids else "",
         "experiment_id": exp_id,
         "experiment_slug": args.experiment_slug,
         "experiment_dir": str(entry_dir),
@@ -335,6 +369,7 @@ def main() -> int:
             entry_dir=entry_dir,
             project_root=metadata["project_root"],
             workspace_dir=metadata["workspace_dir"],
+            source_ids=source_ids,
         ),
     )
     write_if_missing(
@@ -360,7 +395,7 @@ def main() -> int:
                 f"- Status: {status}",
                 "- Provenance: W3C PROV-O best-effort; external changes may exist outside labnb tracking",
                 f"- Project root: {project_root if args.project_root else 'TBD'}",
-                f"- Parent experiment: {args.parent_id or 'None'}",
+                f"- Source entries: {', '.join(source_ids) if source_ids else 'None'}",
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
                 f"- Loop budget: {args.loop_budget or 'TBD'}",
                 "",
@@ -397,7 +432,7 @@ def main() -> int:
                 f"- Project root: {project_root}",
                 f"- Workspace dir: {workspace_dir}",
                 f"- Workspace link: {workspace_link}",
-                f"- Parent experiment: {args.parent_id or 'None'}",
+                f"- Source entries: {', '.join(source_ids) if source_ids else 'None'}",
                 f"- Budget rule: Treat the budget as a ceiling, not as time to fill",
                 "",
                 "## Feasibility And First Slice",
@@ -455,7 +490,7 @@ def main() -> int:
                         "objective",
                         "experiment_path",
                         "project_root",
-                        "parent_id",
+                        "source_ids",
                     ]
                 )
                 + "\n",
@@ -471,7 +506,7 @@ def main() -> int:
                 args.objective,
                 entry_dir,
                 project_root if args.project_root else "",
-                args.parent_id,
+                ",".join(source_ids),
             ]
             handle.write("\t".join(sanitize_tsv_field(field) for field in row_data) + "\n")
         rows = read_rows(index_tsv)

@@ -31,6 +31,8 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Require parent-constitution review and local safety guardrails around source isolation, index review, and parallel writes
 - [x] Add best-effort provenance scaffolding and explicit status defaults for all notebook entries
 - [x] Serialize provenance with W3C PROV-O terms rather than custom event keys
+- [x] Require explicit budgets for experiments at creation time
+- [x] Allow an experiment to stem from one or more upstream ideas or experiments
 
 ## Layout
 
@@ -91,7 +93,8 @@ lab-notebook/
 2. Ideas are for promising directions that have not yet been implemented or explored.
 3. Before starting a new experiment, summarize matching entries for the project slug.
 4. Use that summary to choose between resume, promote, branch, or new experiment.
-5. Preserve append-only history in the index even when an idea later becomes a child experiment.
+5. Allow new experiments to reference one or more upstream source entries.
+6. Preserve append-only history in the index even when an idea later becomes a child experiment.
 
 ## Loop Rules
 
@@ -99,12 +102,13 @@ lab-notebook/
 2. Treat time budgets as ceilings rather than targets to consume.
 3. Start with the smallest useful iteration that can produce information or a decision.
 4. Count any proposed parallel branch or downstream follow-up against the same budget unless it is explicitly deferred.
-5. Say explicitly when the budget is too small for even one useful slice.
-6. Record a baseline before the first code-changing iteration.
-7. Make one focused change per iteration.
-8. Verify mechanically after each change.
-9. Keep improved or equally good-but-simpler results; discard regressions.
-10. Log every iteration locally in the experiment directory.
+5. Require explicit overall and loop budgets when creating an experiment.
+6. Say explicitly when the budget is too small for even one useful slice.
+7. Record a baseline before the first code-changing iteration.
+8. Make one focused change per iteration.
+9. Verify mechanically after each change.
+10. Keep improved or equally good-but-simpler results; discard regressions.
+11. Log every iteration locally in the experiment directory.
 
 ## Validation
 

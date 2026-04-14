@@ -38,11 +38,14 @@ python skills/labnb/scripts/register_experiment.py \
   --direction "$DIRECTION" \
   --verify-command "$VERIFY_COMMAND" \
   --overall-budget "$OVERALL_BUDGET" \
-  --loop-budget "$LOOP_BUDGET"
+  --loop-budget "$LOOP_BUDGET" \
+  --source-id "$SOURCE_ENTRY_ID"
 ```
 
-5. Work in the dedicated workspace clone if project files change.
-6. Keep the loop small:
+5. Budgets are required at experiment creation time; do not leave them implicit.
+6. Repeat `--source-id` when the run stems from multiple ideas or previous experiments.
+7. Work in the dedicated workspace clone if project files change.
+8. Keep the loop small:
    - smallest useful first slice
    - verify mechanically
    - log outcome
