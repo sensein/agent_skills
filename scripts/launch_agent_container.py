@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-DEFAULT_IMAGE = "node:22-bookworm-slim"
+DEFAULT_IMAGE = "node:24-bookworm-slim"
 DEFAULT_APPTAINER_IMAGE = f"docker://{DEFAULT_IMAGE}"
 DEFAULT_CONFIG_NAME = ".agent-container.toml"
 SCRIPT_ROOT = Path(__file__).resolve().parents[1]
@@ -484,6 +484,28 @@ def install_block(spec: AgentSpec) -> list[str]:
     ]
 
 
+def system_package_block() -> list[str]:
+    return [
+        "if ! command -v git >/dev/null 2>&1; then",
+        "  if command -v apt-get >/dev/null 2>&1; then",
+        "    apt-get update",
+        "    apt-get install -y git curl ca-certificates bash",
+        "  elif command -v apk >/dev/null 2>&1; then",
+        "    apk add --no-cache git curl ca-certificates bash",
+        "  elif command -v dnf >/dev/null 2>&1; then",
+        "    dnf install -y git curl ca-certificates bash",
+        "  elif command -v microdnf >/dev/null 2>&1; then",
+        "    microdnf install -y git curl ca-certificates bash",
+        "  elif command -v yum >/dev/null 2>&1; then",
+        "    yum install -y git curl ca-certificates bash",
+        "  else",
+        '    echo "git is required inside the container, but no supported package manager was found." >&2',
+        "    exit 1",
+        "  fi",
+        "fi",
+    ]
+
+
 def bootstrap_script(
     agent: str,
     workdir: str,
@@ -505,6 +527,7 @@ def bootstrap_script(
             "export NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
             "export NPM_CONFIG_UPDATE_NOTIFIER=false",
             'export PATH="$HOME/.local/bin:$NPM_CONFIG_PREFIX/bin:$PATH"',
+            *system_package_block(),
             "mkdir -p /opt/agent-skills",
             f'mkdir -p "$HOME/{spec.skills_subdir}"',
             "for mount_root in /opt/agent-skills/*; do",

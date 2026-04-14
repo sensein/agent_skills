@@ -270,9 +270,14 @@ class LaunchAgentContainerTests(unittest.TestCase):
         script = MODULE.bootstrap_script(
             "codex", "/workspace/task", ["--model", "gpt-5"], ["login", "status"]
         )
+        self.assertIn("if ! command -v git >/dev/null 2>&1; then", script)
+        self.assertIn("apt-get install -y git curl ca-certificates bash", script)
         self.assertIn("npm install -g npm@latest", script)
         self.assertIn("npm install -g @openai/codex", script)
         self.assertIn("exec codex --model gpt-5 -C /workspace/task login status", script)
+
+    def test_default_image_tracks_recent_node(self) -> None:
+        self.assertEqual(MODULE.DEFAULT_IMAGE, "node:24-bookworm-slim")
 
     def test_help_includes_key_defaults(self) -> None:
         result = subprocess.run(
