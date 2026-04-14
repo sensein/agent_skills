@@ -10,7 +10,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - keeps a simple human-readable experiment index
 - avoids conflicting writes when multiple experiments run in parallel
 - lives under `skills/` in this repository so it can be mirrored into agent skill directories easily
-- is broken into focused subskills for index resume, idea capture, and active experiment execution
+- is broken into focused subskills with short `labnb-<action>` invocation names for resume, idea capture, and active experiment execution
 
 ## Decisions
 
@@ -28,6 +28,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Allow an optional loop budget to be recorded directly in experiment registration metadata and plan scaffolding
 - [x] Split overall experiment budget from loop budget so the total plan cap is explicit
 - [x] Allow the index to hold both ideas and experiments, with a summary step before starting new work
+- [x] Require parent-constitution review and local safety guardrails around source isolation, index review, and parallel writes
 
 ## Layout
 
@@ -62,6 +63,13 @@ lab-notebook/
 5. Write regenerated index output to a temp file and `rename` it into place.
 6. If more than one agent will edit the same codebase, each agent must work from its own clone path under `workspaces/<experiment-id>/`.
 7. If the real workspace should live elsewhere, create it there and keep `workspaces/<experiment-id>/` as a symlink entry point.
+
+## Constitution Rules
+
+1. The skill must inherit and obey any parent constitution, repo policy, or user task constraint.
+2. Before planning or writing, review both the active constitution and the notebook index.
+3. If the parent rules are stricter than the skill guidance, the stricter rule wins.
+4. Add local guardrails when the parent context implies them, even if they are not already written into the experiment prompt.
 
 ## Index And Resume Rules
 

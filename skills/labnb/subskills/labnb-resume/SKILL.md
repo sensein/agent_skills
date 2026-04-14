@@ -1,5 +1,5 @@
 ---
-name: labnb-resume-from-index
+name: labnb-resume
 description: Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work.
 ---
 
@@ -7,11 +7,18 @@ description: Summarize prior ideas and experiments for a project slug, then choo
 
 Use this subskill before starting new lab notebook work for a project.
 
+## Guardrails
+
+1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+2. Review those rules before deciding whether to resume, branch, or start fresh.
+3. Prefer the safer pickup point when two choices would create competing writes to the same source tree.
+
 ## Flow
 
 1. Resolve the lab root.
-2. Derive the project slug.
-3. Run:
+2. Review the parent constitution and repo guardrails.
+3. Derive the project slug.
+4. Run:
 
 ```bash
 python skills/labnb/scripts/summarize_index.py \
@@ -19,12 +26,12 @@ python skills/labnb/scripts/summarize_index.py \
   --project-slug "$PROJECT_SLUG"
 ```
 
-4. Summarize:
+5. Summarize:
    - relevant ideas
    - active experiments
    - completed experiments worth branching from
    - the best current pickup point
-5. Choose one path:
+6. Choose one path:
    - resume an active experiment
    - promote an idea into a new experiment
    - create a child experiment from prior work

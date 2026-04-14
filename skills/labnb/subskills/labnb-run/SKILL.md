@@ -1,5 +1,5 @@
 ---
-name: labnb-run-experiment
+name: labnb-run
 description: Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging.
 ---
 
@@ -7,11 +7,20 @@ description: Create and run a concrete lab notebook experiment with isolated wor
 
 Use this subskill when the work is concrete enough to execute now.
 
+## Guardrails
+
+1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+2. Review the notebook index and the parent constitution before creating a new experiment.
+3. If project files will change, work in a dedicated experiment clone or copy, not the shared source tree.
+4. Never let two active experiments write to the same clone, checkout, or output directory.
+5. If write scopes may overlap, separate the workspaces first and only then continue.
+
 ## Flow
 
-1. Summarize prior notebook entries for the project.
-2. Decide whether this should resume an existing run, branch from one, or start fresh.
-3. Register the experiment:
+1. Review the parent constitution and repo guardrails.
+2. Summarize prior notebook entries for the project.
+3. Decide whether this should resume an existing run, branch from one, or start fresh.
+4. Register the experiment:
 
 ```bash
 python skills/labnb/scripts/register_experiment.py \
@@ -28,8 +37,8 @@ python skills/labnb/scripts/register_experiment.py \
   --loop-budget "$LOOP_BUDGET"
 ```
 
-4. Work in the dedicated workspace clone if project files change.
-5. Keep the loop small:
+5. Work in the dedicated workspace clone if project files change.
+6. Keep the loop small:
    - smallest useful first slice
    - verify mechanically
    - log outcome

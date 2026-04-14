@@ -9,13 +9,30 @@ Use this skill when the user wants a reusable lab notebook that survives across 
 
 The key difference from repo-local `.lab/` workflows is that the lab root lives in a general location and must stay safe under parallel use.
 
+## Constitution
+
+This skill must inherit and obey any higher-level constitution, parent skill, repo policy, task instruction, or user constraint already in scope.
+
+Before taking action:
+
+1. Review the parent instructions that govern the current task.
+2. Review the notebook index for related ideas and experiments.
+3. If the parent rules are stricter than this skill, follow the stricter rule.
+4. If this skill is missing a guardrail required by the parent context, add the missing guardrail locally in your plan instead of assuming it is safe.
+
+This skill never overrides:
+
+- user instructions
+- repo-specific safety or contribution rules
+- higher-level constitutions about writes, approvals, secrets, or external side effects
+
 ## Subskills
 
 Use these focused subskills when a narrower task is enough:
 
-- [`subskills/resume-from-index/SKILL.md`](./subskills/resume-from-index/SKILL.md): summarize prior ideas and experiments for a project and decide where to pick up
-- [`subskills/capture-idea/SKILL.md`](./subskills/capture-idea/SKILL.md): register an unimplemented experiment idea in the shared notebook
-- [`subskills/run-experiment/SKILL.md`](./subskills/run-experiment/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
+- [`labnb-resume`](./subskills/labnb-resume/SKILL.md): summarize prior ideas and experiments for a project and decide where to pick up
+- [`labnb-idea`](./subskills/labnb-idea/SKILL.md): register an unimplemented experiment idea in the shared notebook
+- [`labnb-run`](./subskills/labnb-run/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
 
 ## Default Root
 
@@ -59,6 +76,21 @@ Treat the budget as applying to the whole proposed path, including any parallel 
 3. Never store the only copy of experiment state inside the project being studied.
 4. Never delete or rewrite prior experiment rows from the central index.
 5. Prefer deterministic helpers in [`scripts/register_experiment.py`](./scripts/register_experiment.py) and [`scripts/summarize_index.py`](./scripts/summarize_index.py) instead of ad hoc shell snippets.
+
+## Local Guardrails
+
+Apply these guardrails even when the parent constitution does not spell them out explicitly:
+
+1. Review the notebook index and the active task constitution before starting new work.
+2. Never edit the original source tree directly when the experiment is supposed to use an isolated workspace.
+3. If project files may change, clone or copy the source into the experiment workspace first and do the edits there.
+4. Never let two active experiments write to the same clone, checkout, branch working tree, or results directory.
+5. Treat parallel operations as potentially conflicting until the write scopes are proven disjoint.
+6. If multiple experiments touch the same upstream source, keep their workspaces separate and link them only through notebook metadata, not shared writes.
+7. Preserve append-only notebook history; record new state with new rows or child entries instead of rewriting prior conclusions.
+8. Before resuming or branching, summarize related entries so you understand what has already been tried and what constraints still apply.
+9. If the safe workspace strategy is unclear, pause and choose the safer option rather than writing into an ambiguous location.
+10. Keep secrets, auth state, and external credentials outside experiment artifacts unless the parent constitution explicitly allows otherwise.
 
 ## Lab Layout
 
@@ -112,9 +144,10 @@ The random suffix is mandatory. A timestamp plus slug alone is not enough for pa
 ## Setup Flow
 
 1. Resolve the global lab root.
-2. Derive a `project_slug` from the current repo or working directory name.
-3. Pick an `experiment_slug` that describes the current investigation.
-4. Before creating a new experiment, summarize the existing notebook entries for the project:
+2. Review the parent constitution, repo rules, and any task-specific guardrails that apply to this run.
+3. Derive a `project_slug` from the current repo or working directory name.
+4. Pick an `experiment_slug` that describes the current investigation.
+5. Before creating a new experiment, summarize the existing notebook entries for the project:
 
 ```bash
 python skills/labnb/scripts/summarize_index.py \
@@ -122,12 +155,12 @@ python skills/labnb/scripts/summarize_index.py \
   --project-slug "$PROJECT_SLUG"
 ```
 
-5. Use that summary to decide whether to:
+6. Use that summary to decide whether to:
    - resume an existing experiment
    - promote an existing idea into an experiment
    - create a child experiment from a prior run
    - or start a new experiment
-6. Create the entry by running the helper:
+7. Create the entry by running the helper:
 
 ```bash
 python skills/labnb/scripts/register_experiment.py \
@@ -144,15 +177,15 @@ python skills/labnb/scripts/register_experiment.py \
   --loop-budget "$LOOP_BUDGET"
 ```
 
-7. To record an idea that is not yet being run, use `--entry-kind idea` and omit experiment-only fields that are still unknown.
-8. If the user gave an overall budget for the full experiment path, pass it with `--overall-budget "$OVERALL_BUDGET"`.
-9. If the user gave a loop budget for just this iteration slice, pass it with `--loop-budget "$LOOP_BUDGET"`.
-10. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-11. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-12. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-13. Record baseline iteration `0` in `results.tsv` before code changes.
-14. Work inside the returned experiment directory for notes, artifacts, and summaries.
-15. Log progress inside that experiment directory, not in shared files.
+8. To record an idea that is not yet being run, use `--entry-kind idea` and omit experiment-only fields that are still unknown.
+9. If the user gave an overall budget for the full experiment path, pass it with `--overall-budget "$OVERALL_BUDGET"`.
+10. If the user gave a loop budget for just this iteration slice, pass it with `--loop-budget "$LOOP_BUDGET"`.
+11. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+12. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+13. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+14. Record baseline iteration `0` in `results.tsv` before code changes.
+15. Work inside the returned experiment directory for notes, artifacts, and summaries.
+16. Log progress inside that experiment directory, not in shared files.
 
 ## Configurable Options
 
@@ -215,22 +248,23 @@ Keep detailed notes local to the idea or experiment directory. The global index 
 Use the same tight loop pattern that powers autoresearch, but anchor it in the global notebook:
 
 1. Observe: run the index summary first if you have not already done so for this project, then read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
-2. Confirm you are working inside the experiment's dedicated clone if project files will change.
-3. Convert any user time budget into a bounded iteration plan:
+2. Re-check the parent constitution and repo rules before any write-bearing step.
+3. Confirm you are working inside the experiment's dedicated clone if project files will change.
+4. Convert any user time budget into a bounded iteration plan:
    - pick the smallest useful first slice
    - define the checkpoint for continuing
    - leave explicit slack for logging, verification, and handoff
    - if no useful slice fits, record that the budget is insufficient
-4. Pick one focused change. Prefer atomic edits so the outcome is explainable.
-5. If tracked project files change, commit before verification so rollback is cheap.
-6. Run the verify command and capture the metric.
-7. Keep or discard:
+5. Pick one focused change. Prefer atomic edits so the outcome is explainable.
+6. If tracked project files change, commit before verification so rollback is cheap.
+7. Run the verify command and capture the metric.
+8. Keep or discard:
    - keep when the metric improves
    - keep when the metric ties and the result is clearly simpler
    - discard or revert when the metric regresses or the run crashes
-8. Log the outcome in both `results.tsv` and `log.md`.
-9. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
-10. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
+9. Log the outcome in both `results.tsv` and `log.md`.
+10. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
+11. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
@@ -287,7 +321,9 @@ When resuming:
 - Prefer the helper script over handwritten lock logic when the script is available.
 - If you need a quick view of the notebook, run `scripts/summarize_index.py` or read `index/index.md` first and only inspect specific entry directories afterward.
 - Before starting a new experiment, summarize relevant prior ideas and experiments and say where you are picking up from.
+- Review the parent constitution and local repo guardrails before planning or writing.
 - Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
+- Clone or copy source into the experiment workspace before editing whenever the source tree must stay isolated.
 - Ask whether the workspace should live somewhere else when the repo clone, datasets, or generated artifacts would be better outside the notebook root.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.

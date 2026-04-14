@@ -1,5 +1,5 @@
 ---
-name: labnb-capture-idea
+name: labnb-idea
 description: Record a promising but not-yet-implemented experiment idea in the global lab notebook index.
 ---
 
@@ -7,11 +7,18 @@ description: Record a promising but not-yet-implemented experiment idea in the g
 
 Use this subskill when there is a useful direction to remember, but not enough evidence, time, or scope to run it now.
 
+## Guardrails
+
+1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+2. Review the notebook index first so the idea does not duplicate an existing entry unnecessarily.
+3. Capture speculative directions as ideas instead of opening active experiments that would encourage unsafe or premature writes.
+
 ## Flow
 
-1. Summarize existing entries for the project first.
-2. Choose a concise slug for the idea.
-3. Register the idea:
+1. Review the parent constitution and repo guardrails.
+2. Summarize existing entries for the project first.
+3. Choose a concise slug for the idea.
+4. Register the idea:
 
 ```bash
 python skills/labnb/scripts/register_experiment.py \
@@ -24,7 +31,7 @@ python skills/labnb/scripts/register_experiment.py \
   --loop-budget "$LOOP_BUDGET"
 ```
 
-4. Fill in `idea.md` with:
+5. Fill in `idea.md` with:
    - why it matters
    - what prior evidence to revisit
    - the smallest useful first slice
