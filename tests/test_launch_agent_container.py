@@ -224,6 +224,39 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertTrue(any(mount.container_path.startswith("/opt/agent-skills/") for mount in mounts))
             self.assertIn("docker", command[0])
 
+    def test_build_apptainer_command_uses_dedicated_home_and_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            repo_dir = temp_path / "repo"
+            repo_dir.mkdir()
+            settings = {
+                "agent": "claude",
+                "engine": "apptainer",
+                "image": "",
+                "workspace_name": "default",
+                "workspace_root": "",
+                "agent_state_dir": str(temp_path / ".claude"),
+                "tool_state_dir": str(temp_path / ".tool-state"),
+                "auth_paths": [],
+                "rw_dirs": [str(repo_dir)],
+                "ro_dirs": [],
+                "skill_dirs": [str(REPO_ROOT / "skills")],
+                "env_vars": [],
+                "agent_args": ["auth", "status"],
+            }
+            with mock.patch.object(MODULE.shutil, "which", return_value="/usr/bin/apptainer"):
+                command, _, engine, image = MODULE.build_command(settings)
+            self.assertEqual(engine, "apptainer")
+            self.assertEqual(image, MODULE.DEFAULT_APPTAINER_IMAGE)
+            self.assertIn("--home", command)
+            self.assertTrue(
+                any(
+                    "NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache" in part
+                    for part in command
+                )
+            )
+            self.assertNotIn("HOME=/home/agent", command)
+
     def test_help_includes_key_defaults(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SCRIPT_PATH), "-h"],

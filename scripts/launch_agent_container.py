@@ -446,9 +446,6 @@ def shell_quote_args(parts: Iterable[str]) -> str:
 
 def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
     spec = AGENT_SPECS[agent]
-    extra_dirs = []
-    if workdir != "/workspace":
-        extra_dirs.append(workdir)
     launcher_parts = [spec.command]
     if agent == "codex":
         launcher_parts += ["-C", workdir]
@@ -457,9 +454,10 @@ def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
     return "\n".join(
         [
             "set -euo pipefail",
-            "mkdir -p /home/agent /home/agent/.container-agent/npm-global/bin",
+            "mkdir -p /home/agent /home/agent/.container-agent/npm-global/bin /home/agent/.container-agent/npm-cache",
             "export HOME=/home/agent",
             "export NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
+            "export NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
             'export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"',
             "mkdir -p /opt/agent-skills",
             f'mkdir -p "$HOME/{spec.skills_subdir}"',
@@ -500,6 +498,8 @@ def build_docker_command(
         "-e",
         "NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
         "-e",
+        "NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
+        "-e",
         "AGENT_SKILLS_DIR=/opt/agent-skills",
         "-e",
         "AGENT_AUTH_ROOT=/home/agent/.agent-auth",
@@ -514,21 +514,30 @@ def build_docker_command(
 
 
 def build_apptainer_command(
-    image: str, mounts: list[Mount], env_vars: list[str], script: str, workdir: str
+    image: str,
+    mounts: list[Mount],
+    env_vars: list[str],
+    script: str,
+    workdir: str,
+    tool_state_dir: Path,
 ) -> list[str]:
+    apptainer_home = tool_state_dir / "apptainer-home"
+    apptainer_home.mkdir(parents=True, exist_ok=True)
     command = [
         "apptainer",
         "exec",
         "--cleanenv",
         "--containall",
+        "--home",
+        f"{apptainer_home}:/home/agent",
         "--pwd",
         workdir,
     ]
     for mount in mounts:
         command += ["--bind", f"{mount.host_path}:{mount.container_path}:{mount.mode}"]
     env_parts = [
-        "HOME=/home/agent",
         "NPM_CONFIG_PREFIX=/home/agent/.container-agent/npm-global",
+        "NPM_CONFIG_CACHE=/home/agent/.container-agent/npm-cache",
         "AGENT_SKILLS_DIR=/opt/agent-skills",
         "AGENT_AUTH_ROOT=/home/agent/.agent-auth",
     ]
@@ -552,7 +561,14 @@ def build_command(settings: dict[str, object]) -> tuple[list[str], list[Mount], 
     if engine == "docker":
         command = build_docker_command(image, mounts, env_vars, script, workdir)
     else:
-        command = build_apptainer_command(image, mounts, env_vars, script, workdir)
+        command = build_apptainer_command(
+            image,
+            mounts,
+            env_vars,
+            script,
+            workdir,
+            Path(str(settings["tool_state_dir"])).expanduser().resolve(),
+        )
     return command, mounts, engine, image
 
 
