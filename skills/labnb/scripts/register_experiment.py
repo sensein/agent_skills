@@ -19,6 +19,7 @@ KNOWN_STATUSES = (
     "planned",
     "started",
     "stopped",
+    "budget_exhausted",
     "completed",
     "terminated",
     "crashed",

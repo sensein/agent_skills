@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("action", choices=("start", "check", "finish"))
     parser.add_argument("--experiment-dir", required=True)
     parser.add_argument("--now", default="")
-    parser.add_argument("--status-on-exhausted", default="stopped")
+    parser.add_argument("--status-on-exhausted", default="budget_exhausted")
     parser.add_argument("--final-status", default="completed")
     return parser.parse_args()
 

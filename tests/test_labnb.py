@@ -455,7 +455,7 @@ class LabNBTests(unittest.TestCase):
             provenance_text = (exp_dir / "provenance.jsonl").read_text()
             self.assertIn('"labnb:stateSnapshot"', provenance_text)
 
-    def test_monitor_slice_stops_when_budget_exhausted(self) -> None:
+    def test_monitor_slice_marks_budget_exhausted_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             exp_dir = register_with_budgets(
@@ -486,6 +486,51 @@ class LabNBTests(unittest.TestCase):
                     "check",
                     "--experiment-dir",
                     str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:05:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            state = json.loads(result.stdout)
+            self.assertEqual(state["status"], "budget_exhausted")
+            metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["status"], "budget_exhausted")
+
+    def test_monitor_slice_allows_explicit_status_override_on_exhausted(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            exp_dir = register_with_budgets(
+                temp_path / "lab",
+                temp_path / "project",
+                "override-run",
+                "30 minutes",
+                "5 minutes",
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "start",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--now",
+                    "2026-04-14T10:00:00Z",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MONITOR_SCRIPT),
+                    "check",
+                    "--experiment-dir",
+                    str(exp_dir),
+                    "--status-on-exhausted",
+                    "stopped",
                     "--now",
                     "2026-04-14T10:05:00Z",
                 ],

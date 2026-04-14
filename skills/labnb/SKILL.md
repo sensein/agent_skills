@@ -262,6 +262,7 @@ Recommended statuses include:
 - `planned`
 - `started`
 - `stopped`
+- `budget_exhausted`
 - `completed`
 - `terminated`
 - `crashed`
@@ -278,7 +279,7 @@ The summary helper also supports:
 The slice monitor helper supports:
 
 - `start`: begin a monitored loop slice
-- `check`: refresh elapsed state and stop when the slice or overall budget is exhausted
+- `check`: refresh elapsed state and mark the run `budget_exhausted` by default when the slice or overall budget is exhausted
 - `finish`: close the active slice with a final status
 
 ## What Goes In Each Entry
@@ -326,9 +327,14 @@ Use the same tight loop pattern that powers autoresearch, but anchor it in the g
    - keep when the metric ties and the result is clearly simpler
    - discard or revert when the metric regresses or the run crashes
 10. Log the outcome in both `results.tsv` and `log.md`.
-11. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends.
-12. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
-13. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
+11. Before any background command or long-running job is left unattended, run `monitor_slice.py check` and decide whether the run needs a timer, watchdog, scheduler, or other explicit follow-up tied to the remaining budget.
+12. If no timer or watchdog is appropriate or available, do not leave the run implicitly hanging:
+   - finish the current slice with `monitor_slice.py finish --final-status stopped`
+   - record a resume checkpoint in `log.md`
+   - note what command to restart or re-check on resume
+13. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends.
+14. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
+15. Repeat until the stop condition is reached, the next checkpoint fails, the budget is exhausted, or the user interrupts.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
@@ -347,6 +353,7 @@ Use time budgets to shape the experiment, not to maximize activity.
    - what fits now
    - what becomes possible only if the first slice succeeds
    - what is out of scope for the current budget
+9. If a running slice exceeds its loop or overall budget, mark it explicitly as `budget_exhausted`, summarize what completed, and record the next safe resume point instead of silently treating it as a normal stop.
 
 ## Shared Index Rules
 
@@ -400,4 +407,7 @@ When resuming:
 - Require explicit confirmation before deleting entry files, artifacts, or workspaces through labnb-driven actions.
 - If the user gives a budget like "two hours," do not stretch the plan to fill two hours by default; start with the smallest decision-making slice and say when the budget is insufficient.
 - If you propose parallel branches or downstream experiments, count them against the same stated budget unless you explicitly mark them as later follow-up outside the current scope.
+- Before leaving a background command unattended, decide whether to start a timer, watchdog, scheduler, or follow-up hook that will check the run before the budget expires.
+- If you cannot supervise or schedule a background command safely, stop the slice deliberately, write a resume checkpoint, and say exactly how to resume.
+- If the time budget is exceeded, treat that as `budget_exhausted` by default, summarize partial results, and record whether the next step is resume, branch, or stop.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.
