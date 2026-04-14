@@ -113,6 +113,16 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertTrue(str(settings["agent_state_dir"]).endswith(".claude"))
             self.assertTrue(str(settings["tool_state_dir"]).endswith("/claude"))
 
+    def test_claude_default_auth_path_includes_claude_json_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            (temp_path / ".claude.json").write_text("{}", encoding="utf-8")
+            with mock.patch.object(MODULE.Path, "home", return_value=temp_path):
+                self.assertEqual(
+                    MODULE.default_auth_paths("claude"),
+                    [temp_path / ".claude.json"],
+                )
+
     def test_print_config_outputs_resolved_settings(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

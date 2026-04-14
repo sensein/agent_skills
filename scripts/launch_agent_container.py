@@ -175,6 +175,14 @@ def default_tool_state_dir(config_path: Path, agent: str) -> Path:
     return config_path.parent / ".agent-container-state" / agent
 
 
+def default_auth_paths(agent: str) -> list[Path]:
+    if agent == "claude":
+        candidate = Path.home() / ".claude.json"
+        if candidate.exists():
+            return [candidate]
+    return []
+
+
 def default_skill_dirs() -> list[Path]:
     skills_dir = SCRIPT_ROOT / "skills"
     if skills_dir.exists():
@@ -317,7 +325,12 @@ def resolve_settings(args: argparse.Namespace, config_path: Path) -> dict[str, o
             fallback=str(default_tool_state_dir(config_path, agent)),
             agent_overridden=agent_overridden,
         ),
-        "auth_paths": ensure_list(config_value(args.auth_path, loaded.get("auth_paths"), [])),
+        "auth_paths": maybe_agent_specific_list(
+            cli_value=args.auth_path,
+            loaded_value=loaded.get("auth_paths"),
+            fallback=[str(path) for path in default_auth_paths(agent)],
+            agent_overridden=agent_overridden,
+        ),
         "rw_dirs": ensure_list(config_value(args.rw_dir, loaded.get("rw_dirs"), [])),
         "ro_dirs": ensure_list(config_value(args.ro_dir, loaded.get("ro_dirs"), [])),
         "skill_dirs": ensure_list(
