@@ -112,15 +112,44 @@ python skills/global-lab-notebook/scripts/register_experiment.py \
   --objective "Short statement of the experiment goal" \
   --metric-name "$METRIC_NAME" \
   --direction "$DIRECTION" \
-  --verify-command "$VERIFY_COMMAND"
+  --verify-command "$VERIFY_COMMAND" \
+  --loop-budget "$LOOP_BUDGET"
 ```
 
-5. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-6. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-7. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-8. Record baseline iteration `0` in `results.tsv` before code changes.
-9. Work inside the returned experiment directory for notes, artifacts, and summaries.
-10. Log progress inside that experiment directory, not in shared files.
+5. If the user gave a loop budget, pass it with `--loop-budget "$LOOP_BUDGET"`. Otherwise leave it unset and keep the plan conservative.
+6. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+7. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
+8. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+9. Record baseline iteration `0` in `results.tsv` before code changes.
+10. Work inside the returned experiment directory for notes, artifacts, and summaries.
+11. Log progress inside that experiment directory, not in shared files.
+
+## Configurable Options
+
+The skill has two kinds of configurable inputs: notebook root settings and per-experiment registration options.
+
+### Root Settings
+
+- `LAB_NOTEBOOK_ROOT`: override the default global notebook location
+- `XDG_STATE_HOME`: fallback base for the default notebook root when `LAB_NOTEBOOK_ROOT` is unset
+
+### Registration Options
+
+Use these helper flags when creating an experiment:
+
+- `--lab-root`: explicit notebook root
+- `--project-root`: source repo or task directory being studied
+- `--project-slug`: stable short name for the project
+- `--experiment-slug`: short name for this experiment
+- `--objective`: concise goal statement
+- `--metric-name`: optional metric label
+- `--direction`: optional optimization direction such as `higher` or `lower`
+- `--verify-command`: optional mechanical check command
+- `--loop-budget`: optional budget or timebox for the current loop
+- `--workspace-root`: optional external root for the real workspace location
+- `--parent-id`: optional parent experiment id for child experiments
+
+If `--metric-name`, `--direction`, `--verify-command`, or `--loop-budget` are omitted, the helper records `TBD` in `plan.md` so the experiment can still be registered safely before the plan is fully refined.
 
 ## What Goes In Each Experiment
 
