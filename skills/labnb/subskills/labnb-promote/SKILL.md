@@ -1,0 +1,37 @@
+---
+name: labnb-promote
+description: Promote a labnb idea into a concrete experiment with explicit budgets, source links, and provenance.
+---
+
+# Promote Idea
+
+Use this subskill when an existing idea is ready to become a real experiment run.
+
+## Guardrails
+
+1. Review the notebook index and the idea entry before promotion.
+2. Require explicit experiment budgets at promotion time.
+3. Preserve the original idea as notebook history; do not delete it.
+4. Record the promoted experiment as stemming from the idea through source links and provenance.
+
+## Flow
+
+1. Identify the idea entry id.
+2. Choose the experiment slug and required budgets.
+3. Promote it:
+
+```bash
+python skills/labnb/scripts/promote_idea.py \
+  --lab-root "$LAB_ROOT" \
+  --idea-id "$IDEA_ID" \
+  --project-root "$PROJECT_ROOT" \
+  --experiment-slug "$EXPERIMENT_SLUG" \
+  --metric-name "$METRIC_NAME" \
+  --direction "$DIRECTION" \
+  --verify-command "$VERIFY_COMMAND" \
+  --overall-budget "$OVERALL_BUDGET" \
+  --loop-budget "$LOOP_BUDGET"
+```
+
+4. Repeat `--source-id` if the new experiment should also stem from other prior entries.
+5. Continue the run with `labnb-run`.

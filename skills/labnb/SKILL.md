@@ -1,17 +1,17 @@
 ---
 name: labnb
-description: Create and maintain a concurrency-safe global lab notebook outside project roots, with idea capture, startup summaries of prior work, append-only indexing, and isolated experiment workspaces across repos and tasks.
+description: Create and maintain a concurrency-safe global lab notebook outside project roots, with idea capture, startup summaries of prior work, append-only indexing, and isolated experiment workspaces across projects, investigations, and tasks.
 ---
 
 # Lab Notebook
 
-Use this skill when the user wants a reusable lab notebook that survives across tasks, repositories, and sessions.
+Use this skill when the user wants a reusable lab notebook that survives across tasks, projects, investigations, and sessions.
 
 The key difference from repo-local `.lab/` workflows is that the lab root lives in a general location and must stay safe under parallel use.
 
 ## Constitution
 
-This skill must inherit and obey any higher-level constitution, parent skill, repo policy, task instruction, or user constraint already in scope.
+This skill must inherit and obey any higher-level constitution, parent skill, project policy, task instruction, or user constraint already in scope.
 
 Before taking action:
 
@@ -23,7 +23,7 @@ Before taking action:
 This skill never overrides:
 
 - user instructions
-- repo-specific safety or contribution rules
+- project-specific safety or contribution rules
 - higher-level constitutions about writes, approvals, secrets, or external side effects
 
 ## Subskills
@@ -32,6 +32,7 @@ Use these focused subskills when a narrower task is enough:
 
 - [`labnb-resume`](./subskills/labnb-resume/SKILL.md): summarize prior ideas and experiments for a project and decide where to pick up
 - [`labnb-idea`](./subskills/labnb-idea/SKILL.md): register an unimplemented experiment idea in the shared notebook
+- [`labnb-promote`](./subskills/labnb-promote/SKILL.md): turn an existing idea into a concrete experiment with explicit budgets and provenance
 - [`labnb-run`](./subskills/labnb-run/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
 
 ## Default Root
@@ -42,7 +43,7 @@ Use this location unless the user explicitly wants another path:
 ${LAB_NOTEBOOK_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/lab-notebook}
 ```
 
-This keeps the notebook outside any single repo and outside any specific agent runtime, while still making it easy to override.
+This keeps the notebook outside any single project tree and outside any specific agent runtime, while still making it easy to override.
 
 ## Interactive Setup Gate
 
@@ -155,8 +156,8 @@ The random suffix is mandatory. A timestamp plus slug alone is not enough for pa
 ## Setup Flow
 
 1. Resolve the global lab root.
-2. Review the parent constitution, repo rules, and any task-specific guardrails that apply to this run.
-3. Derive a `project_slug` from the current repo or working directory name.
+2. Review the parent constitution, project rules, and any task-specific guardrails that apply to this run.
+3. Derive a `project_slug` from the current project, investigation, source tree, or working directory name.
 4. Pick an `experiment_slug` that describes the current investigation.
 5. Before creating a new experiment, summarize the existing notebook entries for the project:
 
@@ -190,22 +191,37 @@ python skills/labnb/scripts/register_experiment.py \
 ```
 
 8. To record an idea that is not yet being run, use `--entry-kind idea` and omit experiment-only fields that are still unknown.
-9. Experiments must be created with explicit `--overall-budget` and `--loop-budget`; do not leave them unspecified.
-10. Use one or more `--source-id` flags when an experiment stems from prior ideas or experiments.
-11. Start the monitored loop slice before the first write-bearing iteration:
+9. To promote an existing idea into a concrete experiment, use the dedicated helper:
+
+```bash
+python skills/labnb/scripts/promote_idea.py \
+  --lab-root "$LAB_ROOT" \
+  --idea-id "$IDEA_ID" \
+  --project-root "$PROJECT_ROOT" \
+  --experiment-slug "$EXPERIMENT_SLUG" \
+  --metric-name "$METRIC_NAME" \
+  --direction "$DIRECTION" \
+  --verify-command "$VERIFY_COMMAND" \
+  --overall-budget "$OVERALL_BUDGET" \
+  --loop-budget "$LOOP_BUDGET"
+```
+
+10. Experiments must be created with explicit `--overall-budget` and `--loop-budget`; do not leave them unspecified.
+11. Use one or more `--source-id` flags when an experiment stems from prior ideas or experiments.
+12. Start the monitored loop slice before the first write-bearing iteration:
 
 ```bash
 python skills/labnb/scripts/monitor_slice.py start \
   --experiment-dir "$EXPERIMENT_DIR"
 ```
 
-12. Use `monitor_slice.py check` before another iteration or long-running verify step, and `monitor_slice.py finish` when the slice ends.
-13. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-14. If code changes are involved, clone or copy the target repo into the experiment's dedicated workspace path before editing.
-15. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
-16. Record baseline iteration `0` in `results.tsv` before code changes.
-17. Work inside the returned experiment directory for notes, artifacts, and summaries.
-18. Log progress inside that experiment directory, not in shared files.
+13. Use `monitor_slice.py check` before another iteration or long-running verify step, and `monitor_slice.py finish` when the slice ends.
+14. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+15. If code changes are involved, clone or copy the relevant source tree into the experiment's dedicated workspace path before editing.
+16. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+17. Record baseline iteration `0` in `results.tsv` before code changes.
+18. Work inside the returned experiment directory for notes, artifacts, and summaries.
+19. Log progress inside that experiment directory, not in shared files.
 
 ## Configurable Options
 
@@ -221,7 +237,7 @@ The skill has two kinds of configurable inputs: notebook root settings and per-e
 Use these helper flags when creating an experiment:
 
 - `--lab-root`: explicit notebook root
-- `--project-root`: source repo or task directory being studied; optional for ideas that are still abstract
+- `--project-root`: source tree or task directory being studied; optional for ideas that are still abstract or for work that will create a new repo later
 - `--project-slug`: stable short name for the project
 - `--experiment-slug`: short name for this idea or experiment entry
 - `--objective`: concise goal statement
@@ -274,8 +290,7 @@ For ideas:
 
 For experiments:
 
-- `metadata.json`: creation metadata, source repo path, objective, ids, status, and provenance mode
-- `metadata.json`: creation metadata, source repo path, objective, ids, status, provenance mode, and `source_ids`
+- `metadata.json`: creation metadata, source path context, objective, ids, status, provenance mode, and `source_ids`
 - `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
 - `log.md`: chronological notes for the experiment
 - `provenance.jsonl`: append-only best-effort PROV-O event log
@@ -293,7 +308,7 @@ Keep detailed notes local to the idea or experiment directory. The global index 
 Use the same tight loop pattern that powers autoresearch, but anchor it in the global notebook:
 
 1. Observe: run the index summary first if you have not already done so for this project, then read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
-2. Re-check the parent constitution and repo rules before any write-bearing step.
+2. Re-check the parent constitution and project rules before any write-bearing step.
 3. Start or check the monitored slice with `monitor_slice.py`; use provenance as the source of truth for remaining time.
 4. Confirm you are working inside the experiment's dedicated clone if project files will change.
 5. Convert any user time budget into a bounded iteration plan:
@@ -371,10 +386,10 @@ When resuming:
 - If you need a quick view of the notebook, run `scripts/summarize_index.py` or read `index/index.md` first and only inspect specific entry directories afterward.
 - Before starting a new experiment, summarize relevant prior ideas and experiments and say where you are picking up from.
 - When a run stems from multiple ideas or prior experiments, register all of them as `source_id` links instead of collapsing them into a single parent.
-- Review the parent constitution and local repo guardrails before planning or writing.
+- Review the parent constitution and local project guardrails before planning or writing.
 - Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
 - Clone or copy source into the experiment workspace before editing whenever the source tree must stay isolated.
-- Ask whether the workspace should live somewhere else when the repo clone, datasets, or generated artifacts would be better outside the notebook root.
+- Ask whether the workspace should live somewhere else when a source clone, datasets, or generated artifacts would be better outside the notebook root.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.
 - Track labnb-managed changes in provenance files, but say clearly that external changes may exist outside that record.

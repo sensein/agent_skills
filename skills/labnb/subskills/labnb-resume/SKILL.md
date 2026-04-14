@@ -9,7 +9,7 @@ Use this subskill before starting new lab notebook work for a project.
 
 ## Guardrails
 
-1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
 2. Review those rules before deciding whether to resume, branch, or start fresh.
 3. Prefer the safer pickup point when two choices would create competing writes to the same source tree.
 4. Review status and provenance for matching entries before choosing where to pick up.
@@ -19,7 +19,7 @@ Use this subskill before starting new lab notebook work for a project.
 ## Flow
 
 1. Resolve the lab root.
-2. Review the parent constitution and repo guardrails.
+2. Review the parent constitution and local project guardrails.
 3. Derive the project slug.
 4. Run:
 

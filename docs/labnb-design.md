@@ -5,12 +5,12 @@
 Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into a global lab notebook that:
 
 - lives outside project trees
-- tracks experiments across unrelated repos and tasks
+- tracks experiments across unrelated projects, investigations, and tasks
 - tracks not-yet-run experiment ideas alongside active or completed experiments
 - keeps a simple human-readable experiment index
 - avoids conflicting writes when multiple experiments run in parallel
 - lives under `skills/` in this repository so it can be mirrored into agent skill directories easily
-- is broken into focused subskills with short `labnb-<action>` invocation names for resume, idea capture, and active experiment execution
+- is broken into focused subskills with short `labnb-<action>` invocation names for resume, idea capture, idea promotion, and active experiment execution
 
 ## Decisions
 
@@ -75,7 +75,7 @@ lab-notebook/
 
 ## Constitution Rules
 
-1. The skill must inherit and obey any parent constitution, repo policy, or user task constraint.
+1. The skill must inherit and obey any parent constitution, project policy, or user task constraint.
 2. Before planning or writing, review both the active constitution and the notebook index.
 3. If the parent rules are stricter than the skill guidance, the stricter rule wins.
 4. Add local guardrails when the parent context implies them, even if they are not already written into the experiment prompt.

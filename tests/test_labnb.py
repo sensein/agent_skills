@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "register_experiment.py"
 SUMMARY_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "summarize_index.py"
 MONITOR_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "monitor_slice.py"
+PROMOTE_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "promote_idea.py"
 
 
 def register(lab_root: Path, project_root: Path, slug: str) -> Path:
@@ -152,6 +153,44 @@ def register_idea(lab_root: Path, project_root: Path, slug: str) -> Path:
             f"Idea for {slug}",
             "--entry-kind",
             "idea",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return Path(result.stdout.strip())
+
+
+def promote_idea(
+    lab_root: Path,
+    idea_id: str,
+    project_root: Path,
+    experiment_slug: str,
+    overall_budget: str,
+    loop_budget: str,
+) -> Path:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(PROMOTE_SCRIPT),
+            "--lab-root",
+            str(lab_root),
+            "--idea-id",
+            idea_id,
+            "--project-root",
+            str(project_root),
+            "--experiment-slug",
+            experiment_slug,
+            "--metric-name",
+            "accuracy",
+            "--direction",
+            "higher",
+            "--verify-command",
+            "pytest -q",
+            "--overall-budget",
+            overall_budget,
+            "--loop-budget",
+            loop_budget,
         ],
         check=True,
         capture_output=True,
@@ -321,6 +360,39 @@ class LabNBTests(unittest.TestCase):
             self.assertIn(f"Source entries: {first_id}, {second_id}", (exp_dir / "plan.md").read_text())
             self.assertIn(first_id, (exp_dir / "provenance.jsonl").read_text())
             self.assertIn(second_id, (exp_dir / "provenance.jsonl").read_text())
+
+    def test_promote_idea_creates_experiment_and_updates_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            lab_root = temp_path / "lab"
+            project_root = temp_path / "project"
+            idea_dir = register_idea(lab_root, project_root, "future-run")
+            idea_metadata_path = idea_dir / "metadata.json"
+            idea_id = json.loads(idea_metadata_path.read_text())["entry_id"]
+
+            exp_dir = promote_idea(
+                lab_root,
+                idea_id,
+                project_root,
+                "promoted-run",
+                "6 hours total",
+                "90 minutes",
+            )
+
+            updated_idea = json.loads(idea_metadata_path.read_text())
+            experiment_metadata = json.loads((exp_dir / "metadata.json").read_text())
+
+            self.assertEqual(updated_idea["status"], "promoted")
+            self.assertEqual(experiment_metadata["entry_kind"], "experiment")
+            self.assertEqual(experiment_metadata["source_ids"][0], idea_id)
+            self.assertEqual(experiment_metadata["entry_slug"], "promoted-run")
+            self.assertIn("6 hours total", (exp_dir / "plan.md").read_text())
+            self.assertIn("90 minutes", (exp_dir / "plan.md").read_text())
+
+            idea_provenance = (idea_dir / "provenance.jsonl").read_text()
+            self.assertIn('"labnb:status": "promoted"', idea_provenance)
+            self.assertIn('"prov:wasGeneratedBy"', idea_provenance)
+            self.assertIn(str(experiment_metadata["entry_id"]), idea_provenance)
 
     def test_monitor_slice_uses_provenance_as_state_source(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -10,7 +10,7 @@ The list below is kept in alphabetical order by skill name.
 
 | Skill | Description |
 | --- | --- |
-| [`labnb`](./skills/labnb/SKILL.md) | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture, isolated experiment workspaces, focused subskills, and append-only indexing across repos and tasks. |
+| [`labnb`](./skills/labnb/SKILL.md) | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture and promotion, isolated experiment workspaces, focused subskills, and append-only indexing across projects, investigations, and tasks. |
 
 ## Utilities
 

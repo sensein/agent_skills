@@ -9,7 +9,7 @@ Use this subskill when the work is concrete enough to execute now.
 
 ## Guardrails
 
-1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
 2. Review the notebook index and the parent constitution before creating a new experiment.
 3. If project files will change, work in a dedicated experiment clone or copy, not the shared source tree.
 4. Never let two active experiments write to the same clone, checkout, or output directory.
@@ -22,7 +22,7 @@ Use this subskill when the work is concrete enough to execute now.
 
 ## Flow
 
-1. Review the parent constitution and repo guardrails.
+1. Review the parent constitution and local project guardrails.
 2. Summarize prior notebook entries for the project.
 3. Decide whether this should resume an existing run, branch from one, or start fresh.
 4. Register the experiment:
@@ -52,7 +52,7 @@ python skills/labnb/scripts/monitor_slice.py start \
   --experiment-dir "$EXPERIMENT_DIR"
 ```
 
-8. Work in the dedicated workspace clone if project files change.
+8. Work in the dedicated workspace clone or copy if source files change.
 9. Keep the loop small:
    - smallest useful first slice
    - verify mechanically

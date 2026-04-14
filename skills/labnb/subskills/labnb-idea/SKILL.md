@@ -9,7 +9,7 @@ Use this subskill when there is a useful direction to remember, but not enough e
 
 ## Guardrails
 
-1. Respect any parent constitution, repo policy, or task-level write constraint already in scope.
+1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
 2. Review the notebook index first so the idea does not duplicate an existing entry unnecessarily.
 3. Capture speculative directions as ideas instead of opening active experiments that would encourage unsafe or premature writes.
 4. Record idea status explicitly, defaulting to `ideation` unless a better status is known.
@@ -18,7 +18,7 @@ Use this subskill when there is a useful direction to remember, but not enough e
 
 ## Flow
 
-1. Review the parent constitution and repo guardrails.
+1. Review the parent constitution and local project guardrails.
 2. Summarize existing entries for the project first.
 3. Choose a concise slug for the idea.
 4. Register the idea:
