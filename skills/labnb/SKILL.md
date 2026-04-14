@@ -17,8 +17,9 @@ Before taking action:
 
 1. Review the parent instructions that govern the current task.
 2. Review the notebook index for related ideas and experiments.
-3. If the parent rules are stricter than this skill, follow the stricter rule.
-4. If this skill is missing a guardrail required by the parent context, add the missing guardrail locally in your plan instead of assuming it is safe.
+3. If you are resuming an existing idea or experiment, review its local rules, checklist, and durable memory in `idea.md`, `plan.md`, and `memory.md` before acting.
+4. If the parent rules are stricter than this skill, follow the stricter rule.
+5. If this skill is missing a guardrail required by the parent context, add the missing guardrail locally in your plan instead of assuming it is safe.
 
 This skill never overrides:
 
@@ -56,7 +57,7 @@ Before starting a new experiment, gather or infer these fields:
 3. Direction: higher or lower is better
 4. Verify command
 5. Writable scope
-6. Workspace placement: use the default notebook workspace path, or link the workspace to a different location for large clones, datasets, or rich outputs
+6. Workspace placement: use the default notebook workspace path, or link the workspace to a different location for large worktrees, datasets, or rich outputs
 7. Time budget or timebox, if the user gave one
 8. Stop condition: target metric, iteration count, checkpoint, or manual stop
 
@@ -89,8 +90,8 @@ Apply these guardrails even when the parent constitution does not spell them out
 
 1. Review the notebook index and the active task constitution before starting new work.
 2. Never edit the original source tree directly when the experiment is supposed to use an isolated workspace.
-3. If project files may change, clone or copy the source into the experiment workspace first and do the edits there.
-4. Never let two active experiments write to the same clone, checkout, branch working tree, or results directory.
+3. If project files may change and the source is a git repository, create a dedicated git worktree in the experiment workspace first and do the edits there. If the source is not a git repository, copy it instead.
+4. Never let two active experiments write to the same worktree, checkout, branch working tree, or results directory.
 5. Treat parallel operations as potentially conflicting until the write scopes are proven disjoint.
 6. If multiple experiments touch the same upstream source, keep their workspaces separate and link them only through notebook metadata, not shared writes.
 7. Preserve append-only notebook history; record new state with new rows or child entries instead of rewriting prior conclusions.
@@ -100,6 +101,16 @@ Apply these guardrails even when the parent constitution does not spell them out
 11. Treat provenance as best-effort only: external changes or deletions may still occur without labnb observing them.
 12. Do not perform notebook-managed deletions without explicit confirmation from the user.
 
+## Action Gate
+
+Before any action that writes, waits, launches background work, or hands off control:
+
+1. Review the parent constitution, notebook summary, and the entry-local rules/checklist plus `memory.md`.
+2. Confirm that you have actually completed those checks; do not rely on memory from an earlier step.
+3. If the local rules or checklist are stale, incomplete, or newly contradicted by the current situation, update them before proceeding.
+4. Check whether there is already a pending wait job for this entry before creating another one.
+5. If the action changes the local operating rules or durable memory, write the updated rules and memory back into the idea or experiment entry and note the change in `log.md` when applicable.
+
 ## Lab Layout
 
 ```text
@@ -108,12 +119,14 @@ lab-notebook/
     <idea-id>/
       metadata.json
       idea.md
+      memory.md
       provenance.jsonl
       provenance.md
   experiments/
     <experiment-id>/
       metadata.json
       plan.md
+      memory.md
       log.md
       provenance.jsonl
       provenance.md
@@ -132,9 +145,10 @@ lab-notebook/
 - `experiments/<experiment-id>/`: one experiment per directory; no sharing across active runs
 - `provenance.jsonl`: best-effort append-only provenance log using W3C PROV-O terms for labnb-managed actions
 - `provenance.md`: human-readable provenance policy and caveats
+- `memory.md`: durable local memory that should be re-read and updated as rules, waits, or resume points change
 - `experiments/<experiment-id>/plan.md`: the setup gate plus current hypothesis
 - `experiments/<experiment-id>/results.tsv`: local iteration ledger for this experiment
-- `workspaces/<experiment-id>/`: per-experiment working area for an isolated project clone or checkout
+- `workspaces/<experiment-id>/`: per-experiment working area for an isolated git worktree or copied source tree
 - `index/experiments.tsv`: append-only registry of ideas and experiments
 - `index/index.md`: generated readable summary of known entries
 - `locks/`: lock directories used for central updates
@@ -218,9 +232,9 @@ python skills/labnb/scripts/monitor_slice.py start \
 ```
 
 13. Use `monitor_slice.py check` before another iteration or long-running verify step, and `monitor_slice.py finish` when the slice ends.
-14. If the user wants the editable clone or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
-15. If code changes are involved, clone or copy the relevant source tree into the experiment's dedicated workspace path before editing.
-16. If multiple agents are working on the same codebase, each agent must use its own separate clone location. Never share a single git checkout across active agents.
+14. If the user wants the editable worktree or large outputs elsewhere, pass `--workspace-root "$WORKSPACE_ROOT"` and let the notebook create a stable link under `workspaces/<experiment-id>/`.
+15. If code changes are involved and the source is a git repository, create a dedicated git worktree in the experiment's workspace before editing. If the source is not under git, copy it into the workspace instead.
+16. If multiple agents are working on the same codebase, each agent must use its own separate worktree location. Never share a single git worktree or checkout across active agents.
 17. Record baseline iteration `0` in `results.tsv` before code changes.
 18. Work inside the returned experiment directory for notes, artifacts, and summaries.
 19. Log progress inside that experiment directory, not in shared files.
@@ -287,21 +301,25 @@ The slice monitor helper supports:
 For ideas:
 
 - `metadata.json`: creation metadata, status, budgets, provenance mode, and linkage to future work
-- `idea.md`: rationale, prior evidence to revisit, and pickup criteria for promotion into an experiment
+- `idea.md`: rationale, prior evidence to revisit, pickup criteria for promotion, and entry-local rules/checklist
+- `memory.md`: durable memory for future pickup, waits, and resume conditions
+- `idea.md`: also carries entry-specific rules and a pre-action checklist that should be reviewed and updated as the idea evolves
 - `provenance.jsonl`: append-only best-effort PROV-O event log
 - `provenance.md`: provenance rules and deletion policy
 
 For experiments:
 
 - `metadata.json`: creation metadata, source path context, objective, ids, status, provenance mode, and `source_ids`
-- `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
+- `plan.md`: goal, metric, direction, verify command, scope, next hypothesis, and entry-local rules/checklist
+- `memory.md`: durable memory for future pickup, waits, and resume conditions
+- `plan.md`: also carries entry-specific rules and a pre-action checklist that must be reviewed before each substantive action
 - `log.md`: chronological notes for the experiment
 - `provenance.jsonl`: append-only best-effort PROV-O event log
 - `provenance.md`: provenance rules and deletion policy
 - `results.tsv`: one row per iteration or thought with status and metric outcome
 - `summary.md`: final concise outcome
 - `artifacts/`: scratch outputs, plots, reports, and temporary files worth keeping
-- dedicated workspace clone path: a safe place to edit without colliding with another agent's git state
+- dedicated workspace path: a safe place to edit without colliding with another agent's git state, preferably via a dedicated git worktree
 - optional workspace link path under the notebook: a stable pointer when the real workspace lives elsewhere
 
 Keep detailed notes local to the idea or experiment directory. The global index should stay compact.
@@ -310,10 +328,10 @@ Keep detailed notes local to the idea or experiment directory. The global index 
 
 Use the same tight loop pattern that powers autoresearch, but anchor it in the global notebook:
 
-1. Observe: run the index summary first if you have not already done so for this project, then read `plan.md`, the tail of `log.md`, `results.tsv`, and relevant project state.
+1. Observe: run the index summary first if you have not already done so for this project, then read `plan.md` or `idea.md`, `memory.md`, especially the entry-specific rules and pre-action checklist, plus the tail of `log.md`, `results.tsv`, and relevant project state.
 2. Re-check the parent constitution and project rules before any write-bearing step.
 3. Start or check the monitored slice with `monitor_slice.py`; use provenance as the source of truth for remaining time.
-4. Confirm you are working inside the experiment's dedicated clone if project files will change.
+4. Confirm you are working inside the experiment's dedicated worktree if project files will change and the source is under git. Otherwise confirm you are in the copied workspace.
 5. Convert any user time budget into a bounded iteration plan:
    - pick the smallest useful first slice
    - define the checkpoint for continuing
@@ -378,7 +396,7 @@ If a lock appears stale, only clear it after confirming the owning process is go
 
 1. Every active experiment gets its own directory.
 2. Two agents may read the same project, but they must not share the same new experiment directory.
-3. If two agents will both edit the same codebase, each one must create a separate clone or checkout under its own `workspaces/<experiment-id>/` path.
+3. If two agents will both edit the same codebase, each one must create a separate git worktree under its own `workspaces/<experiment-id>/` path. If git worktrees are unavailable, use separate copied workspaces instead.
 4. If multiple agents need related work, give each one a new experiment id and link them in notes instead of co-writing.
 5. Treat `index/experiments.tsv` as append-only history.
 6. If an experiment needs a follow-up, create a child experiment and record the parent id in `metadata.json` or `log.md`.
@@ -400,9 +418,9 @@ When resuming:
 - Before starting a new experiment, summarize relevant prior ideas and experiments and say where you are picking up from.
 - When a run stems from multiple ideas or prior experiments, register all of them as `source_id` links instead of collapsing them into a single parent.
 - Review the parent constitution and local project guardrails before planning or writing.
-- Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same clone.
-- Clone or copy source into the experiment workspace before editing whenever the source tree must stay isolated.
-- Ask whether the workspace should live somewhere else when a source clone, datasets, or generated artifacts would be better outside the notebook root.
+- Use the experiment's dedicated workspace path for editable project state; do not point multiple active agents at the same worktree.
+- Prefer creating a dedicated git worktree in the experiment workspace before editing whenever the source tree is a git repository. If it is not, copy the source instead.
+- Ask whether the workspace should live somewhere else when a source worktree, datasets, or generated artifacts would be better outside the notebook root.
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.
 - Track labnb-managed changes in provenance files, but say clearly that external changes may exist outside that record.
@@ -413,6 +431,9 @@ When resuming:
 - If you propose parallel branches or downstream experiments, count them against the same stated budget unless you explicitly mark them as later follow-up outside the current scope.
 - Before leaving a background command unattended, decide whether to start a timer, watchdog, scheduler, or follow-up hook that will check the run before the budget expires.
 - Before submitting a new wait job, check for an existing pending wait for the same experiment and either reuse it or replace it; do not stack overlapping waits by default.
+- Re-read and actively check off the entry-local rules/checklist before each substantive action rather than assuming you already satisfied them.
+- When the local operating rules change, update `idea.md` or `plan.md` so later steps inherit the new constraints instead of rediscovering them.
+- When facts, waits, resume points, or durable constraints change, update `memory.md` so later steps inherit the new memory instead of reconstructing it.
 - If you cannot supervise or schedule a background command safely, stop the slice deliberately, write a resume checkpoint, and say exactly how to resume.
 - If the time budget is exceeded, treat that as `budget_exhausted` by default, summarize partial results, and record whether the next step is resume, branch, or stop.
 - Keep instructions concise in user-facing updates; the notebook should do the long-term memory work.

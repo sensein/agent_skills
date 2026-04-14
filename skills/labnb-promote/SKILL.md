@@ -17,6 +17,7 @@ Use this skill when an existing idea is ready to become a real experiment run.
 2. Require explicit experiment budgets at promotion time.
 3. Preserve the original idea as notebook history; do not delete it.
 4. Record the promoted experiment as stemming from the idea through source links and provenance.
+5. Carry forward the idea's local rules and durable memory into the new experiment before further work begins.
 
 ## Flow
 

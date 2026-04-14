@@ -58,6 +58,91 @@ def register_script_path() -> Path:
     return Path(__file__).resolve().with_name("register_experiment.py")
 
 
+def extract_markdown_section(text: str, heading: str) -> str:
+    lines = text.splitlines()
+    start_index: int | None = None
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            start_index = index
+            break
+    if start_index is None:
+        return ""
+    end_index = len(lines)
+    for index in range(start_index + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end_index = index
+            break
+    return "\n".join(lines[start_index:end_index]).strip()
+
+
+def append_inherited_rules(idea_dir: Path, experiment_dir: Path, idea_id: str) -> None:
+    idea_md_path = idea_dir / "idea.md"
+    plan_md_path = experiment_dir / "plan.md"
+    if not idea_md_path.exists() or not plan_md_path.exists():
+        return
+
+    idea_text = idea_md_path.read_text(encoding="utf-8")
+    plan_text = plan_md_path.read_text(encoding="utf-8")
+    inherited_rules = extract_markdown_section(idea_text, "## Entry-Specific Rules")
+    checklist = extract_markdown_section(idea_text, "## Pre-Action Checklist")
+
+    appendix = [
+        "## Promotion Rule Review",
+        "",
+        f"- Promoted from idea: {idea_id}",
+        "- Review the inherited rules below before taking the next experiment action.",
+        "- Update the experiment-local rules if promotion changes the write scope, wait strategy, or budget handling.",
+        "",
+    ]
+    if inherited_rules:
+        appendix.extend(
+            [
+                "### Inherited Idea Rules",
+                "",
+                *inherited_rules.splitlines()[2:],
+                "",
+            ]
+        )
+    if checklist:
+        appendix.extend(
+            [
+                "### Inherited Idea Checklist",
+                "",
+                *checklist.splitlines()[2:],
+                "",
+            ]
+        )
+    plan_md_path.write_text(plan_text.rstrip() + "\n\n" + "\n".join(appendix), encoding="utf-8")
+
+
+def append_inherited_memory(idea_dir: Path, experiment_dir: Path, idea_id: str) -> None:
+    idea_memory_path = idea_dir / "memory.md"
+    experiment_memory_path = experiment_dir / "memory.md"
+    if not idea_memory_path.exists() or not experiment_memory_path.exists():
+        return
+
+    idea_text = idea_memory_path.read_text(encoding="utf-8")
+    experiment_text = experiment_memory_path.read_text(encoding="utf-8")
+    durable_memory = extract_markdown_section(idea_text, "## Durable Memory")
+    wait_memory = extract_markdown_section(idea_text, "## Wait And Resume Memory")
+
+    appendix = [
+        "## Inherited Idea Memory",
+        "",
+        f"- Promoted from idea: {idea_id}",
+        "- Review and update the inherited memory below before the next experiment action.",
+        "",
+    ]
+    if durable_memory:
+        appendix.extend([durable_memory, ""])
+    if wait_memory:
+        appendix.extend([wait_memory, ""])
+    experiment_memory_path.write_text(
+        experiment_text.rstrip() + "\n\n" + "\n".join(appendix),
+        encoding="utf-8",
+    )
+
+
 def build_promotion_prov(
     *,
     idea_metadata: dict[str, object],
@@ -173,6 +258,8 @@ def main() -> int:
             timestamp=timestamp,
         ),
     )
+    append_inherited_rules(idea_dir, experiment_dir, args.idea_id)
+    append_inherited_memory(idea_dir, experiment_dir, args.idea_id)
 
     print(str(experiment_dir))
     return 0

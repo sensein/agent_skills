@@ -133,6 +133,54 @@ def write_if_missing(path: Path, content: str) -> None:
         path.write_text(content, encoding="utf-8")
 
 
+def local_rules_block(entry_label: str) -> list[str]:
+    return [
+        "## Entry-Specific Rules",
+        "",
+        f"- Review the parent constitution, notebook summary, and this {entry_label} before taking the next action.",
+        "- Update this section whenever new local constraints, wait-job rules, handoff notes, or budget caveats appear.",
+        "- Before adding a new wait job, check for an existing pending wait for this entry and either reuse it or replace it.",
+        "- Do not leave overlapping waits for the same entry unless the reason is recorded explicitly.",
+        "",
+        "## Pre-Action Checklist",
+        "",
+        "- [ ] Reviewed parent constitution and project guardrails",
+        "- [ ] Reviewed notebook summary and related entries",
+        f"- [ ] Reviewed entry-specific rules in this {entry_label}",
+        "- [ ] Checked for existing pending wait jobs before scheduling another",
+        "- [ ] Recorded any new local rules or handoff notes before finishing",
+        "",
+    ]
+
+
+def memory_block(*, entry_kind: str, status: str, objective: str, source_ids: list[str]) -> list[str]:
+    return [
+        "# Entry Memory",
+        "",
+        f"- Entry kind: {entry_kind}",
+        f"- Status: {status}",
+        f"- Goal: {objective}",
+        f"- Source entries: {', '.join(source_ids) if source_ids else 'None'}",
+        "",
+        "## Durable Memory",
+        "",
+        "- Facts or conclusions that future steps should not rediscover:",
+        "- Constraints or caveats that still matter:",
+        "- Prior work or artifacts worth reusing:",
+        "",
+        "## Wait And Resume Memory",
+        "",
+        "- Current pending wait jobs:",
+        "- Safe resume command or next check:",
+        "- Preconditions before resuming:",
+        "",
+        "## Update Triggers",
+        "",
+        "- Update this file when rules change, waits are added or cleared, or the best resume point changes.",
+        "",
+    ]
+
+
 def sanitize_tsv_field(value: object) -> str:
     return str(value).replace("\t", " ").replace("\n", " ").strip()
 
@@ -478,6 +526,7 @@ def main() -> int:
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
                 f"- Loop budget: {args.loop_budget or 'TBD'}",
                 "",
+                *local_rules_block("idea"),
                 "## Why This Might Matter",
                 "",
                 "- ",
@@ -495,6 +544,17 @@ def main() -> int:
             ]
         )
         write_if_missing(entry_dir / "idea.md", idea_md)
+        write_if_missing(
+            entry_dir / "memory.md",
+            "\n".join(
+                memory_block(
+                    entry_kind=entry_kind,
+                    status=status,
+                    objective=args.objective,
+                    source_ids=source_ids,
+                )
+            ),
+        )
     else:
         plan_md = "\n".join(
             [
@@ -514,6 +574,7 @@ def main() -> int:
                 f"- Source entries: {', '.join(source_ids) if source_ids else 'None'}",
                 f"- Budget rule: Treat the budget as a ceiling, not as time to fill",
                 "",
+                *local_rules_block("plan"),
                 "## Feasibility And First Slice",
                 "",
                 "- Smallest useful iteration:",
@@ -533,6 +594,17 @@ def main() -> int:
             ]
         )
         write_if_missing(entry_dir / "plan.md", plan_md)
+        write_if_missing(
+            entry_dir / "memory.md",
+            "\n".join(
+                memory_block(
+                    entry_kind=entry_kind,
+                    status=status,
+                    objective=args.objective,
+                    source_ids=source_ids,
+                )
+            ),
+        )
         write_if_missing(entry_dir / "log.md", "# Experiment Log\n\n")
         write_if_missing(
             entry_dir / "results.tsv",

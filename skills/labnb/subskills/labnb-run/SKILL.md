@@ -11,14 +11,15 @@ Use this subskill when the work is concrete enough to execute now.
 
 1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
 2. Review the notebook index and the parent constitution before creating a new experiment.
-3. If project files will change, work in a dedicated experiment clone or copy, not the shared source tree.
-4. Never let two active experiments write to the same clone, checkout, or output directory.
+3. If project files will change, work in a dedicated experiment git worktree when the source is under git, or a copied workspace otherwise, not the shared source tree.
+4. Never let two active experiments write to the same worktree, checkout, or output directory.
 5. If write scopes may overlap, separate the workspaces first and only then continue.
 6. Set and review experiment status explicitly, defaulting to `started` unless a better state is known.
 7. Track labnb-managed actions in provenance files, but treat that provenance as best-effort.
 8. Require explicit confirmation before labnb performs deletions of artifacts, workspaces, or entry files.
 9. When writing provenance, use W3C PROV-O terms instead of ad hoc event keys.
 10. Use provenance as the source of truth for monitored slice state.
+11. Re-read and update both the experiment's local rules and `memory.md` before substantive actions, waits, or handoffs.
 
 ## Flow
 
@@ -52,7 +53,7 @@ python skills/labnb/scripts/monitor_slice.py start \
   --experiment-dir "$EXPERIMENT_DIR"
 ```
 
-8. Work in the dedicated workspace clone or copy if source files change.
+8. Work in the dedicated workspace git worktree if the source is under git, or a copied workspace otherwise, when source files change.
 9. Keep the loop small:
    - smallest useful first slice
    - verify mechanically
@@ -67,6 +68,7 @@ python skills/labnb/scripts/monitor_slice.py start \
    - `python skills/labnb/scripts/monitor_slice.py finish --experiment-dir "$EXPERIMENT_DIR" --final-status stopped`
    - write a resume checkpoint in `log.md`
    - note what command or verification step to restart on resume
-13. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
+13. Update `plan.md`, `memory.md`, and `log.md` when the local rules, waits, or safest resume point change.
+14. Run `monitor_slice.py check` before continuing and `monitor_slice.py finish` when the slice ends.
 
 Treat the overall budget as the cap for the whole proposed path, and the loop budget as the cap for the current slice. If the budget is exceeded, prefer the explicit status `budget_exhausted` and record the safest next resume point.

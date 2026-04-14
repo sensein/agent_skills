@@ -19,6 +19,7 @@ Use this skill before starting new lab notebook work for a project.
 4. Review status and provenance for matching entries before choosing where to pick up.
 5. Treat provenance as best-effort; external changes may exist outside labnb tracking.
 6. When reading provenance, expect W3C PROV-O terms rather than custom event keys.
+7. Review the selected entry's local rules and memory before recommending the next action.
 
 ## Flow
 
@@ -38,6 +39,7 @@ python skills/labnb/scripts/summarize_index.py \
    - active experiments
    - completed experiments worth branching from
    - the best current pickup point
+   - the entry-local rules and durable memory that still apply
 6. Choose one path:
    - resume an active experiment
    - promote an idea into a new experiment

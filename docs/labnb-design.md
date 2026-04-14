@@ -21,7 +21,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Regenerate a readable index file with atomic rename while holding the same lock
 - [x] Prefer deterministic helper scripts for directory creation and index updates
 - [x] Bring over the `observe -> modify -> verify -> keep/discard -> log -> repeat` loop from `uditgoenka/autoresearch`
-- [x] Give each experiment its own workspace path so parallel agents never share a git clone
+- [x] Give each experiment its own workspace path so parallel agents never share a git worktree or copied source tree
 - [x] Support linking the workspace to an external location while keeping a stable notebook path
 - [x] Add a concurrency test that proves parallel registrations do not collide
 - [x] Treat user time budgets as ceilings and require a smallest-useful-iteration plan with an explicit infeasibility path
@@ -37,6 +37,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Monitor active slice budgets from provenance rather than a separate mutable state file
 - [x] Require a deliberate timer-or-stop decision before leaving background work unattended, and mark exhausted runs explicitly
 - [x] Require any new wait job to check for and reuse or replace existing pending waits for the same experiment
+- [x] Scaffold entry-local rules and durable memory so each action can re-check them instead of relying on recall
 
 ## Layout
 
@@ -73,7 +74,7 @@ lab-notebook/
 3. Only append to `index/experiments.tsv`; do not rewrite history in place.
 4. Acquire `locks/index.lock` before touching central index files.
 5. Write regenerated index output to a temp file and `rename` it into place.
-6. If more than one agent will edit the same codebase, each agent must work from its own clone path under `workspaces/<experiment-id>/`.
+6. If more than one agent will edit the same codebase, each agent must work from its own git worktree under `workspaces/<experiment-id>/`. If git worktrees are unavailable, use separate copied workspaces.
 7. If the real workspace should live elsewhere, create it there and keep `workspaces/<experiment-id>/` as a symlink entry point.
 
 ## Constitution Rules

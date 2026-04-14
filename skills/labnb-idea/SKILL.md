@@ -19,6 +19,7 @@ Use this skill when there is a useful direction to remember, but not enough evid
 4. Record idea status explicitly, defaulting to `ideation` unless a better status is known.
 5. Treat provenance as best-effort; deletions still require explicit confirmation.
 6. When writing or referring to provenance, use W3C PROV-O terms.
+7. Review and update the idea's local rules and durable memory before any substantive follow-up action.
 
 ## Flow
 
@@ -43,5 +44,6 @@ python skills/labnb/scripts/register_experiment.py \
    - what prior evidence to revisit
    - the smallest useful first slice
    - what would justify promoting it into an experiment
+6. Fill in `memory.md` with durable facts, pending waits, and the safest resume point.
 
 Ideas should be first-class index entries, not buried in an active experiment log.
