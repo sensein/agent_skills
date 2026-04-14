@@ -162,6 +162,12 @@ def parse_args() -> argparse.Namespace:
         help="Environment variable name to pass through into the container. Defaults to agent-specific API key variables.",
     )
     parser.add_argument(
+        "--cli-option",
+        action="append",
+        default=None,
+        help="Option to pass through to the agent CLI before positional args. Repeat as needed.",
+    )
+    parser.add_argument(
         "--agent-arg",
         action="append",
         default=None,
@@ -211,6 +217,7 @@ def load_config(config_path: Path) -> dict[str, object]:
         "ro_dirs": raw.get("ro_dirs", []),
         "skill_dirs": raw.get("skill_dirs", []),
         "env_vars": raw.get("env_vars", []),
+        "cli_options": raw.get("cli_options", []),
         "agent_args": raw.get("agent_args", []),
     }
 
@@ -230,6 +237,7 @@ def resolved_config_text(settings: dict[str, object]) -> str:
             f'ro_dirs = {format_toml_list([str(value) for value in settings["ro_dirs"]])}',
             f'skill_dirs = {format_toml_list([str(value) for value in settings["skill_dirs"]])}',
             f'env_vars = {format_toml_list([str(value) for value in settings["env_vars"]])}',
+            f'cli_options = {format_toml_list([str(value) for value in settings["cli_options"]])}',
             f'agent_args = {format_toml_list([str(value) for value in settings["agent_args"]])}',
             "",
         ]
@@ -340,6 +348,7 @@ def resolve_settings(args: argparse.Namespace, config_path: Path) -> dict[str, o
             config_value(args.skill_dir, loaded.get("skill_dirs"), [str(path) for path in default_skill_dirs()])
         ),
         "env_vars": env_vars,
+        "cli_options": ensure_list(config_value(args.cli_option, loaded.get("cli_options"), [])),
         "agent_args": ensure_list(config_value(args.agent_arg, loaded.get("agent_args"), [])),
     }
     return settings
@@ -475,9 +484,14 @@ def install_block(spec: AgentSpec) -> list[str]:
     ]
 
 
-def bootstrap_script(agent: str, workdir: str, agent_args: list[str]) -> str:
+def bootstrap_script(
+    agent: str,
+    workdir: str,
+    cli_options: list[str],
+    agent_args: list[str],
+) -> str:
     spec = AGENT_SPECS[agent]
-    launcher_parts = [spec.command]
+    launcher_parts = [spec.command, *cli_options]
     if agent == "codex":
         launcher_parts += ["-C", workdir]
     launcher_parts += agent_args
@@ -587,6 +601,7 @@ def build_command(settings: dict[str, object]) -> tuple[list[str], list[Mount], 
     script = bootstrap_script(
         agent=str(settings["agent"]),
         workdir=workdir,
+        cli_options=[str(value) for value in settings["cli_options"]],
         agent_args=[str(value) for value in settings["agent_args"]],
     )
     env_vars = [str(value) for value in settings["env_vars"]]

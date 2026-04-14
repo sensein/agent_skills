@@ -52,12 +52,14 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 "ro_dirs": [str(Path(temp_dir) / "reference")],
                 "skill_dirs": [str(REPO_ROOT / "skills")],
                 "env_vars": ["OPENAI_API_KEY"],
+                "cli_options": ["--full-auto"],
                 "agent_args": ["--full-auto"],
             }
             MODULE.write_config(config_path, settings)
             loaded = MODULE.load_config(config_path)
             self.assertEqual(loaded["agent"], "codex")
             self.assertEqual(loaded["workspace_name"], "demo")
+            self.assertEqual(loaded["cli_options"], ["--full-auto"])
             self.assertEqual(loaded["agent_args"], ["--full-auto"])
             self.assertEqual(
                 loaded["auth_paths"], [str(Path(temp_dir) / ".config" / "codex-auth")]
@@ -82,6 +84,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
                     "ro_dirs": [],
                     "skill_dirs": [str(REPO_ROOT / "skills")],
                     "env_vars": ["OPENAI_API_KEY"],
+                    "cli_options": [],
                     "agent_args": [],
                 },
             )
@@ -105,6 +108,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
                     ro_dir=None,
                     skill_dir=None,
                     env_var=None,
+                    cli_option=None,
                     agent_arg=None,
                 )
             settings = MODULE.resolve_settings(args, config_path)
@@ -142,6 +146,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
                     "ro_dirs": [],
                     "skill_dirs": [str(REPO_ROOT / "skills")],
                     "env_vars": ["OPENAI_API_KEY"],
+                    "cli_options": [],
                     "agent_args": [],
                 },
             )
@@ -215,6 +220,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 "ro_dirs": [],
                 "skill_dirs": [str(REPO_ROOT / "skills")],
                 "env_vars": [],
+                "cli_options": ["--model", "gpt-5"],
                 "agent_args": ["--full-auto"],
             }
             with mock.patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"):
@@ -223,6 +229,8 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertEqual(image, MODULE.DEFAULT_IMAGE)
             self.assertTrue(any(mount.container_path.startswith("/opt/agent-skills/") for mount in mounts))
             self.assertIn("docker", command[0])
+            script = command[-1]
+            self.assertIn("exec codex --model gpt-5 -C /workspace/task --full-auto", script)
 
     def test_build_apptainer_command_uses_dedicated_home_and_cache(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -242,6 +250,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
                 "ro_dirs": [],
                 "skill_dirs": [str(REPO_ROOT / "skills")],
                 "env_vars": [],
+                "cli_options": ["--verbose"],
                 "agent_args": ["auth", "status"],
             }
             with mock.patch.object(MODULE.shutil, "which", return_value="/usr/bin/apptainer"):
@@ -258,9 +267,12 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertNotIn("HOME=/home/agent", command)
 
     def test_codex_bootstrap_updates_npm_before_install(self) -> None:
-        script = MODULE.bootstrap_script("codex", "/workspace/task", ["login", "status"])
+        script = MODULE.bootstrap_script(
+            "codex", "/workspace/task", ["--model", "gpt-5"], ["login", "status"]
+        )
         self.assertIn("npm install -g npm@latest", script)
         self.assertIn("npm install -g @openai/codex", script)
+        self.assertIn("exec codex --model gpt-5 -C /workspace/task login status", script)
 
     def test_help_includes_key_defaults(self) -> None:
         result = subprocess.run(

@@ -41,7 +41,34 @@ The generated config stores:
 - read-only and read-write task mounts
 - skill directories
 - environment variables to pass through
+- extra CLI options that should be passed to the agent before positional args
 - extra agent CLI arguments
+
+## CLI passthrough
+
+Use `--cli-option` for agent flags that should appear before positional args or subcommands.
+
+Examples:
+
+```bash
+python scripts/launch_agent_container.py \
+  --agent codex \
+  --cli-option --model \
+  --cli-option gpt-5 \
+  --cli-option --full-auto \
+  --agent-arg login \
+  --agent-arg status
+```
+
+```bash
+python scripts/launch_agent_container.py \
+  --agent claude \
+  --cli-option --verbose \
+  --agent-arg auth \
+  --agent-arg status
+```
+
+Use `agent_args` for trailing subcommands or positional args.
 
 ## Authentication
 
