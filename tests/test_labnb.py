@@ -193,13 +193,16 @@ class LabNBTests(unittest.TestCase):
             metadata = json.loads((exp_dir / "metadata.json").read_text())
             self.assertEqual(metadata["entry_kind"], "experiment")
             self.assertEqual(metadata["status"], "started")
-            self.assertEqual(metadata["provenance_mode"], "best_effort")
+            self.assertEqual(metadata["provenance_mode"], "prov-o-best-effort")
             self.assertEqual(metadata["project_slug"], "demo-project")
             self.assertEqual(metadata["entry_slug"], "baseline")
             self.assertTrue(Path(metadata["workspace_dir"]).exists())
             self.assertIn("Status: started", (exp_dir / "plan.md").read_text())
-            self.assertIn("Deletions require explicit user confirmation", (exp_dir / "provenance.md").read_text())
-            self.assertIn('"action": "register_entry"', (exp_dir / "provenance.jsonl").read_text())
+            self.assertIn("W3C PROV-O terms", (exp_dir / "provenance.md").read_text())
+            provenance_text = (exp_dir / "provenance.jsonl").read_text()
+            self.assertIn('"prov:type"', provenance_text)
+            self.assertIn('"prov:wasGeneratedBy"', provenance_text)
+            self.assertIn('"prov:wasAssociatedWith"', provenance_text)
 
             index_tsv = temp_path / "lab" / "index" / "experiments.tsv"
             index_md = temp_path / "lab" / "index" / "index.md"
@@ -235,7 +238,7 @@ class LabNBTests(unittest.TestCase):
             self.assertEqual(metadata["status"], "ideation")
             self.assertEqual(metadata["workspace_dir"], "")
             self.assertIn("Status: ideation", (idea_dir / "idea.md").read_text())
-            self.assertIn('"action": "register_entry"', (idea_dir / "provenance.jsonl").read_text())
+            self.assertIn('"prov:type"', (idea_dir / "provenance.jsonl").read_text())
 
             index_md = (temp_path / "lab" / "index" / "index.md").read_text()
             self.assertIn("Ideas: 1", index_md)

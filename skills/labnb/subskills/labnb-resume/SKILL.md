@@ -14,6 +14,7 @@ Use this subskill before starting new lab notebook work for a project.
 3. Prefer the safer pickup point when two choices would create competing writes to the same source tree.
 4. Review status and provenance for matching entries before choosing where to pick up.
 5. Treat provenance as best-effort; external changes may exist outside labnb tracking.
+6. When reading provenance, expect W3C PROV-O terms rather than custom event keys.
 
 ## Flow
 

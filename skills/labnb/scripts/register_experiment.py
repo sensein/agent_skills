@@ -26,6 +26,11 @@ KNOWN_STATUSES = (
     "archived",
 )
 
+PROV_CONTEXT = {
+    "prov": "http://www.w3.org/ns/prov#",
+    "labnb": "urn:labnb:",
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -175,6 +180,85 @@ def append_jsonl(path: Path, payload: dict[str, object]) -> None:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
+def path_entity_id(label: str, value: str) -> str:
+    return f"urn:labnb:entity:{label}:{value}"
+
+
+def build_prov_record(
+    *,
+    entry_id: str,
+    entry_kind: str,
+    status: str,
+    created_at_utc: str,
+    entry_dir: Path,
+    project_root: str,
+    workspace_dir: str,
+) -> dict[str, object]:
+    activity_id = f"urn:labnb:activity:register-entry:{entry_id}"
+    entry_entity_id = f"urn:labnb:entity:entry:{entry_id}"
+    agent_id = "urn:labnb:agent:software:register-experiment"
+
+    used_entities: list[str] = []
+    if project_root:
+        used_entities.append(path_entity_id("project-root", project_root))
+    if workspace_dir:
+        used_entities.append(path_entity_id("workspace-dir", workspace_dir))
+
+    entities: list[dict[str, object]] = [
+        {
+            "prov:id": entry_entity_id,
+            "prov:type": ["prov:Entity", f"labnb:{entry_kind.title()}Entry"],
+            "prov:generatedAtTime": created_at_utc,
+            "prov:atLocation": str(entry_dir),
+        }
+    ]
+    if project_root:
+        entities.append(
+            {
+                "prov:id": path_entity_id("project-root", project_root),
+                "prov:type": ["prov:Entity", "labnb:ProjectRoot"],
+                "prov:atLocation": project_root,
+            }
+        )
+    if workspace_dir:
+        entities.append(
+            {
+                "prov:id": path_entity_id("workspace-dir", workspace_dir),
+                "prov:type": ["prov:Entity", "labnb:WorkspaceDir"],
+                "prov:atLocation": workspace_dir,
+            }
+        )
+
+    return {
+        "@context": PROV_CONTEXT,
+        "prov:type": ["prov:Bundle", "labnb:RegisterEntryBundle"],
+        "prov:entity": entities,
+        "prov:activity": {
+            "prov:id": activity_id,
+            "prov:type": ["prov:Activity", "labnb:RegisterEntry"],
+            "prov:startedAtTime": created_at_utc,
+            "prov:endedAtTime": created_at_utc,
+            "prov:used": used_entities,
+            "labnb:status": status,
+        },
+        "prov:agent": {
+            "prov:id": agent_id,
+            "prov:type": ["prov:Agent", "prov:SoftwareAgent", "labnb:LabNB"],
+        },
+        "prov:wasGeneratedBy": {
+            "prov:entity": entry_entity_id,
+            "prov:activity": activity_id,
+        },
+        "prov:wasAssociatedWith": {
+            "prov:activity": activity_id,
+            "prov:agent": agent_id,
+        },
+        "labnb:entryKind": entry_kind,
+        "labnb:status": status,
+        "labnb:note": "Best-effort provenance. External changes may occur outside labnb tracking.",
+    }
+
+
 def initialize_workspace(lab_root: Path, exp_id: str, workspace_root: str) -> tuple[Path, Path]:
     workspace_link = lab_root / "workspaces" / exp_id
     if not workspace_root:
@@ -225,7 +309,7 @@ def main() -> int:
         "project_slug": args.project_slug,
         "entry_slug": args.experiment_slug,
         "objective": args.objective,
-        "provenance_mode": "best_effort",
+        "provenance_mode": "prov-o-best-effort",
         "metric_name": args.metric_name,
         "direction": args.direction,
         "verify_command": args.verify_command,
@@ -243,17 +327,15 @@ def main() -> int:
     atomic_write(entry_dir / "metadata.json", json.dumps(metadata, indent=2) + "\n")
     append_jsonl(
         entry_dir / "provenance.jsonl",
-        {
-            "timestamp_utc": metadata["created_at_utc"],
-            "action": "register_entry",
-            "entry_id": exp_id,
-            "entry_kind": entry_kind,
-            "status": status,
-            "path": str(entry_dir),
-            "project_root": metadata["project_root"],
-            "workspace_dir": metadata["workspace_dir"],
-            "note": "Best-effort provenance. External changes may occur outside labnb tracking.",
-        },
+        build_prov_record(
+            entry_id=exp_id,
+            entry_kind=entry_kind,
+            status=status,
+            created_at_utc=metadata["created_at_utc"],
+            entry_dir=entry_dir,
+            project_root=metadata["project_root"],
+            workspace_dir=metadata["workspace_dir"],
+        ),
     )
     write_if_missing(
         entry_dir / "provenance.md",
@@ -261,7 +343,8 @@ def main() -> int:
             [
                 "# Provenance",
                 "",
-                "- Mode: best-effort",
+                "- Model: W3C PROV-O terms serialized as JSON lines",
+                "- Mode: prov-o-best-effort",
                 "- Deletions require explicit user confirmation before labnb performs them.",
                 "- External file changes may still happen outside labnb tracking.",
                 "",
@@ -275,7 +358,7 @@ def main() -> int:
                 "",
                 f"- Goal: {args.objective}",
                 f"- Status: {status}",
-                "- Provenance: best-effort; external changes may exist outside labnb tracking",
+                "- Provenance: W3C PROV-O best-effort; external changes may exist outside labnb tracking",
                 f"- Project root: {project_root if args.project_root else 'TBD'}",
                 f"- Parent experiment: {args.parent_id or 'None'}",
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
@@ -310,7 +393,7 @@ def main() -> int:
                 f"- Verify command: {args.verify_command or 'TBD'}",
                 f"- Overall budget: {args.overall_budget or 'TBD'}",
                 f"- Loop budget: {args.loop_budget or 'TBD'}",
-                "- Provenance: best-effort; external changes may exist outside labnb tracking",
+                "- Provenance: W3C PROV-O best-effort; external changes may exist outside labnb tracking",
                 f"- Project root: {project_root}",
                 f"- Workspace dir: {workspace_dir}",
                 f"- Workspace link: {workspace_link}",

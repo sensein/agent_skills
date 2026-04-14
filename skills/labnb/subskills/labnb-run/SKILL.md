@@ -17,6 +17,7 @@ Use this subskill when the work is concrete enough to execute now.
 6. Set and review experiment status explicitly, defaulting to `started` unless a better state is known.
 7. Track labnb-managed actions in provenance files, but treat that provenance as best-effort.
 8. Require explicit confirmation before labnb performs deletions of artifacts, workspaces, or entry files.
+9. When writing provenance, use W3C PROV-O terms instead of ad hoc event keys.
 
 ## Flow
 

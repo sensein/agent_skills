@@ -76,7 +76,7 @@ Treat the budget as applying to the whole proposed path, including any parallel 
 3. Never store the only copy of experiment state inside the project being studied.
 4. Never delete or rewrite prior experiment rows from the central index.
 5. Prefer deterministic helpers in [`scripts/register_experiment.py`](./scripts/register_experiment.py) and [`scripts/summarize_index.py`](./scripts/summarize_index.py) instead of ad hoc shell snippets.
-6. Track labnb-managed creates and updates with best-effort provenance inside each entry directory.
+6. Track labnb-managed creates and updates with best-effort provenance using W3C PROV-O terms inside each entry directory.
 7. Require explicit user confirmation before labnb performs deletions.
 
 ## Local Guardrails
@@ -126,7 +126,7 @@ lab-notebook/
 
 - `ideas/<idea-id>/`: not-yet-started or not-yet-promoted experiment ideas
 - `experiments/<experiment-id>/`: one experiment per directory; no sharing across active runs
-- `provenance.jsonl`: best-effort append-only event log for labnb-managed actions
+- `provenance.jsonl`: best-effort append-only provenance log using W3C PROV-O terms for labnb-managed actions
 - `provenance.md`: human-readable provenance policy and caveats
 - `experiments/<experiment-id>/plan.md`: the setup gate plus current hypothesis
 - `experiments/<experiment-id>/results.tsv`: local iteration ledger for this experiment
@@ -252,7 +252,7 @@ For ideas:
 
 - `metadata.json`: creation metadata, status, budgets, provenance mode, and linkage to future work
 - `idea.md`: rationale, prior evidence to revisit, and pickup criteria for promotion into an experiment
-- `provenance.jsonl`: append-only best-effort event log
+- `provenance.jsonl`: append-only best-effort PROV-O event log
 - `provenance.md`: provenance rules and deletion policy
 
 For experiments:
@@ -260,7 +260,7 @@ For experiments:
 - `metadata.json`: creation metadata, source repo path, objective, ids, status, and provenance mode
 - `plan.md`: goal, metric, direction, verify command, scope, and next hypothesis
 - `log.md`: chronological notes for the experiment
-- `provenance.jsonl`: append-only best-effort event log
+- `provenance.jsonl`: append-only best-effort PROV-O event log
 - `provenance.md`: provenance rules and deletion policy
 - `results.tsv`: one row per iteration or thought with status and metric outcome
 - `summary.md`: final concise outcome
@@ -356,6 +356,7 @@ When resuming:
 - Re-use the same experiment directory for iterative logging, but create a new child experiment when you need a new loop with a new hypothesis or project state.
 - Record unimplemented but promising directions as ideas instead of forcing them into active experiments.
 - Track labnb-managed changes in provenance files, but say clearly that external changes may exist outside that record.
+- Use W3C PROV-O terms in provenance records rather than ad hoc event fields.
 - Require explicit confirmation before deleting entry files, artifacts, or workspaces through labnb-driven actions.
 - If the user gives a budget like "two hours," do not stretch the plan to fill two hours by default; start with the smallest decision-making slice and say when the budget is insufficient.
 - If you propose parallel branches or downstream experiments, count them against the same stated budget unless you explicitly mark them as later follow-up outside the current scope.

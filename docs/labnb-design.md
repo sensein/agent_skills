@@ -30,6 +30,7 @@ Create a named skill, `labnb`, that adapts the repo-local `.lab/` workflow into 
 - [x] Allow the index to hold both ideas and experiments, with a summary step before starting new work
 - [x] Require parent-constitution review and local safety guardrails around source isolation, index review, and parallel writes
 - [x] Add best-effort provenance scaffolding and explicit status defaults for all notebook entries
+- [x] Serialize provenance with W3C PROV-O terms rather than custom event keys
 
 ## Layout
 
@@ -82,6 +83,7 @@ lab-notebook/
 2. Treat provenance as best-effort, because external changes or deletions may happen outside labnb tracking.
 3. Require explicit confirmation before labnb performs deletions.
 4. Make entry status explicit from the start so ideas and experiments do not silently stay in an ambiguous state.
+5. Use W3C PROV-O terms for recorded provenance so the records have a standard vocabulary.
 
 ## Index And Resume Rules
 
