@@ -24,15 +24,31 @@ The list below is kept in alphabetical order by skill name.
 Use [`scripts/install_skills.py`](./scripts/install_skills.py) to copy the flat skill directories into an agent's skills directory:
 
 ```bash
-python scripts/install_skills.py --list                 # show available skills
-python scripts/install_skills.py --agent claude          # install all into ~/.claude/skills
+python scripts/install_skills.py --list                  # show available skills
+python scripts/install_skills.py --agent claude           # -> ~/.claude/skills
+python scripts/install_skills.py --agent codex            # -> ~/.agents/skills
+python scripts/install_skills.py --agent codex --scope project   # -> ./.agents/skills
 python scripts/install_skills.py --agent codex --skills labnb duct
-python scripts/install_skills.py --dest /path/to/skills  # any other agent
+python scripts/install_skills.py --dest /path/to/skills   # any other agent
 ```
+
+Skill directories follow the cross-agent [Agent Skills](https://developers.openai.com/codex/skills) format: a flat directory with a `SKILL.md` (with `name` and `description` frontmatter). The optional `agents/openai.yaml` adds Codex-specific UI metadata and invocation policy and is ignored by agents that do not use it. Default install locations:
+
+- **Claude Code:** `~/.claude/skills/` (user) or `<project>/.claude/skills/` (project).
+- **Codex:** `~/.agents/skills/` (user) or `<repo>/.agents/skills/` (project), the Agent Skills open-standard location.
 
 The installer refuses to install a skill that contains a nested `SKILL.md`, which guards against re-introducing the structure that some agents cannot load.
 
+## Continuous Integration
+
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs on every push and pull request, with no human interaction or API keys required:
+
+- **Unit tests:** `uv run python -m unittest discover -s tests`.
+- **Validate skill format:** [`scripts/validate_skills.py`](./scripts/validate_skills.py) checks every skill against the Agent Skills format (flat directory, required `name`/`description` frontmatter, matching name, no nested skills, parseable `agents/openai.yaml`, and that referenced scripts exist) and dry-runs the installer.
+- **`duct` skill smoke test:** installs `con-duct`, captures a real command with `duct`, and summarizes the run with the skill's helper.
+
 ## Utilities
 
-- [`scripts/install_skills.py`](./scripts/install_skills.py): install the flat skills in this repository into an AI coding agent's skills directory (`--agent claude`/`codex` or an explicit `--dest`), validating that no skill contains nested skills.
+- [`scripts/install_skills.py`](./scripts/install_skills.py): install the flat skills in this repository into an AI coding agent's skills directory (`--agent claude`/`codex`, `--scope user`/`project`, or an explicit `--dest`), validating that no skill contains nested skills.
+- [`scripts/validate_skills.py`](./scripts/validate_skills.py): deterministically validate that every skill is loadable by SKILL.md-based agents; used by CI.
 - [`scripts/launch_agent_container.py`](./scripts/launch_agent_container.py): launch `codex` or `claude` inside a tightly-scoped Docker or Apptainer container using a reusable TOML config, including explicit auth mounts when credentials live outside the main agent state directory. See [docs/agent-container-launcher.md](./docs/agent-container-launcher.md).

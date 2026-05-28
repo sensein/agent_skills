@@ -23,6 +23,7 @@ def _load(module_name: str, relative_path: str):
 
 
 install_skills = _load("install_skills", "scripts/install_skills.py")
+validate_skills = _load("validate_skills", "scripts/validate_skills.py")
 summarize_run = _load("summarize_run", "skills/duct/scripts/summarize_run.py")
 
 
@@ -55,6 +56,18 @@ class InstallSkillsTests(unittest.TestCase):
             self.assertTrue((dest / "duct" / "SKILL.md").exists())
             self.assertFalse((dest / "labnb").exists())
 
+    def test_codex_resolves_to_agents_skills_dir(self) -> None:
+        dest = install_skills.resolve_dest("codex", None, "user")
+        self.assertEqual(dest, Path.home() / ".agents" / "skills")
+
+    def test_claude_resolves_to_claude_skills_dir(self) -> None:
+        dest = install_skills.resolve_dest("claude", None, "user")
+        self.assertEqual(dest, Path.home() / ".claude" / "skills")
+
+    def test_project_scope_uses_cwd(self) -> None:
+        dest = install_skills.resolve_dest("codex", None, "project")
+        self.assertEqual(dest, Path.cwd() / ".agents" / "skills")
+
     def test_install_rejects_nested_skill(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -64,6 +77,41 @@ class InstallSkillsTests(unittest.TestCase):
             (parent / "sub" / "SKILL.md").write_text("---\nname: sub\n---\n")
             nested = install_skills.find_nested_skills(parent)
             self.assertEqual([p.name for p in nested], ["SKILL.md"])
+
+
+class ValidateSkillsTests(unittest.TestCase):
+    def test_all_repo_skills_validate(self) -> None:
+        for skill_dir in validate_skills.discover_skills():
+            self.assertEqual(
+                validate_skills.validate_skill(skill_dir),
+                [],
+                skill_dir.name,
+            )
+
+    def test_frontmatter_parses_name_and_description(self) -> None:
+        fields = validate_skills.parse_frontmatter(
+            "---\nname: duct\ndescription: wrap a command\n---\nbody\n"
+        )
+        self.assertEqual(fields["name"], "duct")
+        self.assertEqual(fields["description"], "wrap a command")
+
+    def test_name_mismatch_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            skill = Path(temp_dir) / "myskill"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text(
+                "---\nname: wrong\ndescription: x\n---\n"
+            )
+            problems = validate_skills.validate_skill(skill)
+            self.assertTrue(any("!= directory" in p for p in problems), problems)
+
+    def test_missing_description_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            skill = Path(temp_dir) / "myskill"
+            skill.mkdir()
+            (skill / "SKILL.md").write_text("---\nname: myskill\n---\n")
+            problems = validate_skills.validate_skill(skill)
+            self.assertTrue(any("description" in p for p in problems), problems)
 
 
 class SummarizeRunTests(unittest.TestCase):

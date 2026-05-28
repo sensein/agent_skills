@@ -18,10 +18,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPO_ROOT / "skills"
 
-# Default per-agent skills directories, matching scripts/launch_agent_container.py.
-AGENT_SKILL_DIRS = {
-    "claude": Path.home() / ".claude" / "skills",
-    "codex": Path.home() / ".codex" / "skills",
+# Per-agent skills subdirectory, resolved against the user home (user scope) or
+# a project root (project scope). Claude Code reads ~/.claude/skills and
+# <project>/.claude/skills. Codex reads $HOME/.agents/skills and
+# <repo>/.agents/skills, the Agent Skills open-standard location; see
+# https://developers.openai.com/codex/skills.
+AGENT_SKILLS_SUBDIR = {
+    "claude": Path(".claude") / "skills",
+    "codex": Path(".agents") / "skills",
 }
 
 
@@ -43,14 +47,17 @@ def find_nested_skills(skill_dir: Path) -> list[Path]:
     )
 
 
-def resolve_dest(agent: str | None, dest: str | None) -> Path:
+def resolve_dest(
+    agent: str | None, dest: str | None, scope: str = "user"
+) -> Path:
     if dest:
         return Path(dest).expanduser()
-    if agent and agent in AGENT_SKILL_DIRS:
-        return AGENT_SKILL_DIRS[agent]
+    if agent and agent in AGENT_SKILLS_SUBDIR:
+        base = Path.cwd() if scope == "project" else Path.home()
+        return base / AGENT_SKILLS_SUBDIR[agent]
     raise SystemExit(
         "error: specify --dest, or --agent from "
-        f"{sorted(AGENT_SKILL_DIRS)}"
+        f"{sorted(AGENT_SKILLS_SUBDIR)}"
     )
 
 
@@ -84,8 +91,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--agent",
-        choices=sorted(AGENT_SKILL_DIRS),
+        choices=sorted(AGENT_SKILLS_SUBDIR),
         help="Target agent; selects a default skills directory.",
+    )
+    parser.add_argument(
+        "--scope",
+        choices=("user", "project"),
+        default="user",
+        help="Install into the user home (default) or the current project root.",
     )
     parser.add_argument(
         "--dest",
@@ -147,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {name}: {path.relative_to(SKILLS_ROOT)}", file=sys.stderr)
         return 2
 
-    dest_root = resolve_dest(args.agent, args.dest)
+    dest_root = resolve_dest(args.agent, args.dest, args.scope)
     return install(
         selected, dest_root, force=args.force, dry_run=args.dry_run
     )
