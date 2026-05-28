@@ -5,9 +5,7 @@ description: Record a promising but not-yet-implemented experiment idea in the g
 
 # Capture Idea
 
-This top-level skill exists so flat `skills/` installs can expose `labnb-idea` directly in both Claude Code and Codex.
-
-The organized canonical copy lives at [../labnb/subskills/labnb-idea/SKILL.md](../labnb/subskills/labnb-idea/SKILL.md). Keep both copies aligned.
+This is a flat, standalone `labnb-idea` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
 Use this skill when there is a useful direction to remember, but not enough evidence, time, or scope to run it now.
 

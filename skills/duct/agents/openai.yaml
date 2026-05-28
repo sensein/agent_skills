@@ -1,0 +1,7 @@
+interface:
+  display_name: "Duct Run Capture"
+  short_description: "Measure a command's time, CPU, and memory with con/duct"
+  default_prompt: "Use $duct to wrap the command with con/duct, capture wall-clock time, CPU, and memory usage to structured logs, and summarize the run so it can be reviewed."
+
+policy:
+  allow_implicit_invocation: true

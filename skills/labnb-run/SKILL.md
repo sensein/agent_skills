@@ -5,9 +5,7 @@ description: Create and run a concrete lab notebook experiment with isolated wor
 
 # Run Experiment
 
-This top-level skill exists so flat `skills/` installs can expose `labnb-run` directly in both Claude Code and Codex.
-
-The organized canonical copy lives at [../labnb/subskills/labnb-run/SKILL.md](../labnb/subskills/labnb-run/SKILL.md). Keep both copies aligned.
+This is a flat, standalone `labnb-run` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
 Use this skill when the work is concrete enough to execute now.
 

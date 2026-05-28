@@ -27,16 +27,16 @@ This skill never overrides:
 - project-specific safety or contribution rules
 - higher-level constitutions about writes, approvals, secrets, or external side effects
 
-## Subskills
+## Companion Skills
 
-Use these focused subskills when a narrower task is enough:
+Use these focused companion skills when a narrower task is enough:
 
-- [`labnb-resume`](./subskills/labnb-resume/SKILL.md): summarize prior ideas and experiments for a project and decide where to pick up
-- [`labnb-idea`](./subskills/labnb-idea/SKILL.md): register an unimplemented experiment idea in the shared notebook
-- [`labnb-promote`](./subskills/labnb-promote/SKILL.md): turn an existing idea into a concrete experiment with explicit budgets and provenance
-- [`labnb-run`](./subskills/labnb-run/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
+- [`labnb-resume`](../labnb-resume/SKILL.md): summarize prior ideas and experiments for a project and decide where to pick up
+- [`labnb-idea`](../labnb-idea/SKILL.md): register an unimplemented experiment idea in the shared notebook
+- [`labnb-promote`](../labnb-promote/SKILL.md): turn an existing idea into a concrete experiment with explicit budgets and provenance
+- [`labnb-run`](../labnb-run/SKILL.md): create and run a concrete experiment with budgets, isolated workspace, and iteration logging
 
-These focused actions are also mirrored as top-level `skills/labnb-*` entries so flat Claude Code and Codex skill installs can discover them directly.
+Each focused action installs as its own flat top-level `labnb-*` skill directory rather than as a skill nested inside this one. Keeping every skill flat (no `SKILL.md` nested under another skill) is what lets the whole `skills/` tree install into agents such as Claude Code that do not support skills nested inside other skills, while Codex and other agents discover the same flat entries directly.
 
 ## Default Root
 
@@ -446,6 +446,7 @@ When resuming:
 - If two alternatives are being compared by a metric, and one side may be one or more prior runs, prefer designing the smallest trustworthy asynchronous comparison path and an explicit checkpoint rather than keeping the whole experiment loop running until a full conclusion.
 - If parallel follow-up experiments would help, you may use subagents to run them as separate notebook experiments, but count their resource usage against the same budget unless the user explicitly scopes them out.
 - Unless absolutely necessary, do not run things blindly; prefer enough logging, checkpointing, and external health checks to inspect logs, progress, and resource consumption periodically.
+- When a verify command or long-running job should be measured, wrap it with the [`duct`](../duct/SKILL.md) skill so the experiment captures wall-clock time, CPU, and memory usage as structured logs that a later agent review can inspect.
 - When a run is unattended, monitor it from the outside by probing logs, checkpoint files, and resource/progress signals instead of assuming the internal process is behaving.
 - If you cannot supervise or schedule a background command safely, stop the slice deliberately, write a resume checkpoint, and say exactly how to resume.
 - If the time budget is exceeded, treat that as `budget_exhausted` by default, summarize partial results, and record whether the next step is resume, branch, or stop.

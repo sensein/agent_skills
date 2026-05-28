@@ -5,9 +5,7 @@ description: Promote a labnb idea into a concrete experiment with explicit budge
 
 # Promote Idea
 
-This top-level skill exists so flat `skills/` installs can expose `labnb-promote` directly in both Claude Code and Codex.
-
-The organized canonical copy lives at [../labnb/subskills/labnb-promote/SKILL.md](../labnb/subskills/labnb-promote/SKILL.md). Keep both copies aligned.
+This is a flat, standalone `labnb-promote` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
 Use this skill when an existing idea is ready to become a real experiment run.
 
