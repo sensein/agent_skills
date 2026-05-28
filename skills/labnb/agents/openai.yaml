@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lab Notebook"
+  short_description: "Track ideas and experiments safely across projects"
+  default_prompt: "Use $labnb to summarize prior notebook entries, capture ideas, and run isolated experiments safely for this project or investigation."
+
+policy:
+  allow_implicit_invocation: true

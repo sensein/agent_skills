@@ -1,0 +1,7 @@
+interface:
+  display_name: "LabNB Run"
+  short_description: "Create and execute a concrete lab notebook experiment"
+  default_prompt: "Use $labnb-run to create and execute a concrete lab notebook experiment with explicit budgets, isolated workspace, and iterative logging."
+
+policy:
+  allow_implicit_invocation: true

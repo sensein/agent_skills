@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+
+  uv-validation:
+    name: uv run validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Run documented validation command
+        run: UV_CACHE_DIR=.uv-cache uv run python -m unittest discover -s tests -v
+
+  validate-skills:
+    name: Validate skill format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML
+        run: python -m pip install --quiet pyyaml
+      - name: Validate every skill is loadable
+        run: python scripts/validate_skills.py
+      - name: Verify skills install flatly (dry run)
+        run: python scripts/install_skills.py --agent claude --dry-run
+
+  duct-skill-smoke:
+    name: duct skill smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install con-duct
+        run: python -m pip install --quiet con-duct
+      - name: Capture a command with duct
+        run: |
+          mkdir -p .duct-ci
+          duct --s-i 0.1 --r-i 0.1 -p .duct-ci/run_ -- python -c "x=[0]*1000000; print('ok')"
+      - name: Summarize the run for review
+        run: |
+          python skills/duct/scripts/summarize_run.py .duct-ci/run_info.json
+          python skills/duct/scripts/summarize_run.py .duct-ci/ --json
