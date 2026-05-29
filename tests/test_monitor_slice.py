@@ -289,6 +289,25 @@ class ExitCodeIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(forced.returncode, 0)
 
+    def test_continue_check_preserves_non_running_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            exp_dir = self._register(temp_path / "lab", temp_path / "project")
+            self._monitor("start", "--experiment-dir", str(exp_dir),
+                          "--now", "2026-04-14T10:00:00Z", check=True)
+            self._monitor("finish", "--experiment-dir", str(exp_dir),
+                          "--final-status", "completed", "--now", "2026-04-14T10:03:00Z", check=True)
+            # A check on a finished slice must not flip status back to running.
+            checked = self._monitor(
+                "check", "--experiment-dir", str(exp_dir), "--now", "2026-04-14T10:04:00Z",
+            )
+            self.assertEqual(checked.returncode, 0)
+            state = json.loads(checked.stdout)
+            self.assertEqual(state["decision"], "continue")
+            self.assertEqual(state["status"], "completed")
+            metadata = json.loads((exp_dir / "metadata.json").read_text())
+            self.assertEqual(metadata["status"], "completed")
+
 
 if __name__ == "__main__":
     unittest.main()

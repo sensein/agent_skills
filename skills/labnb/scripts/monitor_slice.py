@@ -464,7 +464,6 @@ def extract_peak_usage(usage_path: Path) -> dict[str, float | None]:
     peak: dict[str, float | None] = {"peak_rss": None, "peak_pmem": None, "peak_pcpu": None}
     if not usage_path.exists():
         return peak
-    text = usage_path.read_text(encoding="utf-8")
 
     def take(summary: dict[str, object]) -> None:
         for key in ("peak_rss", "peak_pmem", "peak_pcpu"):
@@ -473,8 +472,10 @@ def extract_peak_usage(usage_path: Path) -> dict[str, float | None]:
                 current = peak[key]
                 peak[key] = value if current is None else max(current, float(value))
 
+    # info.json: a single JSON object with an execution_summary.
     try:
-        data = json.loads(text)
+        with usage_path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
         summary = data.get("execution_summary", data) if isinstance(data, dict) else {}
         if isinstance(summary, dict):
             take(summary)
@@ -482,22 +483,24 @@ def extract_peak_usage(usage_path: Path) -> dict[str, float | None]:
     except json.JSONDecodeError:
         pass
 
-    # JSON Lines: scan each sample for resource fields.
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        try:
-            payload = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(payload, dict):
-            take(payload)
-            totals = payload.get("totals")
-            if isinstance(totals, dict):
-                rss = totals.get("rss")
-                pmem = totals.get("pmem")
-                pcpu = totals.get("pcpu")
-                take({"peak_rss": rss, "peak_pmem": pmem, "peak_pcpu": pcpu})
+    # usage.jsonl: stream one sample per line so large logs are not read whole.
+    with usage_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                take(payload)
+                totals = payload.get("totals")
+                if isinstance(totals, dict):
+                    take({
+                        "peak_rss": totals.get("rss"),
+                        "peak_pmem": totals.get("pmem"),
+                        "peak_pcpu": totals.get("pcpu"),
+                    })
     return peak
 
 
@@ -656,7 +659,8 @@ def run_check(state: dict[str, object], metadata: dict[str, object], args: argpa
             meta_status = args.status_on_break or DEFAULT_BREAK_STATUS[primary.category]
         metadata = update_metadata_status(metadata_path, meta_status)
     else:
-        state["status"] = "running"
+        # Preserve the slice's existing status (loaded from provenance) on a
+        # continue/warn decision rather than forcing it back to "running".
         metadata = read_json(metadata_path)
 
     if args.exit_zero:
