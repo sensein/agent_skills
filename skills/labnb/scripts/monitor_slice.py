@@ -30,14 +30,18 @@ DEFAULT_WARN_FRACTION = 0.8
 
 # Lower number = higher priority when several break signals fire at once. This
 # decides which status the entry is moved to and which reason is primary.
+# Governance (is the agent authorized / uncompromised?) outranks everything: a
+# compromised or unauthorized run should stop regardless of metric or budget.
 CATEGORY_PRIORITY = {
-    "correctness": 0,
-    "budget": 1,
-    "engineering": 2,
-    "validity": 3,
+    "governance": 0,
+    "correctness": 1,
+    "budget": 2,
+    "engineering": 3,
+    "validity": 4,
 }
 
 DEFAULT_BREAK_STATUS = {
+    "governance": "blocked",
     "correctness": "crashed",
     "budget": "budget_exhausted",
     "engineering": "stopped",
@@ -128,6 +132,26 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Break after this many consecutive failed/crashed iterations in "
         "results.tsv (0 disables).",
+    )
+
+    # Governance signals (read from a verdict file written by a governance tool
+    # such as the `kya` skill; labnb stays dependency-free and just consumes it).
+    parser.add_argument(
+        "--governance-file",
+        default="",
+        help="Path to a JSON governance verdict (decision/trust_score/drift) "
+        "produced by an external governance check such as the kya skill.",
+    )
+    parser.add_argument(
+        "--min-trust-score",
+        type=float,
+        default=None,
+        help="Break when the verdict's trust_score is below this threshold.",
+    )
+    parser.add_argument(
+        "--break-on-drift",
+        action="store_true",
+        help="Break when the verdict reports configuration/agent drift.",
     )
 
     # Validity signals.
@@ -504,6 +528,31 @@ def extract_peak_usage(usage_path: Path) -> dict[str, float | None]:
     return peak
 
 
+def read_governance_verdict(path: Path) -> dict[str, object]:
+    """Read a JSON governance verdict, failing closed.
+
+    Expected (all keys optional): ``decision`` (allow|warn|block), ``trust_score``
+    (0..1), ``drift`` (bool), ``reasons`` (list). Any other governance tool can
+    emit this shape; labnb does not import the tool.
+
+    This is only called when ``--governance-file`` was requested, so a missing,
+    unreadable, or malformed file is treated as a ``block`` rather than silently
+    skipping the governance gate (fail closed, not fail open).
+    """
+    if not path.is_file():
+        return {"decision": "block", "reasons": ["governance verdict file missing"]}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {"decision": "block", "reasons": [f"governance verdict unreadable: {exc}"]}
+    if not isinstance(data, dict):
+        return {"decision": "block", "reasons": ["governance verdict is not a JSON object"]}
+    return data
+
+
+BLOCK_DECISIONS = {"block", "blocked", "deny", "denied", "fail", "failed", "reject", "rejected"}
+
+
 # --- break evaluation ----------------------------------------------------
 
 
@@ -515,8 +564,10 @@ def evaluate_signals(
     metric: dict[str, object],
     pace: dict[str, object],
     usage: dict[str, float | None],
+    governance: dict[str, object] | None = None,
 ) -> list[Signal]:
     signals: list[Signal] = []
+    governance = governance or {}
 
     remaining_loop = int(state["remaining_loop_seconds"])
     remaining_overall = int(state["remaining_overall_seconds"])
@@ -610,6 +661,41 @@ def evaluate_signals(
                        f"({direction} is better)")
             )
 
+    # Governance: trust / authorization / drift from an external verdict.
+    if governance:
+        reasons = governance.get("reasons")
+        reason_text = "; ".join(str(r) for r in reasons) if isinstance(reasons, list) else ""
+        decision_l = str(governance.get("decision", "")).strip().lower()
+        drift = governance.get("drift")
+        trust = governance.get("trust_score")
+
+        if args.break_on_drift and drift is True:
+            signals.append(
+                Signal("governance", "drift_detected", "break",
+                       reason_text or "governance verdict reports drift")
+            )
+        if (
+            args.min_trust_score is not None
+            and isinstance(trust, (int, float))
+            and not isinstance(trust, bool)
+            and trust < args.min_trust_score
+        ):
+            signals.append(
+                Signal("governance", "low_trust", "break",
+                       f"trust_score {trust} < {args.min_trust_score}"
+                       + (f" ({reason_text})" if reason_text else ""))
+            )
+        if decision_l in BLOCK_DECISIONS:
+            signals.append(
+                Signal("governance", "blocked", "break",
+                       reason_text or f"governance decision '{decision_l}'")
+            )
+        elif decision_l == "warn":
+            signals.append(
+                Signal("governance", "governance_warning", "warn",
+                       reason_text or "governance verdict advises caution")
+            )
+
     return signals
 
 
@@ -637,16 +723,24 @@ def run_check(state: dict[str, object], metadata: dict[str, object], args: argpa
         if args.usage_file
         else {"peak_rss": None, "peak_pmem": None, "peak_pcpu": None}
     )
+    governance = (
+        read_governance_verdict(Path(args.governance_file).expanduser())
+        if args.governance_file
+        else {}
+    )
 
     signals = evaluate_signals(
         state=state, args=args, direction=direction,
-        metric=metric, pace=pace, usage=usage,
+        metric=metric, pace=pace, usage=usage, governance=governance,
     )
     decision, primary = decide(signals)
 
     state["decision"] = decision
     state["signals"] = [asdict(s) for s in signals]
-    state["diagnostics"] = {**metric, **pace, "peak_usage": usage, "direction": direction}
+    state["diagnostics"] = {
+        **metric, **pace, "peak_usage": usage,
+        "governance": governance, "direction": direction,
+    }
     state["break_category"] = primary.category if primary else ""
     state["break_reason"] = primary.reason if primary else ""
 
