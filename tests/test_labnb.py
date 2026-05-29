@@ -512,12 +512,15 @@ class LabNBTests(unittest.TestCase):
                     "--now",
                     "2026-04-14T10:05:00Z",
                 ],
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
             )
+            self.assertEqual(result.returncode, 4)
             state = json.loads(result.stdout)
             self.assertEqual(state["status"], "budget_exhausted")
+            self.assertEqual(state["decision"], "break")
+            self.assertEqual(state["break_category"], "budget")
             metadata = json.loads((exp_dir / "metadata.json").read_text())
             self.assertEqual(metadata["status"], "budget_exhausted")
 
@@ -557,10 +560,11 @@ class LabNBTests(unittest.TestCase):
                     "--now",
                     "2026-04-14T10:05:00Z",
                 ],
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
             )
+            self.assertEqual(result.returncode, 4)
             state = json.loads(result.stdout)
             self.assertEqual(state["status"], "budget_exhausted")
             metadata = json.loads((exp_dir / "metadata.json").read_text())
