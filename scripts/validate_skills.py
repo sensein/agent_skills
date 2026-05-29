@@ -29,13 +29,27 @@ SCRIPT_REF = re.compile(r"skills/[A-Za-z0-9_.-]+/scripts/[A-Za-z0-9_./-]+\.py")
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
-    """Parse a minimal ``key: value`` YAML frontmatter block."""
+    """Parse a YAML frontmatter block, preferring PyYAML when available."""
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)
     if end == -1:
         return {}
     block = text[3:end].strip("\n")
+
+    try:
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(block)
+        if isinstance(data, dict):
+            return {
+                str(key): "" if value is None else str(value)
+                for key, value in data.items()
+            }
+    except Exception:
+        # Fall back to the minimal hand-rolled parser below.
+        pass
+
     fields: dict[str, str] = {}
     for line in block.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):

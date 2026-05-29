@@ -7,6 +7,8 @@ description: Promote a labnb idea into a concrete experiment with explicit budge
 
 This is a flat, standalone `labnb-promote` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
+Helper scripts referenced as `skills/labnb/scripts/...` ship with the installed `labnb` skill; resolve them relative to that skill's directory (for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`), not the repository layout.
+
 Use this skill when an existing idea is ready to become a real experiment run.
 
 ## Guardrails

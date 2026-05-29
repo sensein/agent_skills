@@ -7,6 +7,8 @@ description: Create and run a concrete lab notebook experiment with isolated wor
 
 This is a flat, standalone `labnb-run` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
+Helper scripts referenced below as `skills/labnb/scripts/...` ship with the installed `labnb` skill; resolve them relative to that skill's directory (for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`), not the repository layout.
+
 Use this skill when the work is concrete enough to execute now.
 
 ## Guardrails
@@ -64,7 +66,7 @@ python skills/labnb/scripts/monitor_slice.py start \
    - if comparing two alternatives by a metric, where one side may be one or more prior runs, design the smallest asynchronous evaluation path that can decide the comparison
    - if parallel follow-up experiments help answer the comparison, you may use subagents to run them as separate experiments, but count their resource usage against the same budget
 10. Unless absolutely necessary, do not run long-lived work blindly; add enough logging, checkpoints, and external observability to inspect progress and consumption while it runs.
-11. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget.
+11. Before leaving any background command unattended, run `monitor_slice.py check` and decide whether a timer or watchdog should be started within the remaining budget. `check` can break the slice not only on budget but on engineering (pace too slow, stalled, runaway memory), correctness (repeated failures), or validity (no improvement, metric guardrail) signals; pass the relevant flags (`--reserve-seconds`, `--patience`, `--stall-seconds`, `--max-failures`, `--metric-guardrail`, `--usage-file`) and treat a non-zero exit as "stop, do not iterate again".
 12. Before scheduling a new wait job, check whether this experiment already has a pending wait:
    - if the earlier wait still covers the needed follow-up, do not submit a duplicate; just wait on it
    - if the new wait supersedes the older one, cancel or replace the earlier wait first

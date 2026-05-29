@@ -99,3 +99,12 @@ duct -p "$EXPERIMENT_DIR/artifacts/verify-{datetime}-{pid}_" -- $VERIFY_COMMAND
 ```
 
 This satisfies the labnb requirement to instrument runs well enough to inspect logs, progress, and resource consumption from outside the process, and it gives a later resume or review step real numbers to compare against the recorded metric.
+
+The captured `info.json` can also be fed straight into labnb's loop breaker so a slice is cut short on runaway memory:
+
+```bash
+python skills/labnb/scripts/monitor_slice.py check \
+  --experiment-dir "$EXPERIMENT_DIR" \
+  --usage-file "$EXPERIMENT_DIR/artifacts/verify-<prefix>_info.json" \
+  --max-rss-bytes 8000000000 --max-pmem 90
+```

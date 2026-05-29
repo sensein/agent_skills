@@ -7,6 +7,8 @@ description: Record a promising but not-yet-implemented experiment idea in the g
 
 This is a flat, standalone `labnb-idea` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
+Helper scripts referenced as `skills/labnb/scripts/...` ship with the installed `labnb` skill; resolve them relative to that skill's directory (for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`), not the repository layout.
+
 Use this skill when there is a useful direction to remember, but not enough evidence, time, or scope to run it now.
 
 ## Guardrails
