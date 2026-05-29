@@ -245,13 +245,16 @@ class GovernanceSignalTests(unittest.TestCase):
         self.assertEqual(decision, "break")
         self.assertEqual(primary.category, "governance")
 
-    def test_read_governance_verdict_handles_missing_and_bad(self) -> None:
+    def test_read_governance_verdict_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             missing = Path(temp_dir) / "nope.json"
-            self.assertEqual(monitor.read_governance_verdict(missing), {})
+            self.assertEqual(monitor.read_governance_verdict(missing)["decision"], "block")
             bad = Path(temp_dir) / "bad.json"
             bad.write_text("{not json")
-            self.assertEqual(monitor.read_governance_verdict(bad), {})
+            self.assertEqual(monitor.read_governance_verdict(bad)["decision"], "block")
+            not_obj = Path(temp_dir) / "list.json"
+            not_obj.write_text("[1, 2, 3]")
+            self.assertEqual(monitor.read_governance_verdict(not_obj)["decision"], "block")
             good = Path(temp_dir) / "v.json"
             good.write_text(json.dumps({"decision": "allow", "trust_score": 0.9}))
             self.assertEqual(monitor.read_governance_verdict(good)["decision"], "allow")

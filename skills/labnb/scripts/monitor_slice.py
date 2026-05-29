@@ -529,19 +529,25 @@ def extract_peak_usage(usage_path: Path) -> dict[str, float | None]:
 
 
 def read_governance_verdict(path: Path) -> dict[str, object]:
-    """Best-effort read of a JSON governance verdict.
+    """Read a JSON governance verdict, failing closed.
 
     Expected (all keys optional): ``decision`` (allow|warn|block), ``trust_score``
     (0..1), ``drift`` (bool), ``reasons`` (list). Any other governance tool can
     emit this shape; labnb does not import the tool.
+
+    This is only called when ``--governance-file`` was requested, so a missing,
+    unreadable, or malformed file is treated as a ``block`` rather than silently
+    skipping the governance gate (fail closed, not fail open).
     """
-    if not path.exists():
-        return {}
+    if not path.is_file():
+        return {"decision": "block", "reasons": ["governance verdict file missing"]}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return data if isinstance(data, dict) else {}
+    except (OSError, ValueError) as exc:
+        return {"decision": "block", "reasons": [f"governance verdict unreadable: {exc}"]}
+    if not isinstance(data, dict):
+        return {"decision": "block", "reasons": ["governance verdict is not a JSON object"]}
+    return data
 
 
 BLOCK_DECISIONS = {"block", "blocked", "deny", "denied", "fail", "failed", "reject", "rejected"}

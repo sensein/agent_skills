@@ -88,6 +88,8 @@ python skills/labnb/scripts/monitor_slice.py check \
 
 A `block` decision, a `trust_score` below `--min-trust-score`, or `drift: true` (with `--break-on-drift`) breaks the slice and moves the entry to `blocked`; a `warn` decision is advisory. This also fits `labnb`'s Action Gate: run the check before any write-bearing or privileged step.
 
+The gate fails closed: once `--governance-file` is set, if the verdict file is missing, unreadable, or malformed the monitor treats it as a `block`. So always write a verdict before the check — including a conservative one (e.g. `decision: "warn"` or `"block"`) when KYA or its judges are unavailable — rather than leaving the file absent.
+
 ## Guardrails
 
 1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
