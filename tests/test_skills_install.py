@@ -25,6 +25,7 @@ def _load(module_name: str, relative_path: str):
 install_skills = _load("install_skills", "scripts/install_skills.py")
 validate_skills = _load("validate_skills", "scripts/validate_skills.py")
 summarize_run = _load("summarize_run", "skills/duct/scripts/summarize_run.py")
+write_verdict = _load("write_verdict", "skills/kya/scripts/write_verdict.py")
 
 
 class FlatStructureTests(unittest.TestCase):
@@ -40,6 +41,41 @@ class FlatStructureTests(unittest.TestCase):
         duct = SKILLS_ROOT / "duct"
         self.assertTrue((duct / "SKILL.md").exists())
         self.assertTrue((duct / "agents" / "openai.yaml").exists())
+
+    def test_kya_skill_is_present_for_claude_and_codex(self) -> None:
+        kya = SKILLS_ROOT / "kya"
+        self.assertTrue((kya / "SKILL.md").exists())
+        self.assertTrue((kya / "agents" / "openai.yaml").exists())
+
+
+class WriteVerdictTests(unittest.TestCase):
+    def test_writes_canonical_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "sub" / "governance.json"
+            code = write_verdict.main([
+                "--output", str(out), "--decision", "block",
+                "--trust-score", "0.4", "--drift", "--reason", "consensus=BREACH",
+            ])
+            self.assertEqual(code, 0)
+            data = json.loads(out.read_text())
+            self.assertEqual(data["decision"], "block")
+            self.assertEqual(data["trust_score"], 0.4)
+            self.assertTrue(data["drift"])
+            self.assertEqual(data["reasons"], ["consensus=BREACH"])
+
+    def test_rejects_out_of_range_trust_score(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "v.json"
+            self.assertEqual(
+                write_verdict.main(["--output", str(out), "--trust-score", "1.5"]),
+                2,
+            )
+            self.assertFalse(out.exists())
+
+    def test_requires_at_least_one_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "v.json"
+            self.assertEqual(write_verdict.main(["--output", str(out)]), 2)
 
 
 class InstallSkillsTests(unittest.TestCase):

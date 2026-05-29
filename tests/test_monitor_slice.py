@@ -36,6 +36,9 @@ def make_args(**overrides) -> argparse.Namespace:
         patience=0,
         metric_guardrail=None,
         direction="",
+        governance_file="",
+        min_trust_score=None,
+        break_on_drift=False,
     )
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
@@ -52,7 +55,7 @@ def state_with(remaining_loop: int, remaining_overall: int, loop_budget: int, ov
     }
 
 
-def evaluate(state, args, *, direction="", metric=None, pace=None, usage=None):
+def evaluate(state, args, *, direction="", metric=None, pace=None, usage=None, governance=None):
     return monitor.evaluate_signals(
         state=state,
         args=args,
@@ -60,6 +63,7 @@ def evaluate(state, args, *, direction="", metric=None, pace=None, usage=None):
         metric=metric or monitor.metric_diagnostics([], direction),
         pace=pace or {"last_row_age_seconds": None, "avg_iter_seconds": None},
         usage=usage or {"peak_rss": None, "peak_pmem": None, "peak_pcpu": None},
+        governance=governance or {},
     )
 
 
@@ -196,6 +200,61 @@ class SliceScopingTests(unittest.TestCase):
         ]
         pace = monitor.pace_diagnostics(rows, NOW, slice_started)
         self.assertEqual(pace["avg_iter_seconds"], 120)
+
+
+class GovernanceSignalTests(unittest.TestCase):
+    def test_block_decision_breaks_governance(self) -> None:
+        state = state_with(200, 900, 300, 1800)
+        gov = {"decision": "block", "reasons": ["consensus=BREACH"]}
+        signals = evaluate(state, make_args(), governance=gov)
+        decision, primary = monitor.decide(signals)
+        self.assertEqual(decision, "break")
+        self.assertEqual(primary.category, "governance")
+        self.assertEqual(primary.reason, "blocked")
+
+    def test_low_trust_breaks_governance(self) -> None:
+        state = state_with(200, 900, 300, 1800)
+        gov = {"trust_score": 0.4}
+        signals = evaluate(state, make_args(min_trust_score=0.6), governance=gov)
+        self.assertEqual(monitor.decide(signals)[1].reason, "low_trust")
+
+    def test_drift_breaks_only_when_enabled(self) -> None:
+        state = state_with(200, 900, 300, 1800)
+        gov = {"drift": True}
+        self.assertEqual(monitor.decide(evaluate(state, make_args(), governance=gov))[0], "continue")
+        signals = evaluate(state, make_args(break_on_drift=True), governance=gov)
+        self.assertEqual(monitor.decide(signals)[1].reason, "drift_detected")
+
+    def test_warn_decision_is_advisory(self) -> None:
+        state = state_with(200, 900, 300, 1800)
+        signals = evaluate(state, make_args(), governance={"decision": "warn"})
+        self.assertEqual(monitor.decide(signals)[0], "warn")
+
+    def test_governance_outranks_correctness(self) -> None:
+        rows = [
+            {"iteration": "1", "timestamp_utc": "", "status": "failed", "metric": None},
+            {"iteration": "2", "timestamp_utc": "", "status": "failed", "metric": None},
+        ]
+        diag = monitor.metric_diagnostics(rows, "higher")
+        state = state_with(200, 900, 300, 1800)
+        signals = evaluate(
+            state, make_args(max_failures=2, break_on_drift=True),
+            metric=diag, governance={"drift": True},
+        )
+        decision, primary = monitor.decide(signals)
+        self.assertEqual(decision, "break")
+        self.assertEqual(primary.category, "governance")
+
+    def test_read_governance_verdict_handles_missing_and_bad(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            missing = Path(temp_dir) / "nope.json"
+            self.assertEqual(monitor.read_governance_verdict(missing), {})
+            bad = Path(temp_dir) / "bad.json"
+            bad.write_text("{not json")
+            self.assertEqual(monitor.read_governance_verdict(bad), {})
+            good = Path(temp_dir) / "v.json"
+            good.write_text(json.dumps({"decision": "allow", "trust_score": 0.9}))
+            self.assertEqual(monitor.read_governance_verdict(good)["decision"], "allow")
 
 
 class PriorityTests(unittest.TestCase):

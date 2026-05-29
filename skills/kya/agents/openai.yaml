@@ -1,0 +1,7 @@
+interface:
+  display_name: "Know Your Agents (KYA)"
+  short_description: "Govern, trust-score, and drift-check an agent, and gate the loop on the verdict"
+  default_prompt: "Use $kya to run a governance check (score, consensus, or drift) on the agent, write a labnb governance verdict, and gate privileged actions or the experiment loop on the result."
+
+policy:
+  allow_implicit_invocation: false

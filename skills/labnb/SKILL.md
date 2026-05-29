@@ -95,7 +95,7 @@ Treat the budget as applying to the whole proposed path, including any parallel 
 6. Track labnb-managed creates and updates with best-effort provenance using W3C PROV-O terms inside each entry directory.
 7. Require explicit user confirmation before labnb performs deletions.
 8. Treat provenance as the source of truth for monitored slice state; do not rely on a separate mutable loop-state file.
-9. Let `monitor_slice.py check` decide when to break a slice, and honor a break: it can stop on budget, engineering (pace, stall, resource), correctness (repeated failures), or validity (no improvement, guardrail) signals, and a non-zero exit means stop rather than start another iteration.
+9. Let `monitor_slice.py check` decide when to break a slice, and honor a break: it can stop on governance (unauthorized, policy-violating, or drifted), budget, engineering (pace, stall, resource), correctness (repeated failures), or validity (no improvement, guardrail) signals, and a non-zero exit means stop rather than start another iteration.
 
 ## Local Guardrails
 
@@ -324,14 +324,15 @@ while python skills/labnb/scripts/monitor_slice.py check \
 done   # the loop ends the moment check decides to break
 ```
 
-A check can break the slice for four classes of reason, not just elapsed time:
+A check can break the slice for five classes of reason, not just elapsed time:
 
-- **Budget** (`budget` category): the loop or overall budget is spent. Use `--reserve-seconds` to break while slack remains for verification, logging, and summary, and `--warn-fraction` (default `0.8`) to get an advisory `warn` before the cap.
+- **Governance** (`governance` category, highest priority): the agent is unauthorized, policy-violating, or drifted from its approved definition. Point `--governance-file` at a JSON verdict (`decision`/`trust_score`/`drift`) written by a governance tool such as the [`kya`](../kya/SKILL.md) skill; `--min-trust-score` and `--break-on-drift` turn it into breaks. labnb stays dependency-free and only consumes the verdict.
+- **Budget** (`budget`): the loop or overall budget is spent. Use `--reserve-seconds` to break while slack remains for verification, logging, and summary, and `--warn-fraction` (default `0.8`) to get an advisory `warn` before the cap.
 - **Engineering** (`engineering`): the slice is too slow or wasteful even if time remains. Pace projection breaks when another iteration at the recent cadence will not fit the remaining loop budget (disable with `--no-pace`); `--stall-seconds` breaks when no new `results.tsv` row has appeared for too long; `--usage-file` with `--max-rss-bytes` / `--max-pmem` breaks on runaway memory read from a con/duct log.
 - **Correctness** (`correctness`): `--max-failures` breaks after that many consecutive failed/crashed iterations.
 - **Validity** (`validity`): `--patience` breaks when the metric has not improved for that many logged iterations (a plateau or drift, using the recorded `direction`), and `--metric-guardrail` breaks when the latest metric crosses a hard bound in the wrong direction.
 
-When several conditions trip at once, correctness outranks budget, then engineering, then validity, and that primary reason chooses the terminal status (`crashed` for correctness, `budget_exhausted` for budget, `stopped` otherwise). Override the status with `--status-on-break`, keep the legacy always-exit-0 behavior with `--exit-zero`, and treat a `warn` decision as advisory (it does not change status and exits `0`). The full decision, signals, and diagnostics are written into the provenance state snapshot for later review.
+When several conditions trip at once, governance outranks correctness, then budget, then engineering, then validity, and that primary reason chooses the terminal status (`blocked` for governance, `crashed` for correctness, `budget_exhausted` for budget, `stopped` otherwise). Override the status with `--status-on-break`, keep the legacy always-exit-0 behavior with `--exit-zero`, and treat a `warn` decision as advisory (it does not change status and exits `0`). The full decision, signals, and diagnostics are written into the provenance state snapshot for later review.
 
 Notes on the break semantics:
 
@@ -404,7 +405,7 @@ Use the same tight loop pattern that powers autoresearch, but anchor it in the g
    - note what command to restart or re-check on resume
 16. Run `monitor_slice.py check` before continuing, and `monitor_slice.py finish` when the slice ends. Pass the break conditions that matter for this run (`--reserve-seconds`, `--patience`, `--stall-seconds`, `--max-failures`, `--metric-guardrail`, `--usage-file`); if `check` exits non-zero, stop the slice instead of starting another iteration. See "Breaking A Slice Early".
 17. Decide whether another iteration is justified, rather than expanding work to fill the remaining budget.
-18. Repeat until `check` breaks the slice, the stop condition is reached, the next checkpoint fails, or the user interrupts. A break can come from budget, engineering (too slow, stalled, or resource-hungry), correctness (repeated failures), or validity (no improvement or a guardrail breach), not only from elapsed time.
+18. Repeat until `check` breaks the slice, the stop condition is reached, the next checkpoint fails, or the user interrupts. A break can come from governance (unauthorized or drifted), budget, engineering (too slow, stalled, or resource-hungry), correctness (repeated failures), or validity (no improvement or a guardrail breach), not only from elapsed time.
 
 When the work diverges materially, register a child experiment instead of overloading the current one.
 
