@@ -7,6 +7,8 @@ description: Create and run a concrete lab notebook experiment with isolated wor
 
 This is a flat, standalone `labnb-run` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
+Helper scripts referenced below as `skills/labnb/scripts/...` ship with the installed `labnb` skill; resolve them relative to that skill's directory (for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`), not the repository layout.
+
 Use this skill when the work is concrete enough to execute now.
 
 ## Guardrails

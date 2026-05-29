@@ -7,6 +7,8 @@ description: Summarize prior ideas and experiments for a project slug, then choo
 
 This is a flat, standalone `labnb-resume` skill so every AI coding agent can discover it directly. It is a focused companion to the broader [`labnb`](../labnb/SKILL.md) skill.
 
+Helper scripts referenced as `skills/labnb/scripts/...` ship with the installed `labnb` skill; resolve them relative to that skill's directory (for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`), not the repository layout.
+
 Use this skill before starting new lab notebook work for a project.
 
 ## Guardrails

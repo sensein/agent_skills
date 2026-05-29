@@ -165,6 +165,39 @@ class CorrectnessAndValidityTests(unittest.TestCase):
         self.assertEqual(diag["iterations_since_improvement"], 0)
 
 
+class SliceScopingTests(unittest.TestCase):
+    def test_prior_slice_failures_not_counted(self) -> None:
+        slice_started = datetime(2026, 4, 14, 10, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {"iteration": "1", "timestamp_utc": "2026-04-14T10:00:00Z", "ts": monitor.parse_iso("2026-04-14T10:00:00Z"), "status": "failed", "metric": None},
+            {"iteration": "2", "timestamp_utc": "2026-04-14T10:05:00Z", "ts": monitor.parse_iso("2026-04-14T10:05:00Z"), "status": "crashed", "metric": None},
+        ]
+        # Cumulative (legacy) sees both failures...
+        self.assertEqual(monitor.metric_diagnostics(rows, "higher")["consecutive_failures"], 2)
+        # ...but a slice that starts after them counts none.
+        scoped = monitor.metric_diagnostics(rows, "higher", slice_started)
+        self.assertEqual(scoped["consecutive_failures"], 0)
+        self.assertEqual(scoped["slice_iterations"], 0)
+
+    def test_stall_age_measured_from_slice_start_when_no_in_slice_rows(self) -> None:
+        slice_started = datetime(2026, 4, 14, 10, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {"iteration": "1", "timestamp_utc": "2026-04-14T10:00:00Z", "ts": monitor.parse_iso("2026-04-14T10:00:00Z"), "status": "keep", "metric": 0.1},
+        ]
+        pace = monitor.pace_diagnostics(rows, NOW, slice_started)
+        # NOW is 10:30; age is measured from slice start (10:20), not the old row.
+        self.assertEqual(pace["last_row_age_seconds"], 600)
+        self.assertIsNone(pace["avg_iter_seconds"])
+
+    def test_pace_uses_slice_start_as_t0(self) -> None:
+        slice_started = datetime(2026, 4, 14, 10, 20, 0, tzinfo=timezone.utc)
+        rows = [
+            {"iteration": "1", "timestamp_utc": "2026-04-14T10:22:00Z", "ts": monitor.parse_iso("2026-04-14T10:22:00Z"), "status": "keep", "metric": 0.1},
+        ]
+        pace = monitor.pace_diagnostics(rows, NOW, slice_started)
+        self.assertEqual(pace["avg_iter_seconds"], 120)
+
+
 class PriorityTests(unittest.TestCase):
     def test_correctness_outranks_validity(self) -> None:
         rows = [

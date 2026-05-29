@@ -38,6 +38,18 @@ Use these focused companion skills when a narrower task is enough:
 
 Each focused action installs as its own flat top-level `labnb-*` skill directory rather than as a skill nested inside this one. Keeping every skill flat (no `SKILL.md` nested under another skill) is what lets the whole `skills/` tree install into agents such as Claude Code that do not support skills nested inside other skills, while Codex and other agents discover the same flat entries directly.
 
+## Helper Script Location
+
+The commands below write paths like `skills/labnb/scripts/<name>.py`. That is the path **inside this repository**, and it only resolves when you run from the repo root. When this skill is installed into an agent, the helpers live next to this `SKILL.md`, under `<this-skill-dir>/scripts/<name>.py` — for example `~/.claude/skills/labnb/scripts/` or `~/.agents/skills/labnb/scripts/`. Resolve the script path relative to wherever this `SKILL.md` actually lives rather than assuming the repository layout, e.g.:
+
+```bash
+# Directory of the installed labnb skill (the folder containing this SKILL.md).
+LABNB_SCRIPTS="<this-skill-dir>/scripts"
+python "$LABNB_SCRIPTS/register_experiment.py" --help
+```
+
+The `labnb-*` companion skills do not bundle these scripts; they call the ones from the installed `labnb` skill.
+
 ## Default Root
 
 Use this location unless the user explicitly wants another path:
@@ -320,6 +332,12 @@ A check can break the slice for four classes of reason, not just elapsed time:
 - **Validity** (`validity`): `--patience` breaks when the metric has not improved for that many logged iterations (a plateau or drift, using the recorded `direction`), and `--metric-guardrail` breaks when the latest metric crosses a hard bound in the wrong direction.
 
 When several conditions trip at once, correctness outranks budget, then engineering, then validity, and that primary reason chooses the terminal status (`crashed` for correctness, `budget_exhausted` for budget, `stopped` otherwise). Override the status with `--status-on-break`, keep the legacy always-exit-0 behavior with `--exit-zero`, and treat a `warn` decision as advisory (it does not change status and exits `0`). The full decision, signals, and diagnostics are written into the provenance state snapshot for later review.
+
+Notes on the break semantics:
+
+- A break does **not** close the slice. After handling it, call `monitor_slice.py finish` (for example `--final-status stopped` or `--final-status crashed`) before starting a new slice; a fresh `start` on an unclosed slice errors with "slice already running".
+- The per-slice signals (stall age, pace cadence, consecutive failures) are scoped to the rows logged at or after the current slice started, so a resumed slice is not penalized for a previous one. The no-improvement / `--patience` signal is intentionally cumulative across the whole experiment — it asks whether the metric has improved at all lately.
+- `--patience` treats a tie as non-improving (the comparison is strict). A long run of equal-metric iterations will therefore break as a plateau; raise `--patience`, or rely on `--metric-guardrail`, if tied-but-acceptable iterations should keep the loop alive.
 
 ## What Goes In Each Entry
 

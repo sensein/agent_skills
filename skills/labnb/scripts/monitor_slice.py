@@ -352,11 +352,31 @@ def read_results_rows(results_path: Path) -> list[dict[str, object]]:
             {
                 "iteration": record.get("iteration", ""),
                 "timestamp_utc": record.get("timestamp_utc", ""),
+                "ts": parse_iso(record.get("timestamp_utc", "")),
                 "status": (record.get("status", "") or "").strip().lower(),
                 "metric": parse_metric(record.get("metric_value", "")),
             }
         )
     return rows
+
+
+def row_ts(row: dict[str, object]) -> datetime | None:
+    value = row.get("ts")
+    if isinstance(value, datetime):
+        return value
+    return parse_iso(str(row.get("timestamp_utc", "")))
+
+
+def in_slice(rows: list[dict[str, object]], slice_started: datetime | None) -> list[dict[str, object]]:
+    """Rows belonging to the current slice (timestamp at/after slice start).
+
+    When the slice start is unknown, fall back to all rows that carry a
+    timestamp so callers still get a best-effort view.
+    """
+    timed = [r for r in rows if row_ts(r) is not None]
+    if slice_started is None:
+        return timed
+    return [r for r in timed if row_ts(r) >= slice_started]  # type: ignore[operator]
 
 
 def is_improvement(candidate: float, best: float, direction: str) -> bool:
@@ -367,7 +387,13 @@ def is_improvement(candidate: float, best: float, direction: str) -> bool:
     return False
 
 
-def metric_diagnostics(rows: list[dict[str, object]], direction: str) -> dict[str, object]:
+def metric_diagnostics(
+    rows: list[dict[str, object]],
+    direction: str,
+    slice_started: datetime | None = None,
+) -> dict[str, object]:
+    # Best metric and the no-improvement streak are cumulative across the whole
+    # experiment (the validity question is "has it improved at all lately?").
     numeric = [r for r in rows if isinstance(r["metric"], float)]
     best: float | None = None
     since_improvement = 0
@@ -379,8 +405,12 @@ def metric_diagnostics(rows: list[dict[str, object]], direction: str) -> dict[st
         else:
             since_improvement += 1
 
+    # Consecutive failures are scoped to the current slice so a prior slice's
+    # failures do not break a freshly resumed one. Without a known slice start
+    # (legacy callers) fall back to counting across all rows.
+    scoped = rows if slice_started is None else in_slice(rows, slice_started)
     consecutive_failures = 0
-    for row in reversed(rows):
+    for row in reversed(scoped):
         if row["status"] in FAILURE_STATUSES:
             consecutive_failures += 1
         else:
@@ -389,6 +419,7 @@ def metric_diagnostics(rows: list[dict[str, object]], direction: str) -> dict[st
     latest = float(numeric[-1]["metric"]) if numeric else None  # type: ignore[arg-type]
     return {
         "iterations_logged": len(rows),
+        "slice_iterations": len(scoped),
         "numeric_iterations": len(numeric),
         "best_metric": best,
         "latest_metric": latest,
@@ -397,15 +428,28 @@ def metric_diagnostics(rows: list[dict[str, object]], direction: str) -> dict[st
     }
 
 
-def pace_diagnostics(rows: list[dict[str, object]], now: datetime) -> dict[str, object]:
-    timestamps = [ts for ts in (parse_iso(str(r["timestamp_utc"])) for r in rows) if ts is not None]
-    last_row_age: int | None = None
+def pace_diagnostics(
+    rows: list[dict[str, object]],
+    now: datetime,
+    slice_started: datetime | None = None,
+) -> dict[str, object]:
+    # Pace and stall are inherently per-slice: only consider rows from the
+    # current slice, and treat the slice start as the t0 for cadence so even the
+    # first in-slice row yields an estimate.
+    scoped = in_slice(rows, slice_started)
+    timestamps = [ts for ts in (row_ts(r) for r in scoped) if ts is not None]
+
     if timestamps:
         last_row_age = max(int((now - timestamps[-1]).total_seconds()), 0)
+    elif slice_started is not None:
+        last_row_age = max(int((now - slice_started).total_seconds()), 0)
+    else:
+        last_row_age = None
 
+    points = ([slice_started] if slice_started is not None else []) + timestamps
     gaps = [
         max(int((b - a).total_seconds()), 0)
-        for a, b in zip(timestamps, timestamps[1:])
+        for a, b in zip(points, points[1:])
     ]
     recent = gaps[-5:]
     avg_iter = int(sum(recent) / len(recent)) if recent else None
@@ -580,10 +624,11 @@ def run_check(state: dict[str, object], metadata: dict[str, object], args: argpa
               now: datetime, experiment_dir: Path, metadata_path: Path) -> tuple[dict[str, object], dict[str, object], int]:
     state = refresh_state(state, now)
     direction = (args.direction or str(metadata.get("direction", ""))).strip().lower()
+    slice_started = parse_iso(str(state.get("slice_started_at_utc", "")))
 
     rows = read_results_rows(experiment_dir / "results.tsv")
-    metric = metric_diagnostics(rows, direction)
-    pace = pace_diagnostics(rows, now)
+    metric = metric_diagnostics(rows, direction, slice_started)
+    pace = pace_diagnostics(rows, now, slice_started)
     usage = (
         extract_peak_usage(Path(args.usage_file).expanduser())
         if args.usage_file
