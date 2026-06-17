@@ -10,15 +10,16 @@ Skills are kept **flat**: a skill never contains another skill's `SKILL.md` nest
 
 The list below is kept in alphabetical order by skill name.
 
-| Skill | Description |
-| --- | --- |
-| [`duct`](./skills/duct/SKILL.md) | Wrap any command with [con/duct](https://github.com/con/duct) to capture wall-clock time, CPU, and memory usage as structured logs, so agents and reviewers can inspect what a run actually consumed. |
-| [`kya`](./skills/kya/SKILL.md) | Govern and review agents with [veldt-kya](https://github.com/veldtlabs/veldt-kya) (Know Your Agents) — risk-score, consensus-judge, and drift-check an agent, emit compliance evidence, and write a governance verdict that the `labnb` loop can break on. |
-| [`labnb`](./skills/labnb/SKILL.md) | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture and promotion, isolated experiment workspaces, focused companion skills, and append-only indexing across projects, investigations, and tasks. |
-| [`labnb-idea`](./skills/labnb-idea/SKILL.md) | Record a promising but not-yet-implemented experiment idea in the shared lab notebook index. |
-| [`labnb-promote`](./skills/labnb-promote/SKILL.md) | Promote a lab notebook idea into a concrete experiment with explicit budgets, source links, and provenance. |
-| [`labnb-resume`](./skills/labnb-resume/SKILL.md) | Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work. |
-| [`labnb-run`](./skills/labnb-run/SKILL.md) | Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging. |
+| Skill                                                        | Description |
+|--------------------------------------------------------------| --- |
+| [`duct`](./skills/duct/SKILL.md)                             | Wrap any command with [con/duct](https://github.com/con/duct) to capture wall-clock time, CPU, and memory usage as structured logs, so agents and reviewers can inspect what a run actually consumed. |
+| [`kya`](./skills/kya/SKILL.md)                               | Govern and review agents with [veldt-kya](https://github.com/veldtlabs/veldt-kya) (Know Your Agents) — risk-score, consensus-judge, and drift-check an agent, emit compliance evidence, and write a governance verdict that the `labnb` loop can break on. |
+| [`labnb`](./skills/labnb/SKILL.md)                           | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture and promotion, isolated experiment workspaces, focused companion skills, and append-only indexing across projects, investigations, and tasks. |
+| [`labnb-idea`](./skills/labnb-idea/SKILL.md)                 | Record a promising but not-yet-implemented experiment idea in the shared lab notebook index. |
+| [`labnb-promote`](./skills/labnb-promote/SKILL.md)           | Promote a lab notebook idea into a concrete experiment with explicit budgets, source links, and provenance. |
+| [`labnb-resume`](./skills/labnb-resume/SKILL.md)             | Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work. |
+| [`labnb-run`](./skills/labnb-run/SKILL.md)                   | Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging. |
+| [`structsense-skills`](./skills/structsense-skills/SKILL.md) | StructSense Skills transforms unstructured text and PDFs into validated, ontology-grounded structured JSON using a model-agnostic extraction pipeline. |
 
 ## Installing Into An Agent
 
