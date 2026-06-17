@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/resource-output.schema.json",
+  "title": "Research resource extraction output",
+  "type": "object",
+  "required": ["extracted_resources"],
+  "properties": {
+    "extracted_resources": {
+      "type": "object",
+      "patternProperties": {
+        "^[1-9][0-9]*$": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Resource" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "task_type":    { "type": "string", "enum": ["resource"] },
+    "elapsed_time": { "type": "number" },
+    "errors":       { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "Resource": {
+      "type": "object",
+      "required": ["name", "description", "type"],
+      "properties": {
+        "name":            { "type": "string", "minLength": 1 },
+        "description":     { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "type": {
+          "type": "string",
+          "enum": ["Model", "Dataset", "Tool", "Benchmark", "Leaderboard", "Paper"]
+        },
+        "category":        { "type": ["string", "null"] },
+        "target":          { "type": ["string", "null"] },
+        "specific_target": { "type": ["string", "null"] },
+        "url":             { "type": ["string", "null"], "format": "uri" },
+        "mentions": {
+          "type": "object",
+          "properties": {
+            "datasets":   { "type": "array", "items": { "type": "string" } },
+            "benchmarks": { "type": "array", "items": { "type": "string" } },
+            "models":     { "type": "array", "items": { "type": "string" } },
+            "papers":     { "type": "array", "items": { "type": "string" } },
+            "tools":      { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+
+        "mapped_target_concept": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Concept" }
+        },
+        "mapped_specific_target_concept": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["specific_target", "mapped_target_concept"],
+            "properties": {
+              "specific_target": { "type": "string" },
+              "mapped_target_concept": { "$ref": "#/$defs/Concept" }
+            }
+          }
+        },
+        "concept_mapping_provenance": {
+          "type": ["string", "null"],
+          "enum": ["tool", "llm_knowledge", "unmapped", "skipped", null]
+        },
+        "alignment_method": {
+          "type": ["string", "null"],
+          "enum": ["direct_tool_call", "llm_agent", "skipped", null]
+        },
+
+        "judge_score":  { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "remarks":      { "type": ["string", "null"] },
+        "judge_method": {
+          "type": ["string", "null"],
+          "enum": ["llm", "auto_approved", null]
+        }
+      },
+      "additionalProperties": true
+    },
+    "Concept": {
+      "type": "object",
+      "required": ["id", "label", "ontology"],
+      "properties": {
+        "id":       { "type": "string", "minLength": 1 },
+        "label":    { "type": "string", "minLength": 1 },
+        "ontology": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

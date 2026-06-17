@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/judged-item.schema.json",
+  "title": "Fragment: judge stage fields",
+  "description": "Fields that the judge stage ADDS to any aligned item. Compose into a larger schema with allOf.",
+  "type": "object",
+  "required": ["judge_score", "remarks"],
+  "properties": {
+    "judge_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence that the extraction + alignment is correct. 1.0 = unambiguous; 0.0 = obviously wrong."
+    },
+    "remarks": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280,
+      "description": "One short sentence explaining the score."
+    },
+    "judge_method": {
+      "type": "string",
+      "enum": ["llm", "auto_approved"],
+      "description": "How the score was produced. 'auto_approved' = judge stage was skipped."
+    }
+  },
+  "additionalProperties": true
+}
