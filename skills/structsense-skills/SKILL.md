@@ -157,6 +157,7 @@ The files below are intentionally separated so you only load what the current ta
 
 ### `connecting/` (how to wire the skill into different LLM platforms)
 - `claude-code.md` — install as a Claude Code skill (`~/.claude/skills/` or `.claude/skills/`). Auto-discovery via the `SKILL.md` frontmatter.
+- `pi-dev.md` — install as a [Pi](https://pi.dev) skill (`~/.pi/agent/skills/`, `~/.agents/skills/`, or `.pi/skills/`). Pi is a CLI coding agent with native Agent Skills support and a built-in `bash` tool, so it runs the pipeline directly — same story as Claude Code.
 - `claude-desktop.md` — **Claude Desktop has a split execution model**: chat UI on your machine, code interpreter in Anthropic's cloud sandbox (so it cannot reach your `localhost:8000` directly). Use the MCP server config in this guide to bridge.
 - `claude-skills.md` — upload as a hosted Anthropic Skill on claude.ai or use with the Claude Agent SDK.
 - `custom-gpt.md` — wire as an OpenAI Custom GPT (Instructions + Knowledge files + optional server-side Action).

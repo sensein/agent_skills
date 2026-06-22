@@ -19,7 +19,9 @@ structsense-skills/
 ├── CHANGELOG.md             ← what changed in each version
 ├── connecting/              ← integration guides per platform
 │   ├── claude-code.md
+│   ├── claude-desktop.md
 │   ├── claude-skills.md
+│   ├── pi-dev.md
 │   ├── custom-gpt.md
 │   └── mcp-server.md
 ├── references/              ← progressive-disclosure documentation
@@ -90,6 +92,8 @@ Different ways to wire this skill into the tool you actually use day-to-day. Pic
 | You want to use it with… | Read |
 |---|---|
 | **Claude Code** (CLI) | [connecting/claude-code.md](connecting/claude-code.md) — drop into `~/.claude/skills/` (user-global) or `.claude/skills/` (per-project). Auto-discovered. |
+| **Pi** (CLI, pi.dev) | [connecting/pi-dev.md](connecting/pi-dev.md) — drop into `~/.pi/agent/skills/`, `~/.agents/skills/`, or `.pi/skills/`. Native Agent Skills support; runs the pipeline via its built-in `bash` tool. |
+| **Claude Desktop** | [connecting/claude-desktop.md](connecting/claude-desktop.md) — split execution model; bridge `localhost` services via MCP. |
 | **Hosted Claude Skills** on claude.ai / Claude Agent SDK | [connecting/claude-skills.md](connecting/claude-skills.md) |
 | **ChatGPT Custom GPT** | [connecting/custom-gpt.md](connecting/custom-gpt.md) — Instructions + Knowledge files + (optional) server-side Action calling the pipeline. |
 | **MCP-aware clients** (Claude Code, Cursor, ChatGPT desktop, custom agents) | [connecting/mcp-server.md](connecting/mcp-server.md) — expose `pipeline.py` as an MCP server. |
