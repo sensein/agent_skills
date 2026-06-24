@@ -152,7 +152,7 @@ Schema:
   "entities": [
     {
       "entity": "<surface form, EXACTLY as in text>",
-      "label":  "<a label from the taxonomy above, or the most appropriate label if none fits>",
+      "label":  "<a label from the taxonomy above, or a coined PascalCase label if none fits>",
       "sentence": "<full sentence containing the entity>",
       "start":  <int char offset in input>,
       "end":    <int char offset (exclusive)>,
