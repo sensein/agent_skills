@@ -59,6 +59,8 @@ git add .pi/skills/structsense-skills && git commit -m "Add structsense-skills"
 
 Project-scoped skills take precedence over user-global ones with the same name.
 
+> **If Pi is already running**, it won't see a skill you just copied in — Pi scans the search paths at startup and doesn't auto-detect new ones mid-session. Run `/reload` (reloads skills, extensions, keybindings, prompts, and context files in place) or fully restart Pi to pick it up.
+
 ## 2. Verify it loaded
 
 In a Pi session, list available skills (the exact command may vary by version — try `/help` if `/skills` isn't recognized):
@@ -72,7 +74,7 @@ You should see `structsense-skills` with its description. If you don't:
 - The folder must be `structsense-skills/` with `SKILL.md` at its root (not nested in a subfolder).
 - `SKILL.md` frontmatter MUST have both `name:` and `description:` (three dashes, key/value lines, three dashes).
 - Make sure it's in one of the search paths in §1 — a typo like `~/.pi/skills/` (missing `agent/`) won't be found.
-- Restart Pi if it cached the registry.
+- If you added the skill while this Pi session was already open, run `/reload` (or restart Pi) — Pi only scans the search paths at startup, so newly copied skills aren't picked up until you reload.
 
 ## 3. Invoke
 
