@@ -216,5 +216,3 @@ python -m scripts.normalize_result old_output.json --input paper.txt \
 | HF NER models fail ("transformers not installed") | `transformers` missing | `pip install transformers torch`, or omit `--ner-profile` to skip the ensemble. |
 | Pipeline auth fails even after `/login` | `/login` auths Pi's model, not the pipeline subprocess | Export `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` etc. in the shell that launched Pi (§5). |
 | Output has `paper_title`/`doi` on every entity | Legacy shape | `python -m scripts.normalize_result <file> --input <text> --llm-model <model>` — idempotent. |
-</content>
-</invoke>
