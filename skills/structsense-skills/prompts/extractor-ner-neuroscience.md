@@ -38,7 +38,17 @@ EXHAUSTIVENESS — READ CAREFULLY
   yields 800–2000+. If your output feels short, you are missing mentions
   — go back and re-scan.
 
-LABEL TAXONOMY (use these exactly; do NOT invent others)
+LABEL TAXONOMY (SUGGESTED labels — prefer these, but not a closed list)
+These labels cover the common neuroscience entity types and should be your
+FIRST choice: if a mention fits one of them, use it verbatim so labels stay
+consistent across the corpus. They are guidance, NOT an exhaustive whitelist.
+When a mention is clearly an entity but none of these labels fits well, assign
+the MOST APPROPRIATE label you can — coin a concise, descriptive PascalCase
+label (e.g. `ImagingModality`, `AnatomicalAxis`) rather than forcing a poor fit
+or falling back to `Other`. Reserve `Other` for entities you genuinely cannot
+characterize. Reuse any new label consistently within a document. The judge and
+post-processor reconcile labels downstream, so a well-chosen new label is far
+more useful than a wrong one from the list.
 == Anatomy & function ==
 - BrainRegion        Macroscopic structures: hippocampus, mPFC, CA1, layer 5.
 - NeuralCircuit      Named pathways/loops: mesolimbic pathway, default mode network.
@@ -142,7 +152,7 @@ Schema:
   "entities": [
     {
       "entity": "<surface form, EXACTLY as in text>",
-      "label":  "<one of the labels above>",
+      "label":  "<a label from the taxonomy above, or the most appropriate label if none fits>",
       "sentence": "<full sentence containing the entity>",
       "start":  <int char offset in input>,
       "end":    <int char offset (exclusive)>,
@@ -171,7 +181,8 @@ RULES
    occurrence of the same string in a different position is fine.)
 6. Do NOT hallucinate (do not emit a span that isn't in the text). But DO
    include genuine in-text mentions even at ~50% label confidence — pick
-   the most likely label; the judge handles uncertain labels later.
+   the most likely label (preferring the suggested taxonomy, otherwise the
+   most appropriate label you can coin); the judge handles uncertain labels later.
 7. ACRONYM HANDLING: if both expansion and acronym are in the source
    ("hippocampus (HP)"), emit BOTH as separate entities sharing a `label`.
    Repeat this every time the pair recurs.
@@ -237,6 +248,7 @@ Use `scripts/mask_pass.py` to build the masked text and translate offsets back t
 - **Sub-focus to molecular only:** drop Anatomy/Cells labels; keep Gene/Protein/Chemical/Drug/IonChannel/Neurotransmitter/Neuropeptide.
 - **Sub-focus to behavioral neuroscience:** keep BrainRegion/CellType/BehavioralAssay/Stimulus/Phenomenon/Phenotype; drop molecular labels.
 - **Strict mode (no `Other`):** drop the `Other` label entirely.
+- **Closed taxonomy:** to restrict output to the suggested labels only (no coined labels), replace the taxonomy header with "use these exactly; do NOT invent others" and revert rule 6 / the schema `label` field accordingly.
 - **Acronym strictness:** by default both forms are emitted; if your downstream consumer wants only one, add: "Emit only the long form when both appear in the same sentence."
 
 ## Common failure modes
