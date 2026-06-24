@@ -21,9 +21,9 @@ structsense-skills/
 │   ├── claude-code.md
 │   ├── claude-desktop.md
 │   ├── claude-skills.md
-│   ├── pi-dev.md
 │   ├── custom-gpt.md
-│   └── mcp-server.md
+│   ├── mcp-server.md
+│   └── pi-dev.md
 ├── references/              ← progressive-disclosure documentation
 │   ├── pipeline-pattern.md
 │   ├── ner-extraction.md
