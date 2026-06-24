@@ -181,8 +181,7 @@ RULES
    occurrence of the same string in a different position is fine.)
 6. Do NOT hallucinate (do not emit a span that isn't in the text). But DO
    include genuine in-text mentions even at ~50% label confidence — pick
-   the most likely label (preferring the suggested taxonomy, otherwise the
-   most appropriate label you can coin); the judge handles uncertain labels later.
+   the most likely label (preferring the suggested taxonomy, otherwise the\n   most appropriate PascalCase label you can coin); the judge handles uncertain labels later.
 7. ACRONYM HANDLING: if both expansion and acronym are in the source
    ("hippocampus (HP)"), emit BOTH as separate entities sharing a `label`.
    Repeat this every time the pair recurs.
