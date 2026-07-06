@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/aligned-item.schema.json",
+  "title": "Fragment: ontology alignment fields",
+  "description": "Fields that the alignment stage ADDS to any extracted item (entity, key_term, or resource). Compose into a larger schema with allOf.",
+  "type": "object",
+  "required": ["ontology_id", "ontology_label", "ontology", "concept_mapping_provenance"],
+  "properties": {
+    "ontology_id": {
+      "type": ["string", "null"],
+      "description": "Ontology IRI (or CURIE) returned by the mapping tool, e.g. 'http://purl.obolibrary.org/obo/UBERON_0002421' or 'NCBITaxon:10090'."
+    },
+    "ontology_label": {
+      "type": ["string", "null"],
+      "description": "Preferred label of the matched concept."
+    },
+    "ontology": {
+      "type": ["string", "null"],
+      "description": "Ontology shortname, e.g. UBERON, CL, NCBITaxon, MONDO, CHEBI, BTO."
+    },
+    "concept_mapping_provenance": {
+      "type": "string",
+      "enum": ["tool", "llm_knowledge", "unmapped", "skipped"],
+      "description": "Where the mapping came from. 'tool' = concept-mapping tool returned this. 'llm_knowledge' = LLM filled it in. 'unmapped' = no match found. 'skipped' = alignment stage was disabled."
+    },
+    "alignment_method": {
+      "type": ["string", "null"],
+      "enum": ["direct_tool_call", "llm_agent", "skipped", null],
+      "description": "How the alignment stage was run. Useful for debugging unexpected mappings."
+    }
+  },
+  "additionalProperties": true
+}
