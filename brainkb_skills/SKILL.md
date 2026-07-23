@@ -20,6 +20,10 @@ Help the user ingest and explore a BrainKB knowledge base through the
 
 - BrainKB uses JWT auth. Ask the user for their **email**, **password**, and the
   **base URL** (default `http://localhost:8010`) if not already provided.
+- The MCP is **multi-user**: on the hosted remote each caller authenticates with
+  their own token via an `Authorization: Bearer <token>` header (configured on the
+  MCP client), so `brainkb_login` may be unnecessary there. Locally, use
+  `brainkb_login(email, password)` — it scopes the token to that session only.
 - **Never print, echo, or store the password or the JWT token.** Pass them
   straight to the login step. When using curl, read the token into a shell
   variable — do not paste it into chat.
