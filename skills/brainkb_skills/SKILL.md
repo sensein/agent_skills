@@ -205,3 +205,138 @@ curl -s "$BASE/api/provenance/named-graph?iri=https%3A%2F%2Fbrainkb.org%2Fgraph%
 
 The `user_id` query parameter must equal the logged-in user's email — the server
 rejects acting on another user's behalf.
+
+## Example SPARQL queries
+
+These are **examples / starting points**, not an exhaustive or fixed set — adapt
+them (graph IRIs, filters, terms) to the question at hand, or write your own.
+Run them with the `brainkb_sparql(query)` tool (**requires an Admin/SuperAdmin
+role**; non-admins use the structured tools like `brainkb_search`,
+`brainkb_read_space`, `brainkb_provenance_*` instead). Replace `my-lab` / `JOB_ID`
+with real values.
+
+**Fixed graph IRIs**
+
+| Purpose | Named graph |
+|---|---|
+| Graph registry (catalog) | `https://brainkb.org/metadata/named-graph` |
+| Spaces manifest | `https://brainkb.org/metadata/spaces/` |
+| Provenance | `https://brainkb.org/provenance/` |
+| Per-job delta | `https://brainkb.org/provenance/delta/{job_id}` |
+| A data graph | e.g. `https://brainkb.org/graph/my-lab/` |
+
+**Common prefixes**
+
+```sparql
+PREFIX prov:    <http://www.w3.org/ns/prov#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema:  <https://schema.org/>
+PREFIX brainkb: <https://brainkb.org/vocab/>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+```
+
+1) All named graphs + triple counts
+
+```sparql
+SELECT ?g (COUNT(*) AS ?triples) WHERE { GRAPH ?g { ?s ?p ?o } }
+GROUP BY ?g ORDER BY DESC(?triples)
+```
+
+2) A graph's data
+
+```sparql
+SELECT ?s ?p ?o WHERE { GRAPH <https://brainkb.org/graph/my-lab/> { ?s ?p ?o } } LIMIT 200
+```
+
+3) Registry — which graphs are registered + by whom
+
+```sparql
+SELECT ?graph ?description ?registered_at ?registered_by WHERE {
+  GRAPH <https://brainkb.org/metadata/named-graph> {
+    ?graph dcterms:description ?description ; prov:generatedAtTime ?registered_at .
+    OPTIONAL { ?graph prov:wasAttributedTo ?registered_by }
+  }
+}
+```
+
+4) Spaces manifest — visibility, owner, contained graphs
+
+```sparql
+SELECT ?space ?name ?visibility ?owner
+       (GROUP_CONCAT(DISTINCT STR(?graph); SEPARATOR=", ") AS ?graphs) WHERE {
+  GRAPH <https://brainkb.org/metadata/spaces/> {
+    ?space a brainkb:Space ; schema:name ?name ;
+           brainkb:visibility ?visibility ; brainkb:owner ?owner .
+    OPTIONAL { ?space brainkb:containsGraph ?graph }
+  }
+} GROUP BY ?space ?name ?visibility ?owner
+```
+
+Space members (owner/editor/viewer):
+
+```sparql
+SELECT ?space ?role ?agent WHERE {
+  GRAPH <https://brainkb.org/metadata/spaces/> {
+    VALUES ?role { brainkb:owner brainkb:editor brainkb:viewer }
+    ?space ?role ?agent .
+  }
+}
+```
+
+5) Provenance — ingestion activities (who/when/status)
+
+```sparql
+SELECT ?activity ?agent ?targetGraph ?status ?start ?end ?success ?fail WHERE {
+  GRAPH <https://brainkb.org/provenance/> {
+    ?activity a brainkb:IngestionActivity ;
+              prov:wasAssociatedWith ?agent ;
+              brainkb:targetGraph ?targetGraph ;
+              brainkb:jobStatus ?status ;
+              prov:startedAtTime ?start .
+    OPTIONAL { ?activity prov:endedAtTime ?end }
+    OPTIONAL { ?activity brainkb:successCount ?success }
+    OPTIONAL { ?activity brainkb:failCount ?fail }
+  }
+} ORDER BY DESC(?start)
+```
+
+6) Change history + deltas for a graph
+
+```sparql
+SELECT ?delta ?deltaGraph ?added ?time WHERE {
+  GRAPH <https://brainkb.org/provenance/> {
+    ?delta a brainkb:IngestionDelta ;
+           brainkb:targetGraph <https://brainkb.org/graph/my-lab/> ;
+           brainkb:deltaGraph ?deltaGraph ;
+           brainkb:addedTripleCount ?added ;
+           prov:generatedAtTime ?time .
+  }
+} ORDER BY DESC(?time)
+```
+
+Exact triples one job added:
+
+```sparql
+SELECT ?s ?p ?o WHERE { GRAPH <https://brainkb.org/provenance/delta/JOB_ID> { ?s ?p ?o } }
+```
+
+7) Per-file results for a job
+
+```sparql
+SELECT ?name ?status ?http ?size WHERE {
+  GRAPH <https://brainkb.org/provenance/> {
+    ?file prov:wasGeneratedBy <https://brainkb.org/prov/activity/JOB_ID> ;
+          brainkb:fileName ?name ; brainkb:uploadStatus ?status .
+    OPTIONAL { ?file brainkb:httpStatus ?http }
+    OPTIONAL { ?file brainkb:sizeBytes ?size }
+  }
+}
+```
+
+8) Find a term across graphs
+
+```sparql
+SELECT ?g ?s ?label WHERE {
+  GRAPH ?g { ?s rdfs:label ?label . FILTER(CONTAINS(LCASE(STR(?label)), "purkinje")) }
+}
+```
