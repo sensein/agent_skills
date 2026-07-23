@@ -69,10 +69,16 @@ The base URL must be reachable **from wherever this code runs**:
 Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
 
 ### 2. Create / choose a workspace (space)
-- New private workspace: `brainkb_create_space(slug, name, "private")`.
+- New private workspace: `brainkb_create_space(slug, name, "private", description)`.
 - Bind a named graph to it (required before ingesting into that graph):
-  `brainkb_add_space_graph(slug, graph_iri)` — `graph_iri` like
+  `brainkb_add_space_graph(slug, graph_iri, description)` — `graph_iri` like
   `https://brainkb.org/graph/<slug>/`.
+- **Always pass a non-empty `description`** when registering a graph (and when
+  creating a space). The description is stored in the graph registry and surfaces
+  in provenance / listings — leaving it blank leaves the graph undocumented (it
+  shows up with an empty description). If the user didn't give one, ask for a short
+  description, or derive a sensible one from the space/graph name and the data
+  being ingested; don't silently register with an empty description.
 - List what the user can see: `brainkb_list_spaces()`.
 
 ### 3. Ingest
@@ -109,8 +115,8 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 ## Typical end-to-end
 
 1. `brainkb_login(...)`
-2. `brainkb_create_space("my-lab", "My Lab", "private")`
-3. `brainkb_add_space_graph("my-lab", "https://brainkb.org/graph/my-lab/")`
+2. `brainkb_create_space("my-lab", "My Lab", "private", "My lab's working data")`
+3. `brainkb_add_space_graph("my-lab", "https://brainkb.org/graph/my-lab/", "My lab cell-type annotations")`  ← always give a description
 4. `brainkb_ingest_text("https://brainkb.org/graph/my-lab/", "<ttl>")` → job_id
 5. poll `brainkb_job_status(job_id)` until `done`
 6. `brainkb_search("<term>", space="my-lab")` / `brainkb_provenance_graph(iri)`
