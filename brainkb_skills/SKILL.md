@@ -16,6 +16,29 @@ Help the user ingest and explore a BrainKB knowledge base through the
 `query_service` API. Prefer the **`brainkb` MCP tools** if they are available
 (server at `brainkb_mcp/`); otherwise fall back to `curl` (see bottom).
 
+## Connectivity — READ FIRST
+
+The base URL must be reachable **from wherever this code runs**:
+
+- `http://localhost:8010` (the current default) only works when the caller runs
+  on the **same machine** as the BrainKB Docker stack. That means the **`brainkb`
+  MCP server must be running locally (stdio) on that machine**, and you must use
+  the **MCP tools** — a local stack is reached through the local MCP process, not
+  from a cloud/sandbox session.
+- A **cloud / sandbox** Claude session (or the `curl` fallback running there)
+  **cannot reach a `localhost` deployment** on the user's laptop — no base URL
+  will fix that. In that case either (a) run this in **Claude Code on the same
+  machine** with the MCP registered, or (b) use a **publicly reachable** base URL
+  (the hosted remote, once it's up).
+- If login/any call returns a **connection error / HTTP 000 / connection refused**,
+  do **not** keep guessing URLs. It almost always means the caller can't reach the
+  deployment. Check: is the `brainkb` MCP running locally? Is the stack up
+  (`http://localhost:8010/openapi.json` returns 200 on that machine)? Ask the user
+  to confirm rather than retrying different hosts.
+
+**For local testing now: run the `brainkb` MCP locally and keep the base URL at
+`http://localhost:8010`.** Do not fall back to curl from a non-local session.
+
 ## Credentials & safety
 
 - BrainKB uses JWT auth. Ask the user for their **email**, **password**, and the
@@ -98,6 +121,10 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 7. (optional) `brainkb_set_space_visibility("my-lab", "public")`
 
 ## Fallback: curl (no MCP)
+
+Only use this when running **on the same machine/network as the deployment**
+(so `localhost:8010` resolves to the real stack). From a cloud/sandbox session,
+curl to `localhost` will fail — use the local MCP instead.
 
 Base = the deployment URL (default `http://localhost:8010`).
 
