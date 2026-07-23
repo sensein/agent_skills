@@ -48,20 +48,48 @@ The base URL must be reachable **from wherever this code runs**:
   variable — do not paste it into chat.
 - Confirm before mutating actions (creating a space, ingesting, changing
   visibility, adding members). Reads are safe.
-- Scopes: reads need `read`, ingest / space changes need `write`, arbitrary
-  SPARQL needs `admin`. If a call returns 403, the user's account lacks the scope
-  — tell them which scope is required.
+- **Authorization is role-based, not just JWT** (see the section below). A `403`
+  usually means the user's **role/capability** (or a space access rule) doesn't
+  permit the action — not that the API token is invalid. Explain which
+  role/capability is needed and that an Admin can grant it.
 
 ## Core concepts (so you pick the right call)
 
 - **Space** = an owner-controlled workspace containing named graphs, with
   `visibility` = `private` (members only) or `public` (anyone, even without
-  logging in, can read). Ingest into a graph requires owner/editor membership of
-  its space.
+  logging in, can read). Two `space_type`s: **individual** (a personal space) and
+  **team** (shared). Ingest into a graph requires owner/editor membership of its
+  space *and* the ingest capability.
+- **Roles govern what a user may do** (JWT is only API access). Roles come from the
+  user's account; they map to capabilities like create-space / ingest / admin.
 - **Ingestion is submit-and-forget**: it returns a `job_id` and runs in the
   background. Always poll job status rather than assuming it finished.
 - **Provenance** lives natively in the graph DB (PROV-O). Every ingest is an
   activity; each job's added triples are a queryable **delta**.
+
+## Authorization (roles & capabilities)
+
+Who can do what is decided by the user's **role** → **capability**, then space
+membership, then any per-space **access rule**. Key rules to set expectations:
+
+- **Create a team space**: Admin/SuperAdmin only — or a user an admin has **granted**
+  `create_team_space`. Use `space_type="team"`.
+- **Create an individual/private space**: any write-capable role (Curator, Lab
+  Member, Submitter, Annotator, Mapper, Knowledge Contributor, Admin). Default
+  `space_type="individual"`.
+- **Ingest / recover**: write-capable role (+ owner/editor of the space).
+- **Arbitrary SPARQL**: Admin/SuperAdmin only.
+- **No role**: read **public** content only — cannot create/ingest/read private.
+- **Delegated upgrades** (Admin only): `brainkb_grant_capability(member, capability)`
+  — e.g. let a Lab Member create team spaces. Inspect with
+  `brainkb_capabilities(member)`. Admin-only caps (`grant`, `sparql_admin`) are not
+  delegatable.
+- **Fine-grained per-space rules**: within a space, restrict an action to a role /
+  member / space-role (see "Manage & delegate"). Owner + Admin always bypass.
+
+If an action is denied, check the user's roles/capabilities
+(`brainkb_capabilities`) and either ask an Admin to grant the needed capability, or
+adjust the space's access rules.
 
 ## Workflows
 
@@ -69,7 +97,13 @@ The base URL must be reachable **from wherever this code runs**:
 Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
 
 ### 2. Create / choose a workspace (space)
-- New private workspace: `brainkb_create_space(slug, name, "private", description)`.
+- Individual/private workspace (any write-capable role):
+  `brainkb_create_space(slug, name, "private", description)` (space_type defaults to
+  "individual").
+- Team space (Admin/SuperAdmin, or a user granted `create_team_space`):
+  `brainkb_create_space(slug, name, "private", description, space_type="team")`.
+  If the user isn't authorized you'll get a 403 — an Admin can grant them
+  `create_team_space` (see "Manage & delegate").
 - Bind a named graph to it (required before ingesting into that graph):
   `brainkb_add_space_graph(slug, graph_iri, description)` — `graph_iri` like
   `https://brainkb.org/graph/<slug>/`.
@@ -108,9 +142,24 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 - Compare two ingests: `brainkb_delta_compare(job_id_a, job_id_b)`.
 
 ### 7. Share publicly / manage a workspace
-- Publish: `brainkb_set_space_visibility(slug, "public")` (owner). Warn that a
-  public space is readable by **anyone, including unauthenticated clients**.
+- Publish: `brainkb_set_space_visibility(slug, "public")` (owner/manager). Warn that
+  a public space is readable by **anyone, including unauthenticated clients**.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
+
+### 8. Manage & delegate (RBAC)
+- **Admin delegation** (Admin/SuperAdmin only):
+  - Inspect a user: `brainkb_capabilities(member)`.
+  - Grant: `brainkb_grant_capability(member, "create_team_space")` (or
+    `manage_team_space`, `ingest`, etc.); revoke with `brainkb_revoke_capability`.
+- **Fine-grained per-space access rules** (space owner/manager): restrict an action
+  within a space to a role, a member, or a space-role.
+  - List: `brainkb_list_access_rules(slug)`.
+  - Add: `brainkb_add_access_rule(slug, action, subject_type, subject_value)` where
+    `action` ∈ read|write|manage; `subject_type` ∈ global_role|member|space_role.
+    e.g. "only Admins may write here": `("write","global_role","Admin")`; "only this
+    lab member may read": `("read","member","alice@lab.org")`.
+  - Remove: `brainkb_remove_access_rule(slug, rule_id)`.
+  - Owner and Admin/SuperAdmin always bypass rules (no lockout).
 
 ## Typical end-to-end
 
