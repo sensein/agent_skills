@@ -161,6 +161,24 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   - Remove: `brainkb_remove_access_rule(slug, rule_id)`.
   - Owner and Admin/SuperAdmin always bypass rules (no lockout).
 
+### 9. Admin: manage users, roles & activation (usermanagement service)
+These act on the **usermanagement service** (a separate service with its own
+token) and require the caller to hold an **Admin/SuperAdmin** role. They work when
+the MCP has credentials (env auto-login, or `brainkb_login(email, password)` — an
+OAuth-only session can't log into usermanagement).
+- Onboarding: users are usually created by **first login via Globus/ORCID/GitHub**
+  (auto-creates their profile + a default `Curator` role). Admins then adjust.
+- Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
+- Activate/deactivate an account: `brainkb_activate_user(email)` /
+  `brainkb_deactivate_user(email)`.
+- Assign / remove a role (= permission group: Admin, Lab Member, External, …):
+  `brainkb_assign_role(email, role)` / `brainkb_remove_role(email, role)`
+  (the user must have a profile — i.e. have signed in once).
+- New group: `brainkb_create_role("External", "Community", "External collaborators")`
+  then `brainkb_assign_role(email, "External")`.
+- KG-specific capabilities (create team spaces, etc.) are granted with the
+  query_service admin tools — see §8.
+
 ## Typical end-to-end
 
 1. `brainkb_login(...)`
