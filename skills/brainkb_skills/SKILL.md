@@ -5,16 +5,12 @@ description: >-
   credentials, ingest RDF into their workspace (space), check the status of
   ingest jobs, read/search the knowledge graphs, and query W3C PROV-O
   provenance (including triple-level deltas). Use whenever the user asks to
-  ingest/upload triples or RDF to BrainKB, create or share a workspace/space
-  (private/public), search or read BrainKB graphs, check an ingest job's
-  status, or ask "who/when/what changed" (provenance) about a graph.
+  ingest/upload triples or RDF to BrainKB, create or share a workspace/space  (private/public), search or read BrainKB graphs, check an ingest job's status, or ask "who/when/what changed" (provenance) about a graph.
+  
 ---
 
-# BrainKB
-
-Help the user ingest and explore a BrainKB knowledge base through the
-`query_service` API. Prefer the **`brainkb` MCP tools** if they are available
-(server at `brainkb_mcp/`); otherwise fall back to `curl` (see bottom).
+# BrainKB Skills
+This skill provides tools for ingesting, querying, and exploring **BrainKB (Brain Knowledgebase)**. It preferentially uses the **`brainkb_mcp`** server (`brainkb_mcp/`) when available, enabling direct MCP-based interaction. If the MCP server is unavailable, equivalent operations are performed through the BrainKB REST API using `curl` (see below).
 
 ## Connectivity — READ FIRST
 
