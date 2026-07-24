@@ -93,8 +93,17 @@ adjust the space's access rules.
 
 ## Workflows
 
+### 0. Register a new account (no login needed)
+For password-based signup: `brainkb_register(full_name, email, password)`. This
+creates the credential **and** a canonical profile with a default `Curator` role,
+so the user is a first-class identity. The account starts **inactive** — an
+Admin/SuperAdmin must activate it (see §9) before login works. (Alternatively,
+users can onboard by first login via Globus/ORCID/GitHub, which auto-provisions
+the same profile + default role.) Never echo the password back.
+
 ### 1. Log in
 Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
+(New accounts must be activated by an admin first — see §9.)
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
@@ -166,8 +175,10 @@ These act on the **usermanagement service** (a separate service with its own
 token) and require the caller to hold an **Admin/SuperAdmin** role. They work when
 the MCP has credentials (env auto-login, or `brainkb_login(email, password)` — an
 OAuth-only session can't log into usermanagement).
-- Onboarding: users are usually created by **first login via Globus/ORCID/GitHub**
-  (auto-creates their profile + a default `Curator` role). Admins then adjust.
+- Onboarding: users self-register with `brainkb_register(...)` (see §0) or by
+  **first login via Globus/ORCID/GitHub** — both auto-create the profile + a
+  default `Curator` role. Password signups then need admin activation:
+  `brainkb_activate_user(email)`. Admins adjust roles afterward.
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
 - Activate/deactivate an account: `brainkb_activate_user(email)` /
   `brainkb_deactivate_user(email)`.
