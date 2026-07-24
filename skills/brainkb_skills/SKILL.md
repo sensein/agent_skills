@@ -156,6 +156,13 @@ adjust the space's access rules.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
 
 ### 8. Manage & delegate (RBAC)
+- **Admin vs SuperAdmin:** **SuperAdmin** is bootstrapped at deployment (env
+  allowlist), is protected (can't be banned/deleted/demoted), and is the **only**
+  role that can create/remove **Admins** or ban an Admin. **Admin** is granted by a
+  SuperAdmin; same KG powers but itself manageable. Both manage **all** team spaces.
+- **`manage_team_space` is scoped:** a non-admin with it manages **only** team
+  spaces they **created (own)** or were **assigned to** (a member of / matched by a
+  per-space `manage` rule) — never all team spaces. Only Admin/SuperAdmin manage all.
 - **See the options first:** `brainkb_list_capabilities()` returns the catalog —
   all KG capabilities, which are delegatable (`grantable`), which are admin-only
   (`grant`, `sparql_admin`), and what each means.
