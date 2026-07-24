@@ -37,19 +37,35 @@ The base URL must be reachable **from wherever this code runs**:
 
 ## Credentials & safety
 
-- BrainKB uses JWT auth. Ask the user for their **email**, **password**, and the
-  **base URL** (default `http://localhost:8010`) if not already provided.
-- The MCP is **multi-user**: on the hosted remote each caller authenticates with
-  their own token via an `Authorization: Bearer <token>` header (configured on the
-  MCP client), so `brainkb_login` may be unnecessary there. Locally, use
-  `brainkb_login(email, password)` — it scopes the token to that session only.
-- **Recommended: a Personal Access Token (PAT).** The simplest, browser-free way
-  to authenticate. Log in once, run `brainkb_create_token(name, days)` to mint a
-  `brainkb_pat_…` token, and set it as **`BRAINKB_TOKEN`** in the MCP config (or
-  pass it once via `brainkb_use_token(pat)`). After that no login/browser is
-  needed until it expires. A PAT is **revocable instantly** (`brainkb_revoke_token`)
-  and its roles are re-checked live on every use — so a ban/demotion takes effect
-  at once. Treat it like a password.
+- **How to authenticate — pick in this order. Do NOT ask the user for a password
+  by default; BrainKB is a Globus/OAuth-first system and password login is being
+  retired.**
+  1. **Already configured?** On the hosted remote each caller authenticates via an
+     `Authorization: Bearer <token>` header, or a `BRAINKB_TOKEN` (PAT) set in the
+     MCP config — in that case no login step is needed at all. Check with
+     `brainkb_whoami()` before asking for anything.
+  2. **Personal Access Token (PAT)** — the recommended browser-free credential.
+     If the user has one, `brainkb_use_token("brainkb_pat_…")` (or they set it as
+     `BRAINKB_TOKEN`). If they don't, mint one after step 3 with
+     `brainkb_create_token(name, days)`.
+  3. **Globus / ORCID / GitHub (browser)** — the normal way to sign in as a real
+     user. Call `brainkb_globus_login()`; it returns a URL for the user to open,
+     they sign in, the browser shows a short code, and you finish with
+     `brainkb_finish_login("<code>")`. **This is what you should do when the user
+     says "log in as <their account>" — start the Globus flow, do not ask for a
+     password.**
+  4. **Password (legacy, discouraged)** — only if the user *explicitly* has a
+     password account and asks to use it: `brainkb_login(email, password)`. Never
+     volunteer this path or prompt for a password unprompted.
+- **Base URL**: default `http://localhost:8010`; ask only if it's not already set
+  and the user hasn't said where the deployment is.
+- **Never print, echo, or store the password or the JWT token.** Pass them
+  straight to the login step. When using curl, read the token into a shell
+  variable — do not paste it into chat. (The one exception is the PAT returned by
+  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+  into their config — never re-display it afterward.)
+- A PAT is **revocable instantly** (`brainkb_revoke_token`) and its roles are
+  re-checked live on every use, so a ban/demotion takes effect at once.
 - **Never print, echo, or store the password or the JWT token.** Pass them
   straight to the login step. When using curl, read the token into a shell
   variable — do not paste it into chat. (The one exception is the PAT returned by
@@ -103,25 +119,35 @@ adjust the space's access rules.
 ## Workflows
 
 ### 1. Log in
-- **Password:** `brainkb_login(email, password, base_url?)`. Confirm with
-  `brainkb_whoami()`. (New password accounts need admin activation — §9.)
-- **Globus / ORCID / GitHub (OAuth) — works from the skill, no website needed:**
+**First run `brainkb_whoami()`** — if it already reports `authenticated: true`
+(header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
+anything. Otherwise pick a method — **default to Globus, never prompt for a
+password unprompted:**
+
+- **Globus / ORCID / GitHub (browser) — the default for "log in as <account>":**
   1. `brainkb_globus_login()` (or `brainkb_globus_login("orcid")` / `("github")`)
      → returns a URL; give it to the user to open and sign in.
   2. The browser then shows a short one-time **code** — ask the user to paste it.
   3. `brainkb_finish_login("<code>")` → completes login for this session.
   The browser sign-in is unavoidable (only the user can consent at the provider),
   but the rest stays in the skill. First OAuth login auto-creates/links the
-  profile + a default `Curator` role.
+  profile + a default `Curator` role. **When a user asks to sign in as a specific
+  account and no PAT/header is configured, start THIS flow — do not ask for a
+  password.**
 - **Personal Access Token (PAT) — recommended for repeated use, no browser:**
-  1. Log in once (password or Globus, above).
-  2. `brainkb_create_token(name="laptop", days=90)` → returns a `brainkb_pat_…`
+  1. `brainkb_use_token("brainkb_pat_…")` if the user already has one — done.
+  2. To mint one: log in once (Globus, above), then
+     `brainkb_create_token(name="laptop", days=3)` → returns a `brainkb_pat_…`
      token **once**. Give it to the user to copy.
   3. The user sets it as `BRAINKB_TOKEN` in the MCP config (or calls
-     `brainkb_use_token("<pat>")` for this session). No login/browser afterward
-     until it expires.
+     `brainkb_use_token("<pat>")` per session). No login/browser afterward until
+     it expires (default 3 days; pass `days` up to the server cap for longer).
   - Manage: `brainkb_list_tokens()` (metadata only), `brainkb_revoke_token(id)`
     (instant). PATs are the cleanest way to avoid re-authenticating every session.
+- **Password (legacy, discouraged — being retired):**
+  `brainkb_login(email, password, base_url?)`. Use **only** if the user explicitly
+  says they have a password account and want to use it. Never prompt for a password
+  otherwise.
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
