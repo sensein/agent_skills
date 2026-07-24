@@ -71,6 +71,23 @@ The base URL must be reachable **from wherever this code runs**:
   variable — do not paste it into chat. (The one exception is the PAT returned by
   `brainkb_create_token`, which is shown to the user **once** so they can copy it
   into their config — never re-display it afterward.)
+- **Identity must be verified, never assumed — this is the #1 correctness rule.**
+  Mutations (create space, ingest, add member, grant) are **attributed to the
+  authenticated identity permanently** (provenance records who did what). A login
+  step reporting "Logged in as X" is **not proof** the next call runs as X: the MCP
+  silently falls back to a configured `BRAINKB_EMAIL`/`BRAINKB_PASSWORD`,
+  `BRAINKB_TOKEN`, or an `Authorization` header when the session login isn't
+  carried forward (common on the hosted `streamable-http` transport). So:
+  1. After **every** login, call `brainkb_whoami()` and confirm `email` == the
+     intended user.
+  2. **Immediately before any write/mutation**, call `brainkb_whoami()` again and
+     confirm it still matches. Only proceed if it does.
+  3. If it shows a **different/unexpected** account (e.g. a shared `test@…`),
+     **STOP** — report the mismatch, don't write. The durable fix is a per-call
+     credential that can't be shadowed: a **PAT** (`BRAINKB_TOKEN` /
+     `brainkb_use_token`) or an `Authorization: Bearer` header. A leftover
+     `BRAINKB_EMAIL`/`BRAINKB_PASSWORD` in the MCP config is the usual culprit and
+     should be removed on a shared/multi-user MCP.
 - Confirm before mutating actions (creating a space, ingesting, changing
   visibility, adding members). Reads are safe.
 - **Authorization is role-based, not just JWT** (see the section below). A `403`
@@ -149,6 +166,21 @@ password unprompted:**
   says they have a password account and want to use it. Never prompt for a password
   otherwise.
 
+> **⚠️ ALWAYS verify identity after logging in — do not trust the login message.**
+> Immediately after `brainkb_finish_login` / `brainkb_login` / `brainkb_use_token`,
+> call **`brainkb_whoami()`** and confirm the returned `email` is the account you
+> intended. A login step can report "Logged in as X" yet subsequent calls run as a
+> **different** account — because the MCP falls back, silently, to a configured
+> `BRAINKB_EMAIL`/`BRAINKB_PASSWORD` (or `BRAINKB_TOKEN`, or an `Authorization`
+> header) when the just-established session isn't carried into the next call (this
+> is common on the hosted `streamable-http` transport, where per-session login may
+> not persist between tool calls). **If `whoami` shows a different or unexpected
+> account, STOP — the login did not take effect. Do NOT create/ingest/mutate**
+> (see the identity rule in "Credentials & safety"). The reliable fix is a
+> per-call credential that can't be shadowed: a **PAT** via `BRAINKB_TOKEN` /
+> `brainkb_use_token`, or an `Authorization: Bearer` header — not an in-memory
+> session login on a multi-user remote.
+
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
   `brainkb_create_space(slug, name, "private", description)` (space_type defaults to
@@ -169,6 +201,14 @@ password unprompted:**
 - List what the user can see: `brainkb_list_spaces()`.
 
 ### 3. Ingest
+- **Before ingesting, verify identity: call `brainkb_whoami()` and confirm the
+  `email` is the intended user.** Ingest is **attributed** — the job's `user_id`
+  and the provenance (`prov:wasAssociatedWith` / `prov:wasAttributedTo`) are set to
+  the authenticated identity, permanently. If `whoami` shows the wrong account
+  (e.g. a fallback `test@…` from a stale `BRAINKB_EMAIL`), the data will be
+  **mis-attributed and cannot be silently reassigned** — STOP and fix the login
+  (use a PAT / header) before ingesting. Never ingest "hoping" the earlier login
+  stuck.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
 - Files: `brainkb_ingest_files(graph_iri, [paths])`.
 - Both return a `job_id`. Tell the user ingestion is running in the background.
