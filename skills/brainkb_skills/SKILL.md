@@ -147,10 +147,22 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
 
 ### 8. Manage & delegate (RBAC)
-- **Admin delegation** (Admin/SuperAdmin only):
-  - Inspect a user: `brainkb_capabilities(member)`.
-  - Grant: `brainkb_grant_capability(member, "create_team_space")` (or
-    `manage_team_space`, `ingest`, etc.); revoke with `brainkb_revoke_capability`.
+- **See the options first:** `brainkb_list_capabilities()` returns the catalog —
+  all KG capabilities, which are delegatable (`grantable`), which are admin-only
+  (`grant`, `sparql_admin`), and what each means.
+- **Grant to an INDIVIDUAL** (Admin/SuperAdmin): inspect with
+  `brainkb_capabilities(member)`; grant with
+  `brainkb_grant_capability(member, "create_team_space")` (or `ingest`,
+  `manage_team_space`, …); revoke with `brainkb_revoke_capability`.
+- **Grant to a GROUP/role** (Admin/SuperAdmin): give a capability to *every* member
+  of a role/group — including a custom group you created:
+  `brainkb_grant_role_capability("uk_collaborator", "ingest")`;
+  inspect with `brainkb_role_capabilities(role)`; revoke with
+  `brainkb_revoke_role_capability`. Only `grantable` caps may be delegated
+  (`grant`/`sparql_admin` are never delegatable — no escalation).
+- **Custom groups**: create with `brainkb_create_role("uk_collaborator",
+  "Community", "UK collaborators")`, assign with `brainkb_assign_role(email,
+  "uk_collaborator")`, then grant it capabilities (above) and/or per-space access.
 - **Fine-grained per-space access rules** (space owner/manager): restrict an action
   within a space to a role, a member, or a space-role.
   - List: `brainkb_list_access_rules(slug)`.
@@ -173,12 +185,23 @@ query_service-only access token won't authorize usermanagement.)
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
 - Activate/deactivate an account: `brainkb_activate_user(email)` /
   `brainkb_deactivate_user(email)`.
-- Assign / remove a role (= permission group: Admin, Lab Member, External, …):
+- Assign / remove a role (= permission group: Lab Member, External, custom, …):
   `brainkb_assign_role(email, role)` / `brainkb_remove_role(email, role)`
-  (the user must have a profile — i.e. have signed in once).
-- New group: `brainkb_create_role("External", "Community", "External collaborators")`
-  then `brainkb_assign_role(email, "External")`.
-- KG-specific capabilities (create team spaces, etc.) are granted with the
+  (the user must have a profile — i.e. have signed in / registered once).
+- New group/category: `brainkb_create_role("uk_collaborator", "Community",
+  "UK collaborators")` then `brainkb_assign_role(email, "uk_collaborator")`, then
+  grant it KG capabilities via §8 (`brainkb_grant_role_capability`).
+- **Permissions catalog**: `brainkb_list_permissions()` lists usermanagement
+  permissions (resource/action, used for page-access); add new ones with
+  `brainkb_create_permission(name, resource, action, description)`. (KG action
+  capabilities are separate — see `brainkb_list_capabilities` in §8.)
+- **SuperAdmin > Admin**: assigning/removing the `Admin` role, and banning an
+  Admin, are **SuperAdmin-only**. The `SuperAdmin` role is protected (can't be
+  removed/banned).
+- **No deletion — ban instead**: accounts are never hard-deleted. Remove access
+  with `brainkb_ban_user(email, reason)` (reversible; preserves history); lift with
+  `brainkb_unban_user(email)`. `brainkb_deactivate_user` toggles login access.
+- KG-specific capabilities (create team spaces, ingest, etc.) are granted with the
   query_service admin tools — see §8.
 
 ## Typical end-to-end
