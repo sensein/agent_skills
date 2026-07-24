@@ -162,10 +162,12 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   - Owner and Admin/SuperAdmin always bypass rules (no lockout).
 
 ### 9. Admin: manage users, roles & activation (usermanagement service)
-These act on the **usermanagement service** (a separate service with its own
-token) and require the caller to hold an **Admin/SuperAdmin** role. They work when
-the MCP has credentials (env auto-login, or `brainkb_login(email, password)` — an
-OAuth-only session can't log into usermanagement).
+These act on the **usermanagement service** and require the caller to hold an
+**Admin/SuperAdmin** role. With single sign-on, one `brainkb_login(email,
+password)` (or env auto-login) is enough — the MCP exchanges your session for a
+usermanagement-scoped token automatically; **no separate admin login**. (A caller
+authenticating by header should pass a refresh token so admin tools work too; a
+query_service-only access token won't authorize usermanagement.)
 - Onboarding: users are usually created by **first login via Globus/ORCID/GitHub**
   (auto-creates their profile + a default `Curator` role). Admins then adjust.
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
