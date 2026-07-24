@@ -198,7 +198,24 @@ password unprompted:**
   shows up with an empty description). If the user didn't give one, ask for a short
   description, or derive a sensible one from the space/graph name and the data
   being ingested; don't silently register with an empty description.
-- List what the user can see: `brainkb_list_spaces()`.
+- **Uniqueness (enforced by the backend):** a space `slug` is **globally unique**
+  and a named-graph IRI is **globally unique** (one graph belongs to exactly one
+  space). Creating a space with a taken slug, or binding an already-registered
+  graph, returns **409** — pick a different slug / IRI. Don't retry the same value.
+- **Deletion — what is and isn't removable:** spaces and named graphs are
+  **permanent — there is NO delete** (preserves provenance/history, same "we don't
+  hard-delete" policy as user accounts). What you *can* remove: a **space member**
+  (`brainkb_remove_*`/members endpoint) and a **fine-grained access rule**
+  (`brainkb_remove_access_rule`). To retire a space in practice, set it private
+  and/or remove members — you cannot delete it. So choose slugs/graph IRIs
+  deliberately: a typo can't be deleted, only abandoned.
+- **See what's available to the user + their permission:** `brainkb_list_spaces()`
+  returns each visible space annotated with the caller's own permission —
+  `your_role` (`owner`/`editor`/`viewer`/`null`), `is_owner`, `access`
+  (`owner`/`member`/`public`), and `can_write` (their space role permits ingest;
+  a real ingest also needs the `ingest` capability + any per-space access rules).
+  Use it to tell the user which spaces they can **write** to vs. only **read** vs.
+  only see as **public**, rather than guessing.
 
 ### 3. Ingest
 - **Before ingesting, verify identity: call `brainkb_whoami()` and confirm the
