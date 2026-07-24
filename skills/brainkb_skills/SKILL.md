@@ -189,14 +189,16 @@ password)` (or env auto-login) is enough — the MCP exchanges your session for 
 usermanagement-scoped token automatically; **no separate admin login**. (A caller
 authenticating by header should pass a refresh token so admin tools work too; a
 query_service-only access token won't authorize usermanagement.)
-- Onboarding: users are usually created by **first login via Globus/ORCID/GitHub**
-  (auto-creates their profile + a default `Curator` role). Admins then adjust.
+- **Onboarding = first login via Globus/ORCID/GitHub** — there is **no separate
+  register step**. Signing in (`brainkb_globus_login` → `brainkb_finish_login`, §1)
+  auto-creates and links the profile + a default `Curator` role on first login;
+  the account is active immediately. Admins then adjust roles.
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
-- Activate/deactivate an account: `brainkb_activate_user(email)` /
-  `brainkb_deactivate_user(email)`.
+- Deactivate/reactivate login access: `brainkb_deactivate_user(email)` /
+  `brainkb_activate_user(email)`.
 - Assign / remove a role (= permission group: Lab Member, External, custom, …):
   `brainkb_assign_role(email, role)` / `brainkb_remove_role(email, role)`
-  (the user must have a profile — i.e. have signed in / registered once).
+  (the user must have a profile — i.e. have signed in once).
 - New group/category: `brainkb_create_role("uk_collaborator", "Community",
   "UK collaborators")` then `brainkb_assign_role(email, "uk_collaborator")`, then
   grant it KG capabilities via §8 (`brainkb_grant_role_capability`).
