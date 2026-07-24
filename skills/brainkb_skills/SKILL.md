@@ -172,6 +172,21 @@ adjust the space's access rules.
 - **Custom groups**: create with `brainkb_create_role("uk_collaborator",
   "Community", "UK collaborators")`, assign with `brainkb_assign_role(email,
   "uk_collaborator")`, then grant it capabilities (above) and/or per-space access.
+  A **new group starts with no powers** (read only) until you grant capabilities —
+  creating/assigning it is not enough by itself.
+
+  **Worked example — a group that can ingest, end to end:**
+  ```
+  brainkb_create_role("uk_collaborator", "Community", "UK collaborators")
+  brainkb_grant_role_capability("uk_collaborator", "ingest")   # give the group the power
+  brainkb_assign_role("alice@uk.org", "uk_collaborator")       # put a user in it
+  brainkb_capabilities("alice@uk.org")                         # verify → includes "ingest"
+  ```
+  Global capability (ingest anywhere they have space write) vs per-space: to scope a
+  group to ONE space instead, skip grant_role_capability and add a space write rule —
+  `brainkb_add_access_rule("lab-space","write","global_role","uk_collaborator")`.
+
+  Example prompt: *"Create a group uk_collaborator, let it ingest, and add alice@uk.org to it."*
 - **Fine-grained per-space access rules** (space owner/manager): restrict an action
   within a space to a role, a member, or a space-role.
   - List: `brainkb_list_access_rules(slug)`.
