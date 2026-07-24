@@ -265,6 +265,113 @@ query_service-only access token won't authorize usermanagement.)
 6. `brainkb_search("<term>", space="my-lab")` / `brainkb_provenance_graph(iri)`
 7. (optional) `brainkb_set_space_visibility("my-lab", "public")`
 
+## Deployment smoke test (is the deploy done & healthy?)
+
+Use this to confirm a fresh deployment is up and the auth stack (SSO + PAT +
+Globus) works. Two ways: **curl** (run on the deploy host, or against the public
+URLs) and **MCP tools** (from a session with the `brainkb` MCP registered). Run
+the layers in order and stop at the first failure — a later layer can't pass if
+an earlier one didn't.
+
+Set the two base URLs first (defaults are the unified local stack):
+
+```bash
+BASE="${BRAINKB_URL:-http://localhost:8010}"                 # query_service
+UM="${USERMANAGEMENT_URL:-http://localhost:8004}"            # usermanagement
+# Deployment example:
+#   BASE=https://query.brainkb.org   UM=https://usermanagement.brainkb.org
+```
+
+### Layer 1 — services reachable (no auth)
+
+```bash
+# Each should print 200. Anything else (000/connection refused) = not reachable.
+curl -s -o /dev/null -w "query_service   openapi : %{http_code}\n" "$BASE/openapi.json"
+curl -s -o /dev/null -w "usermanagement  jwks    : %{http_code}\n" "$UM/.well-known/jwks.json"
+curl -s -o /dev/null -w "usermanagement  openapi : %{http_code}\n" "$UM/openapi.json"
+# JWKS must contain a key (RS256 issuer live):
+curl -s "$UM/.well-known/jwks.json" | python3 -c 'import sys,json;k=json.load(sys.stdin).get("keys",[]);print("jwks keys:",len(k),"OK" if k else "MISSING")'
+```
+
+### Layer 2 — Globus/OAuth configured + redirect correct
+
+```bash
+# Globus should show "configured": true. If false, GLOBUS_CLIENT_ID/SECRET aren't set.
+curl -s "$UM/api/auth/providers" | python3 -m json.tool
+```
+The server builds the redirect as `${USERMANAGEMENT_PUBLIC_BASE_URL}/api/auth/globus/callback`.
+Confirm `USERMANAGEMENT_PUBLIC_BASE_URL` is the **public** host (e.g.
+`https://usermanagement.brainkb.org`), not `localhost` — and that this exact
+callback URL is registered in the Globus app. A `localhost` value here is the
+usual cause of a Globus "redirect mismatch" after deploy.
+
+### Layer 3 — SSO login → per-service exchange (needs a password account)
+
+```bash
+# 1) login -> refresh token
+REFRESH=$(curl -s -X POST "$UM/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"'"$EMAIL"'","password":"'"$PASSWORD"'"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("refresh_token",""))')
+[ -n "$REFRESH" ] && echo "login OK" || echo "login FAILED"
+# 2) exchange -> query_service access token
+QTOK=$(curl -s -X POST "$UM/api/auth/exchange" -H "Authorization: Bearer $REFRESH" \
+  -H 'Content-Type: application/json' -d '{"audience":"query_service"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("access_token",""))')
+# 3) use it against query_service (expect 200)
+curl -s -o /dev/null -w "query_service /api/spaces : %{http_code}\n" "$BASE/api/spaces" -H "Authorization: Bearer $QTOK"
+```
+
+### Layer 4 — Personal Access Token round-trip
+
+Needs a **session token** (`$STOK`) — the usermanagement JWT for a logged-in
+user. If you have a password account, mint one from the refresh token above:
+`STOK=$(curl -s -X POST "$UM/api/auth/exchange" -H "Authorization: Bearer $REFRESH" -H 'Content-Type: application/json' -d '{"audience":"usermanagement"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')`
+
+```bash
+# create (default lifetime is 3 days)
+CREATE=$(curl -s -X POST "$UM/api/auth/tokens" -H "Authorization: Bearer $STOK" \
+  -H 'Content-Type: application/json' -d '{"name":"smoke-test","days":3}')
+echo "$CREATE" | python3 -m json.tool
+PAT=$(echo "$CREATE" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+PID=$(echo "$CREATE" | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+# exchange PAT -> query_service token, then use it (expect 200)
+PQ=$(curl -s -X POST "$UM/api/auth/pat/exchange" -H 'Content-Type: application/json' \
+  -d '{"token":"'"$PAT"'","audience":"query_service"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("access_token",""))')
+curl -s -o /dev/null -w "PAT -> query_service : %{http_code}  (expect 200)\n" "$BASE/api/spaces" -H "Authorization: Bearer $PQ"
+# revoke, then confirm the PAT no longer exchanges (expect 401)
+curl -s -X DELETE "$UM/api/auth/tokens/$PID" -H "Authorization: Bearer $STOK" >/dev/null
+curl -s -o /dev/null -w "PAT after revoke     : %{http_code}  (expect 401)\n" -X POST "$UM/api/auth/pat/exchange" \
+  -H 'Content-Type: application/json' -d '{"token":"'"$PAT"'","audience":"query_service"}'
+```
+
+A healthy deploy prints: layer-1 all `200` + `jwks keys: N OK`; layer-2 Globus
+`configured: true`; layer-3 `login OK` + `200`; layer-4 create returns a
+`brainkb_pat_…` token, `PAT -> query_service : 200`, `PAT after revoke : 401`.
+
+### Via the MCP (same checks, no curl)
+
+From a session with the `brainkb` MCP registered (base URL pointed at the
+deploy):
+
+1. `brainkb_login(email, password)` **or** `brainkb_globus_login()` →
+   `brainkb_finish_login(code)`. Then `brainkb_whoami()` → should report
+   `authenticated: true` and the right `base_url`/email (proves login + SSO
+   exchange).
+2. `brainkb_list_spaces()` → returns without error (proves query_service auth via
+   the exchanged token).
+3. **PAT:** `brainkb_create_token(name="smoke-test", days=3)` → returns a
+   `brainkb_pat_…` once; `brainkb_list_tokens()` → shows it `active: true`;
+   `brainkb_revoke_token(<id>)` → `revoked: true`. To prove end-to-end, set that
+   PAT as `BRAINKB_TOKEN` (or `brainkb_use_token("<pat>")`) and re-run
+   `brainkb_whoami()` / `brainkb_list_spaces()` — they should still work with **no
+   password/browser**.
+4. Admin reachability (if Admin/SuperAdmin): `brainkb_list_users(limit=1)` returns
+   without error (proves the `usermanagement` audience exchange too).
+
+If step 1 errors with a connection failure, re-read **Connectivity** above — the
+session can't reach the deploy (localhost from a cloud session, or stack down).
+
 ## Fallback: curl (no MCP)
 
 Only use this when running **on the same machine/network as the deployment**
