@@ -251,6 +251,33 @@ password unprompted:**
 - Exactly what a job added: `brainkb_delta(job_id)`.
 - Compare two ingests: `brainkb_delta_compare(job_id_a, job_id_b)`.
 
+#### Temporal & provenance querying — mind the TWO clocks
+There are two different "when"s. Pick the right one for the question, and say
+which you're answering:
+
+1. **Transaction / ingestion time — "when was X *added/asserted*, and by whom?"**
+   This is what the PROV-O layer records. Every ingest is a `prov:Activity` with
+   `prov:startedAtTime`/`endedAtTime`, a `prov:Agent` (`prov:wasAssociatedWith`),
+   and an `IngestionDelta` (`prov:generatedAtTime` + a `deltaGraph` holding the
+   **exact** triples that job added). To answer "when/who added X":
+   - `brainkb_delta_history(graph_iri)` → every change to that graph with its
+     **timestamp** + job, newest first;
+   - find the delta whose `deltaGraph` contains X, then `brainkb_delta(job_id)`
+     for the exact triples and `brainkb_provenance_job(job_id)` for the agent/time.
+   Use this for audit/"who put this here"/"what changed since <date>" questions.
+
+2. **Domain / valid time — "when did X *actually happen* in the real world?"**
+   PROV timestamps do NOT tell you this. A donor's birth date, when an experiment
+   ran, a sample's collection date — those are **properties in the domain data**,
+   not provenance. Answer them by querying that property in the graph (e.g.
+   `brainkb_search`, or `brainkb_sparql` on the domain predicate), NOT via delta
+   history.
+
+Don't conflate them: "when was this record added" (clock 1) ≠ "when did the event
+occur" (clock 2). If the user's "when X…" is ambiguous, ask which they mean, or
+state which clock your answer used. Ingestion provenance can't substitute for a
+missing domain timestamp, and vice versa.
+
 ### 7. Share publicly / manage a workspace
 - Publish: `brainkb_set_space_visibility(slug, "public")` (owner/manager). Warn that
   a public space is readable by **anyone, including unauthenticated clients**.
