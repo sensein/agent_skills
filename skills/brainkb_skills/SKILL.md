@@ -43,9 +43,18 @@ The base URL must be reachable **from wherever this code runs**:
   their own token via an `Authorization: Bearer <token>` header (configured on the
   MCP client), so `brainkb_login` may be unnecessary there. Locally, use
   `brainkb_login(email, password)` — it scopes the token to that session only.
+- **Recommended: a Personal Access Token (PAT).** The simplest, browser-free way
+  to authenticate. Log in once, run `brainkb_create_token(name, days)` to mint a
+  `brainkb_pat_…` token, and set it as **`BRAINKB_TOKEN`** in the MCP config (or
+  pass it once via `brainkb_use_token(pat)`). After that no login/browser is
+  needed until it expires. A PAT is **revocable instantly** (`brainkb_revoke_token`)
+  and its roles are re-checked live on every use — so a ban/demotion takes effect
+  at once. Treat it like a password.
 - **Never print, echo, or store the password or the JWT token.** Pass them
   straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat.
+  variable — do not paste it into chat. (The one exception is the PAT returned by
+  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+  into their config — never re-display it afterward.)
 - Confirm before mutating actions (creating a space, ingesting, changing
   visibility, adding members). Reads are safe.
 - **Authorization is role-based, not just JWT** (see the section below). A `403`
@@ -104,6 +113,15 @@ adjust the space's access rules.
   The browser sign-in is unavoidable (only the user can consent at the provider),
   but the rest stays in the skill. First OAuth login auto-creates/links the
   profile + a default `Curator` role.
+- **Personal Access Token (PAT) — recommended for repeated use, no browser:**
+  1. Log in once (password or Globus, above).
+  2. `brainkb_create_token(name="laptop", days=90)` → returns a `brainkb_pat_…`
+     token **once**. Give it to the user to copy.
+  3. The user sets it as `BRAINKB_TOKEN` in the MCP config (or calls
+     `brainkb_use_token("<pat>")` for this session). No login/browser afterward
+     until it expires.
+  - Manage: `brainkb_list_tokens()` (metadata only), `brainkb_revoke_token(id)`
+    (instant). PATs are the cleanest way to avoid re-authenticating every session.
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
