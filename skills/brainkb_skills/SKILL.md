@@ -136,6 +136,21 @@ adjust the space's access rules.
 ## Workflows
 
 ### 1. Log in
+
+**Auth order (TL;DR) — take the first that applies:**
+1. `brainkb_whoami()` → if `authenticated: true` (a PAT/header is already
+   configured), **stop, you're done.**
+2. User has a PAT → `brainkb_use_token("brainkb_pat_…")` (or it's set as
+   `BRAINKB_TOKEN`). Best for repeated use — survives across calls, no browser.
+3. Need to sign in as an account → **Globus** (`brainkb_globus_login` →
+   `brainkb_finish_login`). Then mint a PAT (`brainkb_create_token`) so future
+   sessions skip the browser.
+4. Password (`brainkb_login`) → **only** if the user explicitly has one. Never
+   prompt for a password on your own.
+Always `brainkb_whoami()` again after logging in to confirm the identity stuck
+(see the ⚠️ box below). PAT/header = per-call identity (reliable); in-session
+login can evaporate on the hosted remote.
+
 **First run `brainkb_whoami()`** — if it already reports `authenticated: true`
 (header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
 anything. Otherwise pick a method — **default to Globus, never prompt for a
@@ -180,6 +195,27 @@ password unprompted:**
 > per-call credential that can't be shadowed: a **PAT** via `BRAINKB_TOKEN` /
 > `brainkb_use_token`, or an `Authorization: Bearer` header — not an in-memory
 > session login on a multi-user remote.
+
+**Troubleshooting login/auth (common failures):**
+- **`brainkb_globus_login` → the browser ends on `…?error=unauthorized_client`.**
+  The Globus app is the **wrong type**: it must be a **"Portal / application you
+  host"** (confidential OAuth client), NOT a **"Service API"** app. A Service-API
+  app can't run the login (authorization-code) flow, so Globus rejects it. Fix is
+  server-side (register a Portal-type app); as the agent, tell the user this rather
+  than retrying — a new code won't help.
+- **`…?error=…redirect… mismatch` / "Mismatching redirect URI".** The backend's
+  `USERMANAGEMENT_PUBLIC_BASE_URL` doesn't match the redirect registered on the
+  Globus app (e.g. `localhost` vs the public host, `http` vs `https`, a typo). Also
+  server-side; retrying won't help.
+- **`finish_login` says "Logged in as X" but `whoami` says `authenticated: false`
+  (or a different user).** The in-session login didn't persist across calls — the
+  hosted `streamable-http` transport may give each call a fresh session. Don't keep
+  re-running the browser flow. Switch to a **PAT**: set `BRAINKB_TOKEN` (or
+  `brainkb_use_token`), which authenticates per-call and survives. On the multi-user
+  remote, an `Authorization: Bearer` header per request is the intended model.
+- **`401` on a call after you were "logged in".** Session/PAT expired — re-auth
+  (prefer a fresh PAT). `403`, by contrast, means authenticated-but-not-permitted
+  (a role/capability/access-rule issue), not a token problem.
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
