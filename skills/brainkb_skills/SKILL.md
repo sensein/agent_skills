@@ -94,7 +94,16 @@ adjust the space's access rules.
 ## Workflows
 
 ### 1. Log in
-Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
+- **Password:** `brainkb_login(email, password, base_url?)`. Confirm with
+  `brainkb_whoami()`. (New password accounts need admin activation — §9.)
+- **Globus / ORCID / GitHub (OAuth) — works from the skill, no website needed:**
+  1. `brainkb_globus_login()` (or `brainkb_globus_login("orcid")` / `("github")`)
+     → returns a URL; give it to the user to open and sign in.
+  2. The browser then shows a short one-time **code** — ask the user to paste it.
+  3. `brainkb_finish_login("<code>")` → completes login for this session.
+  The browser sign-in is unavoidable (only the user can consent at the provider),
+  but the rest stays in the skill. First OAuth login auto-creates/links the
+  profile + a default `Curator` role.
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
