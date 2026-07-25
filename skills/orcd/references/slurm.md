@@ -1,0 +1,225 @@
+# Slurm on ORCD: choosing where to run
+
+Cluster `eofe7`, Slurm 25.05, `select/cons_tres` with `CR_CORE_MEMORY`, backfill
+scheduler. Login nodes run Rocky 8; most compute nodes advertise a `rocky8`
+feature.
+
+Run `python3 scripts/orcd_resources.py --gpus --idle` for the current, personal
+answer. This document explains how to interpret it.
+
+## Access is by Unix group, and it is per-person
+
+Each partition declares `AllowGroups`. A partition is usable when the user is in
+one of those groups, so two people in the same lab legitimately see different
+answers, and no partition list can be hardcoded.
+
+`scontrol show partition` shows all partitions regardless of access, because
+`PrivateData=none` on this cluster. It therefore cannot be used as an
+entitlement list. The authoritative check is:
+
+```bash
+sbatch --test-only -p <partition> -t 5 -n 1 --mem=1G --wrap=true
+```
+
+That queues nothing. Exit 0 means the request is permitted, and the message
+reports **when it would start** and **on which node**:
+
+```
+sbatch: Job 18845606 to start at 2026-07-25T09:45:29 using 2 processors on nodes node1702 in partition ou_bcs_high
+```
+
+`orcd_submit.py --plan` runs this across every reachable partition for a real
+request. Use it before any long job -- the same request can start in one minute
+in a private partition and three days later in a shared one.
+
+## Never pass `--qos`
+
+Each partition attaches its own QOS automatically (`scontrol show partition`
+field `QoS=`). That QOS is where the per-user ceilings live, and it applies
+whether or not it is named.
+
+A user's *association* usually permits only `normal`, so naming a partition's
+QOS explicitly fails:
+
+```
+$ sbatch --test-only -p pi_satra --qos=pi_satra ...
+allocation failure: Invalid qos specification
+```
+
+Choose the partition and let the QOS follow.
+
+## Two different ceilings, and only one is yours
+
+`sacctmgr show qos` exposes both, and conflating them causes confusing waits:
+
+- **`MaxTRESPU`** -- per user. Your own cap.
+- **`GrpTRES`** -- one pool shared by everyone in the group. A colleague's
+  running job consumes it, so a request within your own limits can still queue.
+- **`MaxSubmitPU`** -- queued plus running jobs. On ORCD these QOS set
+  `MaxSubmitPU` and leave `MaxJobsPU` unset, so this is the count that bites.
+
+`orcd_resources.py` prints them in separate columns for this reason.
+
+## Priority
+
+`priority/multifactor`, weighted so that the choice of partition and QOS
+dominates everything a user controls at submit time:
+
+| Factor | Weight |
+| --- | --- |
+| QOS | 2,000,000 |
+| Partition | 600,000 |
+| FairShare | 150,000 |
+| Age | 20,000 |
+| JobSize | 10,000 |
+
+Practical reading: **which partition you pick matters far more than how long you
+wait.** Partitions also carry a `PriorityTier`; a higher tier is considered
+first regardless of the computed priority, which is why a private partition with
+tier 100 starts immediately while a shared one at tier 25 backfills.
+
+## Reading a partition
+
+Fields worth checking in `scontrol show partition <name>`:
+
+- `MaxTime` -- a walltime above it is refused outright (`EnforcePartLimits=ANY`).
+- `PreemptMode=REQUEUE` -- jobs can be killed and requeued at any time.
+- `PriorityTier` -- higher is considered first.
+- `TRES` -- authoritative totals, including per-model GPU counts such as
+  `gres/gpu:h200=104`. Prefer this over summing `sinfo`, which collapses
+  identically configured nodes onto one line and undercounts.
+
+Partitions on this cluster fall into recognisable classes. The names below are
+illustrative of one account's view, not a fixed list:
+
+- **Private lab partitions** (`pi_<name>`) -- highest tier, start immediately,
+  small, often limited by a shared `GrpTRES`.
+- **Group/department partitions** (`ou_<org>_{high,normal,low}`) -- `high` is
+  short-walltime and tightly capped, good for interactive and debug work;
+  `normal` is the workhorse; `low` is large but `REQUEUE`-preemptable.
+- **Shared MIT partitions** (`mit_normal`, `mit_normal_gpu`) -- open to all,
+  and therefore the most congested. `mit_normal_gpu` can be days deep.
+- **`mit_quicktest`** -- 15-minute cap, very high tier. Ideal for smoke tests.
+- **`mit_preemptable`** -- by far the largest pool of nodes and GPUs, lowest
+  tier, `REQUEUE`. Excellent for checkpointed or idempotent work.
+- **`mit_data_transfer`** -- dedicated transfer nodes, long walltime, no GPUs.
+  Use for staging large datasets, not for computation.
+
+## Requesting GPUs
+
+Ask by model whenever the model matters:
+
+```bash
+--gres=gpu:h100:2        # this model only
+--gres=gpu:2             # any model in the partition
+```
+
+Untyped requests may land on anything the partition has, which on a mixed
+partition ranges from an L4 to an H200 -- a large difference in both memory and
+throughput. A few partitions declare GPUs with no model at all and accept only
+the untyped form; `orcd_resources.py` labels those `untyped`.
+
+Verify a model is really requestable rather than merely present:
+
+```bash
+python3 scripts/orcd_resources.py --gpus
+```
+
+GPU nodes on this cluster are generally fat: commonly 120-256 CPUs and 1-2 TB
+RAM per node with 4-8 GPUs. Request CPUs and memory in proportion to the GPUs
+taken, or the node's remaining GPUs become unusable by anyone else.
+
+## Always set memory
+
+`DefMemPerCPU=1000`, so an unspecified request gets 1 GB per CPU. A 4-CPU job
+silently receives 4 GB and dies part-way through anything substantial, usually
+with an unhelpful error.
+
+```bash
+--mem=64G            # per node
+--mem-per-cpu=8G     # or per CPU
+```
+
+`ThreadsPerCore=2` on most nodes, so `-c 1` yields two visible CPUs. Inside a
+job, size thread pools from `$SLURM_CPUS_PER_TASK` rather than `nproc`.
+
+## Submission recipes
+
+Smoke test, near-instant:
+
+```bash
+sbatch -p mit_quicktest -t 10 -n 1 --mem=4G --wrap='hostname; echo ok'
+```
+
+Single-GPU training with explicit resources:
+
+```bash
+#!/bin/bash
+#SBATCH -J train
+#SBATCH -p ou_bcs_high
+#SBATCH -t 4:00:00
+#SBATCH -c 8
+#SBATCH --mem=64G
+#SBATCH --gres=gpu:h100:1
+#SBATCH -o logs/%x-%j.out
+
+module load cuda/12.9.1
+srun python train.py
+```
+
+Array job. `MaxArraySize=25000`, and `%N` throttles concurrency so one user does
+not consume a partition:
+
+```bash
+sbatch -p mit_preemptable -a 0-999%50 -t 2:00:00 -c 4 --mem=16G job.sh
+```
+
+Preemptable work must be able to resume. Trap the signal and checkpoint:
+
+```bash
+#SBATCH --requeue
+#SBATCH --signal=B:USR1@120     # USR1 two minutes before the kill
+
+trap 'python save_checkpoint.py; exit 1' USR1
+```
+
+Interactive shell on a compute node -- do not compute on the login node:
+
+```bash
+ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
+ssh orcd -t 'srun -p ou_bcs_high -t 2:00:00 -c 8 --mem=32G --gres=gpu:h100:1 --pty bash'
+```
+
+## Software
+
+Lmod, with `module avail`. Available at the time of writing: `cuda/12.9.1`,
+`13.0.1`, `13.1.0`; `gcc/12.2.0`, `14.3.0`; `openmpi/4.1.4`, `5.0.8`;
+`miniforge/25.11.0-0`; `apptainer/1.4.2`. Check rather than assume.
+
+`apptainer` (aliased `singularity`) is installed on login nodes with no module
+needed. There is no Docker. Build or fetch a `.sif` and run:
+
+```bash
+apptainer exec --nv /path/to/image.sif python train.py    # --nv exposes GPUs
+```
+
+`uv` and `conda` are not installed system-wide. Either `module load miniforge`,
+or install `uv` into `$HOME` -- but keep environments themselves off `$HOME`,
+since resolving one is exactly the many-small-file workload that tier is worst
+at. See [storage.md](storage.md).
+
+## Inspecting jobs
+
+```bash
+squeue -u $USER -o "%.12i %.22j %.16P %.10T %.11M %.11l %.6D %R"
+scontrol show job <id>                  # while queued or running
+sacct -j <id> --format=JobID,State,Elapsed,ReqTRES%40,MaxRSS,ExitCode
+sacct -u $USER -S today                 # after the fact
+```
+
+The `%R` column on a pending job gives the reason: `Priority` (waiting its
+turn), `Resources` (waiting for hardware), `QOSGrpGpuLimit` or similar (a
+ceiling from the section above is binding), `ReqNodeNotAvail` (asked for
+something the partition does not have).
+
+`MaxRSS` from `sacct` is the way to right-size `--mem` for the next run.

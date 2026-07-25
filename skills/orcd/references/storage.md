@@ -1,0 +1,189 @@
+# ORCD storage: tiers, speed, and where to put job IO
+
+Run `python3 scripts/orcd_storage.py` for the current user's writable paths.
+This document explains the tiers and how to use them well.
+
+## Entitlement and tier are both encoded in group names
+
+Group membership grants storage, and the group name says which hardware:
+
+```
+orcd_rg_<server>_<owner>
+        ^^^^^^^  ^^^^^^^
+        tier     PI, project, or org unit
+```
+
+| Server prefix | Hardware | Mounted under | Use for |
+| --- | --- | --- | --- |
+| `fstor*` | flash, NFS over RDMA | `/orcd/scratch/...`, `/orcd/compute/...` | active job IO |
+| `hstor*` | spinning disk | `/orcd/data/...` | datasets and results to keep |
+| `core*` | archive | `/orcd/archive/...` | cold data |
+| `nfs*` | shared home server | `/home/<user>` | code and config only |
+
+The flash tier is exported over **NFS over RDMA** (`proto=rdma,port=20049` in
+`/proc/mounts`), which is why it outperforms ordinary NFS by a wide margin.
+
+Owner tokens distinguish scope: `pi_<name>` is a lab's storage, `pg_<name>` a
+project's, `ou_<org>` an organisational unit's (for example a department-wide
+`bcs` allocation).
+
+## Measured throughput
+
+One run on an H100 node (`node1702`), 1 GiB sequential `dd` with `O_DIRECT`
+where supported, plus the wall time to create 500 small files. **Indicative
+only** -- this was a single sample on a busy shared cluster, and the small-file
+column in particular moves with load. Re-measure before optimising against it.
+
+| Tier | Path | Write MB/s | Read MB/s | 500 files (s) |
+| --- | --- | --- | --- | --- |
+| RAM | `/dev/shm` | 3500 | 6300 | 0.02 |
+| node-local disk | `/tmp` | 202 | 1400 | 0.03 |
+| **bcs flash scratch** | `/orcd/scratch/bcs/001` | **1000** | **2800** | **0.13** |
+| **bcs flash scratch** | `/orcd/scratch/bcs/002` | **1000** | **3000** | **0.14** |
+| bcs flash project | `/orcd/compute/bcs/001` | 232 | 3300 | 3.19 |
+| capacity disk | `/orcd/data/<pi>/002` | 1100 | 1500 | 0.16 |
+| shared home | `/home/<user>` | 222 | 1300 | 0.78 |
+
+What actually follows from this:
+
+- **`$HOME` is the worst tier and the default working directory.** Its
+  small-file handling measured 6x slower than flash scratch here, and 10x in an
+  earlier run the same morning -- it moves with load, and always in the same
+  direction. This is the most common avoidable cause of a slow job.
+- **bcs flash scratch is the best network tier** for active IO: about 1 GB/s
+  write, ~3 GB/s read, fast metadata.
+- **The flash project tier is not interchangeable with flash scratch.** Reads
+  are excellent, but metadata was ~25x slower than scratch in this sample -- it
+  holds large shared trees under contention. Read datasets from it; do not write
+  thousands of small files to it.
+- **Capacity disk is not slow for streaming.** Sequential throughput rivals
+  flash; it is seeks and metadata that differ. Large sequential reads are fine.
+- **`/dev/shm` is RAM.** It counts against the job's `--mem`. Requesting 64 GB
+  and writing 40 GB there will get the job killed.
+
+## Node-local scratch is not uniform
+
+Compute nodes vary, so probe rather than assume:
+
+- `$TMPDIR` is set to `/tmp` and always exists.
+- `/scratch` is large where present (3.5 TB observed) but **absent on some
+  nodes**, including some GPU nodes.
+- Slurm reports `TmpDisk=0` on every node, so it is not tracking local disk and
+  cannot be asked. There is also no cleanup guarantee beyond the job's own
+  `/tmp`.
+
+```bash
+for d in /scratch "$TMPDIR" /dev/shm; do
+  [ -d "$d" ] && [ -w "$d" ] && { LOCAL="$d"; break; }
+done
+WORK="$LOCAL/$SLURM_JOB_ID"; mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT
+```
+
+## No backup, and how to tell
+
+ORCD places a `__STORAGE_WITHOUT_BACKUP__` sentinel at the root of unprotected
+trees. Both bcs flash *scratch* filesystems carry it.
+
+Its presence is proof there is no backup. Its **absence proves nothing** -- it
+may simply be unmarked. `orcd_storage.py` reports `unmarked` rather than
+claiming a tree is backed up. Confirm with ORCD before trusting anything here to
+be recoverable.
+
+Treat scratch as reproducible-only. Anything whose loss would hurt belongs on
+the capacity tier, which is also where quota and retention policy actually live.
+
+## The staging pattern
+
+For jobs that touch many small files -- unpacking archives, resolving Python
+environments, writing per-step checkpoints -- copy in, work locally, copy out.
+This turns thousands of small network operations into two large sequential ones.
+
+```bash
+#!/bin/bash
+#SBATCH -p ou_bcs_high -t 4:00:00 -c 8 --mem=64G --gres=gpu:h100:1
+
+SCRATCH=/orcd/scratch/bcs/001/$USER          # from orcd_storage.py
+WORK=${TMPDIR:-/tmp}/$SLURM_JOB_ID
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT                   # node-local is not auto-cleaned
+
+# Stage in: one sequential read, then local access
+tar -C "$WORK" -xf "$SCRATCH/dataset.tar"
+
+python train.py --data "$WORK" --out "$WORK/out"
+
+# Stage out only what is worth keeping
+rsync -a "$WORK/out/" "$SCRATCH/runs/$SLURM_JOB_ID/"
+```
+
+Guidance by workload:
+
+- **Many small files** (image datasets, conda/venv trees): stage in. Better
+  still, keep them as a single archive or a webdataset/tar shard and read
+  sequentially.
+- **Few large files** (checkpoints, video, HDF5, Zarr with large chunks): read
+  and write flash scratch directly. Staging adds nothing.
+- **Datasets shared across the group**: read from the project tier in place.
+  Copying a large shared dataset per user wastes both space and cache.
+- **Python environments**: never resolve one in `$HOME`. Put the environment on
+  flash scratch, or build a container image and read that instead -- one file
+  rather than tens of thousands.
+
+## Two failure modes to code around
+
+**`df -h` with no argument can hang for minutes** on a login node whenever any
+network mount is unresponsive, and it takes the whole script with it. Read
+`/proc/mounts`, which never blocks, and size individual paths under a timeout:
+
+```bash
+awk '$3 ~ /^(nfs|nfs4)$/ {print $2, $1}' /proc/mounts   # safe inventory
+timeout 6 df -h /orcd/scratch/bcs/001                   # safe sizing
+```
+
+**`/orcd` is autofs.** A path materialises only when something touches it, so
+listing a parent directory is not an inventory -- a tree that is genuinely
+accessible may simply not appear yet. The mount maps live in LDAP and can be
+enumerated directly, which is how `orcd_storage.py` finds project trees:
+
+```bash
+ldapsearch -x -LLL -b "ou=auto.orcd.data,ou=automount,dc=cm,dc=cluster" \
+  "(objectClass=automount)" cn automountInformation
+```
+
+## Conventions worth following
+
+Group directories are **setgid**, so files created inside inherit the group and
+stay readable by collaborators. Preserve that: use `rsync -a`, and avoid
+`chmod`-ing the group bit away.
+
+Observed layouts, useful as defaults when creating new areas:
+
+```
+/orcd/data/<pi>/001/users/<username>/     per-person space in the lab store
+/orcd/data/<pi>/002/{datasets,models,projects}/
+/orcd/scratch/bcs/<NNN>/<username>/       per-person flash scratch
+```
+
+`orcd_storage.py --setup` creates the per-user flash scratch directories that do
+not exist yet. Per-user directories under the general `/orcd/scratch/orcd/001`
+tier are created by administrators, not by users -- its parent is not writable.
+
+## Moving data in and out
+
+Use the dedicated transfer partition for anything large, not a login node:
+
+```bash
+sbatch -p mit_data_transfer -t 12:00:00 -c 8 --mem=32G \
+  --wrap='rsync -a --info=progress2 /orcd/scratch/bcs/001/$USER/run/ /orcd/data/<pi>/002/results/'
+```
+
+From a laptop, `scp`/`rsync` over the same multiplexed connection the skill
+already maintains:
+
+```bash
+rsync -a -e "ssh -o ControlPath=~/.ssh/cm-%r@%h:%p" ./local/ orcd:/orcd/scratch/bcs/001/$USER/
+```
+
+For very large or recurring external transfers, ORCD supports Globus; ask
+orcd-help@mit.edu for the endpoint name.
