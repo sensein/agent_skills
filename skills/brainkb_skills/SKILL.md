@@ -151,6 +151,18 @@ Always `brainkb_whoami()` again after logging in to confirm the identity stuck
 (see the ⚠️ box below). PAT/header = per-call identity (reliable); in-session
 login can evaporate on the hosted remote.
 
+**Local (stdio) vs hosted remote — how the PAT is passed:**
+- **Local/stdio:** put the PAT in `BRAINKB_TOKEN` (config env). Simple, single-user.
+- **Hosted remote (`mcp.brainkb.org`, streamable-http):** each caller sends their
+  PAT as an **`Authorization: Bearer <pat>`** header — a baked-in `BRAINKB_TOKEN`
+  is **ignored** there (it would make every anonymous caller act as one shared
+  identity) unless the operator sets `MCP_ALLOW_SHARED_IDENTITY`. So on the remote
+  it's per-caller header, not a shared env token.
+- The backend URL is **allowlisted** (`MCP_ALLOWED_BASE_URLS`): `base_url` /
+  `X-BrainKB-Base-URL` can only point at pre-approved backends (that URL is where
+  credentials are sent). An unknown base URL is refused — don't try to work around
+  it by guessing hosts.
+
 **First run `brainkb_whoami()`** — if it already reports `authenticated: true`
 (header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
 anything. Otherwise pick a method — **default to Globus, never prompt for a
@@ -263,7 +275,13 @@ password unprompted:**
   (use a PAT / header) before ingesting. Never ingest "hoping" the earlier login
   stuck.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
-- Files: `brainkb_ingest_files(graph_iri, [paths])`.
+- Files: `brainkb_ingest_files(graph_iri, [paths])`. **Paths resolve on the MCP
+  SERVER's filesystem, not the user's machine.** On the hosted remote, file ingest
+  is **disabled unless the operator set `MCP_INGEST_ROOT`**, and paths must sit
+  inside that directory (anything outside is refused). So for remote/large data,
+  either place files under `MCP_INGEST_ROOT` on the server, or use
+  `brainkb_ingest_text` for content you already have in hand. Locally (stdio) the
+  paths are just your own filesystem.
 - Both return a `job_id`. Tell the user ingestion is running in the background.
 
 ### 4. Check ingest status
@@ -286,6 +304,32 @@ password unprompted:**
   `brainkb_delta_history(graph_iri)`.
 - Exactly what a job added: `brainkb_delta(job_id)`.
 - Compare two ingests: `brainkb_delta_compare(job_id_a, job_id_b)`.
+
+#### "What changed / what's new?" — answering change-over-time questions
+Yes, the skill can answer these — they're all built on the delta history (each
+ingest records the exact triples it added, with a timestamp). Patterns:
+
+- **"What changed on graph G over time?"** → `brainkb_delta_history(G)` — one entry
+  per change (job, triple count, timestamp), newest first. That IS the change log.
+- **"What's new on G (recently / since <date>)?"** → take `brainkb_delta_history(G)`
+  (newest first) and report the top entries, or filter by their `generatedAtTime`
+  ≥ the date. For the actual triples of a recent change, `brainkb_delta(job_id)`.
+- **"What changed on a TEAM SPACE over time / what's new in the space?"** A space
+  holds **several graphs**, and there is no single space-level feed — so:
+  1. get the space's graphs: `brainkb_read_space(slug)` (or the space manifest from
+     `brainkb_list_spaces`/get-space) → its `graphs` list;
+  2. `brainkb_delta_history(g)` for **each** graph;
+  3. **merge** the entries and sort by timestamp → a unified "what changed in this
+     space" timeline; the newest few are "what's new."
+  Say you aggregated across the space's graphs (so the user knows the scope).
+- **"What did job A add vs job B?"** → `brainkb_delta_compare(A, B)`.
+- **"Who changed it?"** → `brainkb_provenance_job(job_id)` / `provenance_graph` →
+  the `prov:Agent` on each activity.
+
+Caveat (the two clocks, below): this answers **when it was ingested/changed in
+BrainKB**, not when a real-world event occurred. "What's new" = newly *ingested*,
+not newly *happened*. And you only see changes in graphs/spaces the caller may
+read (private-space deltas require membership).
 
 #### Temporal & provenance querying — mind the TWO clocks
 There are two different "when"s. Pick the right one for the question, and say
