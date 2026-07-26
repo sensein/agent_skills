@@ -274,6 +274,12 @@ password unprompted:**
   **mis-attributed and cannot be silently reassigned** — STOP and fix the login
   (use a PAT / header) before ingesting. Never ingest "hoping" the earlier login
   stuck.
+- **Ingesting "into a space" → resolve the graph first.** Ingest targets a
+  **named graph IRI**, not a space. When the user says "ingest into the *hmba*
+  space", first find that space's graph: `brainkb_list_spaces()` (or
+  `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
+  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
+  (owner/editor). Then ingest into that `graph_iri`.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
 - Files: `brainkb_ingest_files(graph_iri, [paths])`. **Paths resolve on the MCP
   SERVER's filesystem, not the user's machine.** On the hosted remote, file ingest
@@ -454,6 +460,20 @@ query_service-only access token won't authorize usermanagement.)
 5. poll `brainkb_job_status(job_id)` until `done`
 6. `brainkb_search("<term>", space="my-lab")` / `brainkb_provenance_graph(iri)`
 7. (optional) `brainkb_set_space_visibility("my-lab", "public")`
+
+### Worked example: "Ingest my TTL into the hmba space, then show what changed."
+This is the exact pattern for an **existing** space + "what changed":
+1. `brainkb_whoami()` — confirm the intended identity (attribution is permanent).
+2. `brainkb_list_spaces()` → find `hmba` and its registered graph IRI `G` (if it
+   has none, `brainkb_add_space_graph("hmba", G, "<desc>")` first).
+3. `brainkb_ingest_text(G, "<the user's TTL>")` → `job_id` (or
+   `brainkb_ingest_files(G, [paths])`).
+4. Poll `brainkb_job_status(job_id)` until terminal; report success/fail counts.
+5. **"what changed"** → `brainkb_delta(job_id)` (exact triples this ingest added).
+   For the graph's full change log, `brainkb_delta_history(G)`; for who/when,
+   `brainkb_provenance_job(job_id)`.
+This is transaction/ingestion-time provenance ("what was just added"), per the
+two-clocks note in §6.
 
 ## Deployment smoke test (is the deploy done & healthy?)
 
