@@ -60,6 +60,41 @@ Choose the partition and let the QOS follow.
 
 `orcd_resources.py` prints them in separate columns for this reason.
 
+## Job-count and array ceilings
+
+Three limits stack, and the smallest wins:
+
+| Limit | Where | Scope |
+| --- | --- | --- |
+| association `MaxSubmit` | `sacctmgr show assoc user=$USER` | one ceiling across **every** partition |
+| QOS `MaxSubmitPU` | the partition's own QOS | per partition, queued + running |
+| `MaxArraySize` | `scontrol show config` | highest task index in one array |
+
+The association cap is the one people miss, because it is invisible in
+`scontrol show partition` and is often *smaller* than the per-partition number.
+`orcd_snapshot.py` prints all three together.
+
+**Array tasks each count as a submitted job.** So an array larger than the target
+partition's `MaxSubmitPU` is refused outright:
+
+```
+$ sbatch --test-only -p mit_preemptable -a 0-999 ...
+QOSMaxSubmitJobPerUserLimit
+```
+
+**And `%K` throttling does not help.** `-a 0-999%50` is refused identically:
+`%K` limits how many tasks run *concurrently*, not how many are submitted.
+
+Measured by bisection, the largest accepted array is **`MaxSubmitPU` + 1** --
+449 tasks where the cap is 448, 5 tasks where the cap is 4. So a sweep bigger
+than that has to be split into consecutive arrays, or run as fewer tasks that
+each loop over more work. The second option is usually better anyway: array
+tasks have real scheduling overhead, and a task that processes 20 items amortises
+it.
+
+`orcd_snapshot.py` prints the derived per-partition array cap, so it stays
+correct if the QOS is retuned.
+
 ## Priority
 
 `priority/multifactor`, weighted so that the choice of partition and QOS
@@ -101,9 +136,49 @@ illustrative of one account's view, not a fixed list:
   and therefore the most congested. `mit_normal_gpu` can be days deep.
 - **`mit_quicktest`** -- 15-minute cap, very high tier. Ideal for smoke tests.
 - **`mit_preemptable`** -- by far the largest pool of nodes and GPUs, lowest
-  tier, `REQUEUE`. Excellent for checkpointed or idempotent work.
+  tier, `REQUEUE`. Excellent for checkpointed or idempotent work. See below.
 - **`mit_data_transfer`** -- dedicated transfer nodes, long walltime, no GPUs.
   Use for staging large datasets, not for computation.
+
+## Preemptable partitions as extra capacity
+
+`mit_preemptable` spans essentially the whole cluster -- an order of magnitude
+more nodes and GPUs than any single group partition, including GPU models that
+appear nowhere else. Its own per-user ceiling is correspondingly generous. The
+price is `PreemptMode=REQUEUE`: a higher-priority job can evict yours at any
+moment, and Slurm puts it back in the queue.
+
+So it is best understood not as a worse partition but as **a second, much larger
+pool that is free to use if the work can be interrupted**. Group partitions like
+`ou_bcs_low` are preemptable on the same terms.
+
+Work that suits it: anything checkpointed, any idempotent array task, any
+embarrassingly parallel sweep where losing one task costs a restart rather than
+the run. Work that does not: a long single job with no checkpointing, or anything
+holding a lock or an external session.
+
+Making a job survive requeue:
+
+```bash
+#SBATCH -p mit_preemptable
+#SBATCH --requeue
+#SBATCH --signal=B:USR1@120       # USR1 to the batch shell, 120s before the kill
+
+trap 'python save_checkpoint.py; exit 1' USR1   # exit non-zero so it requeues
+
+python train.py --resume-if-exists "$CKPT"
+```
+
+Two details that decide whether this actually works:
+
+- The handler must **exit non-zero**. A clean exit tells Slurm the job finished.
+- `train.py` must resume from the checkpoint rather than restarting, so the same
+  script is correct on both the first run and the fifth.
+
+The complementary strategy is to run the same work in two partitions at once: a
+small guaranteed allocation in a private partition for the part that must finish,
+and a large preemptable array for the rest. `orcd_submit.py --plan` shows what
+each would cost in start time.
 
 ## Requesting GPUs
 

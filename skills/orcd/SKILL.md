@@ -20,6 +20,10 @@ hours each time:
    the same lab get different answers, so nothing can be hardcoded.
 3. **The storage tiers differ by more than 10x in speed**, and the slowest one
    (`$HOME`) is the default working directory.
+4. **The configuration changes underneath you.** Partitions are retired, QOS
+   ceilings retuned, GPU models swapped. `orcd_snapshot.py` captures the whole
+   configuration and diffs it against a saved baseline, so drift is something you
+   read rather than something that surprises a job script.
 
 Everything below is discovered at runtime by the scripts. The concrete numbers
 quoted in `references/` are illustrative snapshots from one account, not
@@ -41,7 +45,14 @@ Then, once it passes:
 
 ```bash
 python3 orcd_resources.py --gpus --idle   # what you can run on, and what is free
-python3 orcd_storage.py                   # where to put data, and what is fast
+python3 orcd_storage.py                   # where to put data, quotas, what is fast
+python3 orcd_snapshot.py --save           # baseline the config so drift is visible
+```
+
+Later, when something that used to work stops working:
+
+```bash
+python3 orcd_snapshot.py --diff           # exit 2 if the cluster changed
 ```
 
 ## How the connection works
@@ -137,6 +148,28 @@ So a user's group list plus the mount table is enough to derive what is
 reachable and what is worth using. `orcd_storage.py` does exactly that, and
 `--setup` creates the per-user directories that do not exist yet.
 
+**Every user also gets personal space inside their home directory**, separate
+from any group allocation: `~/orcd/scratch` is 1 TB of flash and `~/orcd/pool` is
+1 TB of capacity disk, neither backed up, alongside the 200 GB backed-up `~`
+itself. These are **symlinks whose targets are sharded per user**
+(`/orcd/scratch/orcd/013/<user>`, not `001`), so resolve them rather than
+constructing paths:
+
+```bash
+SCRATCH=$(readlink -f ~/orcd/scratch)
+```
+
+ORCD refreshes a quota report at `~/orcd/.quota` daily, and it is the only place
+these limits are visible -- `df` shows the whole shared filesystem, so it will
+report hundreds of free TB in a space you can put 1 TB into. Read it via
+`orcd_storage.py`.
+
+**Watch the file counts, not just the gigabytes.** `~` and `~/orcd/scratch` each
+carry a **1 M inode limit**, which one unpacked image dataset or a couple of
+conda environments will reach at a few percent of the space quota. It surfaces as
+a disk-full error against a quota that looks fine, and it is the strongest reason
+to keep datasets as archives or container images rather than loose files.
+
 The ordering that matters in practice, fastest first: node-local `/dev/shm`
 (RAM, counts against the job's memory), node-local disk, **bcs flash scratch**,
 capacity disk, `$HOME`. `$HOME` is both the default working directory and the
@@ -174,6 +207,31 @@ changes start time from minutes to days, and it is one flag.
 Always set `--mem` explicitly. The cluster default is `DefMemPerCPU=1000`, so a
 4-CPU job silently gets 4 GB and dies part-way through anything real.
 
+### Job-count and array limits
+
+Three ceilings stack and the smallest wins: the **association `MaxSubmit`** (one
+limit across every partition, and the one people miss because it does not appear
+in `scontrol show partition`), the partition QOS **`MaxSubmitPU`**, and
+**`MaxArraySize`**.
+
+Array tasks each count as a submitted job, so an array larger than the target
+partition's `MaxSubmitPU` is refused with `QOSMaxSubmitJobPerUserLimit` — and
+**`-a 0-999%50` is refused identically**, because `%K` caps concurrent *running*
+tasks, not submitted ones. Measured by bisection, the largest accepted array is
+`MaxSubmitPU + 1`. Split bigger sweeps into consecutive arrays, or give each task
+more work to do. `orcd_snapshot.py` prints the derived cap per partition.
+
+### Preemptable partitions are extra capacity
+
+`mit_preemptable` spans nearly the whole cluster — an order of magnitude more
+nodes and GPUs than any group partition, including models available nowhere else.
+The price is `PreemptMode=REQUEUE`. Treat it as a second, much larger pool that is
+free to use whenever the work can be interrupted: checkpointed training,
+idempotent array tasks, any sweep where losing a task costs a restart. To survive
+requeue, trap `--signal=B:USR1@120`, checkpoint, and **exit non-zero** — a clean
+exit tells Slurm the job finished. Group partitions such as `ou_bcs_low` are
+preemptable on the same terms. See [references/slurm.md](references/slurm.md).
+
 For interactive work, ask for a shell on a compute node rather than working on
 the login node:
 
@@ -192,7 +250,10 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | Job waits for days | shared partition is congested | `--plan` and pick a private or preemptable partition |
 | Job vanished and requeued | ran in a `PreemptMode=REQUEUE` partition | Expected; checkpoint, or use a non-preemptable partition |
 | A command hangs forever | bare `df -h`, or a stale mount | Use `/proc/mounts`; wrap probes in `timeout` |
-| Everything is mysteriously slow | job IO is in `$HOME` | Move it to bcs flash scratch |
+| Everything is mysteriously slow | job IO is in `$HOME` | Move it to flash scratch |
+| `QOSMaxSubmitJobPerUserLimit` | array bigger than `MaxSubmitPU`; `%K` does not help | Split into arrays of `MaxSubmitPU + 1` or fewer |
+| Disk full, but quota looks fine | hit the 1 M inode limit | Check the file columns in `orcd_storage.py` |
+| Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
 
 Preemptable partitions (`mit_preemptable`, `ou_bcs_low`) trade priority for
 capacity. They are the right choice for checkpointed or idempotent work and the
@@ -206,6 +267,7 @@ wrong one for a long job that cannot resume.
 | [`orcd_resources.py`](scripts/orcd_resources.py) | Discover usable partitions, GPU models, QOS ceilings, live free capacity |
 | [`orcd_storage.py`](scripts/orcd_storage.py) | Discover writable storage by tier and speed. `--setup` creates per-user dirs |
 | [`orcd_submit.py`](scripts/orcd_submit.py) | Plan, submit, and track jobs; auto-select partition by start time |
+| [`orcd_snapshot.py`](scripts/orcd_snapshot.py) | Structured config summary; `--save` a baseline and `--diff` to see drift |
 | [`orcd_common.py`](scripts/orcd_common.py) | Shared SSH plumbing (multiplexing, base64 payloads, error mapping) |
 
 All scripts are stdlib-only Python 3 and run locally, reaching the cluster over

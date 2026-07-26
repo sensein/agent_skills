@@ -3,6 +3,59 @@
 Run `python3 scripts/orcd_storage.py` for the current user's writable paths.
 This document explains the tiers and how to use them well.
 
+## Start with your own quota report
+
+ORCD writes a per-user quota report to `~/orcd/.quota` and refreshes it daily.
+It is the authoritative source, and the only place the per-user scratch and pool
+limits appear at all -- `df` reports the size of the whole shared filesystem, not
+your quota, so it will happily tell you there are 270 TB free in a space you can
+only put 1 TB into.
+
+```
+                               QUOTA REPORT
+ Space   | Usage (GB) | Limit (GB) | % Used |  Files | Limit | % Used
+---------+------------+------------+--------+--------+-------+--------
+ HOME    |       71.0 |      200.0 |  35.48 | 277.2K |  1.0M |  27.72
+ SCRATCH |      220.9 |     1024.0 |  21.57 |  73.0K |  1.0M |   7.30
+ POOL    |        0.0 |     1024.0 |   0.00 |      8 |  2.1B |   0.00
+```
+
+Every user gets, inside their home directory:
+
+| Space | Quota | Files | Backed up | Purpose |
+| --- | --- | --- | --- | --- |
+| `~` (HOME) | 200 GB | 1 M | yes, snapshots | code, config, small inputs |
+| `~/orcd/scratch` | **1 TB** | **1 M** | no | active job IO |
+| `~/orcd/pool` | 1 TB | ~2 B | no | larger datasets |
+
+**The file-count column binds independently of the space column.** A 1 M inode
+limit is reached by one unpacked image dataset or a couple of conda
+environments, at a few percent of the gigabyte quota. It fails as a disk-full
+error, which sends people looking at the wrong number entirely. This is the
+strongest practical argument for the staging pattern below: keep datasets as
+archives or container images, not as loose files.
+
+## Your personal spaces are symlinks, and the target is not guessable
+
+`~/orcd/` holds root-managed symlinks to this user's own storage:
+
+```
+~/orcd/scratch  -> /orcd/scratch/orcd/013/<user>     # flash, 1 TB quota
+~/orcd/pool     -> /orcd/pool/007/<user>             # capacity disk, 1 TB
+~/orcd/datasets -> /orcd/datasets/001                # shared, read-only
+~/orcd/examples -> /orcd/examples
+```
+
+The per-user scratch tier is **sharded** across `/orcd/scratch/orcd/<NNN>`, and
+the shard differs per user -- `013` above, not `001`. So never construct these
+paths. Resolve the symlink:
+
+```bash
+SCRATCH=$(readlink -f ~/orcd/scratch)
+```
+
+`orcd_storage.py` reports the resolved targets for exactly this reason.
+
 ## Entitlement and tier are both encoded in group names
 
 Group membership grants storage, and the group name says which hardware:
@@ -16,9 +69,14 @@ orcd_rg_<server>_<owner>
 | Server prefix | Hardware | Mounted under | Use for |
 | --- | --- | --- | --- |
 | `fstor*` | flash, NFS over RDMA | `/orcd/scratch/...`, `/orcd/compute/...` | active job IO |
-| `hstor*` | spinning disk | `/orcd/data/...` | datasets and results to keep |
+| `hstor*` | spinning disk | `/orcd/data/...`, `/orcd/pool/...` | datasets and results to keep |
 | `core*` | archive | `/orcd/archive/...` | cold data |
 | `nfs*` | shared home server | `/home/<user>` | code and config only |
+
+Group storage sits alongside the per-user spaces above and is usually much
+larger; a lab or project allocation of several hundred TB is normal. It is
+governed by group quotas rather than the personal ones in `~/orcd/.quota`
+(though a group pool may appear there as `POOL 2`).
 
 The flash tier is exported over **NFS over RDMA** (`proto=rdma,port=20049` in
 `/proc/mounts`), which is why it outperforms ordinary NFS by a wide margin.
@@ -103,7 +161,7 @@ This turns thousands of small network operations into two large sequential ones.
 #!/bin/bash
 #SBATCH -p ou_bcs_high -t 4:00:00 -c 8 --mem=64G --gres=gpu:h100:1
 
-SCRATCH=/orcd/scratch/bcs/001/$USER          # from orcd_storage.py
+SCRATCH=$(readlink -f ~/orcd/scratch)        # your own 1 TB flash scratch
 WORK=${TMPDIR:-/tmp}/$SLURM_JOB_ID
 mkdir -p "$WORK"
 trap 'rm -rf "$WORK"' EXIT                   # node-local is not auto-cleaned
@@ -165,9 +223,11 @@ Observed layouts, useful as defaults when creating new areas:
 /orcd/scratch/bcs/<NNN>/<username>/       per-person flash scratch
 ```
 
-`orcd_storage.py --setup` creates the per-user flash scratch directories that do
-not exist yet. Per-user directories under the general `/orcd/scratch/orcd/001`
-tier are created by administrators, not by users -- its parent is not writable.
+`orcd_storage.py --setup` creates your per-user directory in each writable group
+flash tier that does not have one yet. Your personal `~/orcd/scratch` and
+`~/orcd/pool` are provisioned by ORCD and need no setup -- if either symlink is
+missing, that is a request for orcd-help@mit.edu, not something to create by
+hand.
 
 ## Moving data in and out
 

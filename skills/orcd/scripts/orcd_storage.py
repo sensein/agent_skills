@@ -45,6 +45,23 @@ echo "@@IDENTITY"
 printf "user|%s\n" "$(whoami)"
 printf "home|%s\n" "$HOME"
 
+echo "@@QUOTA"
+# ORCD refreshes a per-user quota report daily. It is the only place the
+# per-user scratch and pool limits appear -- df shows the whole filesystem,
+# not the quota, so it is useless for those.
+[ -r "$HOME/orcd/.quota" ] && cat "$HOME/orcd/.quota"
+
+echo "@@HOMELINKS"
+# $HOME/orcd holds root-managed symlinks to this user's personal spaces. The
+# per-user scratch tier is sharded across /orcd/scratch/orcd/<NNN>, and the
+# shard differs per user, so these links are the only reliable way to find it.
+if [ -d "$HOME/orcd" ]; then
+  for l in "$HOME/orcd"/*; do
+    [ -e "$l" ] || continue
+    printf "%s|%s|%s\n" "$(basename "$l")" "$l" "$(readlink -f "$l" 2>/dev/null)"
+  done
+fi
+
 echo "@@GROUPS"
 id -Gn | tr ' ' '\n' | grep '^orcd_rg_' | sort
 
@@ -128,6 +145,29 @@ def parse_pipe(lines: list[str], nfields: int) -> list[list[str]]:
     return out
 
 
+def parse_quota(lines: list[str]) -> list[dict[str, str]]:
+    """Parse ORCD's per-user quota report.
+
+    Format is a fixed-width table:
+        HOME    |       71.0 |      200.0 |  35.48 | 277.2K |  1.0M |  27.72
+    The file-count columns matter as much as the space columns: HOME and SCRATCH
+    both carry a 1M inode limit, which many-small-file workloads hit long before
+    they run out of gigabytes.
+    """
+    out = []
+    for line in lines:
+        f = [x.strip() for x in line.split("|")]
+        if len(f) < 7 or not f[0] or f[0].startswith("-") or f[0] == "Space":
+            continue
+        if not re.match(r"^[A-Z][A-Z0-9 ]*$", f[0]):
+            continue
+        out.append({
+            "space": f[0], "used_gb": f[1], "limit_gb": f[2], "pct_space": f[3],
+            "files": f[4], "file_limit": f[5], "pct_files": f[6],
+        })
+    return out
+
+
 def candidate_paths(groups: list[str], mounts: list[list[str]], pidirs: list[list[str]], home: str) -> list[str]:
     """Build the list of paths worth probing for this specific user.
 
@@ -172,10 +212,6 @@ def candidate_paths(groups: list[str], mounts: list[list[str]], pidirs: list[lis
             for n in ("001", "002", "003"):
                 paths.append(f"/orcd/{tier}/{key}/{n}")
 
-    # The general per-user scratch tier is open to everyone, so include it even
-    # though no group name points at it.
-    paths.append("/orcd/scratch/orcd/001")
-
     seen, ordered = set(), []
     for p in paths:
         if p and p not in seen:
@@ -205,8 +241,15 @@ def main() -> int:
     groups = [g.strip() for g in blocks.get("GROUPS", []) if g.strip()]
     mounts = parse_pipe(blocks.get("MOUNTS", []), 3)
     pidirs = parse_pipe(blocks.get("PIDIRS", []), 2)
+    quota = parse_quota(blocks.get("QUOTA", []))
+    homelinks = parse_pipe(blocks.get("HOMELINKS", []), 3)
 
+    # The personal spaces reached through ~/orcd are authoritative: they point at
+    # this user's own shard, which no amount of path guessing would find.
     paths = candidate_paths(groups, mounts, pidirs, home)
+    for _name, _link, target in homelinks:
+        if target and target not in paths:
+            paths.append(target)
     probe = PROBE_TEMPLATE.format(paths=" ".join(f'"{p}"' for p in paths))
     try:
         praw = oc.run_remote(probe, host=args.host, timeout=240, check=False)
@@ -265,8 +308,34 @@ def main() -> int:
             print("\nThese directories are setgid, so files you create there stay group-readable.")
 
     if args.json:
-        print(json.dumps({"user": user, "groups": groups, "storage": entries}, indent=2))
+        print(json.dumps({
+            "user": user, "groups": groups, "storage": entries,
+            "quota": quota,
+            "personal_spaces": [{"name": n, "link": l, "target": t} for n, l, t in homelinks],
+        }, indent=2))
         return 0
+
+    if quota:
+        oc.heading("Your quotas (from ~/orcd/.quota, refreshed daily by ORCD)")
+        oc.table(
+            [[q["space"], f"{q['used_gb']} / {q['limit_gb']}", q["pct_space"] + "%",
+              f"{q['files']} / {q['file_limit']}", q["pct_files"] + "%"] for q in quota],
+            ["SPACE", "GB USED / LIMIT", "%", "FILES USED / LIMIT", "%"],
+        )
+        print(
+            "\nThe file columns bind independently of the space columns. A 1M inode\n"
+            "limit is reached by an unpacked image dataset or a conda env long before\n"
+            "the gigabytes run out, and the failure looks like a disk-full error."
+        )
+
+    if homelinks:
+        oc.heading("Your personal spaces (~/orcd symlinks)")
+        oc.table([[n, t] for n, _l, t in homelinks], ["NAME", "RESOLVES TO"])
+        print(
+            "\nThese are root-managed links to your own storage. The per-user scratch\n"
+            "tier is sharded across /orcd/scratch/orcd/<NNN> and your shard is not\n"
+            "predictable, so always resolve ~/orcd/scratch rather than assuming a path."
+        )
 
     oc.heading(f"Storage you can reach as {user}")
     order = {"flash": 0, "capacity": 1, "home": 2, "archive": 3, "unknown": 4, "other": 5}
