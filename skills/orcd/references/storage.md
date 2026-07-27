@@ -40,15 +40,16 @@ archives or container images, not as loose files.
 `~/orcd/` holds root-managed symlinks to this user's own storage:
 
 ```
-~/orcd/scratch  -> /orcd/scratch/orcd/013/<user>     # flash, 1 TB quota
-~/orcd/pool     -> /orcd/pool/007/<user>             # capacity disk, 1 TB
+~/orcd/scratch  -> /orcd/scratch/orcd/<NNN>/<user>   # flash, 1 TB quota
+~/orcd/pool     -> /orcd/pool/<NNN>/<user>           # capacity disk, 1 TB
 ~/orcd/datasets -> /orcd/datasets/001                # shared, read-only
 ~/orcd/examples -> /orcd/examples
 ```
 
-The per-user scratch tier is **sharded** across `/orcd/scratch/orcd/<NNN>`, and
-the shard differs per user -- `013` above, not `001`. So never construct these
-paths. Resolve the symlink:
+The per-user tiers are **sharded**, and `<NNN>` differs from person to person,
+so a resolved path is only correct for whoever resolved it. Never write one
+down for the group; use the symlink, and resolve it at runtime when a real path
+is needed:
 
 ```bash
 SCRATCH=$(readlink -f ~/orcd/scratch)

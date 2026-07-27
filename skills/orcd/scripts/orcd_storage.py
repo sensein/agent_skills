@@ -367,6 +367,26 @@ def main() -> int:
             "note": note,
         })
 
+    # Personal spaces render as their ~/orcd symlink everywhere below: that form
+    # is valid for every group member, whereas a resolved shard target is only
+    # correct for this user. Their size/avail come from the quota report, not
+    # df -- df reports the whole shard (294T) for a space capped at 1T.
+    symlink_of = {t: n for n, _l, t in homelinks if t}
+    quota_by_name: dict[str, dict[str, str]] = {}
+    for q in quota:
+        try:
+            limit_gb = float(q["limit_gb"])
+            free_gb = limit_gb - float(q["used_gb"])
+        except ValueError:
+            continue
+        avail = f"{free_gb / 1024:.1f}T" if free_gb >= 1024 else f"{free_gb:.0f}G"
+        quota_by_name[q["space"].lower()] = {
+            "size": f"{limit_gb / 1024:.0f}T" if limit_gb >= 1024 else f"{limit_gb:.0f}G",
+            "avail": avail,
+            "used_pct": q["pct_space"] + "%",
+            "free_label": f"{avail} of {limit_gb / 1024:.0f}T quota",
+        }
+
     if args.setup:
         oc.heading("Creating your per-user directories")
         targets = [
@@ -420,7 +440,7 @@ def main() -> int:
 
     if homelinks:
         oc.heading("Your personal spaces (~/orcd symlinks)")
-        oc.table([[n, t] for n, _l, t in homelinks], ["NAME", "RESOLVES TO"])
+        oc.table([[f"~/orcd/{n}", t] for n, _l, t in homelinks], ["SYMLINK", "RESOLVES TO"])
         print(
             "\nThese are root-managed links to your own storage. The per-user scratch\n"
             "tier is sharded across /orcd/scratch/orcd/<NNN> and your shard is not\n"
@@ -430,15 +450,26 @@ def main() -> int:
     oc.heading(f"Storage you can reach as {user}")
     order = {"flash": 0, "capacity": 1, "home": 2, "archive": 3, "unknown": 4, "other": 5}
     entries.sort(key=lambda e: (order.get(e["tier"], 9), e["path"]))
-    oc.table(
-        [[
-            e["path"], e["tier"], e["server"],
+    rows_out = []
+    for e in entries:
+        path = e["path"]
+        if path in symlink_of:
+            name = symlink_of[path]
+            q = quota_by_name.get(name, {})
+            shown = f"~/orcd/{name}"
+            size = q.get("size", e["size"])
+            avail = q.get("avail", e["avail"])
+            used = q.get("used_pct", e["used_pct"])
+        else:
+            shown, size, avail, used = path, e["size"], e["avail"], e["used_pct"]
+        rows_out.append([
+            shown, e["tier"], e["server"],
             "yes" if e["writable"] else "no",
-            e["size"], e["avail"], e["used_pct"],
+            size, avail, used,
             "NO BACKUP" if e["no_backup_marker"] else "unmarked",
-        ] for e in entries],
-        ["PATH", "TIER", "SERVER", "WRITE", "SIZE", "AVAIL", "USED", "BACKUP"],
-    )
+        ])
+    oc.table(rows_out, ["PATH", "TIER", "SERVER", "WRITE", "SIZE", "AVAIL", "USED", "BACKUP"])
+    print("\nPersonal rows (~/orcd/...) show quota-based size/avail, not the shard's df.")
     print(
         "\nBACKUP reads NO BACKUP where ORCD has flagged the tree as unprotected.\n"
         "'unmarked' means only that no such flag is present -- confirm with ORCD\n"
@@ -459,27 +490,14 @@ def main() -> int:
     flash = [e for e in entries if e["tier"] == "flash" and e["writable"]]
     capacity = [e for e in entries if e["tier"] == "capacity" and e["writable"]]
 
-    # Personal spaces are shown by their symlink name: the symlink form is the
-    # one that is valid for every group member, and blindly appending the
-    # username here once produced a doubled ".../satra/satra" path. Their free
-    # space comes from the quota report, not df -- df sees the whole shard and
-    # once claimed 269T free in a space capped at 1T.
-    symlink_of = {t: n for n, _l, t in homelinks if t}
-    quota_free = {}
-    for q in quota:
-        try:
-            free_gb = float(q["limit_gb"]) - float(q["used_gb"])
-        except ValueError:
-            continue
-        quota_free[q["space"].lower()] = (
-            f"{free_gb / 1024:.1f}T" if free_gb >= 1024 else f"{free_gb:.0f}G"
-        ) + f" of {float(q['limit_gb']) / 1024:.0f}T quota"
-
+    # Blindly appending the username here once produced a doubled
+    # ".../satra/satra" path, hence the endswith guard for non-symlink targets.
     def display(e: dict) -> tuple[str, str]:
         path = e["path"]
         if path in symlink_of:
             name = symlink_of[path]
-            return f"~/orcd/{name}", quota_free.get(name, e["avail"] + " on shard")
+            q = quota_by_name.get(name)
+            return f"~/orcd/{name}", q["free_label"] if q else e["avail"] + " on shard"
         if path.rstrip("/").endswith(f"/{user}"):
             return path, e["avail"]
         return f"{path}/{user}", e["avail"]
@@ -496,7 +514,9 @@ def main() -> int:
             path = e["path"]
             if path in symlink_of:
                 name = symlink_of[path]
-                shown, avail = f"~/orcd/{name}", quota_free.get(name, e["avail"])
+                q = quota_by_name.get(name)
+                shown = f"~/orcd/{name}"
+                avail = q["free_label"] if q else e["avail"]
             else:
                 shown, avail = path, e["avail"]
             print(f"  {shown:<44} {avail:>18} free")

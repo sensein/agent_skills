@@ -157,8 +157,8 @@ reachable and what is worth using. `orcd_storage.py` does exactly that, and
 from any group allocation: `~/orcd/scratch` is 1 TB of flash and `~/orcd/pool` is
 1 TB of capacity disk, neither backed up, alongside the 200 GB backed-up `~`
 itself. These are **symlinks whose targets are sharded per user**
-(`/orcd/scratch/orcd/013/<user>`, not `001`), so resolve them rather than
-constructing paths:
+(`/orcd/scratch/orcd/<NNN>/<user>`, where `<NNN>` differs from person to
+person), so resolve them rather than constructing paths:
 
 ```bash
 SCRATCH=$(readlink -f ~/orcd/scratch)
