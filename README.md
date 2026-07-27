@@ -19,7 +19,7 @@ The list below is kept in alphabetical order by skill name.
 | [`labnb-promote`](./skills/labnb-promote/SKILL.md)           | Promote a lab notebook idea into a concrete experiment with explicit budgets, source links, and provenance. |
 | [`labnb-resume`](./skills/labnb-resume/SKILL.md)             | Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work. |
 | [`labnb-run`](./skills/labnb-run/SKILL.md)                   | Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging. |
-| [`orcd`](./skills/orcd/SKILL.md)                             | Use MIT ORCD (Engaging) as a remote execution environment: set up key-based SSH through the OnDemand portal, discover the Slurm partitions, GPU models, and storage tiers the current user is actually entitled to, place job IO on the fast bcs flash scratch, and submit and track work. |
+| [`orcd-remote`](./skills/orcd-remote/SKILL.md)               | Use MIT ORCD (Engaging) as a remote execution environment, driven over SSH from your own machine: set up key-based SSH through the OnDemand portal, discover the Slurm partitions, GPU models, and storage tiers the current user is actually entitled to, place job IO on flash scratch, and submit and track work. |
 | [`structsense-skills`](./skills/structsense-skills/SKILL.md) | StructSense Skills transforms unstructured text and PDFs into validated, ontology-grounded structured JSON using a model-agnostic extraction pipeline. |
 
 ## Installing Into An Agent
