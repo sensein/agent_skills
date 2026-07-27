@@ -203,6 +203,55 @@ def build_snapshot(host: str) -> dict:
 # Fields that change on their own and would drown out real signal.
 IGNORED = {"captured_at", "meta.login_node"}
 
+# Prefixes excluded from diffing. These are recorded in the snapshot because they
+# are useful reference, but they are state rather than configuration:
+#
+#   storage_mounts  /orcd is autofs, so a tree is mounted only if something
+#                   touched it recently, and that differs per login node. Diffing
+#                   it produced 434 phantom "removed" lines in testing, which is
+#                   exactly the kind of noise that trains people to ignore a tool.
+#   quota usage     Gigabytes and file counts move every time you write anything.
+#                   The *limits* are configuration and are still diffed.
+IGNORED_PREFIXES = ("storage_mounts.",)
+IGNORED_SUFFIXES = (".used_gb", ".files", ".pct_space", ".pct_files")
+
+# Rendered numbers carry rounding jitter (a group pool's file limit flips between
+# "81.7B" and "81.6B" run to run). Treat a sub-1% numeric move as unchanged; a
+# real limit change is far larger than that.
+NUMERIC_TOLERANCE = 0.01
+
+
+def _is_ignored(path: str) -> bool:
+    return (
+        path in IGNORED
+        or path.startswith(IGNORED_PREFIXES)
+        or path.endswith(IGNORED_SUFFIXES)
+    )
+
+
+def _size_to_float(text: str) -> float | None:
+    """Parse values like '1024.0', '277.2K', '81.7B' to a comparable number."""
+    m = re.fullmatch(r"([\d.]+)\s*([KMGTBP]?)", text.strip())
+    if not m:
+        return None
+    try:
+        val = float(m.group(1))
+    except ValueError:
+        return None
+    # B here is ORCD's "billion", not bytes -- these columns are counts.
+    return val * {"": 1, "K": 1e3, "M": 1e6, "B": 1e9, "G": 1e9, "T": 1e12, "P": 1e15}[m.group(2)]
+
+
+def _same_value(before: str, after: str) -> bool:
+    if before == after:
+        return True
+    a, b = _size_to_float(before), _size_to_float(after)
+    if a is None or b is None:
+        return False
+    if a == 0 or b == 0:
+        return a == b
+    return abs(a - b) / max(abs(a), abs(b)) < NUMERIC_TOLERANCE
+
 
 def flatten(obj, prefix: str = "") -> dict[str, str]:
     """Flatten nested structures to dotted paths so diffs are precise."""
@@ -228,14 +277,14 @@ def flatten(obj, prefix: str = "") -> dict[str, str]:
 
 def diff_snapshots(old: dict, new: dict) -> dict[str, list[tuple[str, str, str]]]:
     a, b = flatten(old), flatten(new)
-    keys = (set(a) | set(b)) - IGNORED
+    keys = {k for k in (set(a) | set(b)) if not _is_ignored(k)}
     added, removed, changed = [], [], []
     for k in sorted(keys):
         if k not in a:
             added.append((k, "", b[k]))
         elif k not in b:
             removed.append((k, a[k], ""))
-        elif a[k] != b[k]:
+        elif not _same_value(a[k], b[k]):
             changed.append((k, a[k], b[k]))
     return {"added": added, "removed": removed, "changed": changed}
 
@@ -258,6 +307,11 @@ def significance(path: str) -> str | None:
         return "preemption behaviour changed"
     if path.startswith("storage_groups"):
         return "storage entitlement changed"
+    if path.startswith("personal_spaces."):
+        return ("a personal storage path moved -- resolve ~/orcd/<name> at runtime "
+                "instead of hardcoding the target")
+    if path.startswith("quota[") and "limit" in path:
+        return "storage quota changed"
     if "DefMemPerCPU" in path:
         return "default memory changed -- unspecified --mem gets a different value"
     if path.startswith("config.PriorityWeight"):

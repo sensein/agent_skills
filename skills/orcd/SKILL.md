@@ -23,7 +23,12 @@ hours each time:
 4. **The configuration changes underneath you.** Partitions are retired, QOS
    ceilings retuned, GPU models swapped. `orcd_snapshot.py` captures the whole
    configuration and diffs it against a saved baseline, so drift is something you
-   read rather than something that surprises a job script.
+   read rather than something that surprises a job script. It diffs
+   configuration, not state: mount tables and quota *usage* are recorded but
+   excluded, because `/orcd` is autofs and mounts materialise on demand per login
+   node — diffing them produced 434 phantom "removed" lines in testing. Quota
+   *limits* are configuration and are still compared, with a 1% tolerance so
+   rounding jitter in ORCD's own report does not register as change.
 
 Everything below is discovered at runtime by the scripts. The concrete numbers
 quoted in `references/` are illustrative snapshots from one account, not
