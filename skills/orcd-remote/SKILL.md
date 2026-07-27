@@ -1,6 +1,6 @@
 ---
-name: orcd
-description: Use MIT ORCD (Engaging, orcd-login.mit.edu, eofe7) as a remote execution environment. Use this skill whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, running or training on cluster GPUs (H100/H200/A100/L40S), cluster scratch or storage or quotas, ssh problems reaching orcd-login, or asks to run anything too big for a laptop - even if they never name ORCD explicitly. Sets up key-based SSH through the OnDemand portal, discovers which partitions, GPU models, and storage tiers this user is actually entitled to rather than assuming, places job IO on flash scratch, submits and tracks jobs, and diffs cluster config over time.
+name: orcd-remote
+description: Use MIT ORCD (Engaging, orcd-login.mit.edu, eofe7) as a remote execution environment, driven over SSH from your laptop or workstation - not from the cluster itself. Use this skill whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, running or training on cluster GPUs (H100/H200/A100/L40S), cluster scratch or storage or quotas, ssh problems reaching orcd-login, or asks to run anything too big for a laptop - even if they never name ORCD explicitly. Sets up key-based SSH through the OnDemand portal, discovers which partitions, GPU models, and storage tiers this user is actually entitled to rather than assuming, places job IO on flash scratch, submits and tracks jobs, and diffs cluster config over time.
 ---
 
 # MIT ORCD Remote Execution
@@ -9,6 +9,14 @@ Use this skill when work should run on MIT's ORCD cluster (`orcd-login.mit.edu`,
 Slurm cluster `eofe7`, also called Engaging) instead of a laptop: GPU training,
 large parallel CPU jobs, or anything reading datasets that already live on
 cluster storage.
+
+**Remote means remote.** Everything here runs on your own machine and reaches
+the cluster over one multiplexed SSH connection -- that is the "-remote" in the
+name. The scripts are not designed to run *on* a login node: there is no `orcd`
+SSH alias there to loop back through, and the login nodes' system `python3` is
+3.6, too old to even parse them. If a session is already on the cluster, use
+`sinfo`/`sbatch`/`sacctmgr` and the reference docs directly instead of these
+scripts.
 
 The skill exists because three things about ORCD are easy to get wrong and cost
 hours each time:
@@ -37,7 +45,7 @@ a lot of detail; the reader asked a question, not for a survey.
 ## Start here, every session
 
 ```bash
-cd "$(dirname "$(find ~/.claude/skills/orcd ~/.agents/skills/orcd . -name orcd_doctor.py 2>/dev/null | head -1)")"
+cd "$(dirname "$(find ~/.claude/skills/orcd-remote ~/.agents/skills/orcd-remote . -name orcd_doctor.py 2>/dev/null | head -1)")"
 python3 orcd_doctor.py          # is access working? if not, exactly what to fix
 ```
 
