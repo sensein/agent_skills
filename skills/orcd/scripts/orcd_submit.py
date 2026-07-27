@@ -187,9 +187,13 @@ def main() -> int:
             if not local.is_file():
                 print(f"error: {local} not found", file=sys.stderr)
                 return 1
-            remote_path = f"~/.orcd-jobs/{local.name}"
+            # Relative on purpose, for both hops: scp's SFTP mode resolves it
+            # against $HOME without any shell expansion (a $HOME or quoted ~
+            # arrives literal and fails), and the sbatch below runs via ssh
+            # with cwd=$HOME, so the same relative path is valid there too.
+            remote_path = f".orcd-jobs/{local.name}"
             oc.run_remote("mkdir -p ~/.orcd-jobs", host=args.host, timeout=60)
-            oc.scp_to(str(local), remote_path.replace("~", "$HOME"), host=args.host)
+            oc.scp_to(str(local), remote_path, host=args.host)
             target = remote_path
         elif args.remote_script:
             target = args.remote_script
@@ -212,6 +216,12 @@ def main() -> int:
             f"  python3 orcd_submit.py --status {job.group(1)}\n"
             f"  python3 orcd_submit.py --queue"
         )
+        if not args.output:
+            print(
+                f"\nNote: job stdout will land in $HOME (slurm-{job.group(1)}.out) --\n"
+                "sbatch's default cwd. For jobs that write real output, pass\n"
+                "--output '<flash-scratch-path>/%x-%j.out' to keep IO off home."
+            )
         return 0
 
     except oc.OrcdError as exc:

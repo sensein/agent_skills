@@ -142,7 +142,23 @@ def run_remote(
 
 
 def scp_to(local: str, remote_path: str, host: str = DEFAULT_HOST, timeout: int = 120) -> None:
-    """Copy a local file to the cluster over the same multiplexed connection."""
+    """Copy a local file to the cluster over the same multiplexed connection.
+
+    Prefer a *relative* ``remote_path`` (``.orcd-jobs/foo.sh``): modern scp
+    speaks SFTP, which never passes the remote path through a shell, so
+    ``$HOME/...`` arrives as a literal directory named ``$HOME`` and fails.
+    Relative paths need no expansion at all -- both SFTP and legacy scp resolve
+    them against the login home directory. A leading ``~/`` is normalised here
+    to relative for the same reason, rather than trusting the expand-path
+    extension to exist on both ends.
+    """
+    if remote_path.startswith("~/"):
+        remote_path = remote_path[2:]
+    if "$" in remote_path:
+        raise OrcdError(
+            f"refusing remote path {remote_path!r}: scp's SFTP mode does not "
+            "expand shell variables; use a relative path instead"
+        )
     proc = subprocess.run(
         ["scp", *SSH_OPTS, local, f"{host}:{remote_path}"],
         capture_output=True,

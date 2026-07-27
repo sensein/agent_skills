@@ -212,6 +212,13 @@ changes start time from minutes to days, and it is one flag.
 Always set `--mem` explicitly. The cluster default is `DefMemPerCPU=1000`, so a
 4-CPU job silently gets 4 GB and dies part-way through anything real.
 
+Point job output off `$HOME` too: `sbatch` runs the job with its working
+directory set to the submission directory -- `$HOME` when submitting through
+this skill -- so the default `slurm-<jobid>.out` lands on the slowest tier.
+Harmless for a smoke test, wrong for anything that writes real output: pass
+`--output '<flash-scratch-path>/%x-%j.out'` (the submit script prints this
+reminder whenever `--output` is not set).
+
 ### Job-count and array limits
 
 Three ceilings stack and the smallest wins: the **association `MaxSubmit`** (one
