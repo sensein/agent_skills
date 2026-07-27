@@ -5,7 +5,7 @@ This document explains the tiers and how to use them well.
 
 ## Start with your own quota report
 
-ORCD writes a per-user quota report to `~/orcd/.quota` and refreshes it daily.
+ORCD writes a per-user quota report to `~/orcd/.quota`, regenerated roughly every 30 minutes (observed).
 It is the authoritative source, and the only place the per-user scratch and pool
 limits appear at all -- `df` reports the size of the whole shared filesystem, not
 your quota, so it will happily tell you there are 270 TB free in a space you can

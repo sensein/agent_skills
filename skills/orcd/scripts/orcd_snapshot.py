@@ -92,7 +92,7 @@ echo "@@NODESHAPES"
 sinfo -h -N -o "%c|%m|%G" 2>/dev/null | sort | uniq -c | awk '{print $2"|"$1}'
 
 echo "@@QUOTA"
-# ORCD's daily per-user quota report. The only place the per-user scratch and
+# ORCD's per-user quota report, regenerated roughly every 30 minutes. The only place the per-user scratch and
 # pool limits appear -- df reports the whole filesystem, not the quota.
 [ -r "$HOME/orcd/.quota" ] && cat "$HOME/orcd/.quota"
 
@@ -357,7 +357,7 @@ def print_summary(snap: dict) -> None:
     oc.table(rowsout, ["PARTITION", "MAXTIME", "NODES", "GPUS", "PREEMPT", "TIER", "MAXSUBMIT"])
 
     if snap.get("quota"):
-        oc.heading("Your quotas (ORCD refreshes ~/orcd/.quota daily)")
+        oc.heading("Your quotas (~/orcd/.quota, regenerated roughly every 30 min)")
         oc.table(
             [[q["space"], f"{q['used_gb']} / {q['limit_gb']} GB",
               f"{q['files']} / {q['file_limit']}"] for q in snap["quota"]],

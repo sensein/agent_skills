@@ -164,7 +164,7 @@ constructing paths:
 SCRATCH=$(readlink -f ~/orcd/scratch)
 ```
 
-ORCD refreshes a quota report at `~/orcd/.quota` daily, and it is the only place
+ORCD regenerates a quota report at `~/orcd/.quota` roughly every 30 minutes, and it is the only place
 these limits are visible -- `df` shows the whole shared filesystem, so it will
 report hundreds of free TB in a space you can put 1 TB into. Read it via
 `orcd_storage.py`.
@@ -192,6 +192,29 @@ Two traps worth knowing before writing any script:
 
 [references/storage.md](references/storage.md) has measured throughput per tier
 and the stage-in/stage-out pattern for jobs that do heavy small-file IO.
+
+## Group layer: sensein conventions
+
+On top of the generic discovery sits a group-specific layer,
+[references/sensein.md](references/sensein.md), with a machine-readable twin at
+[assets/sensein.json](assets/sensein.json) that `orcd_storage.py` loads
+automatically (another group can substitute its own via `--group-config` or
+`ORCD_GROUP_CONFIG`). It covers three things the cluster cannot tell you:
+
+- **Which data trees are ours and what they are for** -- `/orcd/data/satra`
+  (lab-wide), `/orcd/data/dandi`, `/orcd/data/linc`, plus the projects that
+  grant subtrees instead of whole filesystems (abcd, sails, kiva).
+- **How access is actually granted**: WebMoira groups managed by the sensein
+  admin team, not orcd-help. `orcd_storage.py` prints which projects your Unix
+  groups already cover and the exact WebMoira list to ask about for the rest.
+- **Consolidation conventions**, so twenty people do not hold twenty copies of
+  the same model: one shared `HF_HOME` and `models/` tree, shared `datasets/`,
+  per-project dirs, and per-user dirs under `users/`.
+
+One rule from that file worth repeating here: **anything written down for the
+group uses symlink forms** (`~/orcd/scratch`, resolved at runtime with
+`readlink -f`), never a resolved `/orcd/scratch/orcd/<NNN>/<user>` path --
+those shard numbers are per-person and wrong for everyone else.
 
 ## Submitting and tracking work
 

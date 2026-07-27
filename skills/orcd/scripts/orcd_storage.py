@@ -26,8 +26,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+from pathlib import Path
 
 import orcd_common as oc
 
@@ -46,9 +48,9 @@ printf "user|%s\n" "$(whoami)"
 printf "home|%s\n" "$HOME"
 
 echo "@@QUOTA"
-# ORCD refreshes a per-user quota report daily. It is the only place the
-# per-user scratch and pool limits appear -- df shows the whole filesystem,
-# not the quota, so it is useless for those.
+# ORCD regenerates a per-user quota report roughly every 30 minutes. It is the
+# only place the per-user scratch and pool limits appear -- df shows the whole
+# filesystem, not the quota, so it is useless for those.
 [ -r "$HOME/orcd/.quota" ] && cat "$HOME/orcd/.quota"
 
 echo "@@HOMELINKS"
@@ -168,6 +170,84 @@ def parse_quota(lines: list[str]) -> list[dict[str, str]]:
     return out
 
 
+def load_group_config(explicit: str | None) -> dict | None:
+    """Load the optional group-conventions file.
+
+    Precedence: --group-config flag, then $ORCD_GROUP_CONFIG, then the file
+    shipped with this skill (assets/sensein.json). The script is fully
+    functional without one -- the config only adds group annotations, so other
+    groups can drop in their own file without touching the code.
+    """
+    candidates = [
+        explicit,
+        os.environ.get("ORCD_GROUP_CONFIG"),
+        str(Path(__file__).resolve().parent.parent / "assets" / "sensein.json"),
+    ]
+    for cand in candidates:
+        if not cand:
+            continue
+        p = Path(cand)
+        if p.is_file():
+            try:
+                return json.loads(p.read_text())
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"warning: could not read group config {p}: {exc}", file=sys.stderr)
+                return None
+    return None
+
+
+def report_group_access(cfg: dict, groups: list[str]) -> None:
+    """Compare configured project entitlements against the user's real groups.
+
+    Membership is managed in WebMoira by the group's admins -- it is an admin
+    action, not something orcd-help or a script can grant -- so the actionable
+    output for a missing project is the WebMoira list to ask about.
+    """
+    have_rows, missing_rows = [], []
+    gset = set(groups)
+    base = cfg.get("webmoira_base", "https://groups.mit.edu/webmoira/list/")
+    for proj in cfg.get("projects", []):
+        member = any(g in gset for g in proj.get("unix_groups", []))
+        data = ", ".join(proj.get("data", [])) or "(subtrees in shared filesystems)"
+        if member:
+            have_rows.append([proj["name"], data])
+        else:
+            wm = ", ".join(f"{base}{w}" for w in proj.get("webmoira", []))
+            missing_rows.append([proj["name"], wm])
+
+    oc.heading(f"Project access ({cfg.get('group', 'group')} config)")
+    if have_rows:
+        print("You are in the groups for:")
+        oc.table(have_rows, ["PROJECT", "DATA"])
+    if missing_rows:
+        print("\nNot yet granted -- membership is a WebMoira admin action:")
+        oc.table(missing_rows, ["PROJECT", "ASK ABOUT (WebMoira)"])
+        print(f"\n{cfg.get('contact', 'ask your group admin')}")
+
+
+def print_conventions(cfg: dict) -> None:
+    conv = cfg.get("conventions") or {}
+    if not conv:
+        return
+    print(
+        "\nGroup conventions (consolidate -- check before downloading anything large):"
+    )
+    labels = {
+        "hf_home": "Hugging Face cache (export HF_HOME=...)",
+        "models": "shared model weights",
+        "datasets": "shared datasets",
+        "projects": "project trees",
+        "user_dirs": "personal lab space",
+        "personal_scratch": "personal flash scratch (1 TB)",
+        "personal_pool": "personal capacity space (1 TB)",
+    }
+    for key, label in labels.items():
+        if key in conv:
+            print(f"  {conv[key]:<44} {label}")
+    print("  Use symlink forms (~/orcd/...) in anything shared -- resolved shard")
+    print("  paths are only correct for the person who resolved them.")
+
+
 def candidate_paths(groups: list[str], mounts: list[list[str]], pidirs: list[list[str]], home: str) -> list[str]:
     """Build the list of paths worth probing for this specific user.
 
@@ -225,7 +305,9 @@ def main() -> int:
     ap.add_argument("--host", default=oc.DEFAULT_HOST)
     ap.add_argument("--setup", action="store_true", help="create your per-user directory in each writable tier")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--group-config", help="group conventions JSON (default: $ORCD_GROUP_CONFIG, then the skill's assets/sensein.json)")
     args = ap.parse_args()
+    group_cfg = load_group_config(args.group_config)
 
     try:
         raw = oc.run_remote(REMOTE, host=args.host, timeout=180)
@@ -308,15 +390,23 @@ def main() -> int:
             print("\nThese directories are setgid, so files you create there stay group-readable.")
 
     if args.json:
-        print(json.dumps({
+        payload = {
             "user": user, "groups": groups, "storage": entries,
             "quota": quota,
             "personal_spaces": [{"name": n, "link": l, "target": t} for n, l, t in homelinks],
-        }, indent=2))
+        }
+        if group_cfg:
+            gset = set(groups)
+            payload["project_access"] = {
+                p["name"]: any(g in gset for g in p.get("unix_groups", []))
+                for p in group_cfg.get("projects", [])
+            }
+            payload["group_conventions"] = group_cfg.get("conventions", {})
+        print(json.dumps(payload, indent=2))
         return 0
 
     if quota:
-        oc.heading("Your quotas (from ~/orcd/.quota, refreshed daily by ORCD)")
+        oc.heading("Your quotas (from ~/orcd/.quota, regenerated roughly every 30 min)")
         oc.table(
             [[q["space"], f"{q['used_gb']} / {q['limit_gb']}", q["pct_space"] + "%",
               f"{q['files']} / {q['file_limit']}", q["pct_files"] + "%"] for q in quota],
@@ -362,19 +452,54 @@ def main() -> int:
         "tier: fstor = flash, hstor = capacity disk, core = archive."
     )
 
+    if group_cfg:
+        report_group_access(group_cfg, groups)
+
     oc.heading("Where to put what")
     flash = [e for e in entries if e["tier"] == "flash" and e["writable"]]
     capacity = [e for e in entries if e["tier"] == "capacity" and e["writable"]]
+
+    # Personal spaces are shown by their symlink name: the symlink form is the
+    # one that is valid for every group member, and blindly appending the
+    # username here once produced a doubled ".../satra/satra" path. Their free
+    # space comes from the quota report, not df -- df sees the whole shard and
+    # once claimed 269T free in a space capped at 1T.
+    symlink_of = {t: n for n, _l, t in homelinks if t}
+    quota_free = {}
+    for q in quota:
+        try:
+            free_gb = float(q["limit_gb"]) - float(q["used_gb"])
+        except ValueError:
+            continue
+        quota_free[q["space"].lower()] = (
+            f"{free_gb / 1024:.1f}T" if free_gb >= 1024 else f"{free_gb:.0f}G"
+        ) + f" of {float(q['limit_gb']) / 1024:.0f}T quota"
+
+    def display(e: dict) -> tuple[str, str]:
+        path = e["path"]
+        if path in symlink_of:
+            name = symlink_of[path]
+            return f"~/orcd/{name}", quota_free.get(name, e["avail"] + " on shard")
+        if path.rstrip("/").endswith(f"/{user}"):
+            return path, e["avail"]
+        return f"{path}/{user}", e["avail"]
 
     if flash:
         print("Active job IO -- checkpoints, intermediates, datasets being read hot:")
         for e in flash:
             flag = "NOT backed up" if e["no_backup_marker"] else "backup unconfirmed"
-            print(f"  {e['path']}/{user:<28} {e['avail']:>6} free, {flag}")
+            shown, avail = display(e)
+            print(f"  {shown:<44} {avail:>18} free, {flag}")
     if capacity:
         print("\nDatasets and results worth keeping (backed up, slower):")
         for e in capacity:
-            print(f"  {e['path']:<44} {e['avail']:>6} free")
+            path = e["path"]
+            if path in symlink_of:
+                name = symlink_of[path]
+                shown, avail = f"~/orcd/{name}", quota_free.get(name, e["avail"])
+            else:
+                shown, avail = path, e["avail"]
+            print(f"  {shown:<44} {avail:>18} free")
     print(
         f"\nCode and small config:\n"
         f"  {home:<44} backed up, but the slowest metadata of\n"
@@ -385,6 +510,8 @@ def main() -> int:
         "  you requested.\n"
         "\nSee references/storage.md for measured throughput and the staging pattern."
     )
+    if group_cfg:
+        print_conventions(group_cfg)
     return 0
 
 

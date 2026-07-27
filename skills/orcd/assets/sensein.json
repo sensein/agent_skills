@@ -1,0 +1,58 @@
+{
+  "group": "sensein",
+  "contact": "a sensein admin team member adjusts access in WebMoira; changes propagate to the cluster with some delay",
+  "webmoira_base": "https://groups.mit.edu/webmoira/list/",
+  "projects": [
+    {
+      "name": "satra-lab",
+      "purpose": "lab-wide storage: per-user dirs, shared models and HF cache, datasets, projects",
+      "data": ["/orcd/data/satra/001", "/orcd/data/satra/002"],
+      "unix_groups": ["orcd_rg_hstor006_pi_satra", "orcd_rg_hstor004_pi_satra"],
+      "webmoira": ["orcd_ug_pi_satra_all"]
+    },
+    {
+      "name": "dandi",
+      "purpose": "DANDI project (archive mirrors, dandi-compute, environments)",
+      "data": ["/orcd/data/dandi/001", "/orcd/data/dandi/002"],
+      "unix_groups": ["orcd_rg_hstor004_pg_dandi"],
+      "webmoira": ["orcd_ug_pg_dandi_all", "orcd_ug_pg_dandi_mgrs"]
+    },
+    {
+      "name": "linc",
+      "purpose": "LINC project (per-member and shared imaging trees)",
+      "data": ["/orcd/data/linc/001"],
+      "unix_groups": ["orcd_rg_hstor004_pg_linc"],
+      "webmoira": ["orcd_ug_pg_linc_all", "orcd_ug_pg_linc_mgrs"]
+    },
+    {
+      "name": "abcd",
+      "purpose": "ABCD project; no dedicated /orcd/data tree -- grants subtrees inside shared capacity (hstor004) and bcs flash scratch (fstor003)",
+      "data": [],
+      "unix_groups": ["orcd_rg_hstor004_pg_abcd", "orcd_rg_fstor003_pg_abcd"],
+      "webmoira": ["orcd_ug_pg_abcd_all"]
+    },
+    {
+      "name": "sails",
+      "purpose": "SAILS project; no dedicated /orcd/data tree -- grants subtrees inside shared capacity (hstor004) and bcs flash scratch (fstor002)",
+      "data": [],
+      "unix_groups": ["orcd_rg_hstor004_pg_sails", "orcd_rg_fstor002_pg_sails"],
+      "webmoira": ["orcd_ug_pg_sails_all"]
+    },
+    {
+      "name": "kiva",
+      "purpose": "KIVA project; no dedicated /orcd/data tree -- grants subtrees inside shared capacity (hstor004)",
+      "data": [],
+      "unix_groups": ["orcd_rg_hstor004_pg_kiva"],
+      "webmoira": ["orcd_ug_pg_kiva_all"]
+    }
+  ],
+  "conventions": {
+    "personal_scratch": "~/orcd/scratch",
+    "personal_pool": "~/orcd/pool",
+    "user_dirs": "/orcd/data/satra/001/users/<username>",
+    "hf_home": "/orcd/data/satra/002/huggingface",
+    "models": "/orcd/data/satra/002/models",
+    "datasets": "/orcd/data/satra/002/datasets",
+    "projects": "/orcd/data/satra/002/projects/<project>"
+  }
+}
