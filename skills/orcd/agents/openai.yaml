@@ -1,0 +1,7 @@
+interface:
+  display_name: "MIT ORCD Remote Execution"
+  short_description: "Run work on MIT's ORCD/Engaging Slurm cluster over key-based SSH"
+  default_prompt: "Use $orcd to reach MIT ORCD: verify SSH access and guide setup if needed, discover which Slurm partitions, GPU models, and storage tiers I am actually entitled to, and submit work with job IO on the fast bcs flash scratch."
+
+policy:
+  allow_implicit_invocation: true
