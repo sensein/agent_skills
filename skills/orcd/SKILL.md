@@ -1,6 +1,6 @@
 ---
 name: orcd
-description: Use MIT ORCD (Engaging) as a remote execution environment from Claude Code, Cowork, or Science - set up key-based SSH through the OnDemand portal, discover which Slurm partitions, GPU models, and storage tiers the current user is actually entitled to rather than assuming, place job IO on the fast bcs flash scratch, and submit and track work.
+description: Use MIT ORCD (Engaging, orcd-login.mit.edu, eofe7) as a remote execution environment. Use this skill whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, running or training on cluster GPUs (H100/H200/A100/L40S), cluster scratch or storage or quotas, ssh problems reaching orcd-login, or asks to run anything too big for a laptop - even if they never name ORCD explicitly. Sets up key-based SSH through the OnDemand portal, discovers which partitions, GPU models, and storage tiers this user is actually entitled to rather than assuming, places job IO on flash scratch, submits and tracks jobs, and diffs cluster config over time.
 ---
 
 # MIT ORCD Remote Execution
@@ -21,25 +21,29 @@ hours each time:
 3. **The storage tiers differ by more than 10x in speed**, and the slowest one
    (`$HOME`) is the default working directory.
 4. **The configuration changes underneath you.** Partitions are retired, QOS
-   ceilings retuned, GPU models swapped. `orcd_snapshot.py` captures the whole
-   configuration and diffs it against a saved baseline, so drift is something you
-   read rather than something that surprises a job script. It diffs
-   configuration, not state: mount tables and quota *usage* are recorded but
-   excluded, because `/orcd` is autofs and mounts materialise on demand per login
-   node — diffing them produced 434 phantom "removed" lines in testing. Quota
-   *limits* are configuration and are still compared, with a 1% tolerance so
-   rounding jitter in ORCD's own report does not register as change.
+   ceilings retuned, GPU models swapped. `orcd_snapshot.py` captures the
+   configuration and diffs it against a saved baseline, so drift is something
+   you read rather than something that surprises a job script.
 
 Everything below is discovered at runtime by the scripts. The concrete numbers
 quoted in `references/` are illustrative snapshots from one account, not
 constants -- always trust the script output over the docs.
 
+When reporting results to a person, lead with the decision -- what to run,
+where, and when it would start -- in a few sentences, and keep the full
+partition tables and command evidence below that. The discovery scripts produce
+a lot of detail; the reader asked a question, not for a survey.
+
 ## Start here, every session
 
 ```bash
-cd skills/orcd/scripts
+cd "$(dirname "$(find ~/.claude/skills/orcd ~/.agents/skills/orcd . -name orcd_doctor.py 2>/dev/null | head -1)")"
 python3 orcd_doctor.py          # is access working? if not, exactly what to fix
 ```
+
+(Or simply `cd` to this skill's own `scripts/` directory, wherever it is
+installed -- the paths above cover the common install locations and a checkout
+of the skills repository.)
 
 `orcd_doctor.py` walks the preconditions in dependency order and stops at the
 first broken one. When SSH is not yet set up it prints the full portal
@@ -62,10 +66,13 @@ python3 orcd_snapshot.py --diff           # exit 2 if the cluster changed
 
 ## How the connection works
 
-ORCD's sshd requires `publickey` **and** `keyboard-interactive`. The key alone
-leaves the session in "partial success"; Duo then answers the second stage,
-usually with **zero prompts**, because a recent sign-in at
-<https://orcd-ood.mit.edu/> established device trust.
+ORCD's sshd requires `publickey` **and** `keyboard-interactive`. The useful
+mental model: **authenticate on the web first, and SSH behaves like plain
+single-factor key auth.** A sign-in at <https://orcd-ood.mit.edu/> establishes
+Duo device trust, and while that trust holds, the keyboard-interactive stage
+answers itself with zero prompts. Only when the web authorization lapses does
+SSH become true two-factor -- a real Duo prompt appears, and every
+non-interactive call fails until someone answers one.
 
 Two consequences matter:
 
@@ -113,9 +120,12 @@ attaches automatically. `orcd_resources.py` resolves both by asking the
 scheduler:
 
 - `scontrol show partition` lists every partition and its gates.
-- `sbatch --test-only` is the authoritative yes/no. It queues nothing, and it
-  also reports **when the request would start** -- the single most useful number
-  for choosing where to send work.
+- `sbatch --test-only` is the authoritative yes/no on *access*. It queues
+  nothing, and it also reports **when the request would start** -- the single
+  most useful number for choosing where to send work. One blind spot: it does
+  **not** check QOS TRES ceilings, so it will report an immediate start for a
+  request that a `GrpTRES` group pool can never admit. `orcd_submit.py --plan`
+  cross-checks the ceilings and marks such rows `EXCEEDS`.
 - `sacctmgr show qos` gives the ceilings that will bind, distinguishing
   `MaxTRESPU` (yours alone) from `GrpTRES` (**one pool shared with the whole
   group**, so a colleague's job can block yours).
@@ -152,6 +162,19 @@ ORCD encodes storage entitlement in group names of the form
 So a user's group list plus the mount table is enough to derive what is
 reachable and what is worth using. `orcd_storage.py` does exactly that, and
 `--setup` creates the per-user directories that do not exist yet.
+
+**Assume only `$HOME` is backed up.** It has snapshots; treat every other tier
+-- scratch, pool, capacity, group trees -- as unprotected unless ORCD confirms
+otherwise in writing. The `__STORAGE_WITHOUT_BACKUP__` sentinel marks some
+unprotected trees, but its absence proves nothing. Anything irreplaceable needs
+an explicit archive plan, not an assumption about the tier it sits on.
+
+**Before recommending where data should go, ask what it looks like.** A "300 GB
+dataset" does not determine an answer: 300 GB as three hundred 1 GB shards and
+300 GB as a million 300 KB clips have opposite constraints (streaming throughput
+vs the 1 M inode cap), and read-once staging differs from every-epoch random
+access. When the file count and access pattern are not stated, ask -- or give a
+short branch table rather than one answer built on silent assumptions.
 
 **Every user also gets personal space inside their home directory**, separate
 from any group allocation: `~/orcd/scratch` is 1 TB of flash and `~/orcd/pool` is
@@ -256,6 +279,23 @@ tasks, not submitted ones. Measured by bisection, the largest accepted array is
 `MaxSubmitPU + 1`. Split bigger sweeps into consecutive arrays, or give each task
 more work to do. `orcd_snapshot.py` prints the derived cap per partition.
 
+### Multi-GPU: within one node or across nodes
+
+The request shape matters as much as the count. GPUs on one node talk over
+NVLink/PCIe; GPUs on different nodes talk over the network -- a large bandwidth
+and latency gap, and cross-node training needs a distributed launcher besides.
+Nodes here carry 4 or 8 GPUs, so up to 8 can be had within a single chassis:
+
+```bash
+-N 1 --gres=gpu:h100:4      # four GPUs on ONE node -- what most training wants
+-N 2 --gres=gpu:h100:4      # four PER NODE, eight total, cross-node
+```
+
+Availability differs too: one node with 4 free GPUs is scarcer than 4 free GPUs
+scattered across a partition, so a `-N 1` multi-GPU request can queue longer
+than the same count spread out. `--plan` reflects this -- compare both shapes
+before committing. See [references/slurm.md](references/slurm.md).
+
 ### Preemptable partitions are extra capacity
 
 `mit_preemptable` spans nearly the whole cluster — an order of magnitude more
@@ -279,6 +319,8 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `Permission denied (keyboard-interactive)` | `BatchMode=yes`, or Duo trust lapsed | Remove `BatchMode`; sign in at the portal again |
+| Duo suddenly prompts on every ssh | web authorization expired | Sign in at <https://orcd-ood.mit.edu/> once; ssh goes silent again |
+| Locked out entirely | 10 failed Duo attempts locks the account for 90 min | Stop retrying -- close VS Code Remote-SSH, whose auto-reconnect resets the timer |
 | `Invalid qos specification` | passed `--qos` | Drop the flag; pick the partition instead |
 | `Requested node configuration is not available` | GPU model absent from that partition | Check `orcd_resources.py --gpus` for models per partition |
 | Job killed part-way, no clear error | hit the 1 GB/CPU memory default | Set `--mem` explicitly |
@@ -289,10 +331,6 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | `QOSMaxSubmitJobPerUserLimit` | array bigger than `MaxSubmitPU`; `%K` does not help | Split into arrays of `MaxSubmitPU + 1` or fewer |
 | Disk full, but quota looks fine | hit the 1 M inode limit | Check the file columns in `orcd_storage.py` |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
-
-Preemptable partitions (`mit_preemptable`, `ou_bcs_low`) trade priority for
-capacity. They are the right choice for checkpointed or idempotent work and the
-wrong one for a long job that cannot resume.
 
 ## Scripts
 

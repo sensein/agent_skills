@@ -65,6 +65,62 @@ def build_flags(args: argparse.Namespace, partition: str) -> list[str]:
     return flags
 
 
+def qos_gpu_ceilings(args: argparse.Namespace) -> dict[str, dict[str, dict[str, int]]]:
+    """Map partition -> {'user': {...}, 'group': {...}} GPU ceilings from its QOS.
+
+    ``sbatch --test-only`` validates scheduling feasibility but does NOT check
+    QOS TRES ceilings -- it happily reports an immediate start for a request the
+    GrpTRES group pool can never admit. Cross-checking here is what turns the
+    plan from plausible into honest.
+    """
+    script = r'''
+set +e
+echo "@@QOSMAP"
+scontrol show partition -o 2>/dev/null | while read -r line; do
+  name=$(echo "$line" | sed -E 's/^PartitionName=([^ ]+).*/\1/')
+  qos=$(echo "$line" | grep -oE '(^| )QoS=[^ ]*' | head -1 | cut -d= -f2)
+  printf "%s|%s\n" "$name" "$qos"
+done
+echo "@@QOS"
+sacctmgr -nP show qos format=Name,MaxTRESPU,GrpTRES 2>/dev/null
+'''
+    out = oc.run_remote(script, host=args.host, timeout=60, check=False)
+    blocks = oc.parse_kv_blocks(out)
+    qos_of = {}
+    for line in blocks.get("QOSMAP", []):
+        f = line.split("|")
+        if len(f) == 2 and f[0].strip():
+            qos_of[f[0].strip()] = f[1].strip()
+
+    def gpus_in(tres: str) -> dict[str, int]:
+        found = {m.group(1): int(m.group(2))
+                 for m in re.finditer(r"gres/gpu:([a-z0-9_]+)=(\d+)", tres)}
+        bare = re.search(r"gres/gpu=(\d+)", tres)
+        if bare:
+            found["_any"] = int(bare.group(1))
+        return found
+
+    limits = {}
+    for line in blocks.get("QOS", []):
+        f = line.split("|")
+        if len(f) >= 3 and f[0].strip():
+            limits[f[0].strip()] = {"user": gpus_in(f[1]), "group": gpus_in(f[2])}
+    return {p: limits.get(q, {"user": {}, "group": {}}) for p, q in qos_of.items()}
+
+
+def gpu_ceiling_note(args: argparse.Namespace, ceilings: dict[str, dict[str, int]]) -> str:
+    """One-line warning when the request exceeds a QOS GPU ceiling."""
+    total = args.gpus * max(args.nodes, 1)
+    for scope, label in (("group", "GROUP pool (GrpTRES"), ("user", "your per-user cap (MaxTRESPU")):
+        lim = ceilings.get(scope, {})
+        for key in ((args.gpu_type,) if args.gpu_type else ()) + ("_any",):
+            cap = lim.get(key)
+            if cap is not None and total > cap:
+                shown = "gpu" if key == "_any" else f"gpu:{key}"
+                return f"EXCEEDS {label} {shown}={cap}) -- would queue forever"
+    return ""
+
+
 def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
     """Ask the scheduler what each partition would do with this exact request."""
     lines = ["set +e"]
@@ -75,6 +131,7 @@ def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
             f'if [ $? -eq 0 ]; then echo "{p}|OK|$out"; else echo "{p}|NO|$(echo "$out" | head -1 | sed "s/.*error: //")"; fi'
         )
     out = oc.run_remote("\n".join(lines), host=args.host, timeout=240, check=False)
+    ceilings = qos_gpu_ceilings(args) if args.gpus else {}
 
     rows = []
     for line in out.splitlines():
@@ -85,7 +142,8 @@ def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
         if ok == "OK":
             when = re.search(r"\d{4}-\d{2}-\d{2}T[\d:]+", detail)
             node = re.search(r"on nodes? (\S+)", detail)
-            rows.append([part, "yes", when.group(0) if when else "?", node.group(1) if node else "?", ""])
+            note = gpu_ceiling_note(args, ceilings.get(part, {})) if args.gpus else ""
+            rows.append([part, "yes", when.group(0) if when else "?", node.group(1) if node else "?", note])
         else:
             rows.append([part, "no", "-", "-", detail[:58]])
     return rows
@@ -153,11 +211,19 @@ def main() -> int:
                     partitions = filtered
 
         rows = plan(args, partitions)
-        viable = [r for r in rows if r[1] == "yes"]
+        # A row the scheduler accepts but a QOS GPU ceiling can never admit is
+        # not viable -- it would sit in the queue indefinitely.
+        viable = [r for r in rows if r[1] == "yes" and not r[4].startswith("EXCEEDS")]
         rows.sort(key=lambda r: (r[1] != "yes", r[2]))
 
         oc.heading("Where this request would land")
-        oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "REASON IF REFUSED"])
+        oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "NOTE"])
+        if any(r[4].startswith("EXCEEDS") for r in rows):
+            print(
+                "\nEXCEEDS rows: sbatch --test-only validates scheduling, not QOS TRES\n"
+                "ceilings, so it reports a start time for requests the partition's QOS\n"
+                "can never admit. Those partitions are excluded from auto-selection."
+            )
 
         if not viable:
             print(

@@ -100,7 +100,14 @@ Authenticated to orcd-login.mit.edu using "keyboard-interactive".
 `num_prompts 0` is Duo waving the session through on established device trust.
 Nothing is typed, but it is still a keyboard-interactive exchange.
 
-**Therefore: never set `BatchMode=yes` for this host.** BatchMode disables
+The mental model worth keeping: **web first, then SSH is effectively
+single-factor.** While a sign-in at the OnDemand portal holds, the second stage
+answers itself and SSH feels like plain key auth. When that web authorization
+expires, SSH reverts to true two-factor -- a real prompt appears, and anything
+non-interactive fails until a human answers one. So the first move on any 2FA
+symptom is a browser visit to <https://orcd-ood.mit.edu/>, not key surgery.
+
+**And never set `BatchMode=yes` for this host.** BatchMode disables
 keyboard-interactive on the client, so the second stage cannot happen and the
 connection fails with:
 
@@ -111,6 +118,30 @@ Permission denied (keyboard-interactive).
 That message reads like a rejected key, which sends people off replacing keys
 that were never broken. The tell is `Server accepts key` followed by
 `partial success` earlier in the `-vv` output: the key worked.
+
+Distinguishing the two causes from `-vv` output, after the `partial success`
+line (both print `Authentications that can continue: keyboard-interactive`, so
+that line alone distinguishes nothing):
+
+- **BatchMode (or `KbdInteractiveAuthentication no`)**: the client immediately
+  reports `No more authentication methods to try` and fails. No prompt is ever
+  attempted -- the client refused the method.
+- **Lapsed Duo trust**: the keyboard-interactive exchange starts and a real
+  prompt appears (or, in a non-interactive context, the session hangs until it
+  times out).
+
+Check the effective client config with `ssh -G orcd-login.mit.edu | grep -iE
+'batchmode|kbdinteractive|preferredauthentications'` -- `-G` merges every config
+source, which is exactly what eye-reading a config file misses.
+
+## Duo lockout
+
+Ten failed Duo attempts disable the account, and the lock clears automatically
+after 90 minutes. The trap is software that retries on its own: a VS Code
+Remote-SSH window left open keeps reconnecting in the background, each attempt
+fails the second factor, and the lockout timer resets forever. If Duo prompts
+have started failing repeatedly: stop, close anything that auto-reconnects,
+sign in at the portal once, and only then try SSH again.
 
 To keep automation non-interactive without BatchMode, open one master connection
 and let everything else reuse it. That is what `orcd_common.py` does.

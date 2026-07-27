@@ -149,8 +149,11 @@ may simply be unmarked. `orcd_storage.py` reports `unmarked` rather than
 claiming a tree is backed up. Confirm with ORCD before trusting anything here to
 be recoverable.
 
-Treat scratch as reproducible-only. Anything whose loss would hurt belongs on
-the capacity tier, which is also where quota and retention policy actually live.
+The working assumption for the group: **only `$HOME` is backed up** (snapshots).
+Scratch, pool, capacity, and group trees should all be treated as unprotected --
+the capacity tier is larger and longer-lived, not safer. Anything irreplaceable
+needs an explicit archive plan (the archive tier, or an external copy), not an
+assumption about the tier it happens to sit on.
 
 ## The staging pattern
 
@@ -175,6 +178,14 @@ python train.py --data "$WORK" --out "$WORK/out"
 # Stage out only what is worth keeping
 rsync -a "$WORK/out/" "$SCRATCH/runs/$SLURM_JOB_ID/"
 ```
+
+What to ask before placing a dataset -- size alone decides nothing. 300 GB as
+three hundred 1 GB shards wants streaming throughput; 300 GB as a million
+300 KB clips collides with the 1 M inode cap long before the byte quota; a
+read-once corpus and an every-epoch random-access set want different tiers
+entirely. When the file count and access pattern are unknown, ask the person
+(or branch the answer explicitly) rather than building one recommendation on
+silent assumptions.
 
 Guidance by workload:
 

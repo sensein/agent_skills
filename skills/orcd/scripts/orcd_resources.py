@@ -161,8 +161,15 @@ def parse_idle(lines: list[str]) -> dict[str, dict[str, int]]:
         part, _node, state, gres, used = (x.strip() for x in f[:5])
         if not part:
             continue
-        # Only nodes that can actually accept work.
+        # Only nodes that can actually accept work. The suffix flags matter as
+        # much as the base state: `mixed-` is PLANNED, meaning the backfill
+        # scheduler has already earmarked the node's free GPUs for a queued job,
+        # so counting them overstates availability (observed as 8 "free" vs 7
+        # genuinely usable). * unresponsive, ~ powered down, # powering up,
+        # % powering down, $ maintenance, @ reboot pending.
         if not any(s in state for s in ("idle", "mixed", "allocated")):
+            continue
+        if any(c in state for c in "*~#%-$@"):
             continue
         conf = {m.group(1): int(m.group(2)) for m in gres_re.finditer(gres)}
         inuse = {m.group(1): int(m.group(2)) for m in gres_re.finditer(used)}

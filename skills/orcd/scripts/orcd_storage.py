@@ -35,7 +35,7 @@ import orcd_common as oc
 
 TIER_OF_SERVER = [
     (re.compile(r"^fstor"), "flash", "NFS over RDMA; best for active job IO"),
-    (re.compile(r"^hstor"), "capacity", "spinning disk; bulk storage, backed up"),
+    (re.compile(r"^hstor"), "capacity", "spinning disk; bulk storage; assume NOT backed up"),
     (re.compile(r"^core"), "archive", "archive tier; retrieval is slow"),
     (re.compile(r"^nfs"), "home", "shared home; small quota, backed up, slow metadata"),
     (re.compile(r"^eofe"), "capacity", "legacy capacity store"),
@@ -509,7 +509,8 @@ def main() -> int:
             shown, avail = display(e)
             print(f"  {shown:<44} {avail:>18} free, {flag}")
     if capacity:
-        print("\nDatasets and results worth keeping (backed up, slower):")
+        print("\nDatasets and results worth keeping (capacity tier -- larger, slower,")
+        print("and like everything except $HOME: assume NOT backed up):")
         for e in capacity:
             path = e["path"]
             if path in symlink_of:

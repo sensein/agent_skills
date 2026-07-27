@@ -32,6 +32,14 @@ sbatch: Job 18845606 to start at 2026-07-25T09:45:29 using 2 processors on nodes
 request. Use it before any long job -- the same request can start in one minute
 in a private partition and three days later in a shared one.
 
+One blind spot, found the hard way: `--test-only` validates *scheduling*, not
+QOS TRES ceilings. It happily reports an immediate start for 4x H100 in a
+partition whose `GrpTRES` caps the whole group at 2 -- a request that would sit
+in the queue forever. `--plan` therefore cross-checks each viable partition's
+QOS ceilings (both `MaxTRESPU` and `GrpTRES`) and marks impossible rows
+`EXCEEDS`, excluding them from auto-selection. When reading raw `--test-only`
+output yourself, apply the same skepticism.
+
 ## Never pass `--qos`
 
 Each partition attaches its own QOS automatically (`scontrol show partition`
@@ -203,6 +211,46 @@ python3 scripts/orcd_resources.py --gpus
 GPU nodes on this cluster are generally fat: commonly 120-256 CPUs and 1-2 TB
 RAM per node with 4-8 GPUs. Request CPUs and memory in proportion to the GPUs
 taken, or the node's remaining GPUs become unusable by anyone else.
+
+### Multi-GPU: node topology matters
+
+GPUs within one node communicate over NVLink/PCIe; GPUs on different nodes
+communicate over the network fabric -- a large gap in both bandwidth and
+latency, and cross-node work additionally needs a distributed launcher
+(torchrun, srun-launched ranks) rather than plain data-parallel on one machine.
+
+```bash
+-N 1 --gres=gpu:h100:4     # 4 GPUs on ONE node: fastest interconnect
+-N 2 --gres=gpu:h100:4     # 4 per node, 8 total: cross-node, fabric-bound
+```
+
+`--gres` counts GPUs **per node**, so the same `--gres` with a different `-N`
+is a different total. Nodes here carry 4 or 8 GPUs (see the node shapes in
+`orcd_resources.py`), which bounds what `-N 1` can ever provide.
+
+Availability runs the other way: one node with 4 simultaneously-free GPUs is
+much scarcer than 4 free GPUs scattered across a partition, so the tightly
+packed shape can queue longer than the spread one. Plan both shapes and compare
+start times before committing to either.
+
+### Reading sinfo node states
+
+`sinfo` appends single-character flags to states, and misreading them leads to
+wrong conclusions about capacity (a `mixed-` node is not draining):
+
+| Suffix | Meaning |
+| --- | --- |
+| `-` | PLANNED -- free resources already earmarked by the backfill scheduler |
+| `*` | not responding |
+| `~` | powered down |
+| `#` | powering up |
+| `%` | powering down |
+| `$` | maintenance reservation |
+| `@` | reboot pending |
+
+A planned (`-`) node's idle GPUs are spoken for: counting them as available
+overstates capacity, which is why `orcd_resources.py --idle` skips flagged
+nodes entirely.
 
 ## Always set memory
 
