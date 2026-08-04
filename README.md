@@ -20,6 +20,7 @@ The list below is kept in alphabetical order by skill name.
 | [`labnb-resume`](./skills/labnb-resume/SKILL.md)             | Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work. |
 | [`labnb-run`](./skills/labnb-run/SKILL.md)                   | Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging. |
 | [`structsense-skills`](./skills/structsense-skills/SKILL.md) | StructSense Skills transforms unstructured text and PDFs into validated, ontology-grounded structured JSON using a model-agnostic extraction pipeline. |
+| [`synthscholar-skills`](./skills/synthscholar-skills/SKILL.md) | Set up, run, and query SynthScholar / PRISMA systematic reviews: guided protocol intake, provenance queries over a finished review (full-text vs abstract-only inclusions, retrieval routes, screening audit trail), and bring-your-own-corpus reviews over PDFs the user supplies — including institutional EZproxy retrieval for paywalled papers — exported as Markdown and SLR-ontology Turtle. |
 
 ## Installing Into An Agent
 
