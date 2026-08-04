@@ -100,13 +100,22 @@ emits each field so it is queryable:
 | `included_with_full_text` / `included_abstract_only` | `slr:included_with_full_text` / `slr:included_abstract_only` |
 | `excluded_reasons_title_abstract` / `excluded_reasons_full_text` | `slr:exclusion_reason_title_abstract` / `slr:exclusion_reason_full_text` → `slr:ExclusionReasonCount` (`slr:exclusion_reason`, `slr:report_count`) |
 
-Every individual decision is exported too: one
-`slr:ScreeningDecisionRecord` per `ScreeningLogEntry`, carrying `bibo:pmid`,
-`slr:screening_stage`, `slr:decision`, **`slr:assessed_on`**
-(`title_abstract` / `full_text` / `abstract_only`), `slr:full_text_source`, and
-`slr:decision_rationale` (plus `slr:exclusion_reason` when excluded). That is
-the audit trail behind the aggregate counts — it answers "was this study
-included after someone read the paper, or only its abstract?".
+Every individual decision is exported too: the review carries
+`slr:screening_decision_record` → one `slr:ScreeningDecisionRecord` per
+`ScreeningLogEntry`, each with `bibo:pmid`, `dcterms:title`,
+`slr:screening_stage` (`ScreeningStageEnum`), `slr:decision`,
+**`slr:assessed_on`** (`AssessmentBasisEnum`: `title_abstract` / `full_text` /
+`abstract_only`), `slr:full_text_source`, and `slr:decision_rationale` (plus
+`slr:exclusion_reason` when excluded). That is the audit trail behind the
+aggregate counts — it answers "was this study included after someone read the
+paper, or only its abstract?".
+
+All of these terms are **declared in the ontology** (`slr_ontology.yaml` and
+`slr_ontology.owl.ttl`), so a triple store that validates against the schema
+will accept an export: classes `slr:ScreeningDecisionRecord`,
+`slr:RetrievalRouteCount`, `slr:ExclusionReasonCount`, `slr:RunConfiguration`,
+`slr:SearchIteration`, `slr:EnvVarPresence`, `slr:EvidenceAnnotation`, and the
+`AssessmentBasisEnum` enumeration.
 
 ## Intake provenance (PreWorkflowSession / UserInput)
 
