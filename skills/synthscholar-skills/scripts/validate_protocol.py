@@ -60,28 +60,7 @@ TEMPLATE = {
     "section_output_formats": {},
     "registration_number": "", "protocol_url": "",
     "funding_sources": "", "competing_interests": "",
-    # Reading budgets. Evidence extraction reads EVERY chunk of every article,
-    # so these are the knobs that bound token cost on long papers.
-    "evidence_chunk_chars": 12000,
-    "evidence_chunk_overlap": 400,
-    "evidence_max_chars": 0,            # 0 = read the whole article
-    "evidence_spans_per_article": 8,
-    "article_text_budget": 16000,       # RoB / extraction / charting window
-    "article_concurrency": 5,
-    "max_articles": None,               # null = no cap
 }
-
-# Positive-integer processing fields: (key, minimum, maximum or None).
-_INT_RANGES = [
-    ("evidence_chunk_chars", 1000, None),
-    ("evidence_chunk_overlap", 0, None),
-    ("evidence_max_chars", 0, None),
-    ("evidence_spans_per_article", 1, None),
-    ("article_text_budget", 1000, None),
-    ("article_concurrency", 1, 20),
-    ("max_articles", 1, None),
-    ("word_count_target", 1, None),
-]
 
 
 def _load(path: str) -> dict:
@@ -127,11 +106,8 @@ def validate(p: dict) -> tuple[list[str], list[str]]:
     dbs = p.get("databases") or []
     for d in dbs:
         if d not in KNOWN_PROVIDERS:
-            # Expected for a user-supplied corpus (Mode 3), where `databases`
-            # names whatever the user actually searched (Scopus, Embase, …).
-            warnings.append(f"database '{d}' is not one of the app's discovery "
-                            f"providers {sorted(KNOWN_PROVIDERS)} — fine for a "
-                            f"user-supplied corpus, otherwise it won't be searched")
+            warnings.append(f"database '{d}' not a known provider "
+                            f"{sorted(KNOWN_PROVIDERS)}")
 
     dom = p.get("appraisal_domains") or []
     if dom and not (1 <= len(dom) <= 4):
@@ -148,27 +124,6 @@ def validate(p: dict) -> tuple[list[str], list[str]]:
         if fmt not in SECTION_FORMATS:
             errors.append(f"section_output_formats[{sec!r}]='{fmt}' invalid; "
                           f"one of {sorted(SECTION_FORMATS)}")
-
-    for key, low, high in _INT_RANGES:
-        v = p.get(key)
-        if v is None:
-            continue
-        if not isinstance(v, int) or isinstance(v, bool):
-            errors.append(f"{key} must be an integer (got {v!r})")
-            continue
-        if v < low or (high is not None and v > high):
-            bound = f"{low}–{high}" if high is not None else f"≥ {low}"
-            errors.append(f"{key} must be {bound} (got {v})")
-
-    # A truncated read is legal but weakens the review — say so rather than
-    # letting a quiet cap look like a full reading of every paper.
-    cap = p.get("evidence_max_chars")
-    if isinstance(cap, int) and 0 < cap < 20000:
-        warnings.append(
-            f"evidence_max_chars={cap} means only the first ~{cap // 1000}k characters "
-            "of each article are read for evidence — results/discussion may be cut. "
-            "Use 0 (whole article) unless you are deliberately bounding cost."
-        )
 
     # Soft nudge: comparison legitimately optional, but flag if PICO looks thin.
     if empty(p.get("pico_comparison")):

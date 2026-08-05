@@ -1,26 +1,22 @@
 ---
 name: synthscholar-skills
-version: 0.2.0
-description: Set up, run, and query SynthScholar / PRISMA systematic reviews. (1) Guided protocol intake — walk a user through EVERY required and optional input (research question, PICO, inclusion/exclusion criteria, databases, risk-of-bias tool, charting questions, per-group/cohort analysis, appraisal domains, output formatting, PRISMA registration) and validate completeness before a run. (2) Provenance queries — list included publications, distinguish full-text vs abstract-only, retrieve full-text content, audit where each full text came from, and inspect the screening audit trail (which decisions were made on full text vs abstract, exclusion reasons per stage), across both the RDF/SLR-ontology export (SPARQL) and the PostgreSQL article store (SQL). (3) Bring-your-own-corpus review — the user supplies PDFs they already found, and this produces the same PRISMA review (full-text screening, charting, appraisal, synthesis, per-group analysis) exported as Markdown and SLR-ontology Turtle for triple-store ingestion, capturing their own search strategy as provenance; paywalled papers they hold only a DOI for can be retrieved through their own institutional EZproxy access so the review reads the paper rather than its abstract. Use when asked to start/scope a review, gather review inputs, check a protocol is complete, run a review over PDFs the user provides, get full text for paywalled/subscription papers via institutional access, export a review to md/ttl, list included-with-full-text vs abstract-only, retrieve full-text content, or audit full-text and screening provenance.
+version: 0.1.0
+description: Set up and query SynthScholar / PRISMA systematic reviews. (1) Guided protocol intake — walk a user through EVERY required and optional input (research question, PICO, inclusion/exclusion criteria, databases, risk-of-bias tool, charting questions, per-group/cohort analysis, appraisal domains, output formatting, PRISMA registration) and validate completeness before a run. (2) Provenance queries — list included publications, distinguish full-text vs abstract-only, retrieve full-text content, and audit where each full text came from, across both the RDF/SLR-ontology export (SPARQL) and the PostgreSQL article store (SQL). Use when asked to start/scope a review, gather review inputs, check a protocol is complete, list included-with-full-text vs abstract-only, retrieve full-text content, or audit full-text provenance.
 license: Apache-2.0
 ---
 
 # SynthScholar Review Skills
 
-Three capabilities for working with systematic reviews produced by SynthScholar:
+Two capabilities for working with systematic reviews produced by SynthScholar:
 
 1. **Guided protocol intake** — before a review runs, guide the user through
    *every* input the agent supports and validate the protocol is complete.
 2. **Provenance queries** — after a review runs, answer *which included
    publications have full text, which are abstract-only, what the content is,
    and where it came from*.
-3. **Bring-your-own-corpus review** — the user hands over PDFs they collected
-   themselves; produce the full review over them and export Markdown + Turtle.
 
-Pick the mode from the request: setting up / scoping a review → intake; the
-user has PDFs → BYO corpus; inspecting a finished review → queries. Modes
-compose — a BYO review starts with the Mode 1 intake and its output is
-queryable with Mode 2.
+Pick the mode from the request: setting up / scoping a review → intake;
+inspecting a finished review → queries.
 
 ---
 
@@ -108,91 +104,6 @@ attributed to the agent.
 
 ---
 
-## Mode 3 — Bring-your-own-corpus review (user-supplied PDFs)
-
-> *"Here are 40 PDFs I collected — write the review."*
-
-Same review as the hosted application: screening → evidence extraction → risk
-of bias → data charting (sections A–G) → critical appraisal → narrative rows →
-synthesis + GRADE → per-group analysis → grounding validation → assembled
-report, exported to **Markdown** and **SLR-ontology Turtle**. The only
-difference is that discovery and full-text retrieval already happened — the
-user did them — so the search strategy has to be *collected* rather than
-generated.
-
-Full workflow, schemas, and the PRISMA-flow accounting rules:
-**[references/byo_corpus_review.md](references/byo_corpus_review.md)** — read
-it before running this mode.
-
-### The five steps
-
-```bash
-# 1. Protocol — the Mode 1 intake, unchanged, then gate it
-python scripts/validate_protocol.py protocol.json
-
-# 2. Corpus — PDFs in, full text + hashes + provenance out
-python scripts/build_corpus.py --dir ./pdfs --out corpus.json
-#    …then YOU complete each entry's metadata by reading its `_head_text`…
-python scripts/build_corpus.py --check corpus.json          # exit 1 until complete
-
-# 2b. Paywalled papers the user has a DOI but no PDF for — institutional access
-python scripts/fetch_ezproxy.py --status
-python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs
-
-# 3. Search provenance — ask the user (one batch of structured questions)
-python scripts/run_local_review.py --print-provenance-template > search_provenance.json
-
-# 4. Run
-python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json \
-    --provenance search_provenance.json --outdir out/ \
-    --formats md ttl json charting appraisal per-group
-
-# 5. Provenance added late (if the user didn't have it in step 3)
-python scripts/update_provenance.py out/review.json \
-    --provenance search_provenance.json --outdir out/
-```
-
-Step 4 needs `OPENROUTER_API_KEY` and the `synthscholar` package — it drives
-the app's real pipeline. **Without a key**, author the review yourself and
-serialise it through the same exporters:
-
-```bash
-python scripts/export_review.py --print-template > review.json   # valid example
-# …perform the stages, fill it in (see references/byo_corpus_review.md § 4b)…
-python scripts/export_review.py review.json --check
-python scripts/export_review.py review.json --outdir out/ --formats md ttl json
-```
-
-### Rules for this mode
-
-- **Complete the corpus metadata yourself** from each entry's `_head_text` —
-  don't hand the user a list of fields to fill. Never invent a DOI or year;
-  leave it empty instead.
-- **Ask for the search strategy, but never block on it.** Databases, exact
-  query strings, dates searched, filters, records identified, duplicates
-  removed — ask as one batch of structured questions. If the user doesn't have
-  the numbers, run anyway and patch them in with `update_provenance.py`.
-- **Keep the flow honest.** Identification counts are the user's; the screening
-  this mode performs is a *second pass over already-retrieved reports*, not a
-  re-run of their title/abstract screening. Say so when summarising.
-- **Never drop full-text provenance** — `full_text_source`,
-  `content_sha256`, `full_text_retrieved_at` are what make the corpus
-  auditable, and they carry into the Turtle.
-- **Screen on the full text, and record the basis.** Eligibility decisions are
-  made on the retrieved report (methods and results), not a re-read of the
-  abstract. Articles whose full text couldn't be obtained are still assessed —
-  on the abstract, marked `assessed_on="abstract_only"` — never auto-included.
-- **Extract only each paper's own evidence.** A number a paper cites from
-  another study is not that paper's finding; excluding those is what makes the
-  synthesis attributable.
-- **Offer institutional access when papers are paywalled** rather than settling
-  for abstracts — `fetch_ezproxy.py`, using the user's own library session.
-  Keep within their licence: one paper at a time, delayed, capped, and never
-  raise the ceiling on their behalf.
-- **Report the reading basis when you summarise.** "23 of 25 read in full text,
-  2 included on abstract alone" is different evidence from "25 included".
-- **Always offer both exports.** `.md` to read, `.ttl` to ingest.
-
 ## Mode 2 — Provenance queries
 
 > *Which included publications have full text, which are abstract-only, what is
@@ -219,18 +130,6 @@ parity: `slr:content_hash` in RDF equals `article_full_text.content_sha256`.
 - Configure **domain features**: charting questions, per-group / cohort
   analysis, custom appraisal domains, output formatting, PRISMA registration.
 
-**BYO corpus (Mode 3)** — when the user:
-
-- Provides **PDFs / a folder of papers** and wants a review, synthesis, or
-  evidence table built from them.
-- Has **DOIs for paywalled papers** and institutional access, and wants the full
-  texts retrieved so the review reads the papers rather than their abstracts.
-- Says they **already did the search** (or exported records from Scopus / Web of
-  Science / Embase / a reference manager) and wants the review run on that set.
-- Wants an existing review **exported to Markdown or Turtle**, or the **TTL
-  ingested** into a triple store / BrainKB.
-- Wants to **add or correct the search strategy** on a review that already ran.
-
 **Queries (Mode 2)** — when the user asks to:
 
 - **List included publications that have full text** (vs. everything included).
@@ -238,19 +137,11 @@ parity: `slr:content_hash` in RDF equals `article_full_text.content_sha256`.
 - **Retrieve the full-text content** of included sources.
 - **Audit provenance** — which resolver produced each full text (`pmc_oa`,
   `europe_pmc_oa`, `unpaywall_pdf`, `biorxiv_pdf`, `openalex_pdf`,
-  `semanticscholar_pdf`, `ezproxy_pdf` — institutional subscription access —
-  `user_supplied_pdf`, `article_store`, `cache`) and when.
-- **Ask what the review actually read** — how many reports were retrieved vs
-  not, how many eligibility decisions were made on full text vs abstract only,
-  which studies were included without their full text, which papers came via
-  institutional access, and why reports were excluded at each stage. Recipes:
-  `reading-basis`, `retrieval-routes`, `ezproxy-articles`, `exclusion-reasons`,
-  `screening-decisions`, `abstract-only-inclusions`.
+  `semanticscholar_pdf`, `article_store`, `cache`) and when.
 - **Verify or backfill** the `article_full_text` provenance table.
 
-Mode 2 covers full-text availability, content and provenance of *included*
-sources, plus the screening-decision audit trail (stage, basis, reason) — not
-full charting extraction.
+Mode 2 is scoped to full-text availability/content/provenance of *included*
+sources — not screening decisions or full charting extraction.
 
 ## The core model
 
@@ -283,25 +174,12 @@ full-text availability from the length of an abstract.
 
 All live in [scripts/](scripts/). Run them from an environment where the
 project's deps are importable (`rdflib` for SPARQL, `psycopg[binary]>=3.1` for
-SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`). The
-Mode 3 scripts need `synthscholar` importable too — plus `pymupdf` for PDF text
-and `OPENROUTER_API_KEY` for `run_local_review.py`
-(`pip install 'synthscholar[fulltext]'` covers both).
+SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`).
 
 ```bash
 # Intake: blank template → fill from answers → validate before running
 python scripts/validate_protocol.py --print-template > protocol.json
 python scripts/validate_protocol.py protocol.json
-
-# BYO corpus: PDFs → corpus → review → md/ttl (see Mode 3)
-python scripts/build_corpus.py --dir ./pdfs --out corpus.json
-python scripts/build_corpus.py --check corpus.json
-python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs   # paywalled papers
-python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json \
-    --provenance search_provenance.json --outdir out/
-python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json --dry-run
-python scripts/export_review.py out/review.json --outdir out/ --formats md ttl
-python scripts/update_provenance.py out/review.json --provenance search_provenance.json
 
 # SPARQL over an RDF export — named recipe or your own query
 python scripts/query_sparql.py review.ttl --query included-full-text
@@ -325,9 +203,6 @@ scripts) to see every named recipe.
 - [references/protocol_intake.md](references/protocol_intake.md) — complete
   guided-intake checklist: every `ReviewProtocol` input with question, example,
   validation, default, and tier.
-- [references/byo_corpus_review.md](references/byo_corpus_review.md) —
-  bring-your-own-corpus workflow: corpus schema, search-provenance intake,
-  PRISMA-flow accounting, the two execution paths, exports and ingestion.
 - [references/sparql_queries.md](references/sparql_queries.md) — SPARQL recipe catalog.
 - [references/sql_queries.md](references/sql_queries.md) — SQL recipe catalog.
 - [references/data_model.md](references/data_model.md) — the SLR-ontology terms
@@ -344,12 +219,3 @@ scripts) to see every named recipe.
   was never recorded.
 - Full-text bodies can be large; the SQL `get-content` recipe streams a single
   PMID. Avoid `SELECT content` across the whole table in interactive use.
-- Mode 3 reads a PDF's text layer — scanned PDFs need OCR first. Each paper is
-  read **in full** (evidence extraction processes every chunk), so a long corpus
-  costs real tokens; `run_local_review.py` prints the call estimate before
-  spending, and `protocol.evidence_max_chars` bounds it. It never deduplicates
-  the supplied corpus; that stays the user's responsibility.
-- Institutional access (EZproxy) needs a live browser-exported session cookie
-  and only reaches what the institution licenses. Credentials go in
-  `EZPROXY_*` env vars, never on a command line — the CLI invocation is stored
-  verbatim in provenance.

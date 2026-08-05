@@ -135,6 +135,14 @@ adjust the space's access rules.
 
 ## Workflows
 
+### 0. Register a new account (no login needed)
+For password-based signup: `brainkb_register(full_name, email, password)`. This
+creates the credential **and** a canonical profile with a default `Curator` role,
+so the user is a first-class identity. The account starts **inactive** — an
+Admin/SuperAdmin must activate it (see §9) before login works. (Alternatively,
+users can onboard by first login via Globus/ORCID/GitHub, which auto-provisions
+the same profile + default role.) Never echo the password back.
+
 ### 1. Log in
 
 **Auth order (TL;DR) — take the first that applies:**
@@ -228,6 +236,8 @@ password unprompted:**
 - **`401` on a call after you were "logged in".** Session/PAT expired — re-auth
   (prefer a fresh PAT). `403`, by contrast, means authenticated-but-not-permitted
   (a role/capability/access-rule issue), not a token problem.
+Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
+(New accounts must be activated by an admin first — see §9.)
 
 ### 2. Create / choose a workspace (space)
 - Individual/private workspace (any write-capable role):
@@ -419,16 +429,14 @@ missing domain timestamp, and vice versa.
   - Owner and Admin/SuperAdmin always bypass rules (no lockout).
 
 ### 9. Admin: manage users, roles & activation (usermanagement service)
-These act on the **usermanagement service** and require the caller to hold an
-**Admin/SuperAdmin** role. With single sign-on, one `brainkb_login(email,
-password)` (or env auto-login) is enough — the MCP exchanges your session for a
-usermanagement-scoped token automatically; **no separate admin login**. (A caller
-authenticating by header should pass a refresh token so admin tools work too; a
-query_service-only access token won't authorize usermanagement.)
-- **Onboarding = first login via Globus/ORCID/GitHub** — there is **no separate
-  register step**. Signing in (`brainkb_globus_login` → `brainkb_finish_login`, §1)
-  auto-creates and links the profile + a default `Curator` role on first login;
-  the account is active immediately. Admins then adjust roles.
+These act on the **usermanagement service** (a separate service with its own
+token) and require the caller to hold an **Admin/SuperAdmin** role. They work when
+the MCP has credentials (env auto-login, or `brainkb_login(email, password)` — an
+OAuth-only session can't log into usermanagement).
+- Onboarding: users self-register with `brainkb_register(...)` (see §0) or by
+  **first login via Globus/ORCID/GitHub** — both auto-create the profile + a
+  default `Curator` role. Password signups then need admin activation:
+  `brainkb_activate_user(email)`. Admins adjust roles afterward.
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
 - Deactivate/reactivate login access: `brainkb_deactivate_user(email)` /
   `brainkb_activate_user(email)`.
