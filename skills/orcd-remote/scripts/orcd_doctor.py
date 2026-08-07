@@ -310,7 +310,10 @@ def main() -> int:
                 "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
                 "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
                 "    environment's network policy, or drive ORCD from a machine with\n"
-                "    direct SSH access instead.\n"
+                "    direct SSH access instead. Tunneling through the environment's\n"
+                "    HTTPS proxy usually fails the same way: the proxy may answer 200\n"
+                "    to CONNECT host:22 yet never deliver an SSH banner, because the\n"
+                "    policy is enforced on the proxy's upstream connection.\n"
                 "  - A restrictive campus or corporate network; try the MIT VPN.\n"
             )
         elif needs_key:

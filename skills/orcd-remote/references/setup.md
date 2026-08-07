@@ -235,6 +235,7 @@ flash scratch (see [storage.md](storage.md)).
 | --- | --- |
 | `Permission denied (keyboard-interactive)` | `BatchMode=yes` set, or Duo trust lapsed. Check `-vv` for `partial success` |
 | `connect to host ... port 22: Connection timed out` | SSH egress is blocked -- cloud agent environments often allow only HTTPS. The doctor's `tcp port 22` check confirms it; keys and Duo are not the problem |
+| `kex_exchange_identification: Connection closed` when tunneling ssh through an HTTP proxy | The proxy accepted `CONNECT host:22` (even returned 200) but its upstream connection was denied by egress policy. Same blocked-egress condition as above -- if no `SSH-2.0-...` banner ever arrives, no key can help |
 | Hangs, then times out | A Duo prompt is waiting. Run `ssh orcd` by hand and answer it |
 | `Too many authentication failures` | The agent is offering many keys. Add `IdentitiesOnly yes` |
 | Host key changed warning | Login nodes are behind round-robin DNS. Verify with ORCD before removing the old key |
