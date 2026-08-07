@@ -1,6 +1,6 @@
 ---
 name: orcd-remote
-description: Use MIT ORCD (Engaging, orcd-login.mit.edu, eofe7) as a remote execution environment, driven over SSH from your laptop or workstation - not from the cluster itself. Use this skill whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, running or training on cluster GPUs (H100/H200/A100/L40S), cluster scratch or storage or quotas, ssh problems reaching orcd-login, or asks to run anything too big for a laptop - even if they never name ORCD explicitly. Sets up key-based SSH through the OnDemand portal, discovers which partitions, GPU models, and storage tiers this user is actually entitled to rather than assuming, places job IO on flash scratch, submits and tracks jobs, and diffs cluster config over time.
+description: Use MIT ORCD (Engaging, orcd-login.mit.edu, eofe7) as a remote execution environment, driven over SSH from your laptop or workstation - not from the cluster itself. Use this skill whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, running or training on cluster GPUs (H100/H200/A100/L40S), cluster scratch or storage or quotas, ssh problems reaching orcd-login, or asks to run anything too big for a laptop - even if they never name ORCD explicitly. Sets up key-based SSH through the OnDemand portal, discovers which partitions, GPU models, and storage tiers this user is actually entitled to rather than assuming, checks for and installs/upgrades a per-user uv in the cluster home for modern Python (never editing shell profiles without the user's approval), places job IO on flash scratch, submits and tracks jobs, and diffs cluster config over time.
 ---
 
 # MIT ORCD Remote Execution
@@ -115,6 +115,14 @@ The short form:
 3. **Clusters -> Shell Access** gives an already-authenticated shell.
 4. Append the laptop's `.pub` key to `~/.ssh/authorized_keys` there.
 5. `python3 orcd_doctor.py --fix` locally to write the SSH config and connect.
+
+**Running from a cloud agent environment?** If this session is in a cloud or
+remote container (Claude Code on the web, a CI runner) rather than on the
+user's own machine, say so when asking for the key to be added: the key pair
+lives in that ephemeral environment, installing it grants that environment
+access to the ORCD account, and it should be a dedicated, identifiable key the
+user approves and later removes. Details in
+[references/setup.md](references/setup.md).
 
 A new account may reach step 5 and still have no Slurm association or storage
 groups. The doctor reports both as warnings; the fix is an email to
@@ -247,6 +255,50 @@ group uses symlink forms** (`~/orcd/scratch`, resolved at runtime with
 `readlink -f`), never a resolved `/orcd/scratch/orcd/<NNN>/<user>` path --
 those shard numbers are per-person and wrong for everyone else.
 
+## Python on the cluster: uv in `$HOME`
+
+The login nodes' system `python3` is 3.6, and neither `uv` nor `conda` is
+installed system-wide. The supported way to get modern Python for jobs is a
+per-user `uv` in the cluster home directory, at `~/.local/bin/uv`:
+
+```bash
+python3 orcd_uv.py             # installed on the cluster? what version? on PATH?
+python3 orcd_uv.py --install   # install it, or upgrade one already there
+```
+
+`orcd_doctor.py` also reports uv's presence as part of its cluster checks.
+`--install` runs the official standalone installer with `UV_NO_MODIFY_PATH=1`
+(and upgrades an existing install via `uv self update`), so it **never edits
+shell startup files**. Nothing depends on the profile anyway: scripts and
+sbatch job scripts should call uv by absolute path (`$HOME/.local/bin/uv`) or
+export PATH themselves, which works in every shell.
+
+**Any shell-profile change requires the user's explicit approval -- ask
+first.** That covers `~/.bashrc`, `~/.bash_profile`, and `~/.profile`, on the
+cluster or locally, whether edited directly or by an installer. When the user
+wants `uv` on their interactive PATH, show them the exact line and file, get a
+real yes, and only then run:
+
+```bash
+python3 orcd_uv.py --add-to-path --user-approved
+```
+
+The script enforces the rule: without `--user-approved` it asks for a typed
+confirmation on a TTY and refuses outright in a non-interactive run. It backs
+up the profile before appending, and afterwards verifies whether a fresh
+non-interactive SSH actually sees uv (an interactivity guard at the top of
+`~/.bashrc` can swallow the line for scripts -- it reports that honestly
+rather than claiming success).
+
+Keep environments and caches off `$HOME`: resolving an environment is exactly
+the many-small-file workload that eats the 1 M inode quota. In job scripts,
+put both on flash scratch:
+
+```bash
+export UV_CACHE_DIR="$(readlink -f ~/orcd/scratch)/uv-cache"
+uv venv "$(readlink -f ~/orcd/scratch)/envs/myproj"      # not ~/envs
+```
+
 ## Submitting and tracking work
 
 ```bash
@@ -327,6 +379,7 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `Permission denied (keyboard-interactive)` | `BatchMode=yes`, or Duo trust lapsed | Remove `BatchMode`; sign in at the portal again |
+| Connection times out; doctor FAILs `tcp port 22` | network policy blocks SSH egress (common in cloud agent sessions) | Not a key/Duo problem; loosen the environment's network policy or run from a machine with SSH access |
 | Duo suddenly prompts on every ssh | web authorization expired | Sign in at <https://orcd-ood.mit.edu/> once; ssh goes silent again |
 | Locked out entirely | 10 failed Duo attempts locks the account for 90 min | Stop retrying -- close VS Code Remote-SSH, whose auto-reconnect resets the timer |
 | `Invalid qos specification` | passed `--qos` | Drop the flag; pick the partition instead |
@@ -338,6 +391,7 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | Everything is mysteriously slow | job IO is in `$HOME` | Move it to flash scratch |
 | `QOSMaxSubmitJobPerUserLimit` | array bigger than `MaxSubmitPU`; `%K` does not help | Split into arrays of `MaxSubmitPU + 1` or fewer |
 | Disk full, but quota looks fine | hit the 1 M inode limit | Check the file columns in `orcd_storage.py` |
+| `uv: command not found` on the cluster | not installed, or `~/.local/bin` not on PATH | `orcd_uv.py --install`; call `$HOME/.local/bin/uv` by absolute path, or ask the user to approve a profile edit |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
 
 ## Scripts
@@ -347,6 +401,7 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | [`orcd_doctor.py`](scripts/orcd_doctor.py) | Verify access; print the exact remedy when it fails. `--fix` writes SSH config |
 | [`orcd_resources.py`](scripts/orcd_resources.py) | Discover usable partitions, GPU models, QOS ceilings, live free capacity |
 | [`orcd_storage.py`](scripts/orcd_storage.py) | Discover writable storage by tier and speed. `--setup` creates per-user dirs |
+| [`orcd_uv.py`](scripts/orcd_uv.py) | Check/install/upgrade `uv` in the cluster `$HOME`; PATH profile edits only with explicit user approval |
 | [`orcd_submit.py`](scripts/orcd_submit.py) | Plan, submit, and track jobs; auto-select partition by start time |
 | [`orcd_snapshot.py`](scripts/orcd_snapshot.py) | Structured config summary; `--save` a baseline and `--diff` to see drift |
 | [`orcd_common.py`](scripts/orcd_common.py) | Shared SSH plumbing (multiplexing, base64 payloads, error mapping) |

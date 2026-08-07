@@ -135,6 +135,18 @@ def print_key_instructions(identity: Path | None, user: str, hostname: str) -> N
         f"Leave the browser session signed in for that first SSH. The Duo device\n"
         f"trust it establishes is what lets SSH finish without prompting you.\n"
     )
+    print(
+        "NOTE if this session runs in a cloud or remote agent environment (Claude\n"
+        "Code on the web, a CI runner, a devcontainer) rather than on your own\n"
+        "machine: the key pair above lives in that environment, and installing its\n"
+        "public key gives that environment SSH access to your ORCD account. Get the\n"
+        "account owner's explicit OK first, use a dedicated key with an identifying\n"
+        "comment (e.g. ssh-keygen -C \"agent-cloud-$(date +%Y%m%d)\") so it is easy\n"
+        "to spot, and remove that line from ~/.ssh/authorized_keys on ORCD when the\n"
+        "environment is retired. Cloud containers are usually ephemeral: the private\n"
+        "key may vanish when the session ends. That is normal -- generate and install\n"
+        "a fresh key next time instead of copying private keys out of the container.\n"
+    )
 
 
 def main() -> int:
@@ -192,6 +204,20 @@ def main() -> int:
         resolves = False
         rep.add(BAD, "hostname resolves", f"{args.hostname}: {exc.strerror or exc}")
 
+    # 4b. TCP to port 22, probed before any ssh attempt. Cloud agent
+    # environments and locked-down networks often allow only HTTPS egress and
+    # silently drop SSH; without this probe the eventual ssh failure is
+    # indistinguishable from an auth problem and sends people chasing keys
+    # and Duo that were never broken.
+    port_blocked = False
+    if resolves:
+        try:
+            socket.create_connection((args.hostname, 22), timeout=10).close()
+            rep.add(OK, "tcp port 22", "reachable")
+        except OSError as exc:
+            port_blocked = True
+            rep.add(BAD, "tcp port 22", f"cannot connect: {exc.strerror or exc}")
+
     # 5. Reachability. This is the check that actually matters.
     reachable = False
     if identity is None:
@@ -199,6 +225,9 @@ def main() -> int:
     elif not resolves:
         rep.add(BAD, "login node reachable", "skipped: hostname does not resolve")
         failure_detail = "could not resolve"
+    elif port_blocked:
+        rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
+        failure_detail = "port 22 blocked"
     else:
         target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
@@ -221,7 +250,9 @@ def main() -> int:
                 'echo "@@WHO"; hostname -s; whoami\n'
                 'echo "@@SLURM"; command -v sinfo >/dev/null && sinfo --version || echo MISSING\n'
                 'echo "@@ASSOC"; sacctmgr -nP show assoc user=$USER format=Account,QOS 2>/dev/null | head -5\n'
-                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n',
+                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n'
+                'echo "@@UV"; if [ -x "$HOME/.local/bin/uv" ]; then "$HOME/.local/bin/uv" --version 2>/dev/null; '
+                'elif command -v uv >/dev/null 2>&1; then uv --version 2>/dev/null; else echo MISSING; fi\n',
                 host=target,
                 timeout=60,
             )
@@ -251,6 +282,14 @@ def main() -> int:
                 rep.add(OK, "storage groups", f"{ngroups[0]} orcd_rg_* group memberships")
             else:
                 rep.add(WARN, "storage groups", "no orcd_rg_* groups; only $HOME will be writable")
+            uv = [l for l in blocks.get("UV", []) if l.strip()]
+            if uv and uv[0] != "MISSING":
+                rep.add(OK, "uv (cluster $HOME)", uv[0])
+            else:
+                rep.add(
+                    WARN, "uv (cluster $HOME)",
+                    "not installed; `python3 orcd_uv.py --install` (never edits shell profiles)",
+                )
 
     rep.render()
 
@@ -259,7 +298,25 @@ def main() -> int:
         unreachable = any(r[1] == "login node reachable" and r[0] == MARK[BAD] for r in rep.rows)
         user = args.user or "<your-username>"
 
-        if needs_key:
+        if port_blocked:
+            # Checked before the missing-key case on purpose: installing a key
+            # cannot help until packets can reach the login node at all.
+            oc.heading("SSH egress is blocked")
+            print(
+                f"`{args.hostname}` resolves, but nothing answers on port 22 -- the\n"
+                "network between this machine and ORCD is dropping SSH. Keys and Duo\n"
+                "are not the problem, and installing a key will not help from here.\n"
+                "Common causes:\n\n"
+                "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
+                "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
+                "    environment's network policy, or drive ORCD from a machine with\n"
+                "    direct SSH access instead. Tunneling through the environment's\n"
+                "    HTTPS proxy usually fails the same way: the proxy may answer 200\n"
+                "    to CONNECT host:22 yet never deliver an SSH banner, because the\n"
+                "    policy is enforced on the proxy's upstream connection.\n"
+                "  - A restrictive campus or corporate network; try the MIT VPN.\n"
+            )
+        elif needs_key:
             print_key_instructions(identity, user, args.hostname)
         elif unreachable:
             # A local key exists, so lead with the cause the error points at
