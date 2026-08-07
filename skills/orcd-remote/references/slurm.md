@@ -327,9 +327,12 @@ apptainer exec --nv /path/to/image.sif python train.py    # --nv exposes GPUs
 ```
 
 `uv` and `conda` are not installed system-wide. Either `module load miniforge`,
-or install `uv` into `$HOME` -- but keep environments themselves off `$HOME`,
-since resolving one is exactly the many-small-file workload that tier is worst
-at. See [storage.md](storage.md).
+or install `uv` into `$HOME` -- `python3 scripts/orcd_uv.py --install` checks
+for an existing `~/.local/bin/uv`, installs or upgrades it, and never touches
+shell profiles (PATH edits go through `--add-to-path`, which requires the
+user's explicit approval). Keep environments themselves off `$HOME`, since
+resolving one is exactly the many-small-file workload that tier is worst at.
+See [storage.md](storage.md) and [setup.md](setup.md).
 
 ## Inspecting jobs
 

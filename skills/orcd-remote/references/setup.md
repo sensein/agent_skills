@@ -37,6 +37,22 @@ xclip -sel clip < ~/.ssh/id_ed25519.pub   # Linux
 
 Copy the `.pub` file. If a private key ever leaves the machine, replace it.
 
+**If the agent is running in a cloud environment** (Claude Code on the web, a
+CI runner, a devcontainer) rather than on the user's own machine, the key pair
+just generated lives in that environment -- and installing its public key on
+ORCD gives that environment SSH access to the user's cluster account. Before
+asking the user to add the key, say this plainly and:
+
+- Get the account owner's explicit OK first.
+- Use a dedicated key with an identifying comment, e.g.
+  `ssh-keygen -t ed25519 -C "agent-cloud-$(date +%Y%m%d)"`, so it is easy to
+  spot in `authorized_keys` later.
+- Tell the user to remove that line from `~/.ssh/authorized_keys` on ORCD when
+  the environment is retired or no longer trusted.
+- Expect the container to be ephemeral: the private key may vanish when the
+  session ends. That is normal and fine -- generate and install a fresh key
+  next time. Never copy a private key out of the container to "save" it.
+
 ### 3. Get a shell through the portal
 
 Sign in at <https://orcd-ood.mit.edu/>, then choose **Clusters -> Shell
@@ -171,6 +187,47 @@ and still be unable to run anything:
 
 `orcd_doctor.py` reports both as warnings rather than failures, because SSH
 genuinely is working at that point. Neither is fixable from the client side.
+
+## Python tooling: uv in the cluster home
+
+The login nodes' system `python3` is 3.6, and `uv`/`conda` are not installed
+system-wide, so a per-user `uv` at `~/.local/bin/uv` in the **cluster** home
+directory is the supported way to get modern Python. `orcd_doctor.py` reports
+whether it is present; `orcd_uv.py` manages it:
+
+```bash
+python3 scripts/orcd_uv.py             # installed? what version? on PATH?
+python3 scripts/orcd_uv.py --install   # install, or upgrade if already there
+```
+
+`--install` uses the official standalone installer pinned to
+`UV_INSTALL_DIR=$HOME/.local/bin` with `UV_NO_MODIFY_PATH=1`, so no shell
+startup file is ever edited by the installer. Upgrades go through
+`uv self update`.
+
+### PATH, and the profile-approval rule
+
+**No shell profile (`~/.bashrc`, `~/.bash_profile`, `~/.profile`) is modified
+without the user's explicit approval.** `orcd_uv.py` enforces this: the
+`--add-to-path` action shows the exact file and line it would append
+(`export PATH="$HOME/.local/bin:$PATH"`), then proceeds only after a typed
+`yes` on a TTY, or with `--user-approved` -- a flag an agent may pass only
+after actually asking the user and getting a yes. In a non-interactive run
+without that flag, it refuses. It also writes a `.orcd-uv.bak` backup before
+appending.
+
+The edit is optional. Scripts, agents, and sbatch job scripts should call
+`$HOME/.local/bin/uv` by absolute path or export PATH themselves; the profile
+line only exists for the user's interactive convenience. After an approved
+edit the script re-checks over a fresh SSH connection and reports honestly if
+the line is not reaching non-interactive shells (a common cause is an
+interactivity guard near the top of `~/.bashrc` that `return`s before the
+appended line runs).
+
+One storage caveat: keep uv's cache and the environments it creates off
+`$HOME` -- resolving an environment is exactly the many-small-file workload
+that exhausts the 1 M inode quota. Set `UV_CACHE_DIR` and create venvs on
+flash scratch (see [storage.md](storage.md)).
 
 ## Troubleshooting
 

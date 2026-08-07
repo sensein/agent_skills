@@ -135,6 +135,18 @@ def print_key_instructions(identity: Path | None, user: str, hostname: str) -> N
         f"Leave the browser session signed in for that first SSH. The Duo device\n"
         f"trust it establishes is what lets SSH finish without prompting you.\n"
     )
+    print(
+        "NOTE if this session runs in a cloud or remote agent environment (Claude\n"
+        "Code on the web, a CI runner, a devcontainer) rather than on your own\n"
+        "machine: the key pair above lives in that environment, and installing its\n"
+        "public key gives that environment SSH access to your ORCD account. Get the\n"
+        "account owner's explicit OK first, use a dedicated key with an identifying\n"
+        "comment (e.g. ssh-keygen -C \"agent-cloud-$(date +%Y%m%d)\") so it is easy\n"
+        "to spot, and remove that line from ~/.ssh/authorized_keys on ORCD when the\n"
+        "environment is retired. Cloud containers are usually ephemeral: the private\n"
+        "key may vanish when the session ends. That is normal -- generate and install\n"
+        "a fresh key next time instead of copying private keys out of the container.\n"
+    )
 
 
 def main() -> int:
@@ -221,7 +233,9 @@ def main() -> int:
                 'echo "@@WHO"; hostname -s; whoami\n'
                 'echo "@@SLURM"; command -v sinfo >/dev/null && sinfo --version || echo MISSING\n'
                 'echo "@@ASSOC"; sacctmgr -nP show assoc user=$USER format=Account,QOS 2>/dev/null | head -5\n'
-                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n',
+                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n'
+                'echo "@@UV"; if [ -x "$HOME/.local/bin/uv" ]; then "$HOME/.local/bin/uv" --version 2>/dev/null; '
+                'elif command -v uv >/dev/null 2>&1; then uv --version 2>/dev/null; else echo MISSING; fi\n',
                 host=target,
                 timeout=60,
             )
@@ -251,6 +265,14 @@ def main() -> int:
                 rep.add(OK, "storage groups", f"{ngroups[0]} orcd_rg_* group memberships")
             else:
                 rep.add(WARN, "storage groups", "no orcd_rg_* groups; only $HOME will be writable")
+            uv = [l for l in blocks.get("UV", []) if l.strip()]
+            if uv and uv[0] != "MISSING":
+                rep.add(OK, "uv (cluster $HOME)", uv[0])
+            else:
+                rep.add(
+                    WARN, "uv (cluster $HOME)",
+                    "not installed; `python3 orcd_uv.py --install` (never edits shell profiles)",
+                )
 
     rep.render()
 
