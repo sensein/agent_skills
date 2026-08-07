@@ -379,6 +379,7 @@ ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `Permission denied (keyboard-interactive)` | `BatchMode=yes`, or Duo trust lapsed | Remove `BatchMode`; sign in at the portal again |
+| Connection times out; doctor FAILs `tcp port 22` | network policy blocks SSH egress (common in cloud agent sessions) | Not a key/Duo problem; loosen the environment's network policy or run from a machine with SSH access |
 | Duo suddenly prompts on every ssh | web authorization expired | Sign in at <https://orcd-ood.mit.edu/> once; ssh goes silent again |
 | Locked out entirely | 10 failed Duo attempts locks the account for 90 min | Stop retrying -- close VS Code Remote-SSH, whose auto-reconnect resets the timer |
 | `Invalid qos specification` | passed `--qos` | Drop the flag; pick the partition instead |

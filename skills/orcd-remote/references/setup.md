@@ -234,6 +234,7 @@ flash scratch (see [storage.md](storage.md)).
 | Symptom | Likely cause |
 | --- | --- |
 | `Permission denied (keyboard-interactive)` | `BatchMode=yes` set, or Duo trust lapsed. Check `-vv` for `partial success` |
+| `connect to host ... port 22: Connection timed out` | SSH egress is blocked -- cloud agent environments often allow only HTTPS. The doctor's `tcp port 22` check confirms it; keys and Duo are not the problem |
 | Hangs, then times out | A Duo prompt is waiting. Run `ssh orcd` by hand and answer it |
 | `Too many authentication failures` | The agent is offering many keys. Add `IdentitiesOnly yes` |
 | Host key changed warning | Login nodes are behind round-robin DNS. Verify with ORCD before removing the old key |

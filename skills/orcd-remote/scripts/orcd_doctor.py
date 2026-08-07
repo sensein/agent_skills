@@ -204,6 +204,20 @@ def main() -> int:
         resolves = False
         rep.add(BAD, "hostname resolves", f"{args.hostname}: {exc.strerror or exc}")
 
+    # 4b. TCP to port 22, probed before any ssh attempt. Cloud agent
+    # environments and locked-down networks often allow only HTTPS egress and
+    # silently drop SSH; without this probe the eventual ssh failure is
+    # indistinguishable from an auth problem and sends people chasing keys
+    # and Duo that were never broken.
+    port_blocked = False
+    if resolves:
+        try:
+            socket.create_connection((args.hostname, 22), timeout=10).close()
+            rep.add(OK, "tcp port 22", "reachable")
+        except OSError as exc:
+            port_blocked = True
+            rep.add(BAD, "tcp port 22", f"cannot connect: {exc.strerror or exc}")
+
     # 5. Reachability. This is the check that actually matters.
     reachable = False
     if identity is None:
@@ -211,6 +225,9 @@ def main() -> int:
     elif not resolves:
         rep.add(BAD, "login node reachable", "skipped: hostname does not resolve")
         failure_detail = "could not resolve"
+    elif port_blocked:
+        rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
+        failure_detail = "port 22 blocked"
     else:
         target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
@@ -281,7 +298,22 @@ def main() -> int:
         unreachable = any(r[1] == "login node reachable" and r[0] == MARK[BAD] for r in rep.rows)
         user = args.user or "<your-username>"
 
-        if needs_key:
+        if port_blocked:
+            # Checked before the missing-key case on purpose: installing a key
+            # cannot help until packets can reach the login node at all.
+            oc.heading("SSH egress is blocked")
+            print(
+                f"`{args.hostname}` resolves, but nothing answers on port 22 -- the\n"
+                "network between this machine and ORCD is dropping SSH. Keys and Duo\n"
+                "are not the problem, and installing a key will not help from here.\n"
+                "Common causes:\n\n"
+                "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
+                "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
+                "    environment's network policy, or drive ORCD from a machine with\n"
+                "    direct SSH access instead.\n"
+                "  - A restrictive campus or corporate network; try the MIT VPN.\n"
+            )
+        elif needs_key:
             print_key_instructions(identity, user, args.hostname)
         elif unreachable:
             # A local key exists, so lead with the cause the error points at
