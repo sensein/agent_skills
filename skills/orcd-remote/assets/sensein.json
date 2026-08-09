@@ -51,6 +51,8 @@
     "personal_pool": "~/orcd/pool",
     "user_dirs": "/orcd/data/satra/001/users/<username>",
     "hf_home": "/orcd/data/satra/002/huggingface",
+    "hf_revision_policy": "pin models by commit hash: fetch/load with revision=<sha>; redo any fetch made via 'main' (or another branch/tag) with the resolved committish and remove its refs/<name> file from the cache",
+    "senselab_cache": "/orcd/data/satra/002/cache/senselab",
     "models": "/orcd/data/satra/002/models",
     "datasets": "/orcd/data/satra/002/datasets",
     "projects": "/orcd/data/satra/002/projects/<project>"

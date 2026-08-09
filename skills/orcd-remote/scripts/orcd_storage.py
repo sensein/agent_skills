@@ -234,6 +234,7 @@ def print_conventions(cfg: dict) -> None:
     )
     labels = {
         "hf_home": "Hugging Face cache (export HF_HOME=...)",
+        "senselab_cache": "senselab shared cache (group-writable)",
         "models": "shared model weights",
         "datasets": "shared datasets",
         "projects": "project trees",
@@ -244,6 +245,8 @@ def print_conventions(cfg: dict) -> None:
     for key, label in labels.items():
         if key in conv:
             print(f"  {conv[key]:<44} {label}")
+    if "hf_revision_policy" in conv:
+        print(f"  HF models: {conv['hf_revision_policy']}")
     print("  Use symlink forms (~/orcd/...) in anything shared -- resolved shard")
     print("  paths are only correct for the person who resolved them.")
 
