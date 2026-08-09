@@ -173,7 +173,7 @@ def egress_blocked_message(hostname: str) -> None:
     )
 
 
-def sandbox_setup(user: str, hostname: str, host_alias: str) -> int:
+def sandbox_setup(user: str, hostname: str) -> int:
     """Prepare a sandbox that has internet access to reach ORCD.
 
     Verifies SSH egress first (no point minting a key the network can never
@@ -196,6 +196,13 @@ def sandbox_setup(user: str, hostname: str, host_alias: str) -> int:
         socket.create_connection((hostname, 22), timeout=10).close()
     except OSError:
         egress_blocked_message(hostname)
+        blocked_key, _ = find_identity()
+        if blocked_key is not None:
+            print(
+                "If you still want to pre-authorize this environment anyway, its public\n"
+                f"key is at {blocked_key}.pub -- but note that a future sandbox will carry\n"
+                "a different key, so this only helps if THIS session later gains egress.\n"
+            )
         return 1
 
     identity, _ = find_identity()
@@ -269,7 +276,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.sandbox_setup:
-        return sandbox_setup(args.user, args.hostname, args.host)
+        return sandbox_setup(args.user, args.hostname)
 
     rep = Report()
     failure_detail = ""
