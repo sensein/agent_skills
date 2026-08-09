@@ -121,7 +121,18 @@ remote container (Claude Code on the web, a CI runner) rather than on the
 user's own machine, say so when asking for the key to be added: the key pair
 lives in that ephemeral environment, installing it grants that environment
 access to the ORCD account, and it should be a dedicated, identifiable key the
-user approves and later removes. Details in
+user approves and later removes. When the sandbox has internet access (the
+doctor's `tcp port 22` check passes), let the tooling do the client side:
+
+```bash
+python3 orcd_doctor.py --sandbox-setup
+```
+
+verifies egress, mints a dedicated identifiable key if the sandbox has none,
+and prints the one-line command the account owner runs on ORCD to append it to
+`~/.ssh/authorized_keys` (plus the command that revokes it later). Return that
+command to the user -- the owner running it *is* the authorization; an agent
+never adds the key itself. Details in
 [references/setup.md](references/setup.md).
 
 A new account may reach step 5 and still have no Slurm association or storage

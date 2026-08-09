@@ -53,6 +53,29 @@ asking the user to add the key, say this plainly and:
   session ends. That is normal and fine -- generate and install a fresh key
   next time. Never copy a private key out of the container to "save" it.
 
+**Sandbox with SSH egress: let the tooling do the client side.** When the
+environment can actually reach port 22 (the doctor's `tcp port 22` check
+passes), run:
+
+```bash
+python3 scripts/orcd_doctor.py --sandbox-setup
+```
+
+It verifies egress first (no point minting a key the network can never
+present), generates a dedicated `ed25519` key if the sandbox has none -- with
+an identifying `orcd-sandbox-<user>-<date>` comment and an empty passphrase,
+the trade-off the bullets above accept for a headless, ephemeral, revocable
+key -- and prints two ready-to-paste commands for the account owner:
+
+- one that appends the public key to `~/.ssh/authorized_keys` on ORCD (run in
+  the portal shell or any existing SSH session from an authorized machine);
+- one that revokes it later by deleting the key's line.
+
+Hand both to the account owner; the owner running the append command **is**
+the authorization step, and an agent must never add the key itself. Once the
+owner confirms, `python3 scripts/orcd_doctor.py --fix` verifies the connection
+and writes the ssh config block.
+
 ### 3. Get a shell through the portal
 
 Sign in at <https://orcd-ood.mit.edu/>, then choose **Clusters -> Shell
