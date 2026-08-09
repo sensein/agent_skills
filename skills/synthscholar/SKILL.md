@@ -1,5 +1,5 @@
 ---
-name: synthscholar-skills
+name: synthscholar
 version: 0.1.0
 description: Set up and query SynthScholar / PRISMA systematic reviews. (1) Guided protocol intake — walk a user through EVERY required and optional input (research question, PICO, inclusion/exclusion criteria, databases, risk-of-bias tool, charting questions, per-group/cohort analysis, appraisal domains, output formatting, PRISMA registration) and validate completeness before a run. (2) Provenance queries — list included publications, distinguish full-text vs abstract-only, retrieve full-text content, and audit where each full text came from, across both the RDF/SLR-ontology export (SPARQL) and the PostgreSQL article store (SQL). Use when asked to start/scope a review, gather review inputs, check a protocol is complete, list included-with-full-text vs abstract-only, retrieve full-text content, or audit full-text provenance.
 license: Apache-2.0
