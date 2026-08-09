@@ -58,6 +58,66 @@ export HF_HOME=/orcd/data/satra/002/huggingface
 Non-HF model weights go under `/orcd/data/satra/002/models/<name>`. Before
 downloading anything large, check whether it is already there.
 
+**Models are pinned by commit hash -- never a floating `main`.** The same
+branch name serves different weights next month, and then nobody can say which
+weights produced a result. Anything shared -- job scripts, configs, code, and
+the cache itself -- must reference a model by its commit hash. Resolve the
+hash first, then fetch and load with `revision=`:
+
+```bash
+# resolve without downloading (public repos, no token needed)
+SHA=$(git ls-remote https://huggingface.co/<org>/<name> refs/heads/main | cut -f1)
+```
+
+```python
+from huggingface_hub import HfApi, snapshot_download
+sha = HfApi().model_info("org/name").sha        # or the git ls-remote value
+snapshot_download("org/name", revision=sha)
+model = AutoModel.from_pretrained("org/name", revision=sha)
+```
+
+Record the hash next to whatever the model produced (config, results file,
+logs), so the run can be reproduced against exactly those weights.
+
+**A fetch made via `main` (or any branch/tag -- tags move on the Hub too) is
+redone with the committish.** A branch-name fetch leaves a `refs/main` file in
+the cache, and that entry is how someone later loads "whatever `main` meant at
+the time" while believing it is current. To fix one:
+
+```bash
+cd $HF_HOME/hub/models--<org>--<name>
+cat refs/main                        # the commit you actually got
+```
+
+Re-run the fetch with `revision=<that sha>` to confirm the snapshot is
+complete under the hash (cheap -- the blobs are already there), switch the
+code or config that said `main` to the hash, and delete the `refs/main` file
+so the floating name can no longer be resolved from the shared cache. To
+audit the whole cache for branch/tag fetches that still need re-pinning:
+
+```bash
+find "$HF_HOME/hub" -path '*/refs/*' -type f
+```
+
+**Tool caches: `/orcd/data/satra/002/cache/<tool>`.** Same consolidation idea
+for tools that keep their own download caches. senselab environments point
+their cache at the group-writable:
+
+```
+/orcd/data/satra/002/cache/senselab
+```
+
+Create it once if missing -- the tree's setgid bit makes new files inherit the
+project group, but group *write* needs the mode set explicitly:
+
+```bash
+mkdir -p /orcd/data/satra/002/cache/senselab
+chmod g+ws /orcd/data/satra/002/cache/senselab
+```
+
+Models senselab pulls through Hugging Face still follow the rules above:
+shared `HF_HOME`, pinned by commit hash.
+
 **Projects.** Shared project work lives in `/orcd/data/satra/002/projects/<project>`,
 or in the project's own tree (`/orcd/data/dandi/...`, `/orcd/data/linc/...`)
 when one exists.

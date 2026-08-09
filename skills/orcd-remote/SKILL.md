@@ -247,8 +247,11 @@ automatically (another group can substitute its own via `--group-config` or
   admin team, not orcd-help. `orcd_storage.py` prints which projects your Unix
   groups already cover and the exact WebMoira list to ask about for the rest.
 - **Consolidation conventions**, so twenty people do not hold twenty copies of
-  the same model: one shared `HF_HOME` and `models/` tree, shared `datasets/`,
-  per-project dirs, and per-user dirs under `users/`.
+  the same model: one shared `HF_HOME` and `models/` tree -- with every model
+  pinned and referenced by its commit hash, never a floating `main` -- shared
+  tool caches under `cache/<tool>` (senselab's group-writable cache lives
+  there), shared `datasets/`, per-project dirs, and per-user dirs under
+  `users/`.
 
 One rule from that file worth repeating here: **anything written down for the
 group uses symlink forms** (`~/orcd/scratch`, resolved at runtime with
