@@ -61,13 +61,26 @@ MAX_CONSECUTIVE_FAILURES = 3
 
 
 def _require() -> tuple:
+    """Return ``(EZProxyConfig, EZProxyFetcher)``, from the app or the vendored copy.
+
+    The app's ``synthscholar.ezproxy`` wins when importable, so a newer
+    SynthScholar takes precedence. It ships only in the development checkout —
+    the released package predates it — so the skill vendors an equivalent client
+    and falls back to that, which keeps this script usable in any environment.
+    """
     try:
         from synthscholar.ezproxy import EZProxyConfig, EZProxyFetcher
-    except ImportError as e:
-        print(f"synthscholar is not importable ({e}). "
-              "`pip install 'synthscholar[fulltext]'`", file=sys.stderr)
+        return EZProxyConfig, EZProxyFetcher
+    except ImportError:
+        pass
+    try:
+        from ezproxy_client import EZProxyConfig, EZProxyFetcher
+        return EZProxyConfig, EZProxyFetcher
+    except ImportError as e:  # pragma: no cover — only if the skill is incomplete
+        print(f"No EZproxy client available ({e}). Expected either an installed "
+              "synthscholar with synthscholar/ezproxy.py, or this skill's "
+              "scripts/ezproxy_client.py.", file=sys.stderr)
         raise SystemExit(2)
-    return EZProxyConfig, EZProxyFetcher
 
 
 def _safe_name(doi: str) -> str:

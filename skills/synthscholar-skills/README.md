@@ -86,6 +86,30 @@ python scripts/query_postgres.py get-content --pmid 39012345
 python scripts/backfill_full_text.py
 ```
 
+## Which SynthScholar build you need
+
+Modes 1 and 3's corpus/EZproxy steps run anywhere. **Everything that touches the
+review pipeline or the provenance fields needs the development checkout, not the
+released package** — PyPI's latest (0.0.11) predates the whole-document reading,
+full-text screening and retrieval-provenance work:
+
+```bash
+pip install -e /path/to/prisma-review-agent    # the checkout, not `pip install synthscholar`
+```
+
+| Script | Runs on released 0.0.11? |
+| --- | --- |
+| `validate_protocol.py`, `build_corpus.py`, `update_provenance.py` | yes — no app import, or models only |
+| `fetch_ezproxy.py` | yes — the skill vendors `ezproxy_client.py`, since `synthscholar.ezproxy` ships only in the checkout |
+| `export_review.py`, `run_local_review.py` | **no** — they refuse to run and say what's missing |
+
+That refusal is deliberate. Pydantic drops unknown fields silently, so an older
+package would accept a review and quietly discard `assessed_on`,
+`full_text_retrieved`, `full_text_sources` and the rest — producing an export
+that looks complete but records nothing about what was actually read. The check
+is by feature, not version string (the package's `__version__` and its
+`pyproject.toml` version have drifted apart).
+
 ## Requirements
 
 - SPARQL scripts: `rdflib`.

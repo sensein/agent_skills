@@ -491,6 +491,20 @@ def main() -> int:
               "`pip install 'synthscholar[fulltext]'`", file=sys.stderr)
         return 2
 
+    # This path drives the app's own pipeline, so it needs the whole-document
+    # reading and screening-basis work — not just the released package. Checked
+    # by feature rather than version, and before any LLM spend.
+    from export_review import _require_synthscholar
+    _require_synthscholar()
+    try:
+        import synthscholar.text_windows  # noqa: F401
+    except ImportError:
+        print("The installed synthscholar has no synthscholar/text_windows.py, so "
+              "evidence extraction would read only the opening pages of each "
+              "article. Install the development checkout:\n"
+              "  pip install -e /path/to/prisma-review-agent", file=sys.stderr)
+        return 3
+
     return asyncio.run(run(args))
 
 

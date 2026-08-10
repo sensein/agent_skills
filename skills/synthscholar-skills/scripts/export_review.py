@@ -50,6 +50,17 @@ ALL_FORMATS = [
 DEFAULT_FORMATS = ["md", "ttl", "json"]
 
 
+# Fields the retrieval / screening-basis provenance depends on. Pydantic drops
+# unknown fields silently, so an older synthscholar would accept the data and
+# discard exactly these — producing a review that looks complete but records
+# nothing about what was actually read. Detected by feature, not by version
+# string, because the package's __version__ and pyproject version have drifted.
+REQUIRED_FLOW_FIELDS = ("full_text_retrieved", "full_text_sources",
+                        "assessed_on_full_text", "assessed_on_abstract_only",
+                        "included_with_full_text", "excluded_reasons_full_text")
+REQUIRED_LOG_FIELDS = ("assessed_on", "full_text_source")
+
+
 def _require_synthscholar():
     try:
         import synthscholar.export  # noqa: F401
@@ -62,6 +73,27 @@ def _require_synthscholar():
             file=sys.stderr,
         )
         raise SystemExit(2)
+
+    from synthscholar.models import PRISMAFlowCounts, ScreeningLogEntry
+
+    missing = [f"PRISMAFlowCounts.{f}" for f in REQUIRED_FLOW_FIELDS
+               if f not in PRISMAFlowCounts.model_fields]
+    missing += [f"ScreeningLogEntry.{f}" for f in REQUIRED_LOG_FIELDS
+                if f not in ScreeningLogEntry.model_fields]
+    if missing:
+        import synthscholar
+        print(
+            f"The installed synthscholar ({getattr(synthscholar, '__version__', 'unknown')}) "
+            "predates this skill's provenance fields:\n  "
+            + "\n  ".join(missing)
+            + "\n\nPydantic discards unknown fields silently, so exports would look "
+              "complete while recording nothing about which reports were retrieved "
+              "or whether each decision was made on the full text. Install the "
+              "development checkout instead:\n"
+              "  pip install -e /path/to/prisma-review-agent",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
 
 
 def load_result(path: str):

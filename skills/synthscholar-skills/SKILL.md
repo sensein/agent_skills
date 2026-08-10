@@ -285,8 +285,14 @@ All live in [scripts/](scripts/). Run them from an environment where the
 project's deps are importable (`rdflib` for SPARQL, `psycopg[binary]>=3.1` for
 SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`). The
 Mode 3 scripts need `synthscholar` importable too — plus `pymupdf` for PDF text
-and `OPENROUTER_API_KEY` for `run_local_review.py`
-(`pip install 'synthscholar[fulltext]'` covers both).
+and `OPENROUTER_API_KEY` for `run_local_review.py`.
+
+**`export_review.py` and `run_local_review.py` need the development checkout,
+not the released package** — `pip install -e /path/to/prisma-review-agent`. The
+PyPI build predates the whole-document reading and screening-basis provenance,
+and they refuse to run on it rather than silently dropping those fields.
+`fetch_ezproxy.py` works anywhere: the skill vendors `scripts/ezproxy_client.py`
+because `synthscholar.ezproxy` also ships only in the checkout.
 
 ```bash
 # Intake: blank template → fill from answers → validate before running
