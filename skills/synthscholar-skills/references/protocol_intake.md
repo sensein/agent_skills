@@ -125,7 +125,29 @@ Empty group questions ⇒ synthesis-only (no per-group Q&A).
 `pg_dsn`, `force_refresh`, `cache_threshold` (0–1, def 0.95),
 `cache_ttl_days` (def 30), `share_to_cache` (def true),
 `synthesis_batch_size` (def 20), `max_batch_retries` (def 3),
+`article_concurrency` (1–20, def 5), `max_articles` (null = no cap),
 `review_id` (minted if empty). Only ask if the user raises caching/scale needs.
+
+## 11. Reading budgets — how much of each paper is read
+
+Evidence extraction chunks every included article's full text and processes
+**every** chunk, so results and discussion are read rather than just the opening
+pages. That is the right default and also the main cost driver: a 1 M-character
+survey is ~85 LLM calls on its own. These are the knobs that bound it.
+
+| Field | Tier | Question | Default | Validation |
+| --- | --- | --- | --- | --- |
+| `evidence_max_chars` | [A] | "Cap how much of each paper is read for evidence?" | 0 = whole article | integer ≥ 0; a value under ~20 000 truncates most papers mid-results and is warned about |
+| `evidence_chunk_chars` | [A] | "Characters per evidence-extraction call?" | 12000 | integer ≥ 1000 — smaller = more calls, finer reading |
+| `evidence_chunk_overlap` | [A] | "Overlap between chunks?" | 400 | integer ≥ 0; keeps a finding spanning a cut readable |
+| `evidence_spans_per_article` | [A] | "Max evidence spans kept per article?" | 8 | integer ≥ 1 |
+| `article_text_budget` | [A] | "Full-text budget for RoB / extraction / charting?" | 16000 | integer ≥ 1000; longer bodies are windowed to head + tail so methods *and* results stay visible |
+
+Default silently. Only raise them when the user asks about cost, or when
+`run_local_review.py`'s pre-flight reports a chunk count out of proportion to
+the review (it prints the estimate before spending anything). Never cap the
+reading to save money without telling the user — a review that read the first
+few pages of each paper is a different claim from one that read the papers.
 
 ---
 

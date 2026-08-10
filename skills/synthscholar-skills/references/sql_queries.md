@@ -68,6 +68,12 @@ SELECT
 
 ## `source-breakdown` — where full text came from
 
+Values mirror the RDF side: `pmc_oa`, `europe_pmc_oa`, `unpaywall_pdf`,
+`openalex_pdf`, `semanticscholar_pdf`, `biorxiv_pdf` / `medrxiv_pdf`,
+`ezproxy_pdf` (institutional subscription access), `user_supplied_pdf` (a
+reviewer-supplied corpus), `article_store`, `cache`, or empty for rows
+backfilled before provenance was recorded.
+
 ```sql
 SELECT COALESCE(NULLIF(full_text_source, ''), '(unknown/backfilled)') AS source,
        count(*) AS n,
@@ -76,6 +82,17 @@ FROM article_full_text
 WHERE content <> ''
 GROUP BY 1
 ORDER BY n DESC;
+```
+
+Splitting subscription from open access is often the point of this query — how
+much of the corpus depended on institutional entitlement:
+
+```sql
+SELECT full_text_source IN ('ezproxy_pdf') AS via_subscription,
+       count(*) AS n
+FROM article_full_text
+WHERE content <> ''
+GROUP BY 1;
 ```
 
 ## `hash-dupes` — identical full text across different PMIDs
