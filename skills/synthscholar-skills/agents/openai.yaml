@@ -1,7 +1,19 @@
 interface:
   display_name: "SynthScholar PRISMA Reviews"
   short_description: "Scope, run, and audit PRISMA systematic reviews — including over PDFs you supply"
-  default_prompt: "Use $synthscholar to scope a PRISMA review protocol, run the review over the PDFs I supply (retrieving paywalled papers through my institutional EZproxy access), and export Markdown plus SLR-ontology Turtle with full retrieval and screening provenance."
+  default_prompt: "Use $synthscholar to scope a PRISMA review protocol, run the review over the PDFs I supply (fetching anything I only have a DOI for — open access first, then my own institutional EZproxy access), and export Markdown plus SLR-ontology Turtle with full retrieval and screening provenance."
+
+  # What the skill can actually do, for a chooser deciding whether to invoke it.
+  capabilities:
+    - "Draft and gate a complete review protocol from a one-line research question"
+    - "Run the full PRISMA pipeline over user-supplied PDFs: screening, charting, appraisal, synthesis, per-group analysis"
+    - "Retrieve missing full texts from a DOI — open access (Unpaywall/OpenAlex/Semantic Scholar), then institutional EZproxy"
+    - "Read every paper in full and extract only that paper's own findings, not the claims it cites"
+    - "Screen eligibility on full text, recording what each decision was actually judged on"
+    - "Export md, ttl (SLR ontology), jsonld, json, bib, charting, appraisal, per-group, narrative"
+    - "Add or amend the search strategy after a run and re-export"
+    - "Query a finished review over SPARQL (14 recipes) or SQL (8) for retrieval and screening provenance"
+    - "Produce the review without an OpenRouter key, with the host model authoring it through the same exporters"
 
 policy:
   allow_implicit_invocation: true

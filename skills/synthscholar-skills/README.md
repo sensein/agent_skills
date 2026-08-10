@@ -21,6 +21,26 @@ modes:
    still paywalled — so the review reads the paper instead of its abstract, and
    records which route got each one.
 
+## What you can use it for
+
+| Capability | How | Notes |
+| --- | --- | --- |
+| **Scope a review protocol** from a one-line research question | `validate_protocol.py` | Drafts the whole `ReviewProtocol` (PICO, eligibility, databases, risk-of-bias tool, charting questions, per-group analysis, registration); you're asked only the pivotal decisions. Gated for completeness before anything is spent. |
+| **Review PDFs you already have** | `build_corpus.py` → `run_local_review.py` | Screening → data charting → critical appraisal → synthesis → per-group analysis, the same pipeline the application runs. |
+| **Get the PDFs you don't have, from a DOI** | `fetch_ezproxy.py` | Open access first (Unpaywall → OpenAlex → Semantic Scholar, no credentials), then your own institutional EZproxy session for what's still paywalled. |
+| **Read each paper in full** | default (`--max-chars 0`) | Whole document, not the first few pages — evidence extraction chunks the stored text and reads every chunk, so results and discussion sections are actually seen. |
+| **Extract only each paper's own findings** | evidence extraction | Claims a paper cites from other studies are excluded, which is what makes the synthesis attributable to the corpus. |
+| **Screen eligibility on full text, not abstracts** | `run_local_review.py` | Every retrieved report is assessed on its full text where one exists; papers without are marked `assessed_on="abstract_only"` rather than quietly included. |
+| **Account for what was read and why** | PRISMA flow + exports | How many full texts were retrieved and by which route, how many decisions were made on full text vs abstract, and exclusion reasons per stage. |
+| **Export for humans and for machines** | `export_review.py` | `md`, `ttl` (SLR ontology, triple-store ready), `jsonld`, `json`, `bib`, plus `charting`, `appraisal`, `per-group`, `narrative`. |
+| **Add the search strategy after the fact** | `update_provenance.py` | Databases, query strings, dates, filters, record counts, registration ID — patched in and re-exported, so a run is never blocked on paperwork. |
+| **Interrogate a finished review** | `query_sparql.py` (14 recipes), `query_postgres.py` (8) | Full-text vs abstract-only inclusions, retrieval routes, reading basis, screening decisions, exclusion reasons, EZproxy-sourced articles, full-text search over the store. |
+| **Run without an OpenRouter key** | `export_review.py` | The agent performs the stages itself and serialises through the same exporters — identical schema and exports, different author. |
+
+What it deliberately does **not** do: search bibliographic databases for you
+(that's the application's job — here the corpus is yours), deduplicate your
+PDFs, OCR scanned documents, or store any credential.
+
 ## Layout
 
 ```
