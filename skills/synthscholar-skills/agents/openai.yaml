@@ -11,7 +11,7 @@ dependencies:
   # per-script table below and the README.
   python:
     - "rdflib>=6.0"          # SPARQL over an RDF export (query_sparql.py)
-    - "httpx>=0.25"          # institutional retrieval (fetch_ezproxy.py)
+    - "httpx>=0.25"          # open-access + institutional retrieval (fetch_ezproxy.py)
     - "pymupdf>=1.24"        # PDF text extraction (build_corpus.py)
     - "psycopg[binary]>=3.1" # article-store queries (query_postgres.py, backfill)
     - "pydantic>=2.0"        # result validation (export_review.py)
@@ -29,7 +29,9 @@ dependencies:
   scripts:
     validate_protocol.py: "stdlib only (PyYAML optional, for .yaml protocols)"
     build_corpus.py: "pymupdf; falls back to pypdf or the pdftotext CLI"
-    fetch_ezproxy.py: "httpx; uses the skill's vendored ezproxy_client.py when synthscholar.ezproxy is absent"
+    fetch_ezproxy.py: "httpx; open access needs no credentials, institutional access needs the EZPROXY_* vars"
+    oa_client.py: "httpx; vendored Unpaywall/OpenAlex/Semantic Scholar DOI chain, imported by fetch_ezproxy.py"
+    ezproxy_client.py: "httpx; vendored EZproxy client, used when synthscholar.ezproxy is absent"
     run_local_review.py: "synthscholar development checkout + OPENROUTER_API_KEY"
     export_review.py: "synthscholar development checkout"
     update_provenance.py: "synthscholar (models only)"
@@ -39,6 +41,8 @@ dependencies:
 
   environment:
     OPENROUTER_API_KEY: "required by run_local_review.py; unused by the other scripts"
+    SYNTHSCHOLAR_EMAIL: "polite-pool contact; Unpaywall requires it (ToS) and is skipped without it"
+    SEMANTIC_SCHOLAR_API_KEY: "optional; lifts Semantic Scholar's 1 req/s public rate limit"
     EZPROXY_HOST: "institutional proxy host, for retrieving paywalled papers"
     EZPROXY_COOKIE_FILE: "browser-exported cookies.txt for that proxy (or EZPROXY_COOKIE)"
     EZPROXY_MODE: "hostname-suffix (default) or login-url"

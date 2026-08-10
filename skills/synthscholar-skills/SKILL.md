@@ -135,9 +135,10 @@ python scripts/build_corpus.py --dir ./pdfs --out corpus.json
 #    …then YOU complete each entry's metadata by reading its `_head_text`…
 python scripts/build_corpus.py --check corpus.json          # exit 1 until complete
 
-# 2b. Paywalled papers the user has a DOI but no PDF for — institutional access
+# 2b. Papers the user has a DOI but no PDF for — open access, then institutional
 python scripts/fetch_ezproxy.py --status
-python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs
+python scripts/fetch_ezproxy.py --corpus corpus.json --oa-only        # free, no setup
+python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs # + paywalled
 
 # 3. Search provenance — ask the user (one batch of structured questions)
 python scripts/run_local_review.py --print-provenance-template > search_provenance.json
@@ -185,10 +186,12 @@ python scripts/export_review.py review.json --outdir out/ --formats md ttl json
 - **Extract only each paper's own evidence.** A number a paper cites from
   another study is not that paper's finding; excluding those is what makes the
   synthesis attributable.
-- **Offer institutional access when papers are paywalled** rather than settling
-  for abstracts — `fetch_ezproxy.py`, using the user's own library session.
-  Keep within their licence: one paper at a time, delayed, capped, and never
-  raise the ceiling on their behalf.
+- **Try open access before asking for a library session.** `fetch_ezproxy.py`
+  resolves DOIs through Unpaywall → OpenAlex → Semantic Scholar first, which
+  needs no setup; only what's left behind a paywall needs the user's own
+  EZproxy cookies. Don't ask for credentials until `--oa-only` has run and
+  something is still missing. Then keep within their licence: one paper at a
+  time, delayed, capped, and never raise the ceiling on their behalf.
 - **Report the reading basis when you summarise.** "23 of 25 read in full text,
   2 included on abstract alone" is different evidence from "25 included".
 - **Always offer both exports.** `.md` to read, `.ttl` to ingest.
@@ -291,8 +294,9 @@ and `OPENROUTER_API_KEY` for `run_local_review.py`.
 not the released package** — `pip install -e /path/to/prisma-review-agent`. The
 PyPI build predates the whole-document reading and screening-basis provenance,
 and they refuse to run on it rather than silently dropping those fields.
-`fetch_ezproxy.py` works anywhere: the skill vendors `scripts/ezproxy_client.py`
-because `synthscholar.ezproxy` also ships only in the checkout.
+`fetch_ezproxy.py` works anywhere — it needs only `httpx`, since the skill
+vendors both `scripts/oa_client.py` (the open-access DOI chain) and
+`scripts/ezproxy_client.py` (`synthscholar.ezproxy` ships only in the checkout).
 
 ```bash
 # Intake: blank template → fill from answers → validate before running
@@ -302,7 +306,7 @@ python scripts/validate_protocol.py protocol.json
 # BYO corpus: PDFs → corpus → review → md/ttl (see Mode 3)
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json
 python scripts/build_corpus.py --check corpus.json
-python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs   # paywalled papers
+python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs   # OA, then paywalled
 python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json \
     --provenance search_provenance.json --outdir out/
 python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json --dry-run
@@ -355,6 +359,10 @@ scripts) to see every named recipe.
   costs real tokens; `run_local_review.py` prints the call estimate before
   spending, and `protocol.evidence_max_chars` bounds it. It never deduplicates
   the supplied corpus; that stays the user's responsibility.
+- Open-access retrieval reaches only what has been deposited somewhere; a
+  paywalled paper with no repository copy misses on all three providers.
+  Unpaywall additionally needs `SYNTHSCHOLAR_EMAIL` (their ToS) and is skipped
+  without it.
 - Institutional access (EZproxy) needs a live browser-exported session cookie
   and only reaches what the institution licenses. Credentials go in
   `EZPROXY_*` env vars, never on a command line — the CLI invocation is stored

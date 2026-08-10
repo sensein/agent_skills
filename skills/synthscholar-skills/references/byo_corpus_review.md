@@ -24,8 +24,9 @@ protocol intake (SKILL.md Mode 1)            ← draft, ask pivots, confirm
         ├─ build_corpus.py       PDFs → corpus.json  (text + hashes + guesses)
         │        └─ agent completes title/authors/year/abstract per entry
         │
-        ├─ fetch_ezproxy.py      paywalled papers the user has a DOI but no PDF for
-        │                        → institutional access → PDF → corpus entry
+        ├─ fetch_ezproxy.py      papers the user has a DOI but no PDF for
+        │                        → open access (Unpaywall/OpenAlex/S2), then
+        │                          institutional access → PDF → corpus entry
         │
         ├─ search provenance     ask the user (table below) → search_provenance.json
         │                        …or defer and patch it in later
@@ -117,13 +118,28 @@ corpus would hide the results and discussion sections from the analysis. Cap it
 only to bound cost on very long documents — `run_local_review.py` prints the
 resulting chunk count before spending anything.
 
-## 2b. Paywalled papers — institutional access
+## 2b. Missing PDFs — open access first, institutional access second
 
-When the user has the DOI but not the PDF, `fetch_ezproxy.py` retrieves it
-through **their own institutional EZproxy session**, so subscription articles
-are read in full instead of screened on an abstract:
+When the user has the DOI but not the PDF, `fetch_ezproxy.py` retrieves it. It
+tries two stages in the same order as the application's `FullTextResolver`:
+
+| Stage | Route | Needs | Recorded as |
+| --- | --- | --- | --- |
+| 1 | Unpaywall → OpenAlex → Semantic Scholar | nothing (an email for Unpaywall) | `unpaywall_pdf`, `openalex_pdf`, `semanticscholar_pdf` |
+| 2 | the user's own EZproxy session | `EZPROXY_HOST` + session cookie | `ezproxy_pdf` |
+
+**Open access goes first, and this matters.** A DOI with a free copy costs
+nothing, needs no library session, and doesn't consume one of the user's
+capped proxy requests. A corpus that is largely open access can be assembled
+with no institutional setup at all — so don't ask the user for cookies until
+stage 1 has actually left something unretrieved.
 
 ```bash
+# Stage 1 alone — no institutional setup needed
+export SYNTHSCHOLAR_EMAIL=you@example.com    # Unpaywall's ToS requires a contact
+python scripts/fetch_ezproxy.py --corpus corpus.json --oa-only
+
+# Add stage 2 for whatever is left behind a paywall
 export EZPROXY_HOST=ezproxy.myuniversity.edu
 export EZPROXY_MODE=hostname-suffix          # or login-url — check your library's links
 export EZPROXY_COOKIE_FILE=~/ezproxy-cookies.txt
@@ -137,11 +153,16 @@ python scripts/fetch_ezproxy.py --doi-file dois.txt --pdf-dir ./pdfs   # no corp
 
 | Setting | What it is |
 | --- | --- |
+| `SYNTHSCHOLAR_EMAIL` | polite-pool contact; **Unpaywall is skipped without it** (their ToS). OpenAlex and Semantic Scholar still work |
+| `SEMANTIC_SCHOLAR_API_KEY` | optional; lifts Semantic Scholar's 1 req/s public limit |
 | `EZPROXY_HOST` | the gateway host from your library's off-campus links |
 | `EZPROXY_MODE` | `hostname-suffix` (`www-sciencedirect-com.ezproxy.uni.edu/…`) or `login-url` (`ezproxy.uni.edu/login?url=…`) |
 | `EZPROXY_COOKIE_FILE` | Netscape `cookies.txt` exported from a browser already signed in to the proxy |
 | `EZPROXY_COOKIE` | alternative: the raw `Cookie` header value |
 | `EZPROXY_DELAY` / `EZPROXY_MAX_REQUESTS` | politeness delay and per-run ceiling |
+
+Flags: `--oa-only` never touches the proxy; `--no-oa` skips open access entirely
+(rarely what you want — it spends entitlement on free papers).
 
 Notes that matter:
 
@@ -149,6 +170,12 @@ Notes that matter:
   scripted responsibly. Export the session cookies instead; they expire, and a
   login-page bounce is detected and reported rather than silently treated as a
   paywall.
+- **An open-access miss is not a failure.** Most DOIs have no free copy; that's
+  normal and says nothing about the next one. Only *proxied* failures trip the
+  stop-after-3 circuit breaker, because those really do indicate a dead session.
+- **A candidate is accepted only if it is really a PDF** (`%PDF-` magic bytes,
+  not the content-type). Publishers routinely serve an HTML paywall at a URL
+  ending in `.pdf`; those are rejected and the chain continues.
 - **Credentials are environment-only.** Never pass a cookie as a CLI flag: the
   full command line is recorded verbatim in `RunConfiguration.cli_invocation`
   and would end up in every export. Provenance stores only *whether* a
@@ -158,12 +185,16 @@ Notes that matter:
   cost an institution its access — the user is responsible for staying within
   their library's terms, and you should say so rather than raise the ceiling for
   them.
-- Retrieved articles are marked `full_text_source="ezproxy_pdf"`, which flows
-  into the PRISMA retrieval table and the Turtle, so the review can show that a
-  paper was read via subscription access rather than open access.
-- The same route is available inside the application: `synthscholar --ezproxy-host
-  … --ezproxy-cookie-file …`, where it runs as the **last** step of the
-  full-text cascade (open access is always tried first).
+- **Each article records the route that actually got it**, which flows into the
+  PRISMA retrieval table and the Turtle — so "how much of this review was open
+  access?" is answerable from the export (`query_sparql.py --query
+  retrieval-routes`), rather than everything collapsing into one bucket.
+- In `--doi`/`--doi-file` mode the routes are written to
+  `<pdf-dir>/retrieval_manifest.json`; pass it to `build_corpus.py --manifest`
+  or the corpus will mislabel every one of those PDFs as `user_supplied_pdf`.
+- The same two-stage cascade is what the application does: open access first,
+  then `synthscholar --ezproxy-host … --ezproxy-cookie-file …` as the **last**
+  step of the full-text chain.
 
 ## 3. Search provenance — what to ask
 
@@ -403,6 +434,10 @@ full-text-vs-abstract-only queries, since every PDF-backed article carries a
   amount of retrying fixes that — re-export them. Papers outside the
   institution's licence simply won't resolve, and those entries stay
   abstract-only (reported as such, not hidden).
+- **Open-access coverage is uneven.** Unpaywall/OpenAlex/Semantic Scholar find
+  what has been deposited somewhere; a paywalled article with no repository copy
+  will miss on all three. That is the case institutional access exists for, and
+  the reason stage 2 is worth configuring for a real review.
 - **The charting rubric is biomedically shaped** (sections C/D are
   disorder/control cohorts). For non-clinical corpora, set
   `grouping_dimension` to something meaningful (`study_design`, `task_type`)
