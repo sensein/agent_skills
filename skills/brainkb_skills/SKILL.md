@@ -348,7 +348,22 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   a full search across everything the user may read.
 - Read a whole space's RDF: `brainkb_read_space(slug)`.
 - List registered graphs: `brainkb_list_registered_graphs()`.
-- Arbitrary SPARQL (admin only): `brainkb_sparql(query)`.
+- Arbitrary SPARQL: `brainkb_sparql(query)` — **last resort.** It needs an
+  Admin/SuperAdmin role (the `sparql_admin` capability), so for most users it 403s.
+  Reach for the purpose-built tool first: "what graphs exist" is
+  `brainkb_list_registered_graphs()`, not a SPARQL `SELECT DISTINCT ?g`; "what's in
+  this space" is `brainkb_read_space(slug)`; "find X" is `brainkb_search(q)`;
+  "what changed" is the delta tools below. Hand-writing SPARQL for a question one
+  of those answers is how a 403 gets mistaken for a broken deployment.
+
+**An empty result is not proof of absence.** `brainkb_list_spaces()` serves
+anonymous callers a public-only view, so `{"spaces": []}` can mean *either* "you
+own no spaces" *or* "your credential wasn't accepted and you were treated as
+anonymous". Before telling the user they have nothing, confirm with
+`brainkb_whoami()` **and** one auth-required call (e.g.
+`brainkb_list_registered_graphs()`): if that 401s while `list_spaces` returns 200,
+the empty list is an auth failure, not an empty account. Say "I couldn't confirm"
+rather than "you have none."
 
 ### 6. Provenance
 - Whole job: `brainkb_provenance_job(job_id)`.
