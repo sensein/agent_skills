@@ -187,8 +187,30 @@ login can evaporate on the hosted remote.
 
 **First run `brainkb_whoami()`** — if it already reports `authenticated: true`
 (header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
-anything. Otherwise pick a method — **default to Globus, never prompt for a
-password unprompted:**
+anything.
+
+**If it reports `authenticated: false`, do NOT stop and offer the user a menu of
+auth methods.** Immediately call `brainkb_globus_login()` and hand over the URL it
+returns — that is the only path that works from a cold start, so presenting it as
+a choice just adds a round trip. Then take the code they paste,
+`brainkb_finish_login("<code>")`, and **mint a PAT in the same turn** with
+`brainkb_create_token(name="laptop", days=90)` so the next session doesn't repeat
+any of this. Only ask the user something if they *offer* a PAT, or if the login
+itself fails.
+
+Two things not to say while doing it:
+
+- Don't read `base_url` as the user's own machine. It is the **server's** backend,
+  not what the client connected to. On the hosted remote it reads
+  `http://host.docker.internal:8010` — that is the MCP's *co-located* stack inside
+  the deployment, and it is correct. Never tell the user they're "pointed at a
+  local stack" or that their PAT might be for the wrong backend because of it.
+- Don't warn that an in-session login "won't stick" before trying. Within one
+  session it persists; it just doesn't carry into the *next* session — which is
+  what minting the PAT solves.
+
+For reference, the methods in preference order — **default to Globus, never prompt
+for a password unprompted:**
 
 - **Globus / ORCID / GitHub (browser) — the default for "log in as <account>":**
   1. `brainkb_globus_login()` (or `brainkb_globus_login("orcid")` / `("github")`)
