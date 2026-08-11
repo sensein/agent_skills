@@ -14,26 +14,39 @@ This skill provides tools for ingesting, querying, and exploring **BrainKB (Brai
 
 ## Connectivity — READ FIRST
 
-The base URL must be reachable **from wherever this code runs**:
+There are two ways to reach BrainKB, and the right one depends on where this code
+runs:
 
-- `http://localhost:8010` (the current default) only works when the caller runs
-  on the **same machine** as the BrainKB Docker stack. That means the **`brainkb`
-  MCP server must be running locally (stdio) on that machine**, and you must use
-  the **MCP tools** — a local stack is reached through the local MCP process, not
-  from a cloud/sandbox session.
-- A **cloud / sandbox** Claude session (or the `curl` fallback running there)
-  **cannot reach a `localhost` deployment** on the user's laptop — no base URL
-  will fix that. In that case either (a) run this in **Claude Code on the same
-  machine** with the MCP registered, or (b) use a **publicly reachable** base URL
-  (the hosted remote, once it's up).
-- If login/any call returns a **connection error / HTTP 000 / connection refused**,
-  do **not** keep guessing URLs. It almost always means the caller can't reach the
-  deployment. Check: is the `brainkb` MCP running locally? Is the stack up
-  (`http://localhost:8010/openapi.json` returns 200 on that machine)? Ask the user
-  to confirm rather than retrying different hosts.
+- **Hosted remote — `https://mcp.brainkb.org/mcp` (live).** Works from anywhere,
+  including cloud/sandbox sessions. Register it once:
+  ```bash
+  claude mcp add --scope user --transport http brainkb https://mcp.brainkb.org/mcp
+  ```
+  The operator has already configured the backend, so **do not pass `base_url`**
+  to any tool here — see the allowlist note under *Credentials & safety*.
+  Authenticate per caller (PAT via `Authorization: Bearer`, or the login tools).
+- **Local stdio MCP → `http://localhost:8010`.** Only works when the caller runs on
+  the **same machine** as the BrainKB Docker stack, through the local MCP process.
+  A cloud/sandbox session **cannot** reach a `localhost` deployment on the user's
+  laptop and no base URL will fix that — use the hosted remote instead.
 
-**For local testing now: run the `brainkb` MCP locally and keep the base URL at
-`http://localhost:8010`.** Do not fall back to curl from a non-local session.
+Two notes on diagnosing failures:
+
+- A **connection error / HTTP 000 / connection refused** means the caller can't
+  reach the deployment — don't keep guessing URLs. For the local path, check the
+  MCP is running and the stack is up (`http://localhost:8010/openapi.json` → 200 on
+  that machine). Ask the user rather than retrying different hosts.
+- `GET https://mcp.brainkb.org/mcp` in a browser returns **406 "Client must accept
+  text/event-stream"**. That is the endpoint working, not an outage; `/` serves a
+  plain landing page and `/healthz` returns `ok`.
+
+Do not fall back to curl from a non-local session — use the hosted remote's MCP
+tools.
+
+**Rate limits apply on the hosted remote** (per caller IP): roughly 8 logins, 40
+writes/ingests, 120 reads and 30 admin calls per minute. A limited call returns
+`status_code: 429` with a `detail` naming the bucket — surface it and wait out the
+window. Never retry-loop, and never split one job into many calls to get around it.
 
 ## Credentials & safety
 
@@ -57,8 +70,9 @@ The base URL must be reachable **from wherever this code runs**:
   4. **Password (legacy, discouraged)** — only if the user *explicitly* has a
      password account and asks to use it: `brainkb_login(email, password)`. Never
      volunteer this path or prompt for a password unprompted.
-- **Base URL**: default `http://localhost:8010`; ask only if it's not already set
-  and the user hasn't said where the deployment is.
+- **Base URL**: on the hosted remote it is fixed by the operator — omit `base_url`
+  entirely. For a local stdio MCP the default is `http://localhost:8010`; ask only
+  if it isn't already set and the user hasn't said where the deployment is.
 - **Never print, echo, or store the password or the JWT token.** Pass them
   straight to the login step. When using curl, read the token into a shell
   variable — do not paste it into chat. (The one exception is the PAT returned by
