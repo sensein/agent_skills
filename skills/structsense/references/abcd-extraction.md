@@ -366,11 +366,12 @@ reported, because a reader needs to check the join:
 |---|---|
 | `mention_as_written` | Exactly how the paper wrote it — a variable id *or* a prose label ("NIH Toolbox Flanker Uncorrected Standard Score") |
 | `dictionary_match.variable` | The dictionary variable it resolved to (`nihtbx_flanker_uncorrected`) |
-| `dictionary_match.match_method` | `exact_name` · `normalized_name` · `label` · `description` — how the join was made |
+| `dictionary_match.match_method` | `exact_name` · `normalized_name` · `nda_name` · `deap_name` · `label` · `label_context` · `label_context_family` · `label_context_domain` · `instrument_label` · `nda_element_api` — how the join was made |
 | `nda_or_nbdc_table` | Dictionary table of the resolved variable (`nc_y_nihtb`) |
 | `nbdc_domain` / `nbdc_sub_domain` | Dictionary domain (`Neurocognition` / `Executive function`) |
 | `dd_releases_containing` | Releases (of those loaded) whose dictionary has this name |
-| `dictionary_status` | `verified` · `unverified_variable` · `not_a_variable_name` · `no_dictionary_loaded` |
+| `dictionary_status` | `verified` · `verified_via_nda_api` · `context_variable` · `context_family` · `context_domain` · `instrument_table` · `ambiguous` · `unverified_variable` · `not_a_variable_name` · `no_dictionary_loaded` |
+| `context_mapping` | The full audit when the mapping came from wording: cues that fired, ranked candidates with scores, thresholds, and why one variable was or was not named |
 
 Column naming differs between the NBDCtools bundle and a portal/CSV export
 (`table_name` vs `nda_or_nbdc_table`, `domain` vs `nbdc_domain`). The output always
@@ -380,6 +381,112 @@ actually has, so a consumer sees one stable shape either way.
 The Markdown table puts them side by side — *Mentioned as → Maps to variable →
 nda_or_nbdc_table → nbdc_domain* — and the Turtle emits `abcd:mentionAsWritten`,
 `abcd:dictionaryVariable`, `abcd:ndaOrNbdcTable`, `abcd:nbdcDomain`.
+
+## Mapping the paper's wording, not just its variable names
+
+`Dictionary.resolve()` answers "is this string a variable name?". Most papers never
+satisfy it — they write prose. On a three-paper sample, name-only resolution placed
+1 of 57 variables; `nda_or_nbdc_table` and `nbdc_domain` were empty for the rest,
+which is the entire point of the mapping.
+
+`scripts/abcd_context.py` matches the paper's phrasing against dictionary **labels**,
+which are rich enough to make this lexical rather than speculative:
+
+```
+fes_y_ss_fc              Conflict Subscale from the Family Environment Scale
+                         Sum of Youth Report (RAW Score)
+fes_p_ss_fc              Conflict subscale from the Family Environment Scale
+                         Sum of Parent Report (RAW Score)
+nihtbx_list_uncorrected  NIH Toolbox List Sorting Working Memory Test Age 7+
+                         v2.0 Uncorrected Standard Score
+nihtbx_list_v            NIH Toolbox List Sorting Working Memory Test Age 7+
+                         Version
+```
+
+Four signals decide between those, and every one is the paper's own words:
+
+| Signal | Field | Effect |
+|---|---|---|
+| Instrument | `variables[].instrument` | Scopes candidates to that instrument's table. `externalizing` appears in the CBCL, the ABCL, the YSR and the Brief Problem Monitor — the paper naming the CBCL settles it, and no amount of scoring can. |
+| Respondent | `variables[].respondent` | Filters, not penalises: "children completed the FES" excludes every parent-report variable. `fes_y_ss_fc` and `fes_p_ss_fc` are different measures. |
+| Metric | `variables[].metric` | "fully corrected T-scores" picks `nihtbx_cryst_fc`; any metric cue sinks the administrative siblings (Version, Language, ItmCnt, DateFinished) that share every content word with the measure. |
+| Release | `source_metadata.data_release` | Decides which snapshot is eligible. A 5.0 paper matched against 6.1 turns one clear measure into rival candidates in two tables — the single most valuable filter here. |
+
+Two lexical bridges are built in, because without them some measures share no
+content word with their label at all: light inflection folding ("externalizing
+behaviors" ↔ the CBCL's "External … Scale") and a short table of documented naming
+differences (axial ↔ longitudinal diffusivity, radial ↔ transverse, functional
+connectivity ↔ network correlation, surface ↔ cortical area). A substitution is
+recorded in `context_mapping.context_cues.synonym_applied`, so it can be rejected.
+
+**It will not name a variable the paper did not name.**
+
+| Status | When | What you get |
+|---|---|---|
+| `context_variable` | one candidate wins by the margin | variable + table + domain + release |
+| `context_family` | several variables in one table fit equally well — 68 Desikan-Killiany ROIs for "cortical thickness" | table + domain + `family_prefix` (`smri_thick_cdk_*`) + candidates; variable `null` |
+| `context_domain` | tables disagree, the domain does not (FA lives in several per-atlas tables) | domain + candidate tables |
+| `instrument_table` | the paper named an instrument, not a variable | table + domain for that instrument |
+| `ambiguous` | candidates spread across tables | nothing claimed, candidates listed |
+
+### The NDA element API
+
+```bash
+python -m scripts.abcd_nda_api element nihtbx_flanker_uncorrected
+python -m scripts.abcd_nda_api search "conflict subscale family environment scale"
+```
+
+`element()` confirms a name the paper printed that no bundled release contains —
+status `verified_via_nda_api`, with the element's structures and aliases. Useful; it
+is the one thing a snapshot cannot do.
+
+Full-text element search is available and its results are **suggestions, not
+mappings** (`nda_api_suggestions`). Two reasons. Every structure NDA can return is
+already in the loaded snapshots, so a search hit is something the context matcher
+saw and rejected. And NDA ranks lexically across the whole archive: asked about
+"internalizing behaviors" it returned an *Adult* Behavior Checklist score, and "age
+at time of scan" returned an SST series timestamp. Hits are intersected with this
+study's tables, admin elements are dropped, and what survives is offered to a human.
+
+`--nda-api auto` (default) confirms printed names always but only searches for runs
+of at most 25 papers — a 770-paper corpus would mean thousands of requests.
+Responses cache under `~/.cache/structsense/nda_api`, so a rerun is offline.
+
+## Only what this study did
+
+A paper's introduction and discussion are largely about other people's work, and
+none of it belongs in the output. `gate_scope` decides, per item, whether the
+evidence is the paper speaking about itself:
+
+| Item | Bar |
+|---|---|
+| variable / construct | fails only if the evidence is purely somebody else's: a literature section, a citation or prior-work phrasing, and no first-person framing |
+| finding | must be in a results-bearing section (Method/Results/Table/Abstract) **or** framed in the first person, and must not be attributed to cited work |
+
+Rejections carry a reason (`finding_attributed_to_cited_work`,
+`measure_only_mentioned_in_cited_work`) and the signals behind it in
+`scope_signals`. This is not tidiness: without the gate, paper A's summary of paper
+B arrives in the synthesis as independent evidence, and a literature that repeats
+one original study looks like replication.
+
+## Did the extraction get everything?
+
+`coverage` answers it directly:
+
+```json
+"coverage": {
+  "variables_declared": 38, "variables_referenced": 32,
+  "declared_coverage": 1.0,
+  "referenced_but_not_declared": []
+}
+```
+
+Anything named in a `models[]` array or a `findings[].variables[]` array but never
+declared in `variables[]` is listed. Those entries reach the synthesis with no
+quote, no table and no domain while looking like ordinary variables, so the list is
+a to-do for the extraction rather than a statistic. The prompt names the five places
+variables hide: the descriptive-statistics table, the covariate list, the Measures
+section, per-wave instances, and self-computed composites.
 
 ## Where the constructs come from
 
@@ -412,14 +519,53 @@ python -m scripts.abcd_synthesize ./out --min-papers 3 --out ./out/abcd_synthesi
 across six models must not outvote five other papers; that would make verbosity
 look like evidence.
 
-Constructs:
+### Claims
+
+`claims[]` is the reading view: one claim per construct, then the evidence paper by
+paper, then — separately — the contradictions and the caveats.
+
+```
+C2: Papers disagree on the direction of the association involving externalizing
+    behaviours: both positive and negative effects are reported across 2 papers.
+
+Evidence
+  10.1007/s10826-…  release 5.0  positive  b = 0.184, p < 0.001, n = 11,868
+                    strength: strong (n = 11,868; longitudinal, three annual waves)
+Contradictions
+  10.1017/S0954579…  release 5.0  negative  b = -0.330  strength: strong
+Caveats
+  - papers report the same sample size — likely the same children, so agreement is
+    not independent
+```
+
+The strength rating is derived only from what the papers reported — sample band
+(≥5000 large / 1000–4999 moderate / <1000 small), whether the design is
+longitudinal, whether an effect size was printed, whether the result is
+subgroup-only — and `strength.reasons` lists every input, so the label can be
+argued with rather than trusted. Contradictions are kept out of the evidence list
+on purpose: a claim supported by two papers and contradicted by one is not the same
+thing as a claim supported by three.
+
+### Constructs
 
 | Verdict | Meaning |
 |---|---|
-| `consensus` | ≥ `min_papers`, one direction holds ≥ 70% of papers |
+| `consensus` | ≥ `min_papers`, one direction holds ≥ 70% of the direction claims |
 | `divergent` | papers report **opposing signs** (positive *and* negative) |
 | `mixed` | no direction reaches the threshold, but no outright contradiction |
 | `insufficient_papers` | fewer than `min_papers` — reported without a verdict |
+| `no_directional_finding` | the construct was studied but no signed effect was reported for it |
+
+`agreement` is the majority direction's share of the **paper-direction claims**, not
+of papers. With papers as the denominator, a construct where two papers said
+positive and one of them also said negative printed `1.00` agreement beside a
+`divergent` verdict — two numbers contradicting each other on one row.
+
+Each construct also carries `measured_by`: the variables the papers *declared* as
+operationalising it, with table, domain, release and paper ids. Variables that merely
+appear in its findings are listed separately as `variables_in_findings` — conflating
+the two produced "internalizing behaviours measured by financial strain", which no
+paper said.
 
 Divergence means opposing signs, not differing magnitudes. Two papers reporting
 `b = 0.02` and `b = 0.31` agree on direction; that is not a contradiction, and
@@ -429,10 +575,30 @@ Variable roles answer "is this consistently a mediator/moderator?":
 
 | Verdict | Meaning |
 |---|---|
-| `consistent_role` | one role in ≥ 70% of papers — e.g. a stable mediator |
-| `contested_role` | multiple roles claimed, none dominant — reported as contested, **not** resolved by majority |
+| `consistent_role` | the dominant role recurs in ≥ 70% of papers **and** is the only substantive role in ≥ 70% of them |
+| `contested_role` | multiple roles claimed — reported as contested, **not** resolved by majority |
 | `mixed` | one role claimed but below threshold |
 | `insufficient_papers` | too few papers to judge |
+
+Exclusivity is the second half of that first rule for a reason: a variable that is
+a mediator in every paper *and* an outcome in every paper scored 1.00 on share alone
+and was reported as a consistent mediator. `role_exclusivity` is the share of papers
+where the dominant role stands alone.
+
+Rows merge across papers on the resolved dictionary variable, then on a
+paper-declared alias, then on the normalised mention (case and plural folded —
+"family income" and "Family income" used to be two rows with one paper each). Never
+on similarity: parent-report and youth-report versions of a scale stay separate,
+and when two wordings resolve differently the row carries `mapping_disagreement`
+instead of a silent pick.
+
+Every variable row carries `paper_evidence`: per paper, the wording used, the
+instrument, respondent and metric the paper stated, the roles and timepoints, what
+it resolved to, its table and domain, the **dictionary release that mapping holds
+in**, and the quotes. Every paper row carries the dataset it analysed (release,
+sample, analytic sample, design, waves, cohort, sites, source) — which is how
+"three papers agree" can be read as "three papers agree, all analysing the same
+11,868 children".
 
 `unspecified` can never be a dominant role — it is the absence of a claim. This is
 why the extractor prompt insists on `unspecified` when a paper is ambiguous about

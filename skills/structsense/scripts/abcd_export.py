@@ -348,62 +348,261 @@ def paper_turtle(doc: dict) -> str:
 
 def synthesis_markdown(doc: dict) -> str:
     tot = doc.get("totals") or {}
+    method = doc.get("method") or {}
     lines = [
         "# ABCD cross-paper synthesis",
         "",
         f"- **Papers**: {tot.get('papers', 0)}"
-        f"  •  **verified variable uses**: {tot.get('variable_uses', 0)}"
-        f"  •  **findings**: {tot.get('findings', 0)}",
+        f"  •  **variable uses**: {tot.get('variable_uses', 0)}"
+        f"  •  **findings**: {tot.get('findings', 0)}"
+        f"  •  **claims**: {tot.get('claims', 0)}",
         f"- **Constructs with consensus**: {tot.get('consensus_constructs', 0)}"
-        f"  •  **with divergence**: {tot.get('divergent_constructs', 0)}",
+        f"  •  **with divergence**: {tot.get('divergent_constructs', 0)}"
+        f"  •  **variables carrying a dictionary table**: "
+        f"{tot.get('variables_with_table', 0)}/{tot.get('distinct_variables', 0)}",
+        f"- **Data releases in this corpus**: "
+        + (", ".join(tot.get("data_releases") or []) or "not stated"),
+        "",
+        "Counting is by paper, not by finding. Only what each paper did itself is",
+        "included — variables and results attributed to cited work were rejected",
+        "upstream.",
+        "",
+        "## Papers and datasets",
+        "",
+        "What each paper analysed. Two papers agreeing on the same release, the same",
+        "waves and the same sample size are probably not independent evidence.",
+        "",
+        md_table(
+            ["Paper id", "Title", "Study", "Data release", "Dictionary checked",
+             "Sample", "Analytic sample", "Design", "Waves", "Source",
+             "Vars (with table)", "Findings", "Rejected"],
+            [
+                (
+                    p.get("paper_id"),
+                    _trunc(p.get("title") or p.get("source_path"), 44),
+                    (p.get("dataset") or {}).get("study") or "—",
+                    (p.get("dataset") or {}).get("data_release") or "—",
+                    _releases((p.get("dictionary") or {}).get("matched_against")),
+                    (p.get("dataset") or {}).get("sample_size") or "—",
+                    (p.get("dataset") or {}).get("analytic_sample") or "—",
+                    _trunc((p.get("dataset") or {}).get("design"), 34) or "—",
+                    ", ".join((p.get("dataset") or {}).get("timepoints") or []) or "—",
+                    (p.get("dataset") or {}).get("data_source") or "—",
+                    f"{(p.get('counts') or {}).get('variables', 0)} "
+                    f"({(p.get('counts') or {}).get('variables_with_table', 0)})",
+                    (p.get("counts") or {}).get("findings", 0),
+                    (p.get("counts") or {}).get("rejected", 0),
+                )
+                for p in doc.get("papers", [])
+            ],
+        ),
+    ]
+
+    claims = doc.get("claims") or []
+    if claims:
+        lines += [
+            "",
+            "## Claims",
+            "",
+            "Each claim states what the corpus supports, then the evidence paper by",
+            "paper with a strength rating, then whatever contradicts it. Strength is",
+            "derived only from what the papers reported: "
+            + ", ".join((method.get("strength_rating") or {}).get("inputs") or []) + ".",
+            "",
+        ]
+        for claim in claims:
+            lines.append(f"### {claim.get('claim_id', '')}: {claim.get('claim')}")
+            lines.append("")
+            meta = [f"**verdict** {claim.get('verdict')}",
+                    f"**papers** {claim.get('paper_count')}",
+                    f"**agreement** {claim.get('agreement', 0):.2f}"]
+            if claim.get("construct_id"):
+                lines.append(f"- construct: `{claim['construct_id']}` "
+                             f"({claim.get('construct_label')})")
+            if claim.get("measured_by"):
+                lines.append("- measured by: "
+                             + ", ".join(f"`{m}`" for m in claim["measured_by"]))
+            elif claim.get("variables_in_findings"):
+                lines.append("- variables in its findings (no paper declared the "
+                             "measures): "
+                             + ", ".join(f"`{m}`"
+                                         for m in claim["variables_in_findings"]))
+            lines.append("- " + "  •  ".join(meta))
+            lines.append("")
+            lines.append("**Evidence**")
+            lines.append("")
+            lines.append(md_table(
+                ["Paper", "Release", "Direction", "Result", "Effect", "Statistic",
+                 "n", "Strength", "Why that strength"],
+                [
+                    (e.get("paper_id"), e.get("data_release") or "—",
+                     e.get("direction"), _trunc(e.get("statement"), 70),
+                     e.get("effect_size") or "—", e.get("statistic") or "—",
+                     e.get("analytic_n") or (e.get("strength") or {}).get("sample_n")
+                     or "—",
+                     (e.get("strength") or {}).get("level"),
+                     "; ".join((e.get("strength") or {}).get("reasons") or []))
+                    for e in claim.get("evidence") or []
+                ],
+            ))
+            lines.append("")
+            if claim.get("contradictions"):
+                lines.append("**Contradictions**")
+                lines.append("")
+                lines.append(md_table(
+                    ["Paper", "Release", "Direction", "Result", "Effect", "Strength"],
+                    [
+                        (e.get("paper_id"), e.get("data_release") or "—",
+                         e.get("direction"), _trunc(e.get("statement"), 70),
+                         e.get("effect_size") or "—",
+                         (e.get("strength") or {}).get("level"))
+                        for e in claim["contradictions"]
+                    ],
+                ))
+                lines.append("")
+            if claim.get("caveats"):
+                lines.append("**Caveats**")
+                lines.append("")
+                for c in claim["caveats"]:
+                    lines.append(f"- {c}")
+                lines.append("")
+
+    lines += [
         "",
         "## Consensus and divergence by construct",
         "",
-        "`agreement` is the share of papers backing the majority direction. A construct is",
-        "*divergent* when papers report opposing directions, not merely when they differ in size.",
+        "`agreement` is the majority direction's share of the paper-direction claims",
+        "(a paper reporting both a positive and a null result for one construct counts",
+        "in both). A construct is *divergent* when papers report opposing directions,",
+        "not merely when they differ in size.",
         "",
         md_table(
-            ["Construct", "Papers", "Positive", "Negative", "Null", "Majority",
-             "Agreement", "Verdict"],
+            ["Construct", "Cognitive Atlas", "Papers", "Positive", "Negative", "Null",
+             "Majority", "Agreement", "Verdict", "Measures", "Tables"],
             [
                 (
-                    c.get("construct_label") or c.get("construct_id") or c.get("construct"),
-                    c.get("paper_count"),
-                    (c.get("directions") or {}).get("positive", 0),
-                    (c.get("directions") or {}).get("negative", 0),
-                    (c.get("directions") or {}).get("null", 0),
-                    c.get("majority_direction"),
+                    c.get("construct_label") or c.get("construct_id"),
+                    c.get("construct_id") or "—",
+                    f"{c.get('paper_count')} ({', '.join(c.get('papers') or [])})",
+                    _dirpapers(c, "positive"),
+                    _dirpapers(c, "negative"),
+                    _dirpapers(c, "null"),
+                    c.get("majority_direction") or "—",
                     f"{c.get('agreement', 0):.2f}",
                     c.get("verdict"),
+                    c.get("measure_count", 0),
+                    ", ".join(c.get("tables") or []) or "—",
                 )
                 for c in doc.get("constructs", [])
             ],
         ),
         "",
-        "## Variable roles across papers",
+        "### What measured each construct",
         "",
-        "Whether a variable is treated consistently as a mediator/moderator, or its role is contested.",
+        "A construct is only comparable across papers if you can see what stood in for",
+        "it in each one.",
+        "",
+    ]
+    for c in doc.get("constructs", []):
+        rows = c.get("measured_by") or c.get("variables_in_findings") or []
+        if not rows:
+            continue
+        lines.append(f"**{c.get('construct_label')}**"
+                     + (f" (`{c['construct_id']}`)" if c.get("construct_id") else "")
+                     + ("" if c.get("measured_by") else
+                        " — *no paper declared its measures; these are the variables "
+                        "its findings mention*"))
+        lines.append("")
+        lines.append(md_table(
+            ["Variable", "Resolved to", "nda_or_nbdc_table", "nbdc_domain",
+             "dd release", "Papers"],
+            [
+                (m.get("variable"), m.get("dictionary_variable") or "—",
+                 m.get("nda_or_nbdc_table") or "—", m.get("nbdc_domain") or "—",
+                 _releases(m.get("dd_releases")),
+                 f"{m.get('paper_count')} ({', '.join(m.get('papers') or [])})")
+                for m in rows
+            ],
+        ))
+        lines.append("")
+
+    lines += [
+        "",
+        "## Variables across papers",
+        "",
+        "Roles, the dictionary variable each wording resolved to, and which release",
+        "that mapping holds in. `exclusivity` is the share of papers in which the",
+        "dominant role is the *only* role — a variable that is a mediator in every",
+        "paper and also an outcome in every paper is contested, not consistent.",
         "",
         md_table(
-            ["Variable", "nda_or_nbdc_table", "nbdc_domain", "Papers",
-             "Roles observed", "Dominant role", "Consistency", "Verdict"],
+            ["Variable", "Resolved to", "nda_or_nbdc_table", "nbdc_domain",
+             "dd release", "Papers", "Roles observed", "Dominant", "Share",
+             "Exclusivity", "Verdict"],
             [
                 (
                     v.get("variable"),
-                    (v.get("dictionary_match") or {}).get("nda_or_nbdc_table") or "—",
-                    (v.get("dictionary_match") or {}).get("nbdc_domain") or "—",
-                    v.get("paper_count"),
+                    v.get("dictionary_variable") or "—",
+                    v.get("nda_or_nbdc_table") or "—",
+                    v.get("nbdc_domain") or "—",
+                    _releases(v.get("dd_releases")),
+                    f"{v.get('paper_count')} ({', '.join(v.get('papers') or [])})",
                     ", ".join(f"{k}×{n}" for k, n in (v.get("roles") or {}).items()),
-                    v.get("dominant_role"),
-                    f"{v.get('role_consistency', 0):.2f}",
+                    v.get("dominant_role") or "—",
+                    f"{v.get('dominant_role_share', 0):.2f}",
+                    f"{v.get('role_exclusivity', 0):.2f}",
                     v.get("verdict"),
                 )
                 for v in doc.get("variables", [])
             ],
         ),
+        "",
+        "### Where each variable came from",
+        "",
+        "Per paper: the wording used, what it resolved to and the quote behind it.",
+        "",
     ]
+    for v in doc.get("variables", []):
+        if v.get("paper_count", 0) < 1:
+            continue
+        lines.append(f"**`{v.get('variable')}`**"
+                     + (f" — resolved to `{v['dictionary_variable']}`"
+                        if v.get("dictionary_variable") else ""))
+        if v.get("mapping_disagreement"):
+            d = v["mapping_disagreement"]
+            lines.append("")
+            lines.append(f"> Papers disagree about what this is: "
+                         f"{', '.join(f'`{x}`' for x in d.get('dictionary_variable') or [])}"
+                         + (f" across tables {', '.join(d.get('tables') or [])}"
+                            if d.get("tables") else "")
+                         + ". Treat the row as two measures sharing a name.")
+        lines.append("")
+        lines.append(md_table(
+            ["Paper", "Release", "As written", "Instrument", "Respondent", "Metric",
+             "Roles", "Timepoints", "Status", "Resolved to", "Table", "Section",
+             "Quote"],
+            [
+                (
+                    u.get("paper_id"), u.get("data_release") or "—",
+                    "; ".join(u.get("mentions") or []) or "—",
+                    "; ".join(u.get("instruments") or []) or "—",
+                    "; ".join(u.get("respondents") or []) or "—",
+                    "; ".join(u.get("metrics") or []) or "—",
+                    ", ".join(u.get("roles") or []) or "—",
+                    "; ".join(u.get("timepoints") or []) or "—",
+                    u.get("dictionary_status") or "—",
+                    u.get("dictionary_variable") or u.get("family_prefix") or "—",
+                    u.get("nda_or_nbdc_table") or "—",
+                    (u.get("quotes") or [{}])[0].get("section") or "—",
+                    _trunc((u.get("quotes") or [{}])[0].get("quote"), 80) or "—",
+                )
+                for u in v.get("paper_evidence") or []
+            ],
+        ))
+        lines.append("")
 
-    contested = [v for v in doc.get("variables", []) if v.get("verdict") == "contested_role"]
+    contested = [v for v in doc.get("variables", [])
+                 if v.get("verdict") == "contested_role"]
     if contested:
         lines += ["", "### Contested roles — evidence side by side", ""]
         for v in contested:
@@ -416,20 +615,28 @@ def synthesis_markdown(doc: dict) -> str:
             ))
             lines.append("")
 
-    lines += [
-        "",
-        "## Papers included",
-        "",
-        md_table(
-            ["Paper id", "Title / source", "Release", "Variables", "Findings"],
-            [
-                (p.get("paper_id"), _trunc(p.get("title") or p.get("source_path"), 60),
-                 p.get("data_release") or "—", p.get("variable_count"), p.get("finding_count"))
-                for p in doc.get("papers", [])
-            ],
-        ),
-    ]
+    lines += ["", "## Method", ""]
+    for key in ("counting_unit", "min_papers_for_verdict", "agreement_threshold",
+                "agreement_denominator", "divergence_rule", "role_consistency_rule",
+                "variable_identity_rule", "scope"):
+        if method.get(key) is not None:
+            lines.append(f"- **{key}**: {method[key]}")
     return "\n".join(lines) + "\n"
+
+
+def _releases(value) -> str:
+    if not value:
+        return "—"
+    if isinstance(value, str):
+        return value
+    return ", ".join(str(v) for v in value)
+
+
+def _dirpapers(construct: dict, direction: str) -> str:
+    """Count plus the paper ids behind it — the count alone hides who said what."""
+    papers = (construct.get("papers_by_direction") or {}).get(direction) or []
+    n = (construct.get("directions") or {}).get(direction, 0)
+    return f"{n} ({', '.join(papers)})" if papers else str(n)
 
 
 def synthesis_turtle(doc: dict) -> str:
@@ -446,31 +653,90 @@ def synthesis_turtle(doc: dict) -> str:
     out.append("    rdfs:label \"ABCD cross-paper synthesis\" .")
     out.append("")
 
+    # Each paper's dataset, so a triple store can answer "which release, which
+    # sample" without going back to the JSON.
+    for p in doc.get("papers", []):
+        pn = f"abcd:paper-{slug(p.get('paper_id'))}"
+        ds = p.get("dataset") or {}
+        out.append(f"{pn} a abcd:Paper ;")
+        if p.get("doi"):
+            out.append(f"    abcd:doi {lit(p['doi'])} ;")
+        if p.get("title"):
+            out.append(f"    rdfs:label {lit(_trunc(p['title'], 200))} ;")
+        for pred, val in (("abcd:study", ds.get("study")),
+                          ("abcd:dataRelease", ds.get("data_release")),
+                          ("abcd:dataSource", ds.get("data_source")),
+                          ("abcd:cohort", ds.get("cohort")),
+                          ("abcd:sampleSize", ds.get("sample_size")),
+                          ("abcd:analyticSample", ds.get("analytic_sample")),
+                          ("abcd:design", ds.get("design")),
+                          ("abcd:siteCount", ds.get("site_count"))):
+            if val:
+                out.append(f"    {pred} {lit(val)} ;")
+        for tp in ds.get("timepoints") or []:
+            out.append(f"    abcd:timepoint {lit(tp)} ;")
+        for rel in (p.get("dictionary") or {}).get("dd_releases_of_resolved_variables") or []:
+            out.append(f"    abcd:ddRelease {lit(rel)} ;")
+        out.append(f"    prov:wasUsedBy {node} .")
+        out.append("")
+
+    for claim in doc.get("claims", []):
+        cn = f"abcd:claim-{sid}-{slug(claim.get('claim_id') or claim.get('construct_label'))}"
+        out.append(f"{cn} a abcd:SynthesisClaim ;")
+        out.append(f"    rdfs:label {lit(_trunc(claim.get('claim'), 400))} ;")
+        if claim.get("construct_id"):
+            out.append(f"    abcd:aboutConstruct cogat:{claim['construct_id']} ;")
+        out.append(f"    abcd:verdict {lit(claim.get('verdict'))} ;")
+        out.append(f"    abcd:paperCount {int(claim.get('paper_count') or 0)} ;")
+        for pid in sorted({e.get("paper_id") for e in claim.get("evidence") or []}):
+            out.append(f"    abcd:supportedBy abcd:paper-{slug(pid)} ;")
+        for pid in sorted({e.get("paper_id")
+                           for e in claim.get("contradictions") or []}):
+            out.append(f"    abcd:contradictedBy abcd:paper-{slug(pid)} ;")
+        for c in claim.get("caveats") or []:
+            out.append(f"    abcd:caveat {lit(c)} ;")
+        out.append(f"    prov:wasGeneratedBy {node} .")
+        out.append("")
+
     for c in doc.get("constructs", []):
-        cn = f"abcd:consensus-{sid}-{slug(c.get('construct_id') or c.get('construct'))}"
+        cn = f"abcd:consensus-{sid}-{slug(c.get('construct_id') or c.get('construct_label'))}"
         out.append(f"{cn} a abcd:ConstructConsensus ;")
         if c.get("construct_id"):
             out.append(f"    abcd:aboutConstruct cogat:{c['construct_id']} ;")
-        out.append(f"    rdfs:label {lit(c.get('construct_label') or c.get('construct'))} ;")
+        out.append(f"    rdfs:label {lit(c.get('construct_label'))} ;")
         out.append(f"    abcd:paperCount {int(c.get('paper_count') or 0)} ;")
         out.append(f"    abcd:majorityDirection {lit(c.get('majority_direction'))} ;")
         out.append(f"    abcd:agreement {float(c.get('agreement') or 0):.3f} ;")
         out.append(f"    abcd:verdict {lit(c.get('verdict'))} ;")
-        for e in c.get("evidence") or []:
-            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(e.get('paper_id'))} ;")
+        for m in c.get("measured_by") or []:
+            out.append(f"    abcd:measuredBy abcd:variable-{sid}-{slug(m.get('variable'))} ;")
+        for pid in sorted({e.get("paper_id") for e in c.get("evidence") or []}):
+            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(pid)} ;")
         out.append(f"    prov:wasGeneratedBy {node} .")
         out.append("")
 
     for v in doc.get("variables", []):
-        vn = f"abcd:roleprofile-{sid}-{slug(v.get('variable'))}"
+        vn = f"abcd:variable-{sid}-{slug(v.get('variable'))}"
         out.append(f"{vn} a abcd:VariableRoleProfile ;")
         out.append(f"    abcd:variableName {lit(v.get('variable'))} ;")
+        if v.get("dictionary_variable"):
+            out.append(f"    abcd:resolvedTo {lit(v['dictionary_variable'])} ;")
+        for pred, val in (("abcd:ndaOrNbdcTable", v.get("nda_or_nbdc_table")),
+                          ("abcd:nbdcDomain", v.get("nbdc_domain"))):
+            if val:
+                out.append(f"    {pred} {lit(val)} ;")
+        for rel in v.get("dd_releases") or []:
+            out.append(f"    abcd:ddRelease {lit(rel)} ;")
+        for form in v.get("surface_forms") or []:
+            out.append(f"    abcd:mentionAsWritten {lit(form)} ;")
         out.append(f"    abcd:paperCount {int(v.get('paper_count') or 0)} ;")
         out.append(f"    abcd:dominantRole {lit(v.get('dominant_role'))} ;")
-        out.append(f"    abcd:roleConsistency {float(v.get('role_consistency') or 0):.3f} ;")
+        out.append(f"    abcd:dominantRoleShare {float(v.get('dominant_role_share') or 0):.3f} ;")
+        out.append(f"    abcd:roleExclusivity {float(v.get('role_exclusivity') or 0):.3f} ;")
         out.append(f"    abcd:verdict {lit(v.get('verdict'))} ;")
-        for e in v.get("evidence") or []:
-            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(e.get('paper_id'))} ;")
+        for pid in sorted({u.get("paper_id")
+                           for u in v.get("paper_evidence") or []}):
+            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(pid)} ;")
         out.append(f"    prov:wasGeneratedBy {node} .")
         out.append("")
     return "\n".join(out)

@@ -62,12 +62,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from scripts import abcd_export, abcd_inputs
+from scripts import abcd_context, abcd_export, abcd_inputs
 from scripts.abcd_dictionary import Dictionary, DictionaryError
 from scripts.abcd_verify import verify_payload
 from scripts.cognitive_atlas import CognitiveAtlas, CognitiveAtlasError
 
-SKILL_VERSION = "0.5.0"
+SKILL_VERSION = "0.6.0"
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "extractor-abcd.md"
 PDF_SUFFIXES = (".pdf", ".txt", ".md")
 
@@ -149,7 +149,13 @@ def _merge(payloads: List[dict]) -> dict:
 
 
 DOC_LEVEL_FIELDS = ("study", "data_release", "paper_title", "doi", "sample_size",
-                    "design")
+                    "design", "timepoints", "cohort", "site_count", "analytic_sample",
+                    "preregistered", "data_source")
+
+# Live NDA full-text search is one request per unplaceable mention. Fine for a few
+# papers, thousands of requests for a corpus — so `--nda-api auto` only searches
+# below this paper count. Printed-name confirmation is cheap and always allowed.
+NDA_SEARCH_PAPER_BUDGET = 25
 
 
 def _payload_meta(payload: dict) -> Dict[str, Any]:
@@ -177,7 +183,10 @@ def _payload_meta(payload: dict) -> Dict[str, Any]:
 
 def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary],
                   atlas: Optional[CognitiveAtlas], grobid_url: Optional[str] = None,
-                  payload_override: Optional[dict] = None) -> dict:
+                  payload_override: Optional[dict] = None,
+                  context_index: Optional[Any] = None,
+                  nda: Optional[Any] = None,
+                  study: Optional[str] = None) -> dict:
     """Extract + verify one paper. `payload_override` skips the LLM (re-verify)."""
     started = time.time()
     text, extractor = load_text(path, grobid_url=grobid_url)
@@ -206,7 +215,17 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
         chunks_used = len(parts)
 
     meta = merged.pop("_meta", {}) or {}
-    verified = verify_payload(merged, text, dictionary=dictionary, atlas=atlas)
+    # Which dictionary release this paper should be matched against. A 5.0 paper's
+    # `nihtbx_cryst_fc` was renamed wholesale in 6.0, so matching it against every
+    # loaded release turns one clear measure into rival candidates in two tables.
+    releases = None
+    if dictionary is not None:
+        releases = abcd_context.releases_for_paper(
+            meta.get("data_release"),
+            sorted({s["release"] for s in dictionary.snapshots})) or None
+    verified = verify_payload(merged, text, dictionary=dictionary, atlas=atlas,
+                              context_index=context_index, nda=nda,
+                              releases=releases, study=study)
 
     paper_id = meta.get("doi") or path.stem
     doc = {
@@ -233,12 +252,17 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
             "chunks": chunks_used,
             "elapsed_sec": round(time.time() - started, 2),
             "dictionaries": dictionary.provenance if dictionary else [],
+            "dd_releases_matched_against": releases or "all loaded",
             "construct_vocabularies": atlas.provenance if atlas else [],
+            "nda_api": ("consulted" if nda is not None else "not used"),
             "verification_policy": {
                 "quote_must_appear_in_paper": True,
                 "variable_name_must_appear_in_quote": True,
+                "claim_must_be_this_study_not_cited_work": True,
+                "findings_must_come_from_this_papers_results": True,
                 "construct_id_tool_only": True,
                 "variable_must_resolve_in_dictionary_to_be_canonical": True,
+                "context_mapping_thresholds": abcd_context.decision_rule(),
             },
         },
     }
@@ -306,6 +330,15 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     help="proceed with variables marked no_dictionary_loaded")
     ap.add_argument("--offline-atlas", action="store_true",
                     help="use only the cached Cognitive Atlas vocabulary")
+    ap.add_argument("--no-context-mapping", action="store_true",
+                    help="skip label/context mapping — only literal variable names "
+                         "count (faster, but most papers name no variable literally)")
+    ap.add_argument("--nda-api", choices=["auto", "on", "off"], default="auto",
+                    help="consult the NDA data-element API for mentions the offline "
+                         "dictionary cannot place. auto (default): confirm printed "
+                         "names always, full-text search only for runs of at most "
+                         f"{NDA_SEARCH_PAPER_BUDGET} papers, since a large corpus "
+                         "would mean thousands of requests. on: always. off: never.")
     a = ap.parse_args(argv)
 
     formats = [f.strip() for f in a.formats.split(",") if f.strip()]
@@ -330,6 +363,15 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         print(f"warning: {exc} — variables will be marked no_dictionary_loaded",
               file=sys.stderr)
 
+    context_index = None
+    if dictionary is not None and not a.no_context_mapping:
+        t0 = time.time()
+        context_index = abcd_context.ContextIndex(dictionary)
+        st = context_index.stats
+        print(f"context index: {st['labels_indexed']:,} labels, "
+              f"{st['instruments']:,} instruments "
+              f"({time.time() - t0:.1f}s)", file=sys.stderr)
+
     atlas: Optional[CognitiveAtlas] = None
     try:
         atlas = CognitiveAtlas(offline=a.offline_atlas)
@@ -350,6 +392,18 @@ def _cli(argv: Optional[List[str]] = None) -> int:
 
     papers, input_summary = _resolve_inputs(
         a.input, download_dir=a.download_dir, email=a.email, limit=a.limit)
+    nda = None
+    if a.nda_api != "off" and dictionary is not None:
+        if a.nda_api == "on" or len(papers) <= NDA_SEARCH_PAPER_BUDGET:
+            from scripts import abcd_nda_api
+
+            nda = abcd_nda_api
+            print(f"nda api: enabled ({a.nda_api}) — cached under "
+                  f"{abcd_nda_api.CACHE_DIR}", file=sys.stderr)
+        else:
+            print(f"nda api: skipped — {len(papers)} papers exceeds the "
+                  f"{NDA_SEARCH_PAPER_BUDGET}-paper budget for live lookups; "
+                  "pass --nda-api on to force it", file=sys.stderr)
     inputs = [p.path for p in papers if p.path]
     fetch_prov = {str(p.path): p.provenance for p in papers if p.origin != "local"}
     in_path = Path(a.input).expanduser()
@@ -427,7 +481,9 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     continue
             doc = extract_paper(path, llm_model=a.llm_model, dictionary=dictionary,
                                 atlas=atlas, grobid_url=a.grobid_url,
-                                payload_override=this_payload)
+                                payload_override=this_payload,
+                                context_index=context_index, nda=nda,
+                                study=a.study)
         except Exception as exc:            # one bad paper must not stop a corpus
             failures.append((path, str(exc)))
             print(f"FAILED {path.name}: {exc}", file=sys.stderr)
@@ -440,9 +496,16 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         base = out_dir / f"{path.stem}_abcd"
         paths = abcd_export.write_all(doc, base, kind="paper", formats=formats)
         v = doc["verification"]
-        print(f"{path.name}: {v['variables_dictionary_verified']} verified vars, "
-              f"{len(doc['findings'])} findings, {v['rejected_total']} rejected "
-              f"-> {', '.join(str(p.name) for p in paths.values())}")
+        cov = doc.get("coverage") or {}
+        print(f"{path.name}: {v['variables_mapped_any_method']}/"
+              f"{len(doc['variables'])} variables mapped "
+              f"({v['variables_with_table']} with a table), "
+              f"{len(doc['findings'])} findings, {v['rejected_total']} rejected"
+              + (f", {v['rejected_as_cited_work']} as cited work"
+                 if v.get("rejected_as_cited_work") else "")
+              + (f", {len(cov.get('referenced_but_not_declared') or [])} referenced "
+                 "but undeclared" if cov.get("referenced_but_not_declared") else "")
+              + f" -> {', '.join(str(p.name) for p in paths.values())}")
         written_docs.append(doc)
 
     if do_synth and written_docs:

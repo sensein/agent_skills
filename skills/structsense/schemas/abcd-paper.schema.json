@@ -2,205 +2,965 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://structsense.skills/abcd-paper.schema.json",
   "title": "ABCD/HBCD per-paper extraction result",
-  "description": "What ONE publication used and found with ABCD/HBCD data, after strict verification. Document-level metadata lives once in source_metadata (skill hard rule 12). Every item carries an evidence block whose quote was found verbatim in the paper; claims that failed verification are preserved in rejected[] rather than dropped silently.",
+  "description": "What ONE publication used and found with ABCD/HBCD data, after strict verification. Document-level metadata lives once in source_metadata (skill hard rule 12). Every item carries an evidence block whose quote was found verbatim in the paper; claims that failed verification are preserved in rejected[] rather than dropped silently. Items are also gated on OWN-STUDY SCOPE: a variable or result that belongs to cited work rather than this paper's analysis is rejected, because folding it in would let one paper's summary of the literature arrive as independent evidence.",
   "type": "object",
-  "required": ["paper_id", "source_metadata", "variables", "constructs", "models", "findings", "verification", "provenance"],
+  "required": [
+    "paper_id",
+    "source_metadata",
+    "variables",
+    "constructs",
+    "models",
+    "findings",
+    "verification",
+    "provenance"
+  ],
   "properties": {
-    "paper_id": { "type": "string", "description": "DOI when available, else the input file stem." },
+    "paper_id": {
+      "type": "string",
+      "description": "DOI when available, else the input file stem."
+    },
     "source_metadata": {
       "type": "object",
       "description": "Document-level facts, populated ONCE per run.",
       "properties": {
-        "paper_title":  { "type": ["string", "null"] },
-        "doi":          { "type": ["string", "null"] },
-        "source_path":  { "type": ["string", "null"] },
-        "study":        { "type": ["string", "null"], "description": "ABCD | HBCD as stated by the paper" },
-        "data_release": { "type": ["string", "null"], "description": "Release the paper states it analysed. null when unstated — never inferred." },
-        "sample_size":  { "type": ["string", "null"] },
-        "design":       { "type": ["string", "null"] }
+        "paper_title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "study": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ABCD | HBCD as stated by the paper"
+        },
+        "data_release": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Release the paper states it analysed. null when unstated \u2014 never inferred."
+        },
+        "sample_size": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "design": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "analytic_sample": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Sample the models were actually estimated on, after exclusions."
+        },
+        "timepoints": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Waves/events the study analysed, as the paper names them."
+        },
+        "cohort": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Subsample analysed (full cohort, twin subsample, imaging subsample)."
+        },
+        "site_count": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Where the data came from: NDA release, DEAP, NBDC Data Hub."
+        }
       },
       "additionalProperties": true
     },
-    "variables": { "type": "array", "items": { "$ref": "#/$defs/VariableUse" } },
-    "constructs": { "type": "array", "items": { "$ref": "#/$defs/ConstructMention" } },
-    "models": { "type": "array", "items": { "$ref": "#/$defs/Model" } },
-    "findings": { "type": "array", "items": { "$ref": "#/$defs/Finding" } },
+    "variables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/VariableUse"
+      }
+    },
+    "constructs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ConstructMention"
+      }
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Model"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Finding"
+      }
+    },
     "rejected": {
       "type": "array",
       "description": "Claims that failed verification, kept so a reader can see what was proposed and why it did not stand.",
       "items": {
         "type": "object",
-        "required": ["section", "reason"],
+        "required": [
+          "section",
+          "reason"
+        ],
         "properties": {
-          "section": { "type": "string", "enum": ["variables", "constructs", "models", "findings"] },
+          "section": {
+            "type": "string",
+            "enum": [
+              "variables",
+              "constructs",
+              "models",
+              "findings"
+            ]
+          },
           "reason": {
             "type": "string",
-            "description": "missing_quote | quote_too_short(<25chars) | quote_not_found_in_paper | surface_form_absent_from_quote | no_referenced_variable_in_quote | not_an_object"
+            "description": "missing_quote | quote_too_short(<25chars) | quote_not_found_in_paper | surface_form_absent_from_quote | no_referenced_variable_in_quote | not_an_object | finding_not_from_this_study | finding_attributed_to_cited_work | measure_only_mentioned_in_cited_work"
           },
-          "claim": { "type": "object", "additionalProperties": true },
-          "claimed_quote": { "type": ["string", "null"] }
+          "claim": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "claimed_quote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
     "verification": {
       "type": "object",
-      "description": "Answer to 'did verification actually bite?' — inspect before trusting a run.",
-      "required": ["by_section", "rejected_total"],
+      "description": "Answer to 'did verification actually bite?' \u2014 inspect before trusting a run.",
+      "required": [
+        "by_section",
+        "rejected_total"
+      ],
       "properties": {
-        "min_quote_chars": { "type": "integer" },
-        "by_section": { "type": "object", "additionalProperties": true },
-        "variables_dictionary_verified": { "type": "integer", "minimum": 0 },
-        "variables_unverified": { "type": "integer", "minimum": 0 },
-        "constructs_mapped": { "type": "integer", "minimum": 0 },
-        "constructs_unmapped": { "type": "integer", "minimum": 0 },
-        "rejected_total": { "type": "integer", "minimum": 0 }
+        "min_quote_chars": {
+          "type": "integer"
+        },
+        "by_section": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "variables_dictionary_verified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_unverified": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "constructs_mapped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "constructs_unmapped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_mapped_any_method": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Resolved to a variable, family, domain or instrument table by any method."
+        },
+        "variables_resolved_to_a_variable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_with_table": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The number that carry nda_or_nbdc_table \u2014 what a reader needs to find the data."
+        },
+        "variables_by_status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "rejected_as_cited_work": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "provenance": {
       "type": "object",
-      "required": ["run_at", "dictionaries"],
+      "required": [
+        "run_at",
+        "dictionaries"
+      ],
       "properties": {
-        "run_at": { "type": "string" },
-        "skill_version": { "type": "string" },
-        "llm_model": { "type": "string" },
-        "text_extractor": { "type": "string", "description": "grobid | pymupdf | pdfminer | ..." },
-        "text_chars": { "type": "integer" },
-        "chunks": { "type": ["integer", "null"] },
-        "elapsed_sec": { "type": "number" },
+        "run_at": {
+          "type": "string"
+        },
+        "skill_version": {
+          "type": "string"
+        },
+        "llm_model": {
+          "type": "string"
+        },
+        "text_extractor": {
+          "type": "string",
+          "description": "grobid | pymupdf | pdfminer | ..."
+        },
+        "text_chars": {
+          "type": "integer"
+        },
+        "chunks": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "elapsed_sec": {
+          "type": "number"
+        },
         "dictionaries": {
           "type": "array",
           "description": "Every dictionary snapshot consulted, with how and when it was obtained.",
           "items": {
             "type": "object",
             "properties": {
-              "study": { "type": "string" },
-              "dd_release": { "type": "string" },
-              "variable_count": { "type": "integer" },
-              "method": { "type": "string", "enum": ["nbdctools", "csv_export"] },
-              "source": { "type": ["string", "null"] },
-              "source_sha256": { "type": ["string", "null"] },
-              "retrieved_at": { "type": "string" }
+              "study": {
+                "type": "string"
+              },
+              "dd_release": {
+                "type": "string"
+              },
+              "variable_count": {
+                "type": "integer"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "nbdctools",
+                  "csv_export",
+                  "xlsx_catalog",
+                  "nda_api",
+                  "rds"
+                ]
+              },
+              "source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retrieved_at": {
+                "type": "string"
+              }
             }
           }
         },
-        "construct_vocabularies": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-        "verification_policy": { "type": "object", "additionalProperties": true }
+        "construct_vocabularies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "verification_policy": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "dd_releases_matched_against": {
+          "type": [
+            "array",
+            "string"
+          ],
+          "description": "Snapshots this paper's variables were matched against, chosen from its stated data_release. ABCD renamed variables wholesale at 6.0, so matching a 5.0 paper against 6.1 invents rivals in the wrong table."
+        },
+        "nda_api": {
+          "type": "string",
+          "enum": [
+            "consulted",
+            "not used"
+          ]
+        }
       },
       "additionalProperties": true
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Did the extraction enumerate every variable the study used? Strings named in a model or finding but never declared in variables[] are holes: they reach the synthesis with no evidence, no table and no domain.",
+      "properties": {
+        "variables_declared": {
+          "type": "integer"
+        },
+        "variables_referenced": {
+          "type": "integer"
+        },
+        "declared_coverage": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "referenced_but_not_declared": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
     }
   },
   "$defs": {
     "Evidence": {
       "type": "object",
       "description": "Where in the paper this came from. quote was located verbatim in the source text; start/end index the ORIGINAL text so a reader can slice the file.",
-      "required": ["quote", "start", "end", "verified"],
+      "required": [
+        "quote",
+        "start",
+        "end",
+        "verified"
+      ],
       "properties": {
-        "quote":        { "type": "string", "minLength": 25 },
-        "used_context": { "type": ["string", "null"], "description": "Surrounding sentence(s) — the context the claim was used in." },
-        "start":        { "type": "integer", "minimum": 0 },
-        "end":          { "type": "integer", "minimum": 0 },
-        "section":      { "type": ["string", "null"] },
-        "page":         { "type": ["integer", "string", "null"] },
-        "anchor_method": { "type": "string", "enum": ["as_reported", "re_anchored"] },
-        "occurrences_in_paper": { "type": "integer", "minimum": 1 },
-        "label_in_quote": { "type": ["boolean", "null"], "description": "Was the item's label verbatim in the quote, or is this a mapped reading?" },
-        "referenced_variables_in_quote": { "type": ["array", "null"], "items": { "type": "string" } },
-        "verified":     { "const": true }
+        "quote": {
+          "type": "string",
+          "minLength": 25
+        },
+        "used_context": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Surrounding sentence(s) \u2014 the context the claim was used in."
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "anchor_method": {
+          "type": "string",
+          "enum": [
+            "as_reported",
+            "re_anchored"
+          ]
+        },
+        "occurrences_in_paper": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label_in_quote": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Was the item's label verbatim in the quote, or is this a mapped reading?"
+        },
+        "referenced_variables_in_quote": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "verified": {
+          "const": true
+        }
       }
     },
     "VariableUse": {
       "type": "object",
-      "required": ["name", "mention_as_written", "evidence", "dictionary_status"],
+      "required": [
+        "name",
+        "mention_as_written",
+        "evidence",
+        "dictionary_status"
+      ],
       "properties": {
-        "name":  { "type": "string", "description": "Exactly as printed in the paper." },
-        "mention_as_written": { "type": "string", "description": "How the PAPER wrote it — the evidence. Kept separate from the dictionary variable it resolves to, so a reader sees both sides of the mapping (e.g. 'NIH Toolbox Flanker score' -> nihtbx_flanker_uncorrected)." },
-        "nda_or_nbdc_table": { "type": ["string", "null"], "description": "Dictionary table the resolved variable belongs to. Filled from nda_or_nbdc_table, falling back to table_name, whichever the loaded snapshot has." },
-        "nbdc_domain": { "type": ["string", "null"], "description": "Dictionary domain of the resolved variable (nbdc_domain, else domain)." },
-        "nbdc_sub_domain": { "type": ["string", "null"] },
-        "label": { "type": ["string", "null"] },
-        "role":  { "$ref": "#/$defs/Role" },
-        "timepoint": { "type": ["string", "null"] },
+        "name": {
+          "type": "string",
+          "description": "Exactly as printed in the paper."
+        },
+        "mention_as_written": {
+          "type": "string",
+          "description": "How the PAPER wrote it \u2014 the evidence. Kept separate from the dictionary variable it resolves to, so a reader sees both sides of the mapping (e.g. 'NIH Toolbox Flanker score' -> nihtbx_flanker_uncorrected)."
+        },
+        "nda_or_nbdc_table": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Dictionary table the resolved variable belongs to. Filled from nda_or_nbdc_table, falling back to table_name, whichever the loaded snapshot has."
+        },
+        "nbdc_domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Dictionary domain of the resolved variable (nbdc_domain, else domain)."
+        },
+        "nbdc_sub_domain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        },
+        "timepoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "dictionary_status": {
           "type": "string",
-          "enum": ["verified", "unverified_variable", "not_a_variable_name", "no_dictionary_loaded"],
-          "description": "verified = resolved in a real NBDC dictionary snapshot. Anything else is reported, never presented as canonical."
+          "enum": [
+            "verified",
+            "verified_via_nda_api",
+            "context_variable",
+            "context_family",
+            "context_domain",
+            "instrument_table",
+            "ambiguous",
+            "unverified_variable",
+            "not_a_variable_name",
+            "no_dictionary_loaded"
+          ],
+          "description": "How far the mapping got. verified = the paper printed a real dictionary name. context_variable = the paper's wording resolved to one variable using the respondent/metric/instrument it stated. context_family = several variables in one table fit equally well (148 ROI-level FA variables); the table and domain are reported, the variable is not, because the paper did not name one. context_domain = tables disagree but the domain does not. instrument_table = the paper named an instrument rather than a variable. Anything else is reported, never presented as canonical."
         },
         "dictionary_match": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "variable":     { "type": "string" },
-            "study":        { "type": "string" },
-            "dd_release":   { "type": "string" },
-            "match_method": { "type": "string", "enum": ["exact_name", "normalized_name", "label", "description"] },
-            "match_score":  { "type": "number" },
-            "label":             { "type": ["string", "null"] },
-            "nda_or_nbdc_table": { "type": ["string", "null"] },
-            "nbdc_domain":       { "type": ["string", "null"] },
-            "nbdc_sub_domain":   { "type": ["string", "null"] }
+            "variable": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "null for a family/domain/instrument match \u2014 the paper did not identify one variable."
+            },
+            "study": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dd_release": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Comma-joined releases for a context match; null for an instrument-level match, where no single variable was named."
+            },
+            "match_method": {
+              "type": "string",
+              "enum": [
+                "exact_name",
+                "normalized_name",
+                "nda_name",
+                "deap_name",
+                "redcap_name",
+                "short_name",
+                "stata_name",
+                "label",
+                "description",
+                "label_context",
+                "label_context_family",
+                "label_context_domain",
+                "instrument_label",
+                "nda_element_api"
+              ]
+            },
+            "match_score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "nda_or_nbdc_table": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "nbdc_domain": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "nbdc_sub_domain": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "family_size": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "family_prefix": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "e.g. smri_thick_cdk_* for the 68 Desikan-Killiany thickness variables."
+            },
+            "instrument": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "nbdc_table": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
-        "dd_releases_containing": { "type": "array", "items": { "type": "string" } },
-        "dd_release_gap": { "type": "array", "items": { "type": "string" }, "description": "Loaded releases that do NOT contain this name — usually a rename." },
-        "evidence": { "$ref": "#/$defs/Evidence" }
+        "dd_releases_containing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dd_release_gap": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Loaded releases that do NOT contain this name \u2014 usually a rename."
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "instrument": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Measure the paper names ('Child Behavior Checklist'). Scopes context mapping to that instrument's table \u2014 the strongest disambiguator there is, since 'externalizing' exists in the CBCL, ABCL, YSR and BPM."
+        },
+        "respondent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "parent",
+            "youth",
+            "teacher",
+            "self",
+            null
+          ],
+          "description": "Who reported it, as stated by the paper. Decides fes_y_ss_fc vs fes_p_ss_fc \u2014 a different measure, not a near miss."
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Score type as stated: T-score, raw sum, uncorrected standard score, fully corrected T-score, z-score."
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other strings the paper uses for the same variable, especially abbreviations it defines ('FA'). Prevents one measure becoming several synthesis rows."
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "own_study",
+            "cited_work"
+          ],
+          "description": "own_study = this paper measured it. Gate 2; cited_work items are rejected."
+        },
+        "scope_signals": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Why gate 2 decided as it did: section class, citation markers, first-person phrasing."
+        },
+        "context_mapping": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Full audit of the wording-to-dictionary match: cues used (respondent/metric/instrument scope), ranked candidates with scores, the thresholds applied, and why a single variable was or was not named."
+        },
+        "nda_api_suggestions": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Candidates from NDA's full-text element search, restricted to this study's tables. Suggestions for a human, NOT a mapping: the offline matcher already rejected these for this wording."
+        }
       }
     },
     "ConstructMention": {
       "type": "object",
-      "required": ["construct", "evidence", "mapping_provenance"],
+      "required": [
+        "construct",
+        "evidence",
+        "mapping_provenance"
+      ],
       "properties": {
-        "construct": { "type": "string" },
-        "construct_id": { "type": ["string", "null"], "description": "Cognitive Atlas id (trm_/tsk_). Only ever set from a real lookup." },
-        "construct_label": { "type": ["string", "null"] },
-        "construct_kind": { "type": ["string", "null"], "enum": ["concept", "task", null] },
-        "match_method": { "type": ["string", "null"], "enum": ["exact_name", "alias", null] },
-        "definition": { "type": ["string", "null"] },
-        "mapping_provenance": { "type": "string", "enum": ["tool", "unmapped", "validation_failed", "no_atlas_loaded"] },
-        "mapping_source": { "type": ["string", "null"] },
+        "construct": {
+          "type": "string"
+        },
+        "construct_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Cognitive Atlas id (trm_/tsk_). Only ever set from a real lookup."
+        },
+        "construct_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "construct_kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "concept",
+            "task",
+            null
+          ]
+        },
+        "match_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "exact_name",
+            "alias",
+            null
+          ]
+        },
+        "definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mapping_provenance": {
+          "type": "string",
+          "enum": [
+            "tool",
+            "unmapped",
+            "validation_failed",
+            "no_atlas_loaded"
+          ]
+        },
+        "mapping_source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "demoted_claim": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Set when the model supplied a construct_id no lookup confirmed.",
           "additionalProperties": true
         },
-        "claimed_construct_id_discarded": { "type": ["string", "null"] },
-        "evidence": { "$ref": "#/$defs/Evidence" }
+        "claimed_construct_id_discarded": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "measured_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Variables this paper used to operationalise the construct (same strings as variables[].name). Without these a construct is a label with nothing behind it, and cross-paper agreement cannot be checked."
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "own_study",
+            "cited_work",
+            null
+          ]
+        }
       }
     },
     "Model": {
       "type": "object",
-      "required": ["evidence"],
+      "required": [
+        "evidence"
+      ],
       "properties": {
-        "specification": { "type": ["string", "null"] },
-        "predictors":  { "type": "array", "items": { "type": "string" } },
-        "outcomes":    { "type": "array", "items": { "type": "string" } },
-        "mediators":   { "type": "array", "items": { "type": "string" } },
-        "moderators":  { "type": "array", "items": { "type": "string" } },
-        "covariates":  { "type": "array", "items": { "type": "string" } },
-        "software":    { "type": ["string", "null"] },
-        "evidence":    { "$ref": "#/$defs/Evidence" }
+        "specification": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "predictors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mediators": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "moderators": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "covariates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "software": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        }
       }
     },
     "Finding": {
       "type": "object",
-      "required": ["statement", "direction", "role", "evidence"],
+      "required": [
+        "statement",
+        "direction",
+        "role",
+        "evidence"
+      ],
       "properties": {
-        "statement":  { "type": "string" },
-        "direction":  { "type": "string", "enum": ["positive", "negative", "null", "mixed", "unspecified"] },
-        "role":       { "$ref": "#/$defs/Role" },
-        "construct":  { "type": ["string", "null"] },
-        "construct_id": { "type": ["string", "null"] },
-        "construct_label": { "type": ["string", "null"] },
-        "mapping_provenance": { "type": ["string", "null"] },
-        "variables":  { "type": "array", "items": { "type": "string" } },
-        "effect_size": { "type": ["string", "number", "null"] },
-        "statistic":  { "type": ["string", "null"] },
-        "subgroup":   { "type": ["string", "null"] },
-        "evidence":   { "$ref": "#/$defs/Evidence" }
+        "statement": {
+          "type": "string"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "positive",
+            "negative",
+            "null",
+            "mixed",
+            "unspecified"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        },
+        "construct": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "construct_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "construct_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mapping_provenance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "effect_size": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "statistic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subgroup": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "analytic_n": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ],
+          "description": "n this specific result was estimated on, as printed."
+        },
+        "scope": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "own_study",
+            "cited_work",
+            null
+          ],
+          "description": "Findings are held to the strict bar: a results-bearing section or first-person framing, and no attribution to cited work."
+        },
+        "scope_signals": {
+          "type": "object",
+          "additionalProperties": true
+        }
       }
     },
     "Role": {
       "type": "string",
-      "enum": ["predictor", "outcome", "mediator", "moderator", "covariate", "confounder", "control", "instrument", "unspecified"],
-      "description": "As assigned BY THE PAPER. 'unspecified' when the paper is ambiguous — guessing corrupts the cross-paper role-consistency signal."
+      "enum": [
+        "predictor",
+        "outcome",
+        "mediator",
+        "moderator",
+        "covariate",
+        "confounder",
+        "control",
+        "instrument",
+        "unspecified"
+      ],
+      "description": "As assigned BY THE PAPER. 'unspecified' when the paper is ambiguous \u2014 guessing corrupts the cross-paper role-consistency signal."
     }
   }
 }

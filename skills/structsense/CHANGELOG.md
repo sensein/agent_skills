@@ -1,5 +1,92 @@
 # Changelog
 
+## 0.6.0 — Context-aware variable mapping, own-study scope, provenance-carrying synthesis
+
+Driven by a real three-paper run whose output was mostly empty columns: 1 of 57
+variables carried a dictionary table, and the synthesis said which construct diverged
+without saying which paper measured what, with which instrument, in which release.
+
+### Mapping the paper's wording (`scripts/abcd_context.py`, new)
+
+- Matches a paper's phrasing against dictionary **labels**, not just names. Most
+  papers never print `nihtbx_cryst_fc`; they write "Crystallized Cognition Composite
+  Score", which resolved to nothing before.
+- Disambiguates with the paper's own statements: **instrument** scopes candidates to
+  one table, **respondent** filters (`fes_y_ss_fc` vs `fes_p_ss_fc` are different
+  measures), **metric** picks `_t` over `_r`, and the stated **release** decides which
+  snapshot is eligible — matching a 5.0 paper against 6.1 manufactured rival
+  candidates in two tables.
+- Refuses to name a variable the paper did not: `context_family` (68 thickness ROIs
+  fit "cortical thickness" equally well), `context_domain`, `instrument_table`. Table
+  and domain are still reported; the variable stays null.
+- Every result carries `context_mapping`: cues fired, ranked candidates with scores,
+  thresholds applied, and the reason a single variable was or was not named.
+- Bridges inflection ("externalizing behaviors" vs the CBCL's "External ... Scale")
+  and the handful of documented naming differences where a paper and the dictionary
+  share no content word at all (axial/longitudinal diffusivity,
+  connectivity/correlation, surface/cortical area).
+- Result on the sample corpus: variables carrying `nda_or_nbdc_table` went from 1/57
+  to 29/57.
+
+### NDA element API (`scripts/abcd_nda_api.py`, new)
+
+- `element()` confirms a printed name with its structures and aliases —
+  `verified_via_nda_api` for a release we do not bundle.
+- Full-text element search is available but its hits are recorded as
+  `nda_api_suggestions`, **not** as mappings. Every table NDA can return is already in
+  the snapshots, and NDA ranks over the whole archive: asked about "internalizing
+  behaviors" it offered an *Adult* Behavior Checklist score, and "age at time of scan"
+  returned an SST series timestamp. An earlier build of this release did claim those
+  as mappings; it was wrong.
+- Cached under `~/.cache/structsense/nda_api`; `--nda-api auto|on|off`, and `auto`
+  skips live search above 25 papers rather than making thousands of requests.
+
+### Own-study scope (gate 2 in `scripts/abcd_verify.py`)
+
+- Variables and findings attributed to cited work are rejected
+  (`finding_attributed_to_cited_work`, `measure_only_mentioned_in_cited_work`), with
+  the signals that decided it recorded per item. Findings are held to the stricter
+  bar: a results-bearing section or first-person framing.
+- Without this, one paper's summary of another arrives in the synthesis as
+  independent evidence.
+
+### Coverage audit
+
+- `coverage.referenced_but_not_declared` lists every string a model or finding names
+  that `variables[]` never declared. Those rows previously reached the synthesis with
+  no quote, no table and no domain, looking like ordinary variables.
+
+### Synthesis rewritten (`scripts/abcd_synthesize.py`)
+
+- **`claims[]`**: a statement per construct, the evidence paper by paper with a
+  strength rating derived only from reported facts (sample band, design, effect size
+  present, subgroup-only), contradictions listed separately, and caveats — including
+  "these papers report the same sample size, so their agreement is not independent".
+- **Provenance on every row**: per-paper wording, instrument, respondent, metric,
+  roles, timepoints, resolved variable, table, domain, **dd release**, quotes.
+- **Constructs carry their measures**, with paper-declared measures kept apart from
+  variables that merely appear in a construct's findings.
+- **Datasets per paper**: release, sample, analytic sample, design, waves, cohort,
+  sites, source — so "three papers agree" can be read as "three papers agree, all
+  analysing the same 11,868 children".
+- **Maths fixed**: agreement is now over paper-direction claims (papers as the
+  denominator printed `1.00` agreement beside a `divergent` verdict); role
+  consistency requires `role_exclusivity` as well as share, so a variable that is a
+  mediator in every paper *and* an outcome in every paper reads as contested.
+- **Identity fixed**: rows merge on the resolved dictionary variable, then declared
+  aliases, then the normalised mention — "family income" and "Family income" were two
+  rows with one paper each. Never on similarity, and a `mapping_disagreement` is
+  reported rather than resolved.
+
+### Extractor prompt and schemas
+
+- Per-variable `instrument`, `respondent`, `metric`, `aliases`; per-construct
+  `measured_by`; per-finding `analytic_n`; document-level `analytic_sample`,
+  `timepoints`, `cohort`, `site_count`, `data_source`.
+- An exhaustiveness checklist naming the five places variables hide (Table 1 rows, the
+  covariate list, the Measures section, per-wave instances, self-computed composites).
+- Both schemas updated and validated against real output.
+
 ## 0.5.0 — ABCD / HBCD extraction and cross-paper synthesis
 
 New mode for publications that analyse ABCD or HBCD data. Extracts what a study

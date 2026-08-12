@@ -1,7 +1,7 @@
 """Strict verification for ABCD/HBCD extraction — nothing survives on trust.
 
-Three independent gates. An item must pass gate 1 to appear at all; gates 2 and 3
-decide what it may be *called*.
+Four independent gates. An item must pass gates 1 and 2 to appear at all; gates 3
+and 4 decide what it may be *called*.
 
   1. EVIDENCE ANCHORING (hard). Every item carries `evidence.quote` plus
      `start`/`end` offsets into the paper text. We require
@@ -11,12 +11,23 @@ decide what it may be *called*.
      Offsets may be re-anchored (the quote is searched for in the text) because
      an LLM miscounting characters is expected; inventing the quote is not.
 
-  2. DICTIONARY GATE (variables). A string is only called an ABCD/HBCD *variable*
-     if `abcd_dictionary.Dictionary.resolve()` finds it in a real release
-     snapshot. Otherwise it is kept but marked `unverified_variable` — visible,
-     never presented as canonical.
+  2. OWN-STUDY SCOPE (hard). A paper's introduction and discussion are full of
+     other studies' variables and other studies' results. Those are not what this
+     paper did, and folding them into a synthesis would double-count the
+     literature: paper A's summary of paper B would arrive as independent
+     evidence. An item survives only if its evidence is the paper speaking about
+     its own analysis — a Method/Results/Table section, or first-person framing —
+     and findings are held to the stricter bar of the two.
 
-  3. CONSTRUCT GATE (constructs). A construct only carries a Cognitive Atlas id
+  3. DICTIONARY GATE (variables). A string is only called an ABCD/HBCD *variable*
+     if it resolves against a real release snapshot: by name
+     (`abcd_dictionary.Dictionary.resolve`), or by wording-in-context
+     (`abcd_context.ContextIndex.match`, which maps "youth-reported family
+     conflict" to `fes_y_ss_fc` using the respondent, metric and instrument the
+     paper stated). Everything else is kept and marked — visible, never presented
+     as canonical.
+
+  4. CONSTRUCT GATE (constructs). A construct only carries a Cognitive Atlas id
      that came back from a live/cached lookup. A fabricated `trm_` id is demoted
      the way `iri_validation.py` demotes bad IRIs.
 
@@ -241,11 +252,134 @@ def verify_evidence(item: dict, index: TextIndex, *,
 
 
 # --------------------------------------------------------------------------- #
-# gate 2: dictionary gate for variables
+# gate 2: own-study scope
 # --------------------------------------------------------------------------- #
 
-def gate_variable(item: dict, dictionary: Optional[Dictionary]) -> dict:
-    """Attach dictionary verification to a variable item (never drops it)."""
+# A citation attached to a claim means the claim belongs to somebody else.
+_CITATION_RE = re.compile(
+    r"\((?:[A-Z][A-Za-z\-']+(?:\s+(?:et\s+al\.?|and|&)\s+[A-Z][A-Za-z\-']+)?"
+    r"(?:\s+et\s+al\.?)?,?\s*(?:19|20)\d{2}[a-z]?(?:;[^)]*)?\)"      # (Smith, 2019)
+    r"|\b[A-Z][A-Za-z\-']+\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z\-']+)\s*"
+    r"\((?:19|20)\d{2}[a-z]?\)"                                       # Smith et al. (2019)
+    r"|\[\d{1,3}(?:[,\-–]\s*\d{1,3})*\]\)?"                           # [12], [3-5]
+    r")"
+)
+# The paper talking about its own analysis.
+_OWN_STUDY_RE = re.compile(
+    r"\b(?:we|our|the (?:present|current|this) (?:study|analysis|sample|paper)|"
+    r"in the (?:present|current) (?:study|analysis)|this study|the present "
+    r"investigation|here we)\b|\bresults? (?:showed|indicated|revealed)\b|"
+    r"\bas (?:shown|reported) in (?:table|figure|fig)\b", re.I)
+# Prior-literature framing, even without a bracketed citation.
+_PRIOR_WORK_RE = re.compile(
+    r"\b(?:previous(?:ly)?|prior|earlier|existing|extant|other) "
+    r"(?:studies|study|work|research|literature|findings|reports?|investigations?)"
+    r"|\bhas(?:\s+been)? (?:shown|found|reported|demonstrated|associated)"
+    r"|\bhave(?:\s+been)? (?:shown|found|reported|demonstrated|associated)"
+    r"|\bresearch (?:suggests?|indicates?|shows?|has)"
+    r"|\bit (?:is|has been) (?:well[\s-]?)?(?:established|documented|known)"
+    r"|\b(?:meta[\s-]?analys[ei]s|systematic review)\b"
+    r"|\bfor (?:example|instance)\b|\be\.g\.,", re.I)
+
+# Where the paper reports what it did. Matched against the leading part of the
+# extractor's section path ("Method - Measures - Financial Strain" -> "method").
+_OWN_SECTIONS = ("method", "methods", "material", "measure", "result", "results",
+                 "table", "figure", "analysis", "analytic", "sample",
+                 "participants", "procedure", "abstract", "data")
+# Where other people's work is discussed.
+_LITERATURE_SECTIONS = ("introduction", "background", "discussion", "conclusion",
+                        "limitation", "future", "implication", "related")
+
+
+def _section_head(section: Optional[str]) -> str:
+    return re.split(r"[-–—:>|/]", str(section or ""), maxsplit=1)[0].strip().lower()
+
+
+def gate_scope(item: dict, *, strict: bool) -> Tuple[dict, Optional[str]]:
+    """Decide whether this item is about the paper's own study.
+
+    `strict` is for findings: a result only counts as this paper's if it is
+    reported in a results-bearing section or framed in the first person. Variables
+    are held to a looser bar — a measure named in the introduction and used in the
+    analysis is still this paper's measure — but a measure that appears only inside
+    a citation of prior work is not.
+
+    Returns (item with `scope` recorded, rejection reason or None).
+    """
+    out = dict(item)
+    ev = out.get("evidence") or {}
+    quote = str(ev.get("quote") or "")
+    context = str(ev.get("used_context") or "")
+    head = _section_head(ev.get("section"))
+    blob = f"{quote} {context}"
+
+    cited = bool(_CITATION_RE.search(quote))
+    cited_ctx = bool(_CITATION_RE.search(context))
+    own_words = bool(_OWN_STUDY_RE.search(blob))
+    prior_words = bool(_PRIOR_WORK_RE.search(quote))
+    in_own_section = any(head.startswith(s) for s in _OWN_SECTIONS)
+    in_lit_section = any(head.startswith(s) for s in _LITERATURE_SECTIONS)
+
+    signals = {
+        "section": head or None,
+        "section_class": ("own_study" if in_own_section else
+                          "literature" if in_lit_section else "unknown"),
+        "citation_in_quote": cited,
+        "citation_in_context": cited_ctx,
+        "own_study_phrasing": own_words,
+        "prior_work_phrasing": prior_words,
+    }
+
+    if strict:
+        # A finding must be this paper's own result.
+        if not (in_own_section or own_words):
+            out["scope"] = "cited_work"
+            out["scope_signals"] = signals
+            return out, "finding_not_from_this_study"
+        if (cited or prior_words) and not own_words:
+            out["scope"] = "cited_work"
+            out["scope_signals"] = signals
+            return out, "finding_attributed_to_cited_work"
+    else:
+        # A variable/construct only fails if the evidence is purely somebody
+        # else's work: a literature section, a citation, and no first-person cue.
+        if in_lit_section and (cited or prior_words) and not own_words:
+            out["scope"] = "cited_work"
+            out["scope_signals"] = signals
+            return out, "measure_only_mentioned_in_cited_work"
+
+    out["scope"] = "own_study"
+    out["scope_signals"] = signals
+    return out, None
+
+
+# --------------------------------------------------------------------------- #
+# gate 3: dictionary gate for variables
+# --------------------------------------------------------------------------- #
+
+# Statuses that carry a real table/domain, in descending strength.
+MAPPED_STATUSES = ("verified", "verified_via_nda_api", "context_variable",
+                   "context_family", "context_domain", "instrument_table")
+
+
+def gate_variable(item: dict, dictionary: Optional[Dictionary], *,
+                  context_index: Optional["Any"] = None,
+                  releases: Optional[Sequence[str]] = None,
+                  study: Optional[str] = None,
+                  nda: Optional["Any"] = None) -> dict:
+    """Attach dictionary verification to a variable item (never drops it).
+
+    Four sources, tried in order of how much they prove:
+
+      1. the literal name the paper printed (`nihtbx_cryst_fc`)
+      2. the same name confirmed live by the NDA element API, when it is absent
+         from every loaded snapshot — usually a release we do not have
+      3. the paper's *wording*, matched against dictionary labels in context
+      4. NDA's own full-text element search, restricted to this study's tables
+
+    Every outcome records how it was reached, what the alternatives were and which
+    releases it holds in, so a reader can disagree with a specific step.
+    """
     out = dict(item)
     candidate = str(item.get("name") or item.get("variable") or "").strip()
     # How the PAPER wrote it, kept separate from what it resolves to: the mention
@@ -253,40 +387,167 @@ def gate_variable(item: dict, dictionary: Optional[Dictionary]) -> dict:
     # must be able to see both ("NIH Toolbox Flanker score" ->
     # nihtbx_flanker_uncorrected).
     out["mention_as_written"] = candidate
+    out.setdefault("nda_or_nbdc_table", None)
+    out.setdefault("nbdc_domain", None)
+    out.setdefault("nbdc_sub_domain", None)
     if not dictionary:
         out["dictionary_status"] = "no_dictionary_loaded"
         out["dictionary_match"] = None
         return out
 
+    label = str(item.get("label") or item.get("measure") or "").strip()
     hits = dictionary.resolve(candidate)
-    if not hits:
-        label = str(item.get("label") or item.get("measure") or "").strip()
-        if label:
-            hits = dictionary.resolve(label)
+    if not hits and label:
+        hits = dictionary.resolve(label)
     if hits:
         best = hits[0]
+        match = best.to_dict()
         out["dictionary_status"] = "verified"
-        out["dictionary_match"] = best.to_dict()
-        out["nda_or_nbdc_table"] = out["dictionary_match"].get("nda_or_nbdc_table")
-        out["nbdc_domain"] = out["dictionary_match"].get("nbdc_domain")
-        out["nbdc_sub_domain"] = out["dictionary_match"].get("nbdc_sub_domain")
+        out["dictionary_match"] = match
+        out["nda_or_nbdc_table"] = match.get("nda_or_nbdc_table")
+        out["nbdc_domain"] = match.get("nbdc_domain")
+        out["nbdc_sub_domain"] = match.get("nbdc_sub_domain")
         out["dd_releases_containing"] = dictionary.releases_for(best.name)
-        others = dictionary.releases_for(best.name)
         loaded = sorted({s["release"] for s in dictionary.snapshots})
-        missing = [r for r in loaded if r not in others]
+        missing = [r for r in loaded
+                   if r not in out["dd_releases_containing"]]
         if missing:
             # Present in some loaded releases but not others: usually a rename.
             out["dd_release_gap"] = missing
-    else:
-        out["dictionary_status"] = (
-            "unverified_variable" if looks_like_variable_name(candidate)
-            else "not_a_variable_name"
+        return out
+
+    # -- 3. the paper's wording, in context -------------------------------- #
+    if context_index is not None:
+        ev = item.get("evidence") or {}
+        result = context_index.match(
+            candidate,
+            label=label or None,
+            context=" ".join(p for p in (str(ev.get("used_context") or ""),
+                                         str(ev.get("quote") or "")) if p) or None,
+            instrument=str(item.get("instrument") or "").strip() or None,
+            respondent=str(item.get("respondent") or "").strip().lower() or None,
+            role=str(item.get("role") or "").strip().lower() or None,
+            study=study,
+            releases=releases,
         )
-        out["dictionary_match"] = None
-        out["nda_or_nbdc_table"] = None
-        out["nbdc_domain"] = None
-        out["nbdc_sub_domain"] = None
+        out["context_mapping"] = result.to_dict()
+        if result.matched:
+            out["dictionary_status"] = result.status
+            out["dictionary_match"] = {
+                "variable": result.variable,
+                "study": result.study,
+                "dd_release": ",".join(result.dd_releases) or None,
+                "match_method": out["context_mapping"]["match_method"],
+                "match_score": out["context_mapping"]["match_score"],
+                "label": result.label,
+                "nda_or_nbdc_table": result.nda_or_nbdc_table,
+                "nbdc_domain": result.nbdc_domain,
+                "nbdc_sub_domain": result.nbdc_sub_domain,
+                "nbdc_table": result.nbdc_table,
+                "instrument": result.instrument,
+                "family_size": result.family_size or None,
+                "family_prefix": result.family_prefix,
+            }
+            out["nda_or_nbdc_table"] = result.nda_or_nbdc_table
+            out["nbdc_domain"] = result.nbdc_domain
+            out["nbdc_sub_domain"] = result.nbdc_sub_domain
+            out["dd_releases_containing"] = result.dd_releases
+            if result.variable:
+                out["dd_releases_containing"] = (
+                    dictionary.releases_for(result.variable) or result.dd_releases)
+            return out
+
+    # -- 2/4. ask NDA, if the caller enabled it ---------------------------- #
+    if nda is not None:
+        api = _ask_nda(candidate, label, dictionary, nda)
+        if api:
+            out.update(api)
+            if api.get("dictionary_status"):
+                return out
+
+    out["dictionary_status"] = (
+        "unverified_variable" if looks_like_variable_name(candidate)
+        else "not_a_variable_name"
+    )
+    out["dictionary_match"] = None
     return out
+
+
+def _ask_nda(candidate: str, label: str, dictionary: Optional[Dictionary],
+             nda: "Any") -> Optional[dict]:
+    """NDA API fallback: confirm a printed name, or search on the wording.
+
+    A search hit is only usable if every one of its structures belongs to this
+    study's dictionary — `search_in_study` enforces that — and if the surviving
+    hits agree on one table. NDA ranks admin elements ("Number Answered") highly,
+    so those are dropped before the agreement test.
+    """
+    try:
+        if looks_like_variable_name(candidate):
+            hit = nda.element(candidate)
+            if hit:
+                tables = [t for t in hit.get("data_structures") or []]
+                return {
+                    "dictionary_status": "verified_via_nda_api",
+                    "dictionary_match": {
+                        "variable": hit["name"],
+                        "label": hit.get("description"),
+                        "match_method": "nda_element_api",
+                        "match_score": 1.0,
+                        "nda_or_nbdc_table": tables[0] if tables else None,
+                        "nda_data_structures": tables,
+                        "aliases": hit.get("aliases") or [],
+                        "source": hit.get("source"),
+                        "retrieved_at": hit.get("retrieved_at"),
+                    },
+                    "nda_or_nbdc_table": tables[0] if tables else None,
+                    "nbdc_domain": None,
+                    "nbdc_sub_domain": None,
+                    "dd_releases_containing": [],
+                    "nda_api_note": ("name confirmed by NDA but absent from every "
+                                     "loaded snapshot — likely a release we do "
+                                     "not have"),
+                }
+            return None
+
+        # NO mapping is claimed from a full-text search. Every table NDA can
+        # return is already in the loaded snapshots, so anything the search finds
+        # was seen and rejected by the context matcher a moment ago — and NDA's
+        # ranking is lexical over the whole archive, which produced exactly the
+        # errors you would expect: "internalizing behaviors" -> an ADULT Behavior
+        # Checklist score, "financial strain" -> a life-events item about a
+        # parent's finances, "age at time of scan" -> an SST series timestamp.
+        # The hits are recorded as suggestions a human can follow up; they are not
+        # evidence that the paper used that variable.
+        query = " ".join(p for p in (candidate, label) if p)
+        found = nda.search_in_study(query, dictionary, limit=8)
+        hits = [h for h in found["hits"]
+                if not _NDA_ADMIN_RE.search(str(h.get("description") or ""))]
+        if not hits:
+            return None
+        return {
+            "nda_api_suggestions": {
+                "query": query,
+                "note": ("candidates from NDA full-text search, NOT a mapping — "
+                         "the offline matcher already rejected these tables for "
+                         "this wording"),
+                "dropped_outside_study": found["dropped_outside_study"],
+                "hits": [{"variable": h["name"], "label": h.get("description"),
+                          "score": h.get("score"),
+                          "tables": h["matched_tables"]} for h in hits[:5]],
+                "source": hits[0].get("source"),
+                "retrieved_at": hits[0].get("retrieved_at"),
+            },
+        }
+    except Exception:
+        # The API is a bonus, never a dependency: a network failure must leave the
+        # run exactly as it would have been offline.
+        return None
+
+
+_NDA_ADMIN_RE = re.compile(
+    r"\b(?:number (?:of )?(?:answer\w*|miss\w*|valid\w*|total\w*|question\w*)|"
+    r"date ?finished|version|language|itmcnt|theta)\b", re.I)
 
 
 # --------------------------------------------------------------------------- #
@@ -333,11 +594,16 @@ def _norm_enum(value: Any, allowed: Sequence[str], default: str) -> str:
 
 def verify_payload(payload: dict, text: str, *,
                    dictionary: Optional[Dictionary] = None,
-                   atlas: Optional["ca_mod.CognitiveAtlas"] = None) -> dict:
+                   atlas: Optional["ca_mod.CognitiveAtlas"] = None,
+                   context_index: Optional["Any"] = None,
+                   nda: Optional["Any"] = None,
+                   releases: Optional[Sequence[str]] = None,
+                   study: Optional[str] = None) -> dict:
     """Verify a whole extractor payload for one paper.
 
     Returns a new payload with `variables`/`models`/`findings`/`constructs` kept
-    only where evidence anchored, plus `rejected[]` and a `verification` summary.
+    only where evidence anchored and the claim belongs to this study, plus
+    `rejected[]`, a `coverage` audit and a `verification` summary.
     """
     index = TextIndex(text)
     out: Dict[str, Any] = {k: v for k, v in payload.items()
@@ -347,7 +613,8 @@ def verify_payload(payload: dict, text: str, *,
 
     def run(section: str, items: Any, post=None, *, require_surface: bool = True,
             surface_keys: Sequence[str] = ("name", "variable", "term"),
-            refs_from: Sequence[str] = ()) -> List[dict]:
+            refs_from: Sequence[str] = (),
+            strict_scope: bool = False) -> List[dict]:
         kept: List[dict] = []
         reasons: Dict[str, int] = {}
         for raw in items or []:
@@ -365,7 +632,10 @@ def verify_payload(payload: dict, text: str, *,
                 raw, index, surface_keys=surface_keys,
                 require_surface=require_surface, require_any=refs,
             )
-            if why:
+            if item is not None and not why:
+                item, why = gate_scope(item, strict=strict_scope)
+            if why or item is None:
+                why = why or "no_evidence"
                 reasons[why] = reasons.get(why, 0) + 1
                 rejected.append({
                     "section": section,
@@ -385,10 +655,11 @@ def verify_payload(payload: dict, text: str, *,
         return kept
 
     # A variable name must appear literally in its quote.
-    out["variables"] = run("variables", payload.get("variables"),
-                           lambda it: gate_variable(it, dictionary),
-                           require_surface=True,
-                           surface_keys=("name", "variable", "term"))
+    out["variables"] = run(
+        "variables", payload.get("variables"),
+        lambda it: gate_variable(it, dictionary, context_index=context_index,
+                                 releases=releases, study=study, nda=nda),
+        require_surface=True, surface_keys=("name", "variable", "term"))
     # A construct is a reading of the prose — the label need not be verbatim, but
     # the quote must exist and `label_in_quote` records which case it was.
     out["constructs"] = run("constructs", payload.get("constructs"),
@@ -400,27 +671,99 @@ def verify_payload(payload: dict, text: str, *,
                         require_surface=False, surface_keys=(),
                         refs_from=("predictors", "outcomes", "mediators",
                                    "moderators", "covariates"))
-    # A finding statement is a paraphrase; require one referenced variable.
+    # A finding statement is a paraphrase; require one referenced variable — and,
+    # unlike a measure, it must be THIS paper's result (gate 2, strict).
     out["findings"] = run("findings", payload.get("findings"),
                           lambda it: _normalize_finding(it, atlas),
                           require_surface=False, surface_keys=(),
                           refs_from=("variables", "variable", "predictor",
-                                     "outcome", "mediator", "moderator"))
+                                     "outcome", "mediator", "moderator"),
+                          strict_scope=True)
     out["rejected"] = rejected
+    out["coverage"] = _coverage_audit(out)
 
-    verified_vars = [v for v in out["variables"]
-                     if v.get("dictionary_status") == "verified"]
+    by_status: Dict[str, int] = {}
+    for v in out["variables"]:
+        key = str(v.get("dictionary_status") or "unknown")
+        by_status[key] = by_status.get(key, 0) + 1
+    mapped = sum(n for s, n in by_status.items() if s in MAPPED_STATUSES)
+    named = sum(1 for v in out["variables"]
+                if (v.get("dictionary_match") or {}).get("variable"))
+    with_table = sum(1 for v in out["variables"] if v.get("nda_or_nbdc_table"))
     out["verification"] = {
         "min_quote_chars": MIN_QUOTE_CHARS,
         "by_section": counts,
-        "variables_dictionary_verified": len(verified_vars),
-        "variables_unverified": len(out["variables"]) - len(verified_vars),
+        # Kept under the old names so existing readers do not break; "verified"
+        # still means a literal dictionary name.
+        "variables_dictionary_verified": by_status.get("verified", 0),
+        "variables_unverified": len(out["variables"]) - mapped,
+        "variables_mapped_any_method": mapped,
+        "variables_resolved_to_a_variable": named,
+        "variables_with_table": with_table,
+        "variables_by_status": dict(sorted(by_status.items(), key=lambda kv: -kv[1])),
         "constructs_mapped": sum(1 for c in out["constructs"] if c.get("construct_id")),
         "constructs_unmapped": sum(1 for c in out["constructs"]
                                    if not c.get("construct_id")),
         "rejected_total": len(rejected),
+        "rejected_as_cited_work": sum(
+            1 for r in rejected
+            if str(r.get("reason") or "").startswith(("finding_not_from",
+                                                      "finding_attributed",
+                                                      "measure_only"))),
     }
     return out
+
+
+def _coverage_audit(doc: dict) -> dict:
+    """What the models and findings mention but the variable list never declared.
+
+    The extraction is meant to enumerate every variable the study used. When a
+    model lists `family income` as a covariate and no variable entry exists for it,
+    that is a hole in the extraction, not a modelling detail — and it silently
+    becomes a synthesis row with no table, no domain and no provenance. Naming the
+    gap is the only way it gets fixed.
+    """
+    declared = {_norm_key(v.get("name") or v.get("variable"))
+                for v in doc.get("variables") or []}
+    declared.discard("")
+    referenced: Dict[str, set] = {}
+    for m in doc.get("models") or []:
+        for key in ("predictors", "outcomes", "mediators", "moderators",
+                    "covariates"):
+            for name in m.get(key) or []:
+                k = _norm_key(name)
+                if k:
+                    referenced.setdefault(k, set()).add(str(name).strip())
+    for f in doc.get("findings") or []:
+        for name in f.get("variables") or []:
+            k = _norm_key(name)
+            if k:
+                referenced.setdefault(k, set()).add(str(name).strip())
+
+    missing = sorted(k for k in referenced if k not in declared)
+    return {
+        "variables_declared": len(declared),
+        "variables_referenced": len(referenced),
+        "referenced_but_not_declared": [
+            {"key": k, "as_written": sorted(referenced[k])} for k in missing
+        ],
+        "declared_coverage": (
+            round(1 - len(missing) / len(referenced), 3) if referenced else None),
+        "note": ("Every variable the study analysed should appear in `variables` "
+                 "with its own quote. Entries listed here were named in a model or "
+                 "finding but never declared, so they carry no evidence, no table "
+                 "and no domain."),
+    }
+
+
+def _norm_key(value: Any) -> str:
+    """Grouping key for a variable mention: case, spacing and plural folded."""
+    text = _WS.sub(" ", str(value or "").strip().lower()).strip(" .,;:()[]")
+    if text.endswith("ies") and len(text) > 4:
+        return text[:-3] + "y"
+    if text.endswith("s") and not text.endswith(("ss", "us", "is")):
+        return text[:-1]
+    return text
 
 
 def _normalize_model(item: dict) -> dict:
