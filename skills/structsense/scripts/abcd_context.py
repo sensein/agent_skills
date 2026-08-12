@@ -785,27 +785,41 @@ class ContextIndex:
         want_study = (study or "").lower() or None
         want_releases = {str(r) for r in releases} if releases else None
 
-        scored: List[Candidate] = []
-        out_of_scope = 0
-        for idx, _ in hits.most_common(MAX_CANDIDATES):
-            snap_study, snap_release = self._row_meta[idx]
-            if want_study and snap_study != want_study:
-                continue
-            if want_releases and snap_release not in want_releases:
-                continue
-            cand = self._score_row(idx, qw, qtot, aw, ctx_tokens,
-                                   want_respondent, want_metrics)
-            if not cand:
-                continue
-            if scope_table and (cand.nda_or_nbdc_table or cand.table) != scope_table:
-                out_of_scope += 1
-                continue
-            scored.append(cand)
+        def score_hits(scope: Optional[str]) -> Tuple[List[Candidate], int]:
+            kept: List[Candidate] = []
+            excluded = 0
+            for idx, _ in hits.most_common(MAX_CANDIDATES):
+                snap_study, snap_release = self._row_meta[idx]
+                if want_study and snap_study != want_study:
+                    continue
+                if want_releases and snap_release not in want_releases:
+                    continue
+                cand = self._score_row(idx, qw, qtot, aw, ctx_tokens,
+                                       want_respondent, want_metrics)
+                if not cand:
+                    continue
+                if scope and (cand.nda_or_nbdc_table or cand.table) != scope:
+                    excluded += 1
+                    continue
+                kept.append(cand)
+            return kept, excluded
+
+        scored, out_of_scope = score_hits(scope_table)
         if scope_table and not scored and out_of_scope:
-            # The instrument scope excluded everything. Say so rather than
-            # silently widening: either the extractor's instrument is wrong or the
-            # measure lives in another table, and both are worth seeing.
-            cues["instrument_scope_empty"] = True
+            # The instrument scope excluded every candidate, so the instrument was
+            # not this measure's — drop it and rescore. An instrument read out of
+            # the surrounding sentence is a guess, and one wrong guess ("functional
+            # MRI", from a methods paragraph that also described cortical
+            # thickness) silently discarded all 136 correct candidates in the
+            # structural table and reported the measure as unmatchable.
+            cues["instrument_scope_dropped"] = {
+                "instrument": cues.get("instrument_scope"),
+                "why": (f"scoping to that table excluded all {out_of_scope} "
+                        "candidates"),
+            }
+            cues.pop("instrument_scope", None)
+            scope_table = None
+            scored, _ = score_hits(None)
         if not scored and not common_pair_tried:
             # Everything the rare tokens found was in another release or study.
             # "cortical thickness" is reachable only by intersecting two common
