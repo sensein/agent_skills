@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.5.0 — ABCD / HBCD extraction and cross-paper synthesis
+
+New mode for publications that analyse ABCD or HBCD data. Extracts what a study
+actually **used** (variables, constructs, models) and **found** (findings with
+direction and role), then compares across papers.
+
+**The paper is the only source of what a study used.** The NBDC data dictionary and
+the Cognitive Atlas are used to verify and join, never to enumerate.
+
+- `scripts/abcd_dictionary.py` — release snapshots from NBDCtools (`nbdctools` reads
+  `lst_dds` without R) or your own CSV export, with source/sha256/timestamp
+  provenance. Resolution is exact name → normalised name → full label, never fuzzy.
+  Load several releases and renames surface as `dd_release_gap`.
+- `scripts/cognitive_atlas.py` — construct vocabulary (918 concepts, 856 tasks),
+  cached after one fetch. Exact/singular/alias only; unmapped stays unmapped.
+- `scripts/abcd_verify.py` — strict verification. Every item's quote must be
+  findable verbatim in that paper (≥25 chars, PDF artefacts normalised); failures
+  land in `rejected[]` with a reason instead of vanishing. Per-section rules: a
+  variable name must appear literally, a construct need not (it is a reading of the
+  prose — `label_in_quote` records which), a finding/model must name a variable
+  present in its quote.
+- `scripts/abcd_extract.py` — one PDF or a directory (`--bulk`, keeps going past
+  failures), `--synthesize` for the cross-paper pass, `--reverify` to re-check an
+  existing result with no LLM calls.
+- `scripts/abcd_synthesize.py` — consensus/divergence per construct and role
+  consistency per variable, **counted by paper, not by finding**, so a verbose paper
+  cannot outvote several others. `divergent` means opposing signs, not differing
+  magnitudes; a contested mediator/moderator role is reported as contested rather
+  than resolved by majority.
+- `scripts/abcd_export.py` — every run emits **JSON + Markdown + Turtle**. The
+  Turtle carries quote, `usedContext`, char offsets, section/page,
+  `mentionAsWritten`, `ndaOrNbdcTable`, `nbdcDomain` and PROV-O provenance, so
+  "where in the paper did this come from?" is a SPARQL query.
+- `prompts/extractor-abcd.md`, `schemas/abcd-paper.schema.json`,
+  `schemas/abcd-synthesis.schema.json`, `references/abcd-extraction.md`, and
+  SKILL.md hard rule 16.
+
+Variables report both sides of the join: `mention_as_written` (how the paper wrote
+it — prose label or id) alongside the resolved variable, `nda_or_nbdc_table` and
+`nbdc_domain`.
+
+
 All notable changes to `structsense`. Versions follow semantic versioning.
 The `version:` field in `SKILL.md` frontmatter is the source of truth; this file
 records what changed between versions so you can tell which features your local

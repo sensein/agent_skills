@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/abcd-synthesis.schema.json",
+  "title": "ABCD/HBCD cross-paper synthesis",
+  "description": "Consensus, divergence and variable-role consistency computed across verified per-paper extractions (abcd-paper.schema.json). Counting is by PAPER, never by finding, so one verbose paper cannot outvote several others. Every aggregate carries evidence[] pointing back to paper id, section and verified quote.",
+  "type": "object",
+  "required": ["papers", "constructs", "variables", "totals", "method", "provenance"],
+  "properties": {
+    "synthesis_id": { "type": "string" },
+    "papers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["paper_id"],
+        "properties": {
+          "paper_id":       { "type": "string" },
+          "title":          { "type": ["string", "null"] },
+          "source_path":    { "type": ["string", "null"] },
+          "doi":            { "type": ["string", "null"] },
+          "study":          { "type": ["string", "null"] },
+          "data_release":   { "type": ["string", "null"] },
+          "variable_count": { "type": "integer", "minimum": 0 },
+          "finding_count":  { "type": "integer", "minimum": 0 },
+          "rejected_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "constructs": {
+      "type": "array",
+      "description": "One row per construct, tallying the direction each paper reports.",
+      "items": {
+        "type": "object",
+        "required": ["construct_label", "paper_count", "directions", "verdict"],
+        "properties": {
+          "construct_id":     { "type": ["string", "null"], "description": "Cognitive Atlas id, or null when the construct never mapped." },
+          "construct_label":  { "type": "string" },
+          "construct_mapped": { "type": "boolean" },
+          "paper_count":      { "type": "integer", "minimum": 1 },
+          "papers":           { "type": "array", "items": { "type": "string" } },
+          "directions": {
+            "type": "object",
+            "description": "direction -> number of DISTINCT papers reporting it.",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          },
+          "majority_direction": { "type": ["string", "null"] },
+          "agreement": { "type": "number", "minimum": 0, "maximum": 1, "description": "Share of papers backing the majority direction." },
+          "verdict": {
+            "type": "string",
+            "enum": ["consensus", "divergent", "mixed", "insufficient_papers"],
+            "description": "divergent = positive AND negative both reported (opposing signs), which is stronger than merely differing magnitudes."
+          },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/EvidencePointer" } }
+        }
+      }
+    },
+    "variables": {
+      "type": "array",
+      "description": "One row per variable, tallying the roles it plays across papers — the mediator/moderator consistency question.",
+      "items": {
+        "type": "object",
+        "required": ["variable", "paper_count", "roles", "verdict"],
+        "properties": {
+          "variable":    { "type": "string" },
+          "paper_count": { "type": "integer", "minimum": 1 },
+          "papers":      { "type": "array", "items": { "type": "string" } },
+          "roles": {
+            "type": "object",
+            "description": "role -> number of DISTINCT papers assigning it.",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          },
+          "dominant_role":     { "type": ["string", "null"], "description": "'unspecified' can never be dominant — it is not a role claim." },
+          "role_consistency":  { "type": "number", "minimum": 0, "maximum": 1 },
+          "verdict": {
+            "type": "string",
+            "enum": ["consistent_role", "contested_role", "mixed", "insufficient_papers"],
+            "description": "contested_role is reported as such rather than resolved by majority vote."
+          },
+          "dictionary_status": { "type": ["string", "null"] },
+          "dictionary_match":  { "type": ["object", "null"], "additionalProperties": true },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/EvidencePointer" } }
+        }
+      }
+    },
+    "variable_construct_links": {
+      "type": "array",
+      "description": "Which papers pair a given variable with a given construct — the bridge for 'different measures, same construct'.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variable":        { "type": "string" },
+          "construct_id":    { "type": ["string", "null"] },
+          "construct_label": { "type": "string" },
+          "paper_count":     { "type": "integer", "minimum": 1 },
+          "papers":          { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "papers":                 { "type": "integer", "minimum": 0 },
+        "variable_uses":          { "type": "integer", "minimum": 0 },
+        "findings":               { "type": "integer", "minimum": 0 },
+        "distinct_variables":     { "type": "integer", "minimum": 0 },
+        "distinct_constructs":    { "type": "integer", "minimum": 0 },
+        "consensus_constructs":   { "type": "integer", "minimum": 0 },
+        "divergent_constructs":   { "type": "integer", "minimum": 0 },
+        "consistent_mediators":   { "type": "integer", "minimum": 0 },
+        "consistent_moderators":  { "type": "integer", "minimum": 0 },
+        "contested_roles":        { "type": "integer", "minimum": 0 }
+      }
+    },
+    "method": {
+      "type": "object",
+      "description": "The decision rules, emitted with the result so a reader need not read the code to know how a verdict was reached.",
+      "properties": {
+        "counting_unit":           { "const": "paper" },
+        "min_papers_for_verdict":  { "type": "integer", "minimum": 1 },
+        "agreement_threshold":     { "type": "number", "minimum": 0, "maximum": 1 },
+        "divergence_rule":         { "type": "string" },
+        "note":                    { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "run_at": { "type": "string" },
+        "inputs": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "EvidencePointer": {
+      "type": "object",
+      "description": "A synthesis claim traced back to one paper's verified quote — checkable without re-reading the corpus.",
+      "required": ["paper_id"],
+      "properties": {
+        "paper_id":     { "type": "string" },
+        "section":      { "type": ["string", "null"] },
+        "page":         { "type": ["integer", "string", "null"] },
+        "quote":        { "type": ["string", "null"] },
+        "used_context": { "type": ["string", "null"] },
+        "char_start":   { "type": ["integer", "null"] },
+        "char_end":     { "type": ["integer", "null"] },
+        "direction":    { "type": ["string", "null"] },
+        "role":         { "type": ["string", "null"] },
+        "statement":    { "type": ["string", "null"] },
+        "from_model":   { "type": ["boolean", "null"] },
+        "from_finding": { "type": ["boolean", "null"] },
+        "dictionary_status": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 ---
 name: structsense
-version: 0.4.0
-description: Extract structured information (named entities, key terms, resources like tools/datasets/models/benchmarks, or any target JSON schema) from unstructured text and PDFs using a model-agnostic multi-stage pipeline (extract → align to ontologies → judge → optional human feedback). Use this skill when the user asks to do NER, pull resources out of papers, convert documents to a target JSON schema (e.g. ReproSchema), or map terms to ontologies (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, etc.). Works with any LLM (Claude, GPT, Gemini, Pi, local Ollama/vLLM) — no library dependency.
+version: 0.5.0
+description: Extract structured information (named entities, key terms, resources like tools/datasets/models/benchmarks, or any target JSON schema) from unstructured text and PDFs using a model-agnostic multi-stage pipeline (extract → align to ontologies → judge → optional human feedback). Use this skill when the user asks to do NER, pull resources out of papers, convert documents to a target JSON schema (e.g. ReproSchema), or map terms to ontologies (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, etc.). Also extracts ABCD/HBCD study content from publications — which variables a study used (mapped to the NBDC data dictionary: nda_or_nbdc_table, nbdc_domain), the constructs behind them (Cognitive Atlas), the models specified, and the findings reported — with strict quote-level verification and full provenance, for single or bulk PDFs, plus cross-paper synthesis of consensus, divergence and whether variables are consistently mediators/moderators. Works with any LLM (Claude, GPT, Gemini, Pi, local Ollama/vLLM) — no library dependency.
 license: Apache-2.0
 ---
 
@@ -23,6 +23,7 @@ Trigger when the user asks to:
 - **Map extracted terms to ontologies** (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, MESH, …).
 - **Score or judge** the quality of an existing extraction.
 - Process a **long document** that needs chunking and parallel runs.
+- Extract **ABCD / HBCD study content** from publications — which variables a study used, the constructs behind them, the models specified, the findings reported — and **compare across papers**: where is there consensus, where divergence, which variables are consistently mediators or moderators. → `references/abcd-extraction.md`.
 
 ## The core pattern
 
@@ -55,6 +56,7 @@ You can run any subset — see `references/pipeline-pattern.md`.
      - CNS-cell-focused text (cell atlases, patch-seq, scRNA-seq cell typing, BICCN-style cell census — anything where cell types + markers + morphology + ephys are the subject) → `prompts/extractor-ner-cns-cells.md`.
    - Tools / datasets / models / benchmarks → load `references/resource-extraction.md` and `prompts/extractor-resource.md`.
    - User has a target JSON schema → load `references/structured-extraction.md` and `prompts/extractor-structured.md`.
+   - **ABCD / HBCD variables, models, findings, or cross-paper synthesis** → load `references/abcd-extraction.md` and `prompts/extractor-abcd.md`. This mode has its own verifier and its own hard rules (see rule 16); it is not a variant of NER. Single PDF or a directory in bulk; every run emits JSON + Markdown + Turtle.
 2. **Want exhaustive recall? (almost always yes for NER)** → after pass-1 extraction, run the **mask-recall pass** with `prompts/mask-recall-pass.md` + `scripts/mask_pass.py`. Optionally also run **mask-verify** (`prompts/mask-verify-pass.md`) for per-item label sanity. See `references/ner-extraction.md` → "Two-pass strategy: mask-mode".
 2b. **Biomedical text? Enable the HuggingFace NER ensemble.** Pass `--ner-profile biomedical_broad` (or `cns_cells` / `pharmacology` / `genetic` / `clinical` / `minimal` / `all`) to run specialist models alongside the LLM extractor. Every mention carries a `source_model` field; the grouped view records `consensus_count` (how many models agreed). See `references/ner-models.md`. Skip the ensemble for non-biomedical text or when `transformers` isn't installed.
 3. **Need ontology mapping?** → load `references/ontology-mapping.md`. Default cascade: **local hybrid** at `http://localhost:8000` (verify at `/docs`) → **BioPortal** → **ask the user** for an alternative URL → skip alignment only if declined. Don't hardcode the URL; the port and host vary across deployments.
@@ -96,6 +98,16 @@ These prevent the most common failures.
     - The output's `stats.validation` block reports `passed` / `demoted` counts and the breakdown by failure reason — so you can tell at a glance whether the LLM tried to hallucinate.
     - If you cannot reach a real mapping tool, **say so to the user** and let them decide. Never invent IRIs to make the run "look complete."
 
+16. **ABCD/HBCD mode: verification is the feature, not a formality.**
+    - **The paper is the only source of what a study used.** Never add a variable because ABCD papers usually include it, and never enumerate the data dictionary into the output. The dictionary and the Cognitive Atlas exist only to *verify and join* what the paper says.
+    - **Every item needs a verbatim `evidence.quote` (>= 25 chars) that is findable in that paper.** `scripts/abcd_verify.py` deletes items whose quote is not there and records why in `rejected[]`. The requirement is per-section: a **variable** name must appear literally in its quote; a **construct** need not (it is a reading of the prose, and `label_in_quote` records which case it was); a **finding/model** must name at least one variable that appears in its quote.
+    - **A string is only called an ABCD variable when a real dictionary release contains it** (`dictionary_status: "verified"`). Otherwise it stays visible as `unverified_variable` / `not_a_variable_name`. Build snapshots first: `python -m scripts.abcd_dictionary build --study abcd --release latest`. Load two or more releases so renames surface as `dd_release_gap`.
+    - **Report the mention AND the mapping.** Keep `mention_as_written` (how the paper wrote it — prose label or id) alongside the resolved `dictionary_match.variable`, `nda_or_nbdc_table` and `nbdc_domain`. A reader must be able to see both sides of the join.
+    - **Construct ids are tool-only.** A `trm_`/`tsk_` id is attached only when `scripts/cognitive_atlas.py` returned it; a model-supplied id is demoted into `demoted_claim`. Unmapped is an acceptable answer — run `cognitive_atlas search` and offer candidates to the user rather than auto-picking.
+    - **Provenance includes where in the paper**: `section`, `page`, char offsets into the original text, and `used_context` (the surrounding sentences). Per run, record every dictionary snapshot consulted (release, source, sha256, retrieval time) and the Atlas vocabulary versions.
+    - **Synthesis counts by PAPER, never by finding**, so one verbose paper cannot outvote several others. `divergent` means opposing signs, not differing magnitudes. A contested mediator/moderator role is reported as contested, never resolved by majority vote — which is why the extractor must emit `unspecified` when a paper is ambiguous.
+    - **Bulk is first-class**: `--bulk` over a directory keeps going when one paper fails, writes one output set per paper, and `--synthesize` adds the cross-paper pass. Per-paper evidence stays inspectable; the synthesis never becomes the only record.
+
 ## File map (load on demand)
 
 The files below are intentionally separated so you only load what the current task needs.
@@ -111,6 +123,7 @@ The files below are intentionally separated so you only load what the current ta
 - `json-output-discipline.md` — schema-locked prompting, JSON repair, validation.
 - `model-selection.md` — picking models per stage; OpenRouter / Ollama / vLLM / Claude / GPT / Gemini configuration.
 - `human-feedback.md` — designing the human-in-the-loop review step.
+- `abcd-extraction.md` — **ABCD/HBCD mode**: extracting variables/constructs/models/findings from publications, the three hard rules (strict verification, complete provenance, single-or-bulk), building dictionary snapshots from NBDCtools, Cognitive Atlas construct mapping, and how to read the cross-paper synthesis verdicts.
 
 ### `prompts/`
 - `extractor-ner-general.md` — general-domain NER (Person, Org, Location, Product, Event, Date, …).
@@ -124,12 +137,15 @@ The files below are intentionally separated so you only load what the current ta
 - `alignment-via-http.md` — turnkey curl + jq pipeline for calling the local hybrid `/map/batch` endpoint directly. Use when you have Bash + network access but no Python client (Claude Code is the common case).
 - `judge.md` — per-item quality judge.
 - `humanfeedback.md` — apply human reviewer edits.
+- `extractor-abcd.md` — ABCD/HBCD extractor: variables (as mentioned), constructs, models, findings with roles/directions, each with a verbatim quote + section/page.
 
 ### `schemas/`
 - `ner-output.schema.json` — JSON Schema for NER output.
 - `resource-output.schema.json` — JSON Schema for resource output.
 - `aligned-item.schema.json` — fragment schema for any aligned item (adds ontology + provenance fields).
 - `judged-item.schema.json` — fragment schema for any judged item (adds judge_score + remarks).
+- `abcd-paper.schema.json` — ABCD/HBCD per-paper result: variables (with `mention_as_written`, `dictionary_status`, `nda_or_nbdc_table`, `nbdc_domain`), constructs, models, findings, `rejected[]`, `verification`, and provenance including every dictionary snapshot consulted.
+- `abcd-synthesis.schema.json` — cross-paper synthesis: per-construct consensus/divergence verdicts, per-variable role consistency, variable↔construct links, and the `method` block recording the thresholds a verdict was reached under.
 
 ### `scripts/` (runnable helpers)
 - `chunking.py` — sentence-aligned chunking, span re-anchoring, deduplication.
@@ -149,6 +165,12 @@ The files below are intentionally separated so you only load what the current ta
 - `local_hybrid_map.py` — client for a self-hosted BM25+dense mapping service (one POST, many terms).
 - `llm_client.py` — provider-agnostic LLM call (OpenAI / OpenRouter / Anthropic / Ollama / Gemini).
 - `pipeline.py` — reference end-to-end pipeline (extract → align → judge) wiring the helpers together.
+- `abcd_dictionary.py` — **ABCD/HBCD variable dictionary**. Builds release snapshots from NBDCtools (`nbdctools` on PyPI reads `lst_dds` without R) or from your own CSV export, with provenance (source, sha256, retrieval time). `Dictionary.resolve()` decides whether a string from a paper IS a real variable — exact name → normalised name → full label/description, never fuzzy — and `releases_for()` surfaces renames across releases. CLI: `build` / `info` / `lookup` / `search`.
+- `cognitive_atlas.py` — Cognitive Atlas client (~918 concepts, ~856 tasks), cached to disk after one fetch. Exact/singular/alias matching only; an unmatched construct stays unmapped rather than being guessed. CLI: `refresh` / `map` / `search`.
+- `abcd_verify.py` — **the ABCD verifier**. Anchors every `evidence.quote` in the paper's own text (whitespace/ligature-normalised, re-anchoring offsets but never inventing quotes), applies the per-section surface rules, gates variables against the dictionary and constructs against the Atlas, and returns `rejected[]` + a `verification` summary.
+- `abcd_extract.py` — driver for **one PDF or a whole directory** (`--bulk`). load → chunk → LLM extract → merge → verify → write `<stem>_abcd.{json,md,ttl}`. `--synthesize` chains the cross-paper pass; `--reverify` re-checks an existing extraction with no LLM calls.
+- `abcd_synthesize.py` — cross-paper synthesis: consensus/divergence per construct and role consistency per variable, **counting by paper, not by finding**. Emits evidence pointers (paper id, section, verified quote) for every aggregate.
+- `abcd_export.py` — JSON + Markdown tables + Turtle writers shared by both drivers. The Turtle uses PROV-O plus a small `abcd:` vocabulary, carrying quote, `usedContext`, char offsets, section/page, `mentionAsWritten`, `ndaOrNbdcTable` and `nbdcDomain` into triples.
 
 ### `examples/`
 - `ner-example.md` — end-to-end NER worked example.
