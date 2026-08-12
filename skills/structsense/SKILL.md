@@ -102,7 +102,7 @@ These prevent the most common failures.
     - **Who runs the model depends on where you are.** In Claude Code / Codex **you** are the model: run `--prepare`, do the extraction yourself against `prompts/extractor-abcd.md`, write `<stem>.payload.json`, then `--payload <dir>`. Do **not** pass `--llm-model` there — there is no API to call. Only pass it when a framework (Pi, batch, cron) should call an API. Verification and every output are identical on both paths, and `provenance.extraction_path` records which was used.
     - **The paper is the only source of what a study used.** Never add a variable because ABCD papers usually include it, and never enumerate the data dictionary into the output. The dictionary and the Cognitive Atlas exist only to *verify and join* what the paper says.
     - **Every item needs a verbatim `evidence.quote` (>= 25 chars) that is findable in that paper.** `scripts/abcd_verify.py` deletes items whose quote is not there and records why in `rejected[]`. The requirement is per-section: a **variable** name must appear literally in its quote; a **construct** need not (it is a reading of the prose, and `label_in_quote` records which case it was); a **finding/model** must name at least one variable that appears in its quote.
-    - **Cover the release the paper used.** The NBDC catalog workbook (`--from-xlsx --all-sheets`) covers 6.0+; NDA's public data dictionary (`--from-nda`) covers the 4.x/5.x era. Load both, because ABCD 6.x renamed variables wholesale and the alternate namings (`name_nda`, `name_deap`, …) are what let a 2021 paper's `nihtbx_flanker_uncorrected` resolve to 6.1's `nc_y_nihtb__flnkr__uncor_score`.
+    - **Cover the release the paper used.** All seven releases ship with the skill in `data/dictionaries/` (ABCD `nda-legacy`/4.x-5.x, `6.0`, `6.1`, `7.0`; HBCD `1.0`, `1.1`, `2.0`) — no workbook or network needed. Rebuild for a newer release with `--from-xlsx --all-sheets --minimal --gzip`; a local snapshot beats a bundled one. They matter together because ABCD 6.x renamed variables wholesale and the alternate namings (`name_nda`, `name_deap`, …) are what let a 2021 paper's `nihtbx_flanker_uncorrected` resolve to 6.1's `nc_y_nihtb__flnkr__uncor_score`.
     - **A string is only called an ABCD variable when a real dictionary release contains it** (`dictionary_status: "verified"`). Otherwise it stays visible as `unverified_variable` / `not_a_variable_name`. Build snapshots first: `python -m scripts.abcd_dictionary build --study abcd --release latest`. Load two or more releases so renames surface as `dd_release_gap`.
     - **Report the mention AND the mapping.** Keep `mention_as_written` (how the paper wrote it — prose label or id) alongside the resolved `dictionary_match.variable`, `nda_or_nbdc_table` and `nbdc_domain`. A reader must be able to see both sides of the join.
     - **Construct ids are tool-only.** A `trm_`/`tsk_` id is attached only when `scripts/cognitive_atlas.py` returned it; a model-supplied id is demoted into `demoted_claim`. Unmapped is an acceptable answer — run `cognitive_atlas search` and offer candidates to the user rather than auto-picking.
@@ -119,7 +119,9 @@ pip install -r requirements-ner.txt      # ONLY for the HuggingFace NER ensemble
 ```
 
 `requirements.txt` is enough to run every mode with the calling agent as the model,
-including ABCD/HBCD. A missing PDF backend is the most common first-run failure
+including ABCD/HBCD — **the ABCD dictionaries ship inside the skill**
+(`data/dictionaries/`, all seven releases, 8.6 MB gzipped), so nothing external is
+needed to verify a variable. A missing PDF backend is the most common first-run failure
 ("all PDF extractors failed"), so install it before blaming a paper.
 
 ## File map (load on demand)

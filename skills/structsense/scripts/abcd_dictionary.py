@@ -60,6 +60,18 @@ DEFAULT_DIR = Path(
     or (Path.home() / ".cache" / "structsense" / "abcd")
 )
 
+# Dictionaries bundled WITH the skill, so it is self-contained: no file in
+# ~/Downloads, no network, no R. Minimal columns + gzip keeps ABCD 6.1 at ~1.9MB
+# and the NDA-era set at ~1.1MB, against 76MB and 42MB uncompressed.
+BUNDLED_DIR = Path(__file__).resolve().parent.parent / "data" / "dictionaries"
+
+# Columns a bundled snapshot keeps. Enough to verify a mention, resolve every
+# alternate naming, and report table/domain — everything the ABCD mode reads.
+MINIMAL_COLUMNS = (
+    "name", "label", "table_name", "table_nda", "domain", "sub_domain",
+    "name_nda", "name_deap", "name_short",
+)
+
 # r-universe endpoint nbdctools itself uses for the dictionary bundle.
 LST_DDS_URL = "https://nbdc-datahub.r-universe.dev/NBDCtoolsData/data/lst_dds/rds"
 
@@ -488,6 +500,28 @@ def _rows_from_nda(study: str, *, cache_dir: Path, prefix: Optional[str] = None,
     }
 
 
+CATALOG_FILENAMES = ("NBDC_variable_catalog_full.xlsx", "NBDC_variable_catalog.xlsx")
+
+
+def find_catalog(explicit: Optional[Path] = None) -> Optional[Path]:
+    """Locate the NBDC variable catalog workbook without being told where it is.
+
+    Order: an explicit path, then the skill's own data dir, then the usual places a
+    download lands. Keeps `--from-xlsx` optional instead of hard-coding somebody's
+    ~/Downloads into a command.
+    """
+    if explicit:
+        p = Path(explicit).expanduser()
+        return p if p.is_file() else None
+    for base in (BUNDLED_DIR.parent, Path.cwd(), Path.home() / "Downloads",
+                 Path.home() / "Desktop", Path.home()):
+        for name in CATALOG_FILENAMES:
+            cand = base / name
+            if cand.is_file():
+                return cand
+    return None
+
+
 def _parse_sheet_name(sheet: str) -> Optional[Tuple[str, str]]:
     """'ABCD 6.1' -> ('abcd', '6.1'). None for non-release sheets (legends etc.)."""
     m = re.match(r"^\s*(ABCD|HBCD)\s+([0-9]+(?:\.[0-9]+)?)\s*$", sheet, re.I)
@@ -597,6 +631,7 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
                    from_csv: Optional[Path] = None, from_rds: Optional[Path] = None,
                    from_xlsx: Optional[Path] = None, sheet: Optional[str] = None,
                    from_nda: bool = False, nda_prefix: Optional[str] = None,
+                   minimal: bool = False, gzip_out: bool = False,
                    progress: bool = False) -> Path:
     """Write one study+release snapshot and return its path."""
     study = study.lower().strip()
@@ -651,9 +686,25 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
         },
         "variables": rows,
     }
+    if minimal:
+        snapshot["variables"] = [
+            {k: v for k, v in row.items() if k in MINIMAL_COLUMNS and v not in (None, "")}
+            for row in snapshot["variables"]
+        ]
+        snapshot["columns"] = sorted({k for r in snapshot["variables"] for k in r})
+        snapshot["provenance"]["projection"] = "minimal"
+        snapshot["provenance"]["minimal_columns"] = list(MINIMAL_COLUMNS)
+
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"dd-{study}-{resolved}.json"
-    out.write_text(json.dumps(snapshot, indent=1, sort_keys=False))
+    if gzip_out:
+        import gzip as _gzip
+
+        out = out_dir / f"dd-{study}-{resolved}.json.gz"
+        out.write_bytes(_gzip.compress(
+            json.dumps(snapshot, separators=(",", ":")).encode("utf-8"), 9))
+    else:
+        out = out_dir / f"dd-{study}-{resolved}.json"
+        out.write_text(json.dumps(snapshot, indent=1, sort_keys=False))
     return out
 
 
@@ -899,17 +950,44 @@ def _dedupe(matches: List[Match]) -> List[Match]:
 
 
 def load_snapshot(path: Path) -> dict:
-    snap = json.loads(Path(path).read_text())
+    path = Path(path)
+    if path.suffix == ".gz":
+        import gzip
+
+        snap = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
+    else:
+        snap = json.loads(path.read_text())
     for key in ("study", "release", "variables"):
         if key not in snap:
             raise DictionaryError(f"{path} is not a dictionary snapshot (missing {key!r})")
     return snap
 
 
-def load_all_snapshots(*, dir_: Path = DEFAULT_DIR) -> List[dict]:
-    if not dir_.is_dir():
-        return []
-    return [load_snapshot(p) for p in sorted(dir_.glob("dd-*.json"))]
+def load_all_snapshots(*, dir_: Path = DEFAULT_DIR,
+                       include_bundled: bool = True) -> List[dict]:
+    """Snapshots from `dir_`, falling back to the ones bundled with the skill.
+
+    A locally built snapshot WINS over a bundled one for the same study+release:
+    the bundle is a convenience so the skill works out of the box, not a ceiling.
+    Rebuild from the catalog workbook whenever a new release lands.
+    """
+    found: Dict[Tuple[str, str], dict] = {}
+    sources: List[Path] = []
+    if include_bundled and BUNDLED_DIR.is_dir():
+        sources.append(BUNDLED_DIR)
+    if dir_.is_dir():
+        sources.append(dir_)          # later wins
+    for src in sources:
+        for pattern in ("dd-*.json", "dd-*.json.gz"):
+            for pth in sorted(src.glob(pattern)):
+                try:
+                    snap = load_snapshot(pth)
+                except Exception:
+                    continue
+                snap.setdefault("provenance", {})["snapshot_path"] = str(pth)
+                snap["provenance"]["bundled_with_skill"] = (src == BUNDLED_DIR)
+                found[(snap["study"], snap["release"])] = snap
+    return [found[k] for k in sorted(found, key=lambda k: (k[0], _release_sort_key(k[1])))]
 
 
 # --------------------------------------------------------------------------- #
@@ -940,6 +1018,10 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                    help="with --from-xlsx: build every release sheet in the workbook")
     b.add_argument("--from-rds", type=Path, help="use an already-downloaded lst_dds.rds")
     b.add_argument("--dir", type=Path, default=DEFAULT_DIR)
+    b.add_argument("--minimal", action="store_true",
+                   help="keep only the columns the ABCD mode reads (much smaller)")
+    b.add_argument("--gzip", action="store_true", dest="gzip_out",
+                   help="write dd-<study>-<release>.json.gz")
     b.add_argument("--progress", action="store_true")
 
     i = sub.add_parser("info", help="list local snapshots")
@@ -962,6 +1044,14 @@ def _cli(argv: Optional[List[str]] = None) -> int:
 
     a = ap.parse_args(argv)
 
+    # `build --from-xlsx` with no path: find the workbook.
+    if getattr(a, "cmd", None) == "build" and getattr(a, "from_xlsx", None) is None \
+            and not a.from_csv and not a.from_rds and not a.from_nda:
+        found = find_catalog()
+        if found is not None:
+            a.from_xlsx = found
+            print(f"using catalog workbook: {found}", file=sys.stderr)
+
     try:
         if a.cmd == "build":
             if a.from_xlsx and a.all_sheets:
@@ -972,6 +1062,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                 for sheet_name, study, rel in sheets:
                     out = build_snapshot(study, rel, out_dir=a.dir,
                                          from_xlsx=a.from_xlsx, sheet=sheet_name,
+                                         minimal=a.minimal, gzip_out=a.gzip_out,
                                          progress=a.progress)
                     snap = load_snapshot(out)
                     print(f"wrote {out}  ({snap['variable_count']} variables)")
@@ -985,7 +1076,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                 out = build_snapshot(a.study, rel, out_dir=a.dir, from_csv=a.from_csv,
                                      from_rds=a.from_rds, from_xlsx=a.from_xlsx,
                                      sheet=a.sheet, from_nda=a.from_nda,
-                                     nda_prefix=a.nda_prefix, progress=a.progress)
+                                     nda_prefix=a.nda_prefix, minimal=a.minimal,
+                                     gzip_out=a.gzip_out, progress=a.progress)
                 snap = load_snapshot(out)
                 print(f"wrote {out}  ({snap['variable_count']} variables)")
             return 0

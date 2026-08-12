@@ -15,6 +15,26 @@ is enumerated into the output.
 pip install -r requirements.txt
 ```
 
+**The dictionaries ship with the skill.** `data/dictionaries/` carries all seven
+releases — ABCD `nda-legacy` (4.x/5.x), `6.0`, `6.1`, `7.0` and HBCD `1.0`, `1.1`,
+`2.0` — 539,781 variables in 8.6 MB, minimal columns and gzipped (they are 250 MB+
+raw). So extraction works out of the box with **no workbook, no network, no R**:
+
+```bash
+python -m scripts.abcd_dictionary info      # lists the bundled snapshots
+```
+
+A locally built snapshot always wins over a bundled one for the same
+study+release, so rebuilding for a new release is a drop-in. `--from-xlsx` with no
+path auto-discovers `NBDC_variable_catalog_full.xlsx` (skill `data/`, cwd,
+`~/Downloads`, `~/Desktop`, `~`), so nobody has to hard-code someone else's
+download path:
+
+```bash
+python -m scripts.abcd_dictionary build --study abcd --release 7.1 --minimal --gzip \
+    --dir data/dictionaries          # workbook found automatically
+```
+
 That is the whole install for this mode with the agent as the model: `requests`,
 `jsonschema`, `pymupdf` + `pdfminer.six` (PDF text), `openpyxl` (the catalog
 workbook and .xlsx DOI lists). No GPU, no API key, no R.

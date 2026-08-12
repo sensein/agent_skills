@@ -43,6 +43,15 @@ interrupted run resumes. NBDC releases start at 6.0, so without this every pre-6
 paper verified against the wrong era. Loading both eras together resolves a paper
 from either and shows the bridge between them.
 
+The skill now ships its own dictionaries in `data/dictionaries/`: ABCD nda-legacy
+(4.x/5.x), 6.0, 6.1, 7.0 and HBCD 1.0, 1.1, 2.0 — 539,781 variables in 8.6 MB.
+Minimal columns plus gzip does that (the same data is 250 MB+ raw), and snapshots
+load transparently from either .json or .json.gz. Extraction therefore works with no
+workbook in ~/Downloads, no network and no R; a locally built snapshot still wins
+over a bundled one for the same study+release, and `--from-xlsx` with no path
+auto-discovers the catalog workbook instead of hard-coding somebody's download
+directory.
+
 Requirements files, so an agent can install without guessing: `requirements.txt`
 (core — requests, jsonschema, pymupdf + pdfminer.six, openpyxl) runs every mode with
 the agent as the model, verified in a clean environment. `requirements-llm.txt`
