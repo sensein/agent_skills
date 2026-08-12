@@ -76,9 +76,46 @@ Set by the pipeline / resolver as full text is obtained:
 | `unpaywall_pdf` | Unpaywall-discovered PDF |
 | `openalex_pdf` | OpenAlex-discovered PDF |
 | `semanticscholar_pdf` | Semantic Scholar-discovered PDF |
+| `ezproxy_pdf` | subscription article fetched through the reviewer's institutional EZproxy session (`synthscholar.ezproxy`) |
+| `user_supplied_pdf` | PDF the reviewer provided (bring-your-own-corpus, see [byo_corpus_review.md](byo_corpus_review.md)) |
 | `article_store` | pre-filled from a prior run's stored article |
 | `cache` | restored from the resolver's `resolved_fulltext` cache |
 | `` (empty) | historical row backfilled from `article_store.full_text` |
+
+`ezproxy_pdf` and `user_supplied_pdf` are worth distinguishing in any audit:
+the first means the paper was read under a subscription entitlement, the second
+that it never passed through a resolver at all.
+
+## Retrieval and screening-basis provenance
+
+`PRISMAFlowCounts` records what the review actually read, and the RDF export
+emits each field so it is queryable:
+
+| Field | RDF predicate on the review |
+| --- | --- |
+| `full_text_retrieved` / `not_retrieved` | `slr:full_text_retrieved` / `slr:not_retrieved` |
+| `sought_fulltext`, `screened_title_abstract`, `excluded_title_abstract`, `assessed_eligibility`, `excluded_eligibility` | same-named `slr:` predicates |
+| `full_text_sources` (route → count) | `slr:full_text_route_record` → `slr:RetrievalRouteCount` (`slr:full_text_source`, `slr:report_count`) |
+| `assessed_on_full_text` / `assessed_on_abstract_only` | `slr:assessed_on_full_text` / `slr:assessed_on_abstract_only` |
+| `included_with_full_text` / `included_abstract_only` | `slr:included_with_full_text` / `slr:included_abstract_only` |
+| `excluded_reasons_title_abstract` / `excluded_reasons_full_text` | `slr:exclusion_reason_title_abstract` / `slr:exclusion_reason_full_text` → `slr:ExclusionReasonCount` (`slr:exclusion_reason`, `slr:report_count`) |
+
+Every individual decision is exported too: the review carries
+`slr:screening_decision_record` → one `slr:ScreeningDecisionRecord` per
+`ScreeningLogEntry`, each with `bibo:pmid`, `dcterms:title`,
+`slr:screening_stage` (`ScreeningStageEnum`), `slr:decision`,
+**`slr:assessed_on`** (`AssessmentBasisEnum`: `title_abstract` / `full_text` /
+`abstract_only`), `slr:full_text_source`, and `slr:decision_rationale` (plus
+`slr:exclusion_reason` when excluded). That is the audit trail behind the
+aggregate counts — it answers "was this study included after someone read the
+paper, or only its abstract?".
+
+All of these terms are **declared in the ontology** (`slr_ontology.yaml` and
+`slr_ontology.owl.ttl`), so a triple store that validates against the schema
+will accept an export: classes `slr:ScreeningDecisionRecord`,
+`slr:RetrievalRouteCount`, `slr:ExclusionReasonCount`, `slr:RunConfiguration`,
+`slr:SearchIteration`, `slr:EnvVarPresence`, `slr:EvidenceAnnotation`, and the
+`AssessmentBasisEnum` enumeration.
 
 ## Intake provenance (PreWorkflowSession / UserInput)
 

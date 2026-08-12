@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Working artefacts from a bring-your-own-corpus run (Mode 3) — corpora carry
+# full article text, and search provenance can carry unpublished protocol
+# details. Keep them out of the skill repo.
+corpus*.json
+protocol*.json
+search_provenance*.json
+review_output/
+pdfs/
+*.ttl
+*.jsonld

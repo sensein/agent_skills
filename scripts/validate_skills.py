@@ -6,7 +6,8 @@ This is a deterministic, offline check of the cross-agent Agent Skills format
 It is meant to run in CI without any human interaction, API keys, or network:
 
   - each skill is a flat directory with a top-level SKILL.md
-  - SKILL.md has YAML frontmatter with non-empty ``name`` and ``description``
+  - SKILL.md has YAML frontmatter with non-empty ``name`` and ``description``,
+    and the description fits the agents' 1024-character limit
   - the frontmatter ``name`` matches the skill's directory name
   - no SKILL.md is nested inside another skill (agents like Claude Code that
     load a flat skills directory cannot install nested skills)
@@ -25,6 +26,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPO_ROOT / "skills"
 
 KNOWN_OPENAI_KEYS = {"interface", "policy", "dependencies"}
+# Agents cap the frontmatter description; over the limit the skill fails to load.
+MAX_DESCRIPTION_CHARS = 1024
 SCRIPT_REF = re.compile(r"skills/[A-Za-z0-9_.-]+/scripts/[A-Za-z0-9_./-]+\.py")
 
 
@@ -85,6 +88,13 @@ def validate_skill(skill_dir: Path) -> list[str]:
         )
     if not fields.get("description"):
         problems.append(f"{name}: SKILL.md frontmatter missing 'description'")
+    elif len(fields["description"]) > MAX_DESCRIPTION_CHARS:
+        # Agents reject an over-long description at load time, so the skill
+        # simply never appears — catch it here rather than in the host.
+        problems.append(
+            f"{name}: description is {len(fields['description'])} characters; "
+            f"the limit is {MAX_DESCRIPTION_CHARS}"
+        )
 
     openai_yaml = skill_dir / "agents" / "openai.yaml"
     if openai_yaml.is_file():

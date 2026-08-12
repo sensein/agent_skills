@@ -14,38 +14,94 @@ This skill provides tools for ingesting, querying, and exploring **BrainKB (Brai
 
 ## Connectivity — READ FIRST
 
-The base URL must be reachable **from wherever this code runs**:
+There are two ways to reach BrainKB, and the right one depends on where this code
+runs:
 
-- `http://localhost:8010` (the current default) only works when the caller runs
-  on the **same machine** as the BrainKB Docker stack. That means the **`brainkb`
-  MCP server must be running locally (stdio) on that machine**, and you must use
-  the **MCP tools** — a local stack is reached through the local MCP process, not
-  from a cloud/sandbox session.
-- A **cloud / sandbox** Claude session (or the `curl` fallback running there)
-  **cannot reach a `localhost` deployment** on the user's laptop — no base URL
-  will fix that. In that case either (a) run this in **Claude Code on the same
-  machine** with the MCP registered, or (b) use a **publicly reachable** base URL
-  (the hosted remote, once it's up).
-- If login/any call returns a **connection error / HTTP 000 / connection refused**,
-  do **not** keep guessing URLs. It almost always means the caller can't reach the
-  deployment. Check: is the `brainkb` MCP running locally? Is the stack up
-  (`http://localhost:8010/openapi.json` returns 200 on that machine)? Ask the user
-  to confirm rather than retrying different hosts.
+- **Hosted remote — `https://mcp.brainkb.org/mcp` (live).** Works from anywhere,
+  including cloud/sandbox sessions. Register it once:
+  ```bash
+  claude mcp add --scope user --transport http brainkb https://mcp.brainkb.org/mcp
+  ```
+  The operator has already configured the backend, so **do not pass `base_url`**
+  to any tool here — see the allowlist note under *Credentials & safety*.
+  Authenticate per caller (PAT via `Authorization: Bearer`, or the login tools).
+- **Local stdio MCP → `http://localhost:8010`.** Only works when the caller runs on
+  the **same machine** as the BrainKB Docker stack, through the local MCP process.
+  A cloud/sandbox session **cannot** reach a `localhost` deployment on the user's
+  laptop and no base URL will fix that — use the hosted remote instead.
 
-**For local testing now: run the `brainkb` MCP locally and keep the base URL at
-`http://localhost:8010`.** Do not fall back to curl from a non-local session.
+Two notes on diagnosing failures:
+
+- A **connection error / HTTP 000 / connection refused** means the caller can't
+  reach the deployment — don't keep guessing URLs. For the local path, check the
+  MCP is running and the stack is up (`http://localhost:8010/openapi.json` → 200 on
+  that machine). Ask the user rather than retrying different hosts.
+- `GET https://mcp.brainkb.org/mcp` in a browser returns **406 "Client must accept
+  text/event-stream"**. That is the endpoint working, not an outage; `/` serves a
+  plain landing page and `/healthz` returns `ok`.
+
+Do not fall back to curl from a non-local session — use the hosted remote's MCP
+tools.
+
+**Rate limits apply on the hosted remote** (per caller IP): roughly 8 logins, 40
+writes/ingests, 120 reads and 30 admin calls per minute. A limited call returns
+`status_code: 429` with a `detail` naming the bucket — surface it and wait out the
+window. Never retry-loop, and never split one job into many calls to get around it.
 
 ## Credentials & safety
 
-- BrainKB uses JWT auth. Ask the user for their **email**, **password**, and the
-  **base URL** (default `http://localhost:8010`) if not already provided.
-- The MCP is **multi-user**: on the hosted remote each caller authenticates with
-  their own token via an `Authorization: Bearer <token>` header (configured on the
-  MCP client), so `brainkb_login` may be unnecessary there. Locally, use
-  `brainkb_login(email, password)` — it scopes the token to that session only.
+- **How to authenticate — pick in this order. Do NOT ask the user for a password
+  by default; BrainKB is a Globus/OAuth-first system and password login is being
+  retired.**
+  1. **Already configured?** On the hosted remote each caller authenticates via an
+     `Authorization: Bearer <token>` header, or a `BRAINKB_TOKEN` (PAT) set in the
+     MCP config — in that case no login step is needed at all. Check with
+     `brainkb_whoami()` before asking for anything.
+  2. **Personal Access Token (PAT)** — the recommended browser-free credential.
+     If the user has one, `brainkb_use_token("brainkb_pat_…")` (or they set it as
+     `BRAINKB_TOKEN`). If they don't, mint one after step 3 with
+     `brainkb_create_token(name, days)`.
+  3. **Globus / ORCID / GitHub (browser)** — the normal way to sign in as a real
+     user. Call `brainkb_globus_login()`; it returns a URL for the user to open,
+     they sign in, the browser shows a short code, and you finish with
+     `brainkb_finish_login("<code>")`. **This is what you should do when the user
+     says "log in as <their account>" — start the Globus flow, do not ask for a
+     password.**
+  4. **Password (legacy, discouraged)** — only if the user *explicitly* has a
+     password account and asks to use it: `brainkb_login(email, password)`. Never
+     volunteer this path or prompt for a password unprompted.
+- **Base URL**: on the hosted remote it is fixed by the operator — omit `base_url`
+  entirely. For a local stdio MCP the default is `http://localhost:8010`; ask only
+  if it isn't already set and the user hasn't said where the deployment is.
 - **Never print, echo, or store the password or the JWT token.** Pass them
   straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat.
+  variable — do not paste it into chat. (The one exception is the PAT returned by
+  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+  into their config — never re-display it afterward.)
+- A PAT is **revocable instantly** (`brainkb_revoke_token`) and its roles are
+  re-checked live on every use, so a ban/demotion takes effect at once.
+- **Never print, echo, or store the password or the JWT token.** Pass them
+  straight to the login step. When using curl, read the token into a shell
+  variable — do not paste it into chat. (The one exception is the PAT returned by
+  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+  into their config — never re-display it afterward.)
+- **Identity must be verified, never assumed — this is the #1 correctness rule.**
+  Mutations (create space, ingest, add member, grant) are **attributed to the
+  authenticated identity permanently** (provenance records who did what). A login
+  step reporting "Logged in as X" is **not proof** the next call runs as X: the MCP
+  silently falls back to a configured `BRAINKB_EMAIL`/`BRAINKB_PASSWORD`,
+  `BRAINKB_TOKEN`, or an `Authorization` header when the session login isn't
+  carried forward (common on the hosted `streamable-http` transport). So:
+  1. After **every** login, call `brainkb_whoami()` and confirm `email` == the
+     intended user.
+  2. **Immediately before any write/mutation**, call `brainkb_whoami()` again and
+     confirm it still matches. Only proceed if it does.
+  3. If it shows a **different/unexpected** account (e.g. a shared `test@…`),
+     **STOP** — report the mismatch, don't write. The durable fix is a per-call
+     credential that can't be shadowed: a **PAT** (`BRAINKB_TOKEN` /
+     `brainkb_use_token`) or an `Authorization: Bearer` header. A leftover
+     `BRAINKB_EMAIL`/`BRAINKB_PASSWORD` in the MCP config is the usual culprit and
+     should be removed on a shared/multi-user MCP.
 - Confirm before mutating actions (creating a space, ingesting, changing
   visibility, adding members). Reads are safe.
 - **Authorization is role-based, not just JWT** (see the section below). A `403`
@@ -102,6 +158,120 @@ users can onboard by first login via Globus/ORCID/GitHub, which auto-provisions
 the same profile + default role.) Never echo the password back.
 
 ### 1. Log in
+
+**Auth order (TL;DR) — take the first that applies:**
+1. `brainkb_whoami()` → if `authenticated: true` (a PAT/header is already
+   configured), **stop, you're done.**
+2. User has a PAT → `brainkb_use_token("brainkb_pat_…")` (or it's set as
+   `BRAINKB_TOKEN`). Best for repeated use — survives across calls, no browser.
+3. Need to sign in as an account → **Globus** (`brainkb_globus_login` →
+   `brainkb_finish_login`). Then mint a PAT (`brainkb_create_token`) so future
+   sessions skip the browser.
+4. Password (`brainkb_login`) → **only** if the user explicitly has one. Never
+   prompt for a password on your own.
+Always `brainkb_whoami()` again after logging in to confirm the identity stuck
+(see the ⚠️ box below). PAT/header = per-call identity (reliable); in-session
+login can evaporate on the hosted remote.
+
+**Local (stdio) vs hosted remote — how the PAT is passed:**
+- **Local/stdio:** put the PAT in `BRAINKB_TOKEN` (config env). Simple, single-user.
+- **Hosted remote (`mcp.brainkb.org`, streamable-http):** each caller sends their
+  PAT as an **`Authorization: Bearer <pat>`** header — a baked-in `BRAINKB_TOKEN`
+  is **ignored** there (it would make every anonymous caller act as one shared
+  identity) unless the operator sets `MCP_ALLOW_SHARED_IDENTITY`. So on the remote
+  it's per-caller header, not a shared env token.
+- The backend URL is **allowlisted** (`MCP_ALLOWED_BASE_URLS`): `base_url` /
+  `X-BrainKB-Base-URL` can only point at pre-approved backends (that URL is where
+  credentials are sent). An unknown base URL is refused — don't try to work around
+  it by guessing hosts.
+
+**First run `brainkb_whoami()`** — if it already reports `authenticated: true`
+(header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
+anything.
+
+**If it reports `authenticated: false`, do NOT stop and offer the user a menu of
+auth methods.** Immediately call `brainkb_globus_login()` and hand over the URL it
+returns — that is the only path that works from a cold start, so presenting it as
+a choice just adds a round trip. Then take the code they paste,
+`brainkb_finish_login("<code>")`, and **mint a PAT in the same turn** with
+`brainkb_create_token(name="laptop", days=90)` so the next session doesn't repeat
+any of this. Only ask the user something if they *offer* a PAT, or if the login
+itself fails.
+
+Two things not to say while doing it:
+
+- Don't read `base_url` as the user's own machine. It is the **server's** backend,
+  not what the client connected to. On the hosted remote it reads
+  `http://host.docker.internal:8010` — that is the MCP's *co-located* stack inside
+  the deployment, and it is correct. Never tell the user they're "pointed at a
+  local stack" or that their PAT might be for the wrong backend because of it.
+- Don't warn that an in-session login "won't stick" before trying. Within one
+  session it persists; it just doesn't carry into the *next* session — which is
+  what minting the PAT solves.
+
+For reference, the methods in preference order — **default to Globus, never prompt
+for a password unprompted:**
+
+- **Globus / ORCID / GitHub (browser) — the default for "log in as <account>":**
+  1. `brainkb_globus_login()` (or `brainkb_globus_login("orcid")` / `("github")`)
+     → returns a URL; give it to the user to open and sign in.
+  2. The browser then shows a short one-time **code** — ask the user to paste it.
+  3. `brainkb_finish_login("<code>")` → completes login for this session.
+  The browser sign-in is unavoidable (only the user can consent at the provider),
+  but the rest stays in the skill. First OAuth login auto-creates/links the
+  profile + a default `Curator` role. **When a user asks to sign in as a specific
+  account and no PAT/header is configured, start THIS flow — do not ask for a
+  password.**
+- **Personal Access Token (PAT) — recommended for repeated use, no browser:**
+  1. `brainkb_use_token("brainkb_pat_…")` if the user already has one — done.
+  2. To mint one: log in once (Globus, above), then
+     `brainkb_create_token(name="laptop", days=3)` → returns a `brainkb_pat_…`
+     token **once**. Give it to the user to copy.
+  3. The user sets it as `BRAINKB_TOKEN` in the MCP config (or calls
+     `brainkb_use_token("<pat>")` per session). No login/browser afterward until
+     it expires (default 3 days; pass `days` up to the server cap for longer).
+  - Manage: `brainkb_list_tokens()` (metadata only), `brainkb_revoke_token(id)`
+    (instant). PATs are the cleanest way to avoid re-authenticating every session.
+- **Password (legacy, discouraged — being retired):**
+  `brainkb_login(email, password, base_url?)`. Use **only** if the user explicitly
+  says they have a password account and want to use it. Never prompt for a password
+  otherwise.
+
+> **⚠️ ALWAYS verify identity after logging in — do not trust the login message.**
+> Immediately after `brainkb_finish_login` / `brainkb_login` / `brainkb_use_token`,
+> call **`brainkb_whoami()`** and confirm the returned `email` is the account you
+> intended. A login step can report "Logged in as X" yet subsequent calls run as a
+> **different** account — because the MCP falls back, silently, to a configured
+> `BRAINKB_EMAIL`/`BRAINKB_PASSWORD` (or `BRAINKB_TOKEN`, or an `Authorization`
+> header) when the just-established session isn't carried into the next call (this
+> is common on the hosted `streamable-http` transport, where per-session login may
+> not persist between tool calls). **If `whoami` shows a different or unexpected
+> account, STOP — the login did not take effect. Do NOT create/ingest/mutate**
+> (see the identity rule in "Credentials & safety"). The reliable fix is a
+> per-call credential that can't be shadowed: a **PAT** via `BRAINKB_TOKEN` /
+> `brainkb_use_token`, or an `Authorization: Bearer` header — not an in-memory
+> session login on a multi-user remote.
+
+**Troubleshooting login/auth (common failures):**
+- **`brainkb_globus_login` → the browser ends on `…?error=unauthorized_client`.**
+  The Globus app is the **wrong type**: it must be a **"Portal / application you
+  host"** (confidential OAuth client), NOT a **"Service API"** app. A Service-API
+  app can't run the login (authorization-code) flow, so Globus rejects it. Fix is
+  server-side (register a Portal-type app); as the agent, tell the user this rather
+  than retrying — a new code won't help.
+- **`…?error=…redirect… mismatch` / "Mismatching redirect URI".** The backend's
+  `USERMANAGEMENT_PUBLIC_BASE_URL` doesn't match the redirect registered on the
+  Globus app (e.g. `localhost` vs the public host, `http` vs `https`, a typo). Also
+  server-side; retrying won't help.
+- **`finish_login` says "Logged in as X" but `whoami` says `authenticated: false`
+  (or a different user).** The in-session login didn't persist across calls — the
+  hosted `streamable-http` transport may give each call a fresh session. Don't keep
+  re-running the browser flow. Switch to a **PAT**: set `BRAINKB_TOKEN` (or
+  `brainkb_use_token`), which authenticates per-call and survives. On the multi-user
+  remote, an `Authorization: Bearer` header per request is the intended model.
+- **`401` on a call after you were "logged in".** Session/PAT expired — re-auth
+  (prefer a fresh PAT). `403`, by contrast, means authenticated-but-not-permitted
+  (a role/capability/access-rule issue), not a token problem.
 Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()`.
 (New accounts must be activated by an admin first — see §9.)
 
@@ -122,11 +292,48 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   shows up with an empty description). If the user didn't give one, ask for a short
   description, or derive a sensible one from the space/graph name and the data
   being ingested; don't silently register with an empty description.
-- List what the user can see: `brainkb_list_spaces()`.
+- **Uniqueness (enforced by the backend):** a space `slug` is **globally unique**
+  and a named-graph IRI is **globally unique** (one graph belongs to exactly one
+  space). Creating a space with a taken slug, or binding an already-registered
+  graph, returns **409** — pick a different slug / IRI. Don't retry the same value.
+- **Deletion — what is and isn't removable:** spaces and named graphs are
+  **permanent — there is NO delete** (preserves provenance/history, same "we don't
+  hard-delete" policy as user accounts). What you *can* remove: a **space member**
+  (`brainkb_remove_*`/members endpoint) and a **fine-grained access rule**
+  (`brainkb_remove_access_rule`). To retire a space in practice, set it private
+  and/or remove members — you cannot delete it. So choose slugs/graph IRIs
+  deliberately: a typo can't be deleted, only abandoned.
+- **See what's available to the user + their permission:** `brainkb_list_spaces()`
+  returns each visible space annotated with the caller's own permission —
+  `your_role` (`owner`/`editor`/`viewer`/`null`), `is_owner`, `access`
+  (`owner`/`member`/`public`), and `can_write` (their space role permits ingest;
+  a real ingest also needs the `ingest` capability + any per-space access rules).
+  Use it to tell the user which spaces they can **write** to vs. only **read** vs.
+  only see as **public**, rather than guessing.
 
 ### 3. Ingest
+- **Before ingesting, verify identity: call `brainkb_whoami()` and confirm the
+  `email` is the intended user.** Ingest is **attributed** — the job's `user_id`
+  and the provenance (`prov:wasAssociatedWith` / `prov:wasAttributedTo`) are set to
+  the authenticated identity, permanently. If `whoami` shows the wrong account
+  (e.g. a fallback `test@…` from a stale `BRAINKB_EMAIL`), the data will be
+  **mis-attributed and cannot be silently reassigned** — STOP and fix the login
+  (use a PAT / header) before ingesting. Never ingest "hoping" the earlier login
+  stuck.
+- **Ingesting "into a space" → resolve the graph first.** Ingest targets a
+  **named graph IRI**, not a space. When the user says "ingest into the *hmba*
+  space", first find that space's graph: `brainkb_list_spaces()` (or
+  `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
+  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
+  (owner/editor). Then ingest into that `graph_iri`.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
-- Files: `brainkb_ingest_files(graph_iri, [paths])`.
+- Files: `brainkb_ingest_files(graph_iri, [paths])`. **Paths resolve on the MCP
+  SERVER's filesystem, not the user's machine.** On the hosted remote, file ingest
+  is **disabled unless the operator set `MCP_INGEST_ROOT`**, and paths must sit
+  inside that directory (anything outside is refused). So for remote/large data,
+  either place files under `MCP_INGEST_ROOT` on the server, or use
+  `brainkb_ingest_text` for content you already have in hand. Locally (stdio) the
+  paths are just your own filesystem.
 - Both return a `job_id`. Tell the user ingestion is running in the background.
 
 ### 4. Check ingest status
@@ -141,7 +348,22 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   a full search across everything the user may read.
 - Read a whole space's RDF: `brainkb_read_space(slug)`.
 - List registered graphs: `brainkb_list_registered_graphs()`.
-- Arbitrary SPARQL (admin only): `brainkb_sparql(query)`.
+- Arbitrary SPARQL: `brainkb_sparql(query)` — **last resort.** It needs an
+  Admin/SuperAdmin role (the `sparql_admin` capability), so for most users it 403s.
+  Reach for the purpose-built tool first: "what graphs exist" is
+  `brainkb_list_registered_graphs()`, not a SPARQL `SELECT DISTINCT ?g`; "what's in
+  this space" is `brainkb_read_space(slug)`; "find X" is `brainkb_search(q)`;
+  "what changed" is the delta tools below. Hand-writing SPARQL for a question one
+  of those answers is how a 403 gets mistaken for a broken deployment.
+
+**An empty result is not proof of absence.** `brainkb_list_spaces()` serves
+anonymous callers a public-only view, so `{"spaces": []}` can mean *either* "you
+own no spaces" *or* "your credential wasn't accepted and you were treated as
+anonymous". Before telling the user they have nothing, confirm with
+`brainkb_whoami()` **and** one auth-required call (e.g.
+`brainkb_list_registered_graphs()`): if that 401s while `list_spaces` returns 200,
+the empty list is an auth failure, not an empty account. Say "I couldn't confirm"
+rather than "you have none."
 
 ### 6. Provenance
 - Whole job: `brainkb_provenance_job(job_id)`.
@@ -150,16 +372,103 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 - Exactly what a job added: `brainkb_delta(job_id)`.
 - Compare two ingests: `brainkb_delta_compare(job_id_a, job_id_b)`.
 
+#### "What changed / what's new?" — answering change-over-time questions
+Yes, the skill can answer these — they're all built on the delta history (each
+ingest records the exact triples it added, with a timestamp). Patterns:
+
+- **"What changed on graph G over time?"** → `brainkb_delta_history(G)` — one entry
+  per change (job, triple count, timestamp), newest first. That IS the change log.
+- **"What's new on G (recently / since <date>)?"** → take `brainkb_delta_history(G)`
+  (newest first) and report the top entries, or filter by their `generatedAtTime`
+  ≥ the date. For the actual triples of a recent change, `brainkb_delta(job_id)`.
+- **"What changed on a TEAM SPACE over time / what's new in the space?"** A space
+  holds **several graphs**, and there is no single space-level feed — so:
+  1. get the space's graphs: `brainkb_read_space(slug)` (or the space manifest from
+     `brainkb_list_spaces`/get-space) → its `graphs` list;
+  2. `brainkb_delta_history(g)` for **each** graph;
+  3. **merge** the entries and sort by timestamp → a unified "what changed in this
+     space" timeline; the newest few are "what's new."
+  Say you aggregated across the space's graphs (so the user knows the scope).
+- **"What did job A add vs job B?"** → `brainkb_delta_compare(A, B)`.
+- **"Who changed it?"** → `brainkb_provenance_job(job_id)` / `provenance_graph` →
+  the `prov:Agent` on each activity.
+
+Caveat (the two clocks, below): this answers **when it was ingested/changed in
+BrainKB**, not when a real-world event occurred. "What's new" = newly *ingested*,
+not newly *happened*. And you only see changes in graphs/spaces the caller may
+read (private-space deltas require membership).
+
+#### Temporal & provenance querying — mind the TWO clocks
+There are two different "when"s. Pick the right one for the question, and say
+which you're answering:
+
+1. **Transaction / ingestion time — "when was X *added/asserted*, and by whom?"**
+   This is what the PROV-O layer records. Every ingest is a `prov:Activity` with
+   `prov:startedAtTime`/`endedAtTime`, a `prov:Agent` (`prov:wasAssociatedWith`),
+   and an `IngestionDelta` (`prov:generatedAtTime` + a `deltaGraph` holding the
+   **exact** triples that job added). To answer "when/who added X":
+   - `brainkb_delta_history(graph_iri)` → every change to that graph with its
+     **timestamp** + job, newest first;
+   - find the delta whose `deltaGraph` contains X, then `brainkb_delta(job_id)`
+     for the exact triples and `brainkb_provenance_job(job_id)` for the agent/time.
+   Use this for audit/"who put this here"/"what changed since <date>" questions.
+
+2. **Domain / valid time — "when did X *actually happen* in the real world?"**
+   PROV timestamps do NOT tell you this. A donor's birth date, when an experiment
+   ran, a sample's collection date — those are **properties in the domain data**,
+   not provenance. Answer them by querying that property in the graph (e.g.
+   `brainkb_search`, or `brainkb_sparql` on the domain predicate), NOT via delta
+   history.
+
+Don't conflate them: "when was this record added" (clock 1) ≠ "when did the event
+occur" (clock 2). If the user's "when X…" is ambiguous, ask which they mean, or
+state which clock your answer used. Ingestion provenance can't substitute for a
+missing domain timestamp, and vice versa.
+
 ### 7. Share publicly / manage a workspace
 - Publish: `brainkb_set_space_visibility(slug, "public")` (owner/manager). Warn that
   a public space is readable by **anyone, including unauthenticated clients**.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
 
 ### 8. Manage & delegate (RBAC)
-- **Admin delegation** (Admin/SuperAdmin only):
-  - Inspect a user: `brainkb_capabilities(member)`.
-  - Grant: `brainkb_grant_capability(member, "create_team_space")` (or
-    `manage_team_space`, `ingest`, etc.); revoke with `brainkb_revoke_capability`.
+- **Admin vs SuperAdmin:** **SuperAdmin** is bootstrapped at deployment (env
+  allowlist), is protected (can't be banned/deleted/demoted), and is the **only**
+  role that can create/remove **Admins** or ban an Admin. **Admin** is granted by a
+  SuperAdmin; same KG powers but itself manageable. Both manage **all** team spaces.
+- **`manage_team_space` is scoped:** a non-admin with it manages **only** team
+  spaces they **created (own)** or were **assigned to** (a member of / matched by a
+  per-space `manage` rule) — never all team spaces. Only Admin/SuperAdmin manage all.
+- **See the options first:** `brainkb_list_capabilities()` returns the catalog —
+  all KG capabilities, which are delegatable (`grantable`), which are admin-only
+  (`grant`, `sparql_admin`), and what each means.
+- **Grant to an INDIVIDUAL** (Admin/SuperAdmin): inspect with
+  `brainkb_capabilities(member)`; grant with
+  `brainkb_grant_capability(member, "create_team_space")` (or `ingest`,
+  `manage_team_space`, …); revoke with `brainkb_revoke_capability`.
+- **Grant to a GROUP/role** (Admin/SuperAdmin): give a capability to *every* member
+  of a role/group — including a custom group you created:
+  `brainkb_grant_role_capability("uk_collaborator", "ingest")`;
+  inspect with `brainkb_role_capabilities(role)`; revoke with
+  `brainkb_revoke_role_capability`. Only `grantable` caps may be delegated
+  (`grant`/`sparql_admin` are never delegatable — no escalation).
+- **Custom groups**: create with `brainkb_create_role("uk_collaborator",
+  "Community", "UK collaborators")`, assign with `brainkb_assign_role(email,
+  "uk_collaborator")`, then grant it capabilities (above) and/or per-space access.
+  A **new group starts with no powers** (read only) until you grant capabilities —
+  creating/assigning it is not enough by itself.
+
+  **Worked example — a group that can ingest, end to end:**
+  ```
+  brainkb_create_role("uk_collaborator", "Community", "UK collaborators")
+  brainkb_grant_role_capability("uk_collaborator", "ingest")   # give the group the power
+  brainkb_assign_role("alice@uk.org", "uk_collaborator")       # put a user in it
+  brainkb_capabilities("alice@uk.org")                         # verify → includes "ingest"
+  ```
+  Global capability (ingest anywhere they have space write) vs per-space: to scope a
+  group to ONE space instead, skip grant_role_capability and add a space write rule —
+  `brainkb_add_access_rule("lab-space","write","global_role","uk_collaborator")`.
+
+  Example prompt: *"Create a group uk_collaborator, let it ingest, and add alice@uk.org to it."*
 - **Fine-grained per-space access rules** (space owner/manager): restrict an action
   within a space to a role, a member, or a space-role.
   - List: `brainkb_list_access_rules(slug)`.
@@ -180,14 +489,25 @@ OAuth-only session can't log into usermanagement).
   default `Curator` role. Password signups then need admin activation:
   `brainkb_activate_user(email)`. Admins adjust roles afterward.
 - Inspect: `brainkb_list_users(q, role)` · `brainkb_available_roles()`.
-- Activate/deactivate an account: `brainkb_activate_user(email)` /
-  `brainkb_deactivate_user(email)`.
-- Assign / remove a role (= permission group: Admin, Lab Member, External, …):
+- Deactivate/reactivate login access: `brainkb_deactivate_user(email)` /
+  `brainkb_activate_user(email)`.
+- Assign / remove a role (= permission group: Lab Member, External, custom, …):
   `brainkb_assign_role(email, role)` / `brainkb_remove_role(email, role)`
   (the user must have a profile — i.e. have signed in once).
-- New group: `brainkb_create_role("External", "Community", "External collaborators")`
-  then `brainkb_assign_role(email, "External")`.
-- KG-specific capabilities (create team spaces, etc.) are granted with the
+- New group/category: `brainkb_create_role("uk_collaborator", "Community",
+  "UK collaborators")` then `brainkb_assign_role(email, "uk_collaborator")`, then
+  grant it KG capabilities via §8 (`brainkb_grant_role_capability`).
+- **Permissions catalog**: `brainkb_list_permissions()` lists usermanagement
+  permissions (resource/action, used for page-access); add new ones with
+  `brainkb_create_permission(name, resource, action, description)`. (KG action
+  capabilities are separate — see `brainkb_list_capabilities` in §8.)
+- **SuperAdmin > Admin**: assigning/removing the `Admin` role, and banning an
+  Admin, are **SuperAdmin-only**. The `SuperAdmin` role is protected (can't be
+  removed/banned).
+- **No deletion — ban instead**: accounts are never hard-deleted. Remove access
+  with `brainkb_ban_user(email, reason)` (reversible; preserves history); lift with
+  `brainkb_unban_user(email)`. `brainkb_deactivate_user` toggles login access.
+- KG-specific capabilities (create team spaces, ingest, etc.) are granted with the
   query_service admin tools — see §8.
 
 ## Typical end-to-end
@@ -199,6 +519,127 @@ OAuth-only session can't log into usermanagement).
 5. poll `brainkb_job_status(job_id)` until `done`
 6. `brainkb_search("<term>", space="my-lab")` / `brainkb_provenance_graph(iri)`
 7. (optional) `brainkb_set_space_visibility("my-lab", "public")`
+
+### Worked example: "Ingest my TTL into the hmba space, then show what changed."
+This is the exact pattern for an **existing** space + "what changed":
+1. `brainkb_whoami()` — confirm the intended identity (attribution is permanent).
+2. `brainkb_list_spaces()` → find `hmba` and its registered graph IRI `G` (if it
+   has none, `brainkb_add_space_graph("hmba", G, "<desc>")` first).
+3. `brainkb_ingest_text(G, "<the user's TTL>")` → `job_id` (or
+   `brainkb_ingest_files(G, [paths])`).
+4. Poll `brainkb_job_status(job_id)` until terminal; report success/fail counts.
+5. **"what changed"** → `brainkb_delta(job_id)` (exact triples this ingest added).
+   For the graph's full change log, `brainkb_delta_history(G)`; for who/when,
+   `brainkb_provenance_job(job_id)`.
+This is transaction/ingestion-time provenance ("what was just added"), per the
+two-clocks note in §6.
+
+## Deployment smoke test (is the deploy done & healthy?)
+
+Use this to confirm a fresh deployment is up and the auth stack (SSO + PAT +
+Globus) works. Two ways: **curl** (run on the deploy host, or against the public
+URLs) and **MCP tools** (from a session with the `brainkb` MCP registered). Run
+the layers in order and stop at the first failure — a later layer can't pass if
+an earlier one didn't.
+
+Set the two base URLs first (defaults are the unified local stack):
+
+```bash
+BASE="${BRAINKB_URL:-http://localhost:8010}"                 # query_service
+UM="${USERMANAGEMENT_URL:-http://localhost:8004}"            # usermanagement
+# Deployment example:
+#   BASE=https://query.brainkb.org   UM=https://usermanagement.brainkb.org
+```
+
+### Layer 1 — services reachable (no auth)
+
+```bash
+# Each should print 200. Anything else (000/connection refused) = not reachable.
+curl -s -o /dev/null -w "query_service   openapi : %{http_code}\n" "$BASE/openapi.json"
+curl -s -o /dev/null -w "usermanagement  jwks    : %{http_code}\n" "$UM/.well-known/jwks.json"
+curl -s -o /dev/null -w "usermanagement  openapi : %{http_code}\n" "$UM/openapi.json"
+# JWKS must contain a key (RS256 issuer live):
+curl -s "$UM/.well-known/jwks.json" | python3 -c 'import sys,json;k=json.load(sys.stdin).get("keys",[]);print("jwks keys:",len(k),"OK" if k else "MISSING")'
+```
+
+### Layer 2 — Globus/OAuth configured + redirect correct
+
+```bash
+# Globus should show "configured": true. If false, GLOBUS_CLIENT_ID/SECRET aren't set.
+curl -s "$UM/api/auth/providers" | python3 -m json.tool
+```
+The server builds the redirect as `${USERMANAGEMENT_PUBLIC_BASE_URL}/api/auth/globus/callback`.
+Confirm `USERMANAGEMENT_PUBLIC_BASE_URL` is the **public** host (e.g.
+`https://usermanagement.brainkb.org`), not `localhost` — and that this exact
+callback URL is registered in the Globus app. A `localhost` value here is the
+usual cause of a Globus "redirect mismatch" after deploy.
+
+### Layer 3 — SSO login → per-service exchange (needs a password account)
+
+```bash
+# 1) login -> refresh token
+REFRESH=$(curl -s -X POST "$UM/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"'"$EMAIL"'","password":"'"$PASSWORD"'"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("refresh_token",""))')
+[ -n "$REFRESH" ] && echo "login OK" || echo "login FAILED"
+# 2) exchange -> query_service access token
+QTOK=$(curl -s -X POST "$UM/api/auth/exchange" -H "Authorization: Bearer $REFRESH" \
+  -H 'Content-Type: application/json' -d '{"audience":"query_service"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("access_token",""))')
+# 3) use it against query_service (expect 200)
+curl -s -o /dev/null -w "query_service /api/spaces : %{http_code}\n" "$BASE/api/spaces" -H "Authorization: Bearer $QTOK"
+```
+
+### Layer 4 — Personal Access Token round-trip
+
+Needs a **session token** (`$STOK`) — the usermanagement JWT for a logged-in
+user. If you have a password account, mint one from the refresh token above:
+`STOK=$(curl -s -X POST "$UM/api/auth/exchange" -H "Authorization: Bearer $REFRESH" -H 'Content-Type: application/json' -d '{"audience":"usermanagement"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')`
+
+```bash
+# create (default lifetime is 3 days)
+CREATE=$(curl -s -X POST "$UM/api/auth/tokens" -H "Authorization: Bearer $STOK" \
+  -H 'Content-Type: application/json' -d '{"name":"smoke-test","days":3}')
+echo "$CREATE" | python3 -m json.tool
+PAT=$(echo "$CREATE" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+PID=$(echo "$CREATE" | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+# exchange PAT -> query_service token, then use it (expect 200)
+PQ=$(curl -s -X POST "$UM/api/auth/pat/exchange" -H 'Content-Type: application/json' \
+  -d '{"token":"'"$PAT"'","audience":"query_service"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin).get("access_token",""))')
+curl -s -o /dev/null -w "PAT -> query_service : %{http_code}  (expect 200)\n" "$BASE/api/spaces" -H "Authorization: Bearer $PQ"
+# revoke, then confirm the PAT no longer exchanges (expect 401)
+curl -s -X DELETE "$UM/api/auth/tokens/$PID" -H "Authorization: Bearer $STOK" >/dev/null
+curl -s -o /dev/null -w "PAT after revoke     : %{http_code}  (expect 401)\n" -X POST "$UM/api/auth/pat/exchange" \
+  -H 'Content-Type: application/json' -d '{"token":"'"$PAT"'","audience":"query_service"}'
+```
+
+A healthy deploy prints: layer-1 all `200` + `jwks keys: N OK`; layer-2 Globus
+`configured: true`; layer-3 `login OK` + `200`; layer-4 create returns a
+`brainkb_pat_…` token, `PAT -> query_service : 200`, `PAT after revoke : 401`.
+
+### Via the MCP (same checks, no curl)
+
+From a session with the `brainkb` MCP registered (base URL pointed at the
+deploy):
+
+1. `brainkb_login(email, password)` **or** `brainkb_globus_login()` →
+   `brainkb_finish_login(code)`. Then `brainkb_whoami()` → should report
+   `authenticated: true` and the right `base_url`/email (proves login + SSO
+   exchange).
+2. `brainkb_list_spaces()` → returns without error (proves query_service auth via
+   the exchanged token).
+3. **PAT:** `brainkb_create_token(name="smoke-test", days=3)` → returns a
+   `brainkb_pat_…` once; `brainkb_list_tokens()` → shows it `active: true`;
+   `brainkb_revoke_token(<id>)` → `revoked: true`. To prove end-to-end, set that
+   PAT as `BRAINKB_TOKEN` (or `brainkb_use_token("<pat>")`) and re-run
+   `brainkb_whoami()` / `brainkb_list_spaces()` — they should still work with **no
+   password/browser**.
+4. Admin reachability (if Admin/SuperAdmin): `brainkb_list_users(limit=1)` returns
+   without error (proves the `usermanagement` audience exchange too).
+
+If step 1 errors with a connection failure, re-read **Connectivity** above — the
+session can't reach the deploy (localhost from a cloud session, or stack down).
 
 ## Fallback: curl (no MCP)
 

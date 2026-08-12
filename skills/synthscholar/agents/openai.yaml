@@ -1,0 +1,63 @@
+interface:
+  display_name: "SynthScholar PRISMA Reviews"
+  short_description: "Scope, run, and audit PRISMA systematic reviews — including over PDFs you supply"
+  default_prompt: "Use $synthscholar to scope a PRISMA review protocol, run the review over the PDFs I supply (fetching anything I only have a DOI for — open access first, then my own institutional EZproxy access), and export Markdown plus SLR-ontology Turtle with full retrieval and screening provenance."
+
+  # What the skill can actually do, for a chooser deciding whether to invoke it.
+  capabilities:
+    - "Draft and gate a complete review protocol from a one-line research question"
+    - "Run the full PRISMA pipeline over user-supplied PDFs: screening, charting, appraisal, synthesis, per-group analysis"
+    - "Retrieve missing full texts from a DOI — open access (Unpaywall/OpenAlex/Semantic Scholar), then institutional EZproxy"
+    - "Read every paper in full and extract only that paper's own findings, not the claims it cites"
+    - "Screen eligibility on full text, recording what each decision was actually judged on"
+    - "Export md, ttl (SLR ontology), jsonld, json, bib, charting, appraisal, per-group, narrative"
+    - "Add or amend the search strategy after a run and re-export"
+    - "Query a finished review over SPARQL (14 recipes) or SQL (8) for retrieval and screening provenance"
+    - "Produce the review without an OpenRouter key, with the host model authoring it through the same exporters"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  # Installed with pip. Only what a given script needs is required — see the
+  # per-script table below and the README.
+  python:
+    - "rdflib>=6.0"          # SPARQL over an RDF export (query_sparql.py)
+    - "httpx>=0.25"          # open-access + institutional retrieval (fetch_ezproxy.py)
+    - "pymupdf>=1.24"        # PDF text extraction (build_corpus.py)
+    - "psycopg[binary]>=3.1" # article-store queries (query_postgres.py, backfill)
+    - "pydantic>=2.0"        # result validation (export_review.py)
+
+  # The application this skill drives. The released package on PyPI (0.0.11)
+  # predates the whole-document reading, full-text-based eligibility screening,
+  # and retrieval/screening provenance that Mode 3 records, so the pipeline and
+  # export scripts require the development checkout and refuse to run without
+  # it rather than silently dropping those fields.
+  synthscholar:
+    released: "pip install 'synthscholar[fulltext]'   # sufficient for Modes 1-2"
+    development: "pip install -e /path/to/prisma-review-agent   # required for Mode 3"
+
+  # Which scripts need which of the above.
+  scripts:
+    validate_protocol.py: "stdlib only (PyYAML optional, for .yaml protocols)"
+    build_corpus.py: "pymupdf; falls back to pypdf or the pdftotext CLI"
+    fetch_ezproxy.py: "httpx; open access needs no credentials, institutional access needs the EZPROXY_* vars"
+    oa_client.py: "httpx; vendored Unpaywall/OpenAlex/Semantic Scholar DOI chain, imported by fetch_ezproxy.py"
+    ezproxy_client.py: "httpx; vendored EZproxy client, used when synthscholar.ezproxy is absent"
+    run_local_review.py: "synthscholar development checkout + OPENROUTER_API_KEY"
+    export_review.py: "synthscholar development checkout"
+    update_provenance.py: "synthscholar (models only)"
+    query_sparql.py: "rdflib"
+    query_postgres.py: "psycopg[binary]"
+    backfill_full_text.py: "psycopg[binary] + synthscholar, migration 006 applied"
+
+  environment:
+    OPENROUTER_API_KEY: "required by run_local_review.py; unused by the other scripts"
+    SYNTHSCHOLAR_EMAIL: "polite-pool contact; Unpaywall requires it (ToS) and is skipped without it"
+    SEMANTIC_SCHOLAR_API_KEY: "optional; lifts Semantic Scholar's 1 req/s public rate limit"
+    EZPROXY_HOST: "institutional proxy host, for retrieving paywalled papers"
+    EZPROXY_COOKIE_FILE: "browser-exported cookies.txt for that proxy (or EZPROXY_COOKIE)"
+    EZPROXY_MODE: "hostname-suffix (default) or login-url"
+    EZPROXY_DELAY: "seconds between proxied requests (default 3)"
+    EZPROXY_MAX_REQUESTS: "per-run ceiling on proxied requests (default 100)"
+    SYNTHSCHOLAR_PG_DSN: "optional; only for the article-store query scripts"

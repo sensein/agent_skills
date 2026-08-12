@@ -105,6 +105,65 @@ QUERIES: dict[str, str] = {
           OPTIONAL { ?act slr:result_hash ?hash }
         } ORDER BY ?when ?title
     """,
+    # ── Retrieval + screening basis (what the review actually read) ──
+    "reading-basis": """
+        SELECT ?retrieved ?not_retrieved ?on_full_text ?on_abstract_only
+               ?included_full ?included_abstract WHERE {
+          ?rev a slr:SystematicReview .
+          OPTIONAL { ?rev slr:full_text_retrieved       ?retrieved }
+          OPTIONAL { ?rev slr:not_retrieved             ?not_retrieved }
+          OPTIONAL { ?rev slr:assessed_on_full_text     ?on_full_text }
+          OPTIONAL { ?rev slr:assessed_on_abstract_only ?on_abstract_only }
+          OPTIONAL { ?rev slr:included_with_full_text   ?included_full }
+          OPTIONAL { ?rev slr:included_abstract_only    ?included_abstract }
+        }
+    """,
+    "retrieval-routes": """
+        SELECT ?route ?reports WHERE {
+          ?rev a slr:SystematicReview ; slr:full_text_route_record ?rec .
+          ?rec slr:full_text_source ?route ; slr:report_count ?reports .
+        } ORDER BY DESC(?reports)
+    """,
+    "ezproxy-articles": """
+        SELECT ?title ?doi ?when WHERE {
+          ?pub a slr:IncludedSource ; slr:full_text_artifact ?art .
+          ?art slr:full_text_source "ezproxy_pdf" .
+          OPTIONAL { ?pub dcterms:title ?title }
+          OPTIONAL { ?pub bibo:doi ?doi }
+          OPTIONAL { ?art slr:created_at_time ?when }
+        } ORDER BY ?title
+    """,
+    "exclusion-reasons": """
+        SELECT ?stage ?reason ?reports WHERE {
+          { ?rev slr:exclusion_reason_title_abstract ?rec .
+            BIND("title_abstract" AS ?stage) }
+          UNION
+          { ?rev slr:exclusion_reason_full_text ?rec .
+            BIND("eligibility" AS ?stage) }
+          ?rec slr:exclusion_reason ?reason ; slr:report_count ?reports .
+        } ORDER BY ?stage DESC(?reports)
+    """,
+    "screening-decisions": """
+        SELECT ?pmid ?stage ?decision ?assessed_on ?route ?reason WHERE {
+          ?rev slr:screening_decision_record ?rec .
+          ?rec slr:screening_stage ?stage ; slr:decision ?decision ;
+               slr:assessed_on ?assessed_on .
+          OPTIONAL { ?rec bibo:pmid ?pmid }
+          OPTIONAL { ?rec slr:full_text_source ?route }
+          OPTIONAL { ?rec slr:decision_rationale ?reason }
+        } ORDER BY ?stage ?decision ?pmid
+    """,
+    "abstract-only-inclusions": """
+        SELECT ?pmid ?reason WHERE {
+          ?rev slr:screening_decision_record ?rec .
+          ?rec slr:screening_stage "full_text" ;
+               slr:assessed_on "abstract_only" ;
+               slr:decision ?decision .
+          FILTER(LCASE(STR(?decision)) = "include")
+          OPTIONAL { ?rec bibo:pmid ?pmid }
+          OPTIONAL { ?rec slr:decision_rationale ?reason }
+        } ORDER BY ?pmid
+    """,
 }
 
 _FORMAT_BY_EXT = {
