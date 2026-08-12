@@ -43,6 +43,14 @@ interrupted run resumes. NBDC releases start at 6.0, so without this every pre-6
 paper verified against the wrong era. Loading both eras together resolves a paper
 from either and shows the bridge between them.
 
+Requirements files, so an agent can install without guessing: `requirements.txt`
+(core — requests, jsonschema, pymupdf + pdfminer.six, openpyxl) runs every mode with
+the agent as the model, verified in a clean environment. `requirements-llm.txt`
+(provider SDKs) is only for the API path, `requirements-ner.txt` (transformers,
+torch) only for the NER ensemble, `requirements-dev.txt` (rdflib, pandas) only for
+validating the skill's own output. Splitting them keeps a plain ABCD run from
+dragging in torch.
+
 `--llm-model` is optional, because in Claude Code / Codex the calling agent IS the
 model and there is no API to call. `--prepare` extracts text and prints a plan;
 `--payload` (a .json, a directory of <stem>.payload.json, or a .jsonl) verifies and

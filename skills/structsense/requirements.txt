@@ -1,0 +1,54 @@
+# structsense — core runtime.
+#
+#     pip install -r requirements.txt
+#
+# This is enough to run the ABCD/HBCD mode end to end with the calling agent as
+# the model (Claude Code / Codex): read PDFs, build dictionary snapshots, verify
+# quotes, map constructs, and write JSON + Markdown + Turtle. Nothing here needs a
+# GPU, an API key, or R.
+#
+# The heavier or path-specific pieces are separate files, so a plain run does not
+# drag in torch or a pile of SDKs:
+#
+#     requirements-llm.txt    provider SDKs — only when a framework calls an API
+#                             (Pi, batch, cron; i.e. --llm-model)
+#     requirements-ner.txt    HuggingFace NER ensemble (transformers + torch)
+#     requirements-dev.txt    validating outputs while developing the skill
+#
+# Upper bounds pin the major version so a breaking upstream release cannot land in
+# a rebuild unreviewed. For a reproducible environment, compile a lock file:
+#     pip-compile --generate-hashes requirements.txt -o requirements.lock
+#     pip install --require-hashes -r requirements.lock
+
+# --- HTTP: concept mapping (BioPortal / OLS / local hybrid), GROBID, LLM calls ---
+requests>=2.31,<3
+
+# --- Output validation against schemas/*.json ---
+jsonschema>=4.20,<5
+
+# --- PDF text extraction -----------------------------------------------------
+# input_loader tries GROBID -> PyMuPDF -> pdfminer.six and uses whichever is
+# present. PyMuPDF alone is enough and is by far the fastest; pdfminer.six is a
+# pure-Python fallback for environments where PyMuPDF's wheels do not install.
+# Without at least one of these, every PDF fails with "all PDF extractors failed".
+pymupdf>=1.24,<2
+pdfminer.six>=20231228
+
+# --- Excel / spreadsheet inputs ----------------------------------------------
+# Needed for two distinct things:
+#   * the NBDC variable catalog workbook (abcd_dictionary --from-xlsx), which is
+#     the best dictionary source for releases 6.0+
+#   * an .xlsx of DOIs handed to abcd_extract
+openpyxl>=3.1,<4
+
+# --- ABCD/HBCD dictionary via NBDCtools (optional) ---------------------------
+# Reads the NBDC data dictionary (`lst_dds`) without R. Only needed for
+# `abcd_dictionary build` WITHOUT --from-xlsx / --from-nda / --from-csv; the
+# catalog workbook and the NDA API cover releases 6.0+ and 4.x/5.x respectively
+# with no extra dependency. Uncomment if you want that path.
+# nbdctools>=0.1,<1
+
+# --- CSV round-tripping (optional) ------------------------------------------
+# input_loader re-serialises CSV input through pandas when available, and falls
+# back to a verbatim read otherwise. Not needed for PDFs.
+# pandas>=2.0,<3

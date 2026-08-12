@@ -1,0 +1,11 @@
+# structsense — for developing/validating the skill itself. Not needed to run it.
+#
+#     pip install -r requirements-dev.txt
+
+# Parse and validate the Turtle that abcd_export writes, before trusting it in a
+# triple store. `python -c "from rdflib import Graph; Graph().parse('x.ttl')"`.
+rdflib>=7.0,<8
+
+# Read the NBDC catalog workbook with a dataframe for ad-hoc inspection.
+pandas>=2.0,<3
+pyarrow>=15.0

@@ -1,0 +1,21 @@
+# structsense — HuggingFace NER ensemble (scripts/ner_models.py).
+#
+#     pip install -r requirements-ner.txt
+#
+# ONLY needed for `--ner-profile ...` on the NER task, where specialist biomedical
+# models run alongside the LLM extractor. The ABCD/HBCD mode does not use this at
+# all, so skip it unless you are doing NER.
+#
+# This is the heavy install: torch is hundreds of MB, and the model weights are
+# downloaded on first use (several GB for the full roster). Prefer a small profile
+# (`minimal`) on a laptop.
+
+transformers>=4.40,<5
+
+# CPU-only torch is much smaller. On Linux/Windows:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# On macOS the default wheel is already CPU/MPS.
+torch>=2.2
+
+# Faster tokenisers; transformers works without it but warns.
+tokenizers>=0.19

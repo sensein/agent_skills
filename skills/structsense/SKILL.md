@@ -110,6 +110,18 @@ These prevent the most common failures.
     - **Synthesis counts by PAPER, never by finding**, so one verbose paper cannot outvote several others. `divergent` means opposing signs, not differing magnitudes. A contested mediator/moderator role is reported as contested, never resolved by majority vote — which is why the extractor must emit `unspecified` when a paper is ambiguous.
     - **Bulk is first-class**: `--bulk` over a directory keeps going when one paper fails, writes one output set per paper, and `--synthesize` adds the cross-paper pass. Per-paper evidence stays inspectable; the synthesis never becomes the only record.
 
+## Install
+
+```bash
+pip install -r requirements.txt          # core: HTTP, schema validation, PDF, xlsx
+pip install -r requirements-llm.txt      # ONLY if a framework calls an API (--llm-model)
+pip install -r requirements-ner.txt      # ONLY for the HuggingFace NER ensemble (heavy: torch)
+```
+
+`requirements.txt` is enough to run every mode with the calling agent as the model,
+including ABCD/HBCD. A missing PDF backend is the most common first-run failure
+("all PDF extractors failed"), so install it before blaming a paper.
+
 ## File map (load on demand)
 
 The files below are intentionally separated so you only load what the current task needs.

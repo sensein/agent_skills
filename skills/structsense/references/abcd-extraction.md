@@ -9,6 +9,21 @@ The paper is the only source of *what was used*. The NBDC data dictionary and th
 Cognitive Atlas are only used to **verify and join** what the paper says. Neither
 is enumerated into the output.
 
+## Install
+
+```bash
+pip install -r requirements.txt
+```
+
+That is the whole install for this mode with the agent as the model: `requests`,
+`jsonschema`, `pymupdf` + `pdfminer.six` (PDF text), `openpyxl` (the catalog
+workbook and .xlsx DOI lists). No GPU, no API key, no R.
+
+Without a PDF extractor every paper fails with "all PDF extractors failed", which
+is the most common first-run problem. `requirements-llm.txt` is only for the API
+path (`--llm-model`); `requirements-ner.txt` is only for the unrelated NER
+ensemble and pulls in torch, so skip it here.
+
 ## Two commands
 
 ```bash
