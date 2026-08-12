@@ -37,6 +37,13 @@ the Cognitive Atlas are used to verify and join, never to enumerate.
   `schemas/abcd-synthesis.schema.json`, `references/abcd-extraction.md`, and
   SKILL.md hard rule 16.
 
+Dictionary imports accept a DEAP variable export or an NDA data-dictionary
+download as-is (CSV or TSV, BOM tolerated, headers matched across the spellings
+those sources use), recording the header translation in provenance. DEAP's own API
+is behind NDA login and is not scraped. ABCD release ids are cross-checked against
+the public release notes at docs.abcdstudy.org, which supplies a citation URL per
+release — advisory, never blocking.
+
 Variables report both sides of the join: `mention_as_written` (how the paper wrote
 it — prose label or id) alongside the resolved variable, `nda_or_nbdc_table` and
 `nbdc_domain`.

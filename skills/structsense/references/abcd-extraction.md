@@ -137,12 +137,47 @@ yourself — the mode does not degrade to guessing:
 ```bash
 # in R
 write.csv(NBDCtools::get_dd("abcd", "6.1"), "dd_abcd_6.1.csv")
-# then
 python -m scripts.abcd_dictionary build --study abcd --release 6.1 --from-csv dd_abcd_6.1.csv
+
+# or a DEAP variable export (abcd.deapscience.com -> my-datasets -> create dataset),
+# or an NDA data-dictionary download — CSV or TSV, headers as they come
+python -m scripts.abcd_dictionary build --study abcd --release 6.1 --from-csv deap_export.tsv
 ```
 
-Only `name` is required in a CSV export; `label`/`description` additionally enable
-label matching for papers that name a measure in prose instead of by id.
+**Headers are matched flexibly**, because these sources spell them differently.
+`name` accepts `element_name` / `variable_name` / `variable` / `element` /
+`item_name` / `field_name` / `short_name`; the table column accepts
+`nda_or_nbdc_table` / `table_name` / `structure` / `instrument`; the domain accepts
+`nbdc_domain` / `domain` / `category`; labels accept `element_description` /
+`variable_label` / `title`. Delimiter is sniffed (CSV/TSV) and a UTF-8 BOM is
+tolerated. The translation is recorded in the snapshot's provenance
+(`csv_header_mapping`, `csv_headers_ignored`) so a reader can see which of the
+export's columns became `name` and which were dropped. An export with no
+recognisable name column fails loudly, listing the headers it did see.
+
+Only the name column is required; label/description additionally enable label
+matching for papers that name a measure in prose instead of by id.
+
+**DEAP itself cannot be read programmatically here.** `abcd.deapscience.com` is a
+single-page app whose API sits behind NDA-approved login, so the integration point
+is your export, not a scrape. Same for the NDA portal.
+
+### Release ids are cross-checked against the public documentation
+
+```bash
+python -m scripts.abcd_dictionary releases
+# 6.0    https://docs.abcdstudy.org/latest/documentation/release_notes/6_0.html
+# 6.1    https://docs.abcdstudy.org/latest/documentation/release_notes/6_1.html
+# 7.0    https://docs.abcdstudy.org/latest/documentation/release_notes/7_0.html
+```
+
+`docs.abcdstudy.org` is prose documentation, not a machine-readable dictionary, but
+it is a public list of which releases exist. Building a snapshot records the
+citation URL (`documentation_release_notes`) and whether the release is documented
+(`release_documented`) in provenance, and warns when it is not. **Advisory only** —
+the docs site can lag or restructure, so it never blocks a snapshot that is real.
+Useful when a paper states a release like "4.0" that the current documentation no
+longer lists.
 
 **Load several releases.** Names change between releases, and papers cite
 whichever release they analysed. With 5.1 and 6.1 both loaded, a variable present

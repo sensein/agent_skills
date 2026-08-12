@@ -54,6 +54,15 @@ DEFAULT_DIR = Path(
 # r-universe endpoint nbdctools itself uses for the dictionary bundle.
 LST_DDS_URL = "https://nbdc-datahub.r-universe.dev/NBDCtoolsData/data/lst_dds/rds"
 
+# The ABCD documentation site publishes release notes per data release. It is not a
+# machine-readable dictionary, but it IS a public, citable list of which releases
+# exist — useful for two things: catching a paper that states a release that never
+# shipped, and giving each snapshot a citation URL. ABCD only; HBCD documents
+# separately.
+ABCD_RELEASE_NOTES_INDEX = (
+    "https://docs.abcdstudy.org/latest/documentation/release_notes/"
+)
+
 # Columns we keep. The dictionary has many more; these are the ones that let us
 # verify a mention and describe it back to the user.
 KEEP_COLUMNS = (
@@ -229,19 +238,93 @@ def _keep(row: dict) -> dict:
     return out
 
 
+# Header aliases for a hand-supplied export. Different sources name the same
+# columns differently — an R `get_dd()` dump, a DEAP (abcd.deapscience.com)
+# create-dataset variable export, and an NDA data-dictionary download all differ —
+# so accept the common spellings instead of making the user rename columns. Keys
+# are canonical; values are lowercased/underscored headers to look for, in order.
+CSV_HEADER_ALIASES: Dict[str, Tuple[str, ...]] = {
+    "name": ("name", "element_name", "variable_name", "variable", "element",
+             "item_name", "field_name", "short_name"),
+    "label": ("label", "element_description", "variable_label", "item_label",
+              "title", "element_label"),
+    "description": ("description", "notes", "element_notes", "definition",
+                    "long_description"),
+    "nda_or_nbdc_table": ("nda_or_nbdc_table", "table_name", "table", "structure",
+                          "nda_structure", "instrument", "form"),
+    "nbdc_domain": ("nbdc_domain", "domain", "category", "construct_domain"),
+    "nbdc_sub_domain": ("nbdc_sub_domain", "sub_domain", "subdomain", "subcategory"),
+    "type_data": ("type_data", "data_type", "type", "value_type"),
+    "unit": ("unit", "units"),
+    "level_range": ("level_range", "value_range", "range", "notes_values"),
+}
+
+
+def _norm_header(h: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", (h or "").strip().lower()).strip("_")
+
+
 def _rows_from_csv(path: Path) -> Tuple[List[dict], dict]:
+    """Load a user-supplied dictionary export (CSV or TSV, flexible headers)."""
     import csv
 
-    with path.open(newline="", encoding="utf-8") as fh:
-        rows = [_keep(r) for r in csv.DictReader(fh) if (r.get("name") or "").strip()]
+    raw = path.read_text(encoding="utf-8-sig", errors="replace")
+    sample = raw[:8192]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",\t;|")
+        delim = dialect.delimiter
+    except csv.Error:
+        delim = "\t" if path.suffix.lower() in (".tsv", ".tab") else ","
+
+    reader = csv.DictReader(raw.splitlines(), delimiter=delim)
+    headers = [h for h in (reader.fieldnames or []) if h]
+    if not headers:
+        raise DictionaryError(f"{path} has no header row")
+
+    # canonical field -> the actual header we will read it from
+    norm = {_norm_header(h): h for h in headers}
+    mapping: Dict[str, str] = {}
+    for canonical, candidates in CSV_HEADER_ALIASES.items():
+        for cand in candidates:
+            if cand in norm:
+                mapping[canonical] = norm[cand]
+                break
+
+    if "name" not in mapping:
+        raise DictionaryError(
+            f"{path} has no recognisable variable-name column. Saw: "
+            f"{', '.join(headers[:12])}"
+            f"{'…' if len(headers) > 12 else ''}. Accepted spellings: "
+            f"{', '.join(CSV_HEADER_ALIASES['name'])}. Rename the column, or "
+            "export from R with write.csv(NBDCtools::get_dd('abcd', '6.1'), …)."
+        )
+
+    rows: List[dict] = []
+    for rec in reader:
+        translated = {
+            canonical: (rec.get(header) or "").strip()
+            for canonical, header in mapping.items()
+        }
+        if translated.get("name"):
+            rows.append(_keep(translated))
+
     if not rows:
         raise DictionaryError(
-            f"{path} produced no rows with a non-empty `name` column. The export "
-            "must have at least `name`; `label`/`description` make label matching "
-            "possible."
+            f"{path} produced no rows with a non-empty "
+            f"{mapping['name']!r} value."
         )
-    return rows, {"source": str(path), "source_sha256": _sha256_file(path),
-                  "nbdctools_data_releases_available": None}
+    return rows, {
+        "source": str(path),
+        "source_sha256": _sha256_file(path),
+        "source_delimiter": "tab" if delim == "\t" else delim,
+        # Record the header translation: a reader must be able to see which of the
+        # export's columns became `name`, `nbdc_domain`, and so on.
+        "csv_header_mapping": mapping,
+        "csv_headers_ignored": sorted(
+            h for h in headers if h not in set(mapping.values())
+        ),
+        "nbdctools_data_releases_available": None,
+    }
 
 
 def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
@@ -260,6 +343,22 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
                                           progress=progress)
         resolved = prov.pop("resolved_release")
 
+    docs_note: Dict[str, Any] = {}
+    if study == "abcd":
+        docs = documented_releases(dir_=out_dir)
+        known = docs.get("releases") or []
+        docs_note = {
+            "documentation_release_notes": release_citation(resolved),
+            "documented_releases": known or None,
+            "release_documented": (resolved in known) if known else None,
+        }
+        if known and resolved not in known:
+            # Advisory, not fatal: the snapshot is real, but a release the public
+            # documentation does not list is worth surfacing rather than burying.
+            print(f"note: release {resolved!r} is not listed at "
+                  f"{ABCD_RELEASE_NOTES_INDEX} (documented: {', '.join(known)})",
+                  file=sys.stderr)
+
     snapshot = {
         "study": study,
         "release": resolved,
@@ -269,6 +368,7 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
             "retrieved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "method": "csv_export" if from_csv else "nbdctools",
             "tool_version": _nbdctools_version(),
+            **docs_note,
             **prov,
         },
         "variables": rows,
@@ -286,6 +386,55 @@ def _nbdctools_version() -> Optional[str]:
         return getattr(nbdctools, "__version__", None)
     except Exception:
         return None
+
+
+def documented_releases(*, dir_: Path = DEFAULT_DIR, timeout: int = 20,
+                        refresh: bool = False) -> dict:
+    """Releases documented on docs.abcdstudy.org, cached locally.
+
+    Advisory only — a release missing here is reported, never rejected. The docs
+    site is public prose, so it can lag or restructure; it must not be able to
+    block a run whose dictionary snapshot is real.
+    """
+    cache = dir_ / "abcd_documented_releases.json"
+    if cache.is_file() and not refresh:
+        try:
+            return json.loads(cache.read_text())
+        except Exception:
+            pass
+
+    import urllib.request
+
+    doc = {"releases": [], "source": ABCD_RELEASE_NOTES_INDEX,
+           "retrieved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "error": None}
+    try:
+        req = urllib.request.Request(
+            ABCD_RELEASE_NOTES_INDEX, headers={"Accept": "text/html"}
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            html_text = resp.read().decode("utf-8", "replace")
+        found = sorted(
+            {m.replace("_", ".")
+             for m in re.findall(r"release_notes/(\d+_\d+)\.html", html_text)},
+            key=_release_sort_key,
+        )
+        doc["releases"] = found
+    except Exception as exc:                              # advisory: never fatal
+        doc["error"] = str(exc)
+
+    try:
+        dir_.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(doc, indent=1))
+    except Exception:
+        pass
+    return doc
+
+
+def release_citation(release: str) -> str:
+    """Citable release-notes URL for an ABCD release ('6.1' -> …/6_1.html)."""
+    return (f"https://docs.abcdstudy.org/latest/documentation/release_notes/"
+            f"{str(release).replace('.', '_')}.html")
 
 
 def available_releases(study: str, *, progress: bool = False) -> List[str]:
@@ -384,7 +533,8 @@ class Dictionary:
                 "variable_count": s["variable_count"],
                 **{k: v for k, v in s.get("provenance", {}).items()
                    if k in ("retrieved_at", "method", "source", "source_sha256",
-                            "tool_version")},
+                            "tool_version", "documentation_release_notes",
+                            "release_documented", "csv_header_mapping")},
             }
             for s in self.snapshots
         ]
@@ -492,6 +642,11 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     i = sub.add_parser("info", help="list local snapshots")
     i.add_argument("--dir", type=Path, default=DEFAULT_DIR)
 
+    r2 = sub.add_parser("releases",
+                        help="releases documented at docs.abcdstudy.org (public)")
+    r2.add_argument("--dir", type=Path, default=DEFAULT_DIR)
+    r2.add_argument("--refresh", action="store_true")
+
     l = sub.add_parser("lookup", help="resolve a variable name / label")
     l.add_argument("candidate")
     l.add_argument("--study")
@@ -515,6 +670,17 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                                      from_rds=a.from_rds, progress=a.progress)
                 snap = load_snapshot(out)
                 print(f"wrote {out}  ({snap['variable_count']} variables)")
+            return 0
+
+        if a.cmd == "releases":
+            docs = documented_releases(dir_=a.dir, refresh=a.refresh)
+            if docs.get("error"):
+                print(f"could not read {docs['source']}: {docs['error']}",
+                      file=sys.stderr)
+                return 1
+            for rel in docs["releases"]:
+                print(f"{rel:6} {release_citation(rel)}")
+            print(f"(retrieved {docs['retrieved_at']})", file=sys.stderr)
             return 0
 
         if a.cmd == "info":
