@@ -5,7 +5,7 @@ description: Extract structured information (named entities, key terms, resource
 license: Apache-2.0
 ---
 
-> **Skill version 0.4.0.** Concept mapping is now **mandatory and tool-only**. The pipeline refuses to silently skip alignment; it cascades local hybrid → BioPortal → ask the user for an alternate URL → hard-stop. Items with `concept_mapping_provenance: "llm_knowledge"` are automatically demoted to `unmapped` because hallucinated IRIs are not acceptable output. The pipeline now also tracks `validation` counts (passed / demoted / by_reason) and surfaces a prominent `totals` block in `stats`. Legacy outputs can be brought up to spec via `python -m scripts.normalize_result <file> --input <text> --llm-model <model>` (idempotent). See [CHANGELOG.md](CHANGELOG.md).
+> **Skill version 0.6.1.** Two things carry across every mode. **Concept mapping is mandatory and tool-only**: the pipeline cascades local hybrid → BioPortal → ask the user for an alternate URL → hard-stop, and items carrying `concept_mapping_provenance: "llm_knowledge"` are demoted to `unmapped`, because a hallucinated IRI is worse than an honest gap. **ABCD/HBCD mode** (rule 16) maps a paper's own wording to the NBDC/NDA dictionary using the instrument, respondent, metric and release it states, keeps only what that study did itself, and emits a cross-paper synthesis whose every row carries its provenance. Legacy outputs can be brought up to spec via `python -m scripts.normalize_result <file> --input <text> --llm-model <model>` (idempotent). See [CHANGELOG.md](CHANGELOG.md).
 
 
 
