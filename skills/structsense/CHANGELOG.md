@@ -37,6 +37,18 @@ the Cognitive Atlas are used to verify and join, never to enumerate.
   `schemas/abcd-synthesis.schema.json`, `references/abcd-extraction.md`, and
   SKILL.md hard rule 16.
 
+Releases 4.x and 5.x come from NDA's public data dictionary (`--from-nda`): 292
+`abcd_*` structures, ~86k elements, cached per structure so a rebuild is free and an
+interrupted run resumes. NBDC releases start at 6.0, so without this every pre-6.0
+paper verified against the wrong era. Loading both eras together resolves a paper
+from either and shows the bridge between them.
+
+Input handling is now one argument with no mode flags: a PDF, a directory, a
+CSV/TSV/XLSX of DOIs, a DOI list, or a bare DOI. DOIs are fetched open access only
+(Unpaywall -> OpenAlex -> Semantic Scholar), magic-byte verified so a paywall
+answering 200 text/html is reported unresolved instead of saved as a broken PDF.
+More than one paper implies a synthesis.
+
 The preferred dictionary source is the NBDC variable catalog workbook
 (`--from-xlsx`, `--all-sheets`): one sheet per study+release, ~83-96k variables
 each, read with openpyxl. It carries the alternate namings, which is what makes the

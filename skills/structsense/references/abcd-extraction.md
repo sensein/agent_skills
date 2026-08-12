@@ -12,17 +12,41 @@ is enumerated into the output.
 ## Two commands
 
 ```bash
-# 0. once per release — build the dictionary you will verify against
-pip install nbdctools
-python -m scripts.abcd_dictionary build --study abcd --release latest
-python -m scripts.abcd_dictionary build --study abcd --release 5.1   # add more for rename detection
+# 0. build the dictionaries you will verify against (see below for sources)
+python -m scripts.abcd_dictionary build --from-xlsx NBDC_variable_catalog_full.xlsx --all-sheets
+python -m scripts.abcd_dictionary build --study abcd --release nda-legacy --from-nda
 
-# 1. single paper  ->  paper_abcd.json | .md | .ttl
-python -m scripts.abcd_extract paper.pdf --llm-model openai/gpt-4o-mini
-
-# 2. bulk + synthesis  ->  one set per paper, plus abcd_synthesis.{json,md,ttl}
-python -m scripts.abcd_extract ./papers --bulk --synthesize --out-dir ./out
+# 1. extract — ONE argument, auto-detected
+python -m scripts.abcd_extract paper.pdf                --llm-model MODEL
+python -m scripts.abcd_extract ./papers                 --llm-model MODEL
+python -m scripts.abcd_extract paper_titles_dois.csv     --llm-model MODEL
+python -m scripts.abcd_extract 10.1016/j.dcn.2021.100948 --llm-model MODEL
 ```
+
+### The input is auto-detected — there is no bulk flag
+
+| You pass | What happens |
+|---|---|
+| a `.pdf` / `.txt` / `.md` | that one paper |
+| a **directory** | every paper under it, recursively |
+| a **CSV / TSV / XLSX** with a DOI column | open-access PDF fetched per DOI |
+| a **`.txt` of DOIs** | same (a `.txt` is read as a DOI list when it parses as one) |
+| a bare **DOI** | that one paper, fetched |
+
+More than one paper implies a cross-paper synthesis; one paper does not need one.
+Override either way with `--synthesize` / `--no-synthesize`.
+
+DOI columns are found by name (`doi`, `doi_url`, `article_doi`, …) and, failing
+that, by scanning each row for a DOI pattern — but **never by title**, because
+resolving a paper by fuzzy title match is how the wrong paper enters a corpus.
+
+Fetching is **open access only**: Unpaywall (with `--email`, per their terms) →
+OpenAlex → Semantic Scholar. Downloads are verified by magic bytes, so a publisher
+paywall answering `200 text/html` is reported as `not_a_pdf` instead of being saved
+as a "PDF" that later yields no text. Paywalled DOIs come back as unresolved with
+the reason; download those yourself and point at the directory. Each fetch records
+the service that answered, the URL, the license where known, and a sha256, into the
+paper's `provenance.retrieval`.
 
 Every run emits all three formats: **JSON** (machine record, includes rejected
 claims), **Markdown** (tables to read), **Turtle** (triples for a graph store,
@@ -161,10 +185,37 @@ variables that are perfectly real. `nda_or_nbdc_table` comes from the catalog's
 `table_nda` (`abcd_tbss01`) and `nbdc_table` keeps the NBDC table (`nc_y_nihtb`), so
 both namings survive into the output.
 
-Note the workbook covers 6.0 and later. A paper analysing release 4.0 or 5.1 needs a
-dictionary for that release (via `nbdctools`, or a CSV export) — matching a 5.x name
-through the 6.x `name_nda` column often works, but the release you verified against
-is recorded in provenance either way, so the reader can judge.
+### Releases 4.x and 5.x: the NDA data dictionary
+
+The workbook (and NBDCtools, and the NBDC portal) covers **6.0 and later** — NBDC
+releases start there; 4.x and 5.x were the NDA/DEAP era. For those, NDA's data
+dictionary is public and authoritative:
+
+```bash
+python -m scripts.abcd_dictionary build --study abcd --release nda-legacy --from-nda
+```
+
+One request lists the structures, one per structure lists its elements — 292
+`abcd_*` structures, ~86k elements. Responses are cached per structure, so a
+rebuild is free and an interrupted run resumes without re-fetching (a first run
+that lost 4 structures to a DNS blip completed on retry in 24s instead of 10
+minutes). Requests are throttled; this is a public API being asked for a few
+hundred documents.
+
+Load both eras together and a paper from either resolves, with the bridge visible:
+
+```
+nihtbx_flanker_uncorrected  ->  nda-legacy  nihtbx_flanker_uncorrected        exact_name
+                            ->  6.1         nc_y_nihtb__flnkr__uncor_score    nda_name
+cbcl_scr_syn_internal_r     ->  nda-legacy  cbcl_scr_syn_internal_r           exact_name
+                            ->  6.1         mh_p_cbcl__synd__int_sum          nda_name
+smri_vol_cdk_banksstslh     ->  nda-legacy  smri_vol_cdk_banksstslh           exact_name
+                            ->  6.1         mr_y_smri__vol__dsk__bstmps__lh_sum  nda_name
+abcd_made_up_var            ->  UNVERIFIED
+```
+
+`releases_for()` then reports `['nda-legacy', '6.1']`, which is what a reader needs
+before comparing a 2021 paper with a 2025 one.
 
 ### Alternative: NBDCtools
 

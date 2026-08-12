@@ -360,6 +360,125 @@ def _rows_from_csv(path: Path) -> Tuple[List[dict], dict]:
     }
 
 
+# NDA's data-dictionary API. Structure DEFINITIONS are public (the data behind them
+# is not), which makes it the source for the pre-6.0 era: ABCD releases 4.x and 5.x
+# were distributed through NDA, so those are the names older papers cite
+# (`nihtbx_flanker_uncorrected` lives in structure `abcd_tbss01`). The NBDC catalog
+# workbook only goes back to 6.0.
+NDA_DICT_API = "https://nda.nih.gov/api/datadictionary/datastructure"
+
+
+def _http_json(url: str, *, timeout: int = 60) -> Any:
+    import urllib.request
+
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def _rows_from_nda(study: str, *, cache_dir: Path, prefix: Optional[str] = None,
+                   delay: float = 0.15, progress: bool = False,
+                   refresh: bool = False) -> Tuple[List[dict], dict]:
+    """Build a dictionary from NDA structure definitions.
+
+    One request lists every structure; one more per matching structure lists its
+    data elements. Responses are cached on disk, so a rebuild is free and a run
+    interrupted halfway resumes without re-fetching. Requests are throttled — this
+    is a public API being asked for a few hundred documents.
+    """
+    ndir = cache_dir / "nda"
+    ndir.mkdir(parents=True, exist_ok=True)
+    index_path = ndir / "datastructure_index.json"
+
+    if index_path.is_file() and not refresh:
+        index = json.loads(index_path.read_text())
+    else:
+        try:
+            index = _http_json(NDA_DICT_API)
+        except Exception as exc:
+            raise DictionaryError(
+                f"could not reach the NDA data dictionary ({exc}). "
+                f"Fetch {NDA_DICT_API} yourself and place it at {index_path}."
+            ) from exc
+        index_path.write_text(json.dumps(index))
+
+    structures = index if isinstance(index, list) else index.get("datastructure", [])
+    pref = (prefix or f"{study}_").lower()
+    matching = [s for s in structures
+                if str(s.get("shortName", "")).lower().startswith(pref)]
+    if not matching:
+        raise DictionaryError(
+            f"no NDA structures start with {pref!r} (the index has "
+            f"{len(structures)} structures). Pass --nda-prefix to widen."
+        )
+
+    rows: List[dict] = []
+    fetched = failed = 0
+    for i, meta in enumerate(matching, 1):
+        short = str(meta["shortName"])
+        cache = ndir / f"{short}.json"
+        if cache.is_file() and not refresh:
+            try:
+                doc = json.loads(cache.read_text())
+            except Exception:
+                doc = None
+        else:
+            doc = None
+        if doc is None:
+            try:
+                doc = _http_json(f"{NDA_DICT_API}/{short}")
+                cache.write_text(json.dumps(doc))
+                fetched += 1
+                time.sleep(delay)
+            except Exception as exc:
+                failed += 1
+                print(f"  warning: {short}: {exc}", file=sys.stderr)
+                continue
+
+        title = str(doc.get("title") or meta.get("title") or "").strip()
+        cats = meta.get("categories") or doc.get("categories") or []
+        domain = ", ".join(str(c) for c in cats) if isinstance(cats, list) else str(cats)
+        for el in doc.get("dataElements") or []:
+            name = str(el.get("name") or "").strip()
+            if not name:
+                continue
+            row = {
+                "name": name,
+                "label": str(el.get("description") or "").strip(),
+                "description": str(el.get("notes") or "").strip(),
+                # For an NDA-sourced dictionary the structure IS the NDA table.
+                "table_nda": short,
+                "table_name": short,
+                "table_label": title,
+                "domain": domain,
+                "type_data": str(el.get("type") or el.get("dataType") or "").strip(),
+                "unit": str(el.get("size") or "").strip(),
+            }
+            aliases = el.get("aliases")
+            if isinstance(aliases, str):
+                aliases = aliases.strip()
+                if aliases and aliases not in ("[]", "None"):
+                    row["name_nda"] = aliases.strip("[]'\" ")
+            elif isinstance(aliases, list) and aliases:
+                row["name_nda"] = str(aliases[0])
+            rows.append(_keep(row))
+        if progress and i % 25 == 0:
+            print(f"  NDA: {i}/{len(matching)} structures, {len(rows)} elements…",
+                  file=sys.stderr)
+
+    if not rows:
+        raise DictionaryError("NDA returned no data elements")
+    return rows, {
+        "source": NDA_DICT_API,
+        "source_sha256": None,
+        "source_format": "nda_data_dictionary_api",
+        "nda_structures_matched": len(matching),
+        "nda_structures_fetched_now": fetched,
+        "nda_structures_failed": failed,
+        "nbdctools_data_releases_available": None,
+    }
+
+
 def _parse_sheet_name(sheet: str) -> Optional[Tuple[str, str]]:
     """'ABCD 6.1' -> ('abcd', '6.1'). None for non-release sheets (legends etc.)."""
     m = re.match(r"^\s*(ABCD|HBCD)\s+([0-9]+(?:\.[0-9]+)?)\s*$", sheet, re.I)
@@ -468,13 +587,18 @@ def _rows_from_xlsx(path: Path, study: str, release: str, *,
 def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
                    from_csv: Optional[Path] = None, from_rds: Optional[Path] = None,
                    from_xlsx: Optional[Path] = None, sheet: Optional[str] = None,
+                   from_nda: bool = False, nda_prefix: Optional[str] = None,
                    progress: bool = False) -> Path:
     """Write one study+release snapshot and return its path."""
     study = study.lower().strip()
     if study not in ("abcd", "hbcd"):
         raise DictionaryError(f"study must be 'abcd' or 'hbcd', got {study!r}")
 
-    if from_xlsx is not None:
+    if from_nda:
+        rows, prov = _rows_from_nda(study, cache_dir=out_dir, prefix=nda_prefix,
+                                    progress=progress)
+        resolved = release
+    elif from_xlsx is not None:
         rows, prov = _rows_from_xlsx(Path(from_xlsx), study, release, sheet=sheet,
                                      progress=progress)
         resolved = release
@@ -509,7 +633,8 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
         "columns": sorted({k for r in rows for k in r}),
         "provenance": {
             "retrieved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "method": ("xlsx_catalog" if from_xlsx
+            "method": ("nda_api" if from_nda
+                       else "xlsx_catalog" if from_xlsx
                        else "csv_export" if from_csv else "nbdctools"),
             "tool_version": _nbdctools_version(),
             **docs_note,
@@ -797,6 +922,11 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                    help="build from an NBDC variable catalog workbook "
                         "(NBDC_variable_catalog_full.xlsx)")
     b.add_argument("--sheet", help="explicit sheet name in the workbook")
+    b.add_argument("--from-nda", action="store_true",
+                   help="build from NDA structure definitions (public) — the source "
+                        "for pre-6.0 releases (4.x / 5.x), which the NBDC catalog "
+                        "and NBDCtools do not cover")
+    b.add_argument("--nda-prefix", help="structure prefix to match (default <study>_)")
     b.add_argument("--all-sheets", action="store_true",
                    help="with --from-xlsx: build every release sheet in the workbook")
     b.add_argument("--from-rds", type=Path, help="use an already-downloaded lst_dds.rds")
@@ -845,7 +975,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
             for rel in targets:
                 out = build_snapshot(a.study, rel, out_dir=a.dir, from_csv=a.from_csv,
                                      from_rds=a.from_rds, from_xlsx=a.from_xlsx,
-                                     sheet=a.sheet, progress=a.progress)
+                                     sheet=a.sheet, from_nda=a.from_nda,
+                                     nda_prefix=a.nda_prefix, progress=a.progress)
                 snap = load_snapshot(out)
                 print(f"wrote {out}  ({snap['variable_count']} variables)")
             return 0

@@ -15,11 +15,15 @@ enumerate the data dictionary. The paper is the only source of what was used; th
 dictionary only decides whether a mentioned name is real, and which release(s)
 contain it.
 
-    # single paper
-    python -m scripts.abcd_extract paper.pdf --llm-model openai/gpt-4o-mini
+ONE ARGUMENT, no mode flags. The input is auto-detected (see `abcd_inputs`):
 
-    # bulk — a directory of PDFs, one output set each, plus a synthesis
-    python -m scripts.abcd_extract ./papers --bulk --synthesize --out-dir ./out
+    python -m scripts.abcd_extract paper.pdf              --llm-model MODEL
+    python -m scripts.abcd_extract ./papers               --llm-model MODEL   # directory
+    python -m scripts.abcd_extract paper_titles_dois.csv  --llm-model MODEL   # DOIs -> fetch OA PDFs
+    python -m scripts.abcd_extract 10.1038/s41586-024-00001-2 --llm-model MODEL
+
+More than one paper implies a cross-paper synthesis; a single paper does not need
+one. Suppress with --no-synthesize, force with --synthesize.
 
     # re-verify an existing extraction against the paper (no LLM calls)
     python -m scripts.abcd_extract paper.pdf --reverify paper_abcd.json
@@ -34,7 +38,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from scripts import abcd_export
+from scripts import abcd_export, abcd_inputs
 from scripts.abcd_dictionary import Dictionary, DictionaryError
 from scripts.abcd_verify import verify_payload
 from scripts.cognitive_atlas import CognitiveAtlas, CognitiveAtlasError
@@ -190,21 +194,29 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
 # CLI
 # --------------------------------------------------------------------------- #
 
-def _iter_inputs(target: Path, bulk: bool) -> List[Path]:
-    if target.is_dir():
-        if not bulk:
-            raise SystemExit(f"{target} is a directory — pass --bulk to process all of it")
-        files = sorted(p for p in target.rglob("*") if p.suffix.lower() in PDF_SUFFIXES)
-        if not files:
-            raise SystemExit(f"no {'/'.join(PDF_SUFFIXES)} files under {target}")
-        return files
-    return [target]
+def _resolve_inputs(target: str, *, download_dir: Optional[Path],
+                    email: Optional[str], limit: Optional[int]):
+    """Auto-detect the input and return (papers, summary). No --bulk needed."""
+    papers, summary = abcd_inputs.resolve(target, download_dir=download_dir,
+                                          email=email, limit=limit)
+    print(f"input {summary['input']!r} detected as {summary['detected_as']}: "
+          f"{summary['papers_resolved']}/{summary['papers_total']} papers available",
+          file=sys.stderr)
+    if summary["papers_unresolved"]:
+        print(f"  {summary['papers_unresolved']} could not be resolved "
+              f"(first few: "
+              + "; ".join(f"{u['doi'] or u['title']}: {u['reason']}"
+                          for u in summary["unresolved"][:3]) + ")",
+              file=sys.stderr)
+    if not papers:
+        raise SystemExit("no papers to process")
+    return papers, summary
 
 
 def _cli(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
-    ap.add_argument("input", type=Path, help="a PDF/TXT file, or a directory with --bulk")
-    ap.add_argument("--bulk", action="store_true", help="treat input as a directory")
+    ap.add_argument("input", help="a PDF/TXT, a directory, a CSV/TSV/XLSX of DOIs, "
+                                  "a DOI list, or a single DOI — auto-detected")
     ap.add_argument("--llm-model", default=os.getenv("STRUCTSENSE_LLM_MODEL", ""),
                     help="e.g. openai/gpt-4o-mini, anthropic/claude-sonnet-5, ollama/llama3")
     ap.add_argument("--study", default="abcd", choices=["abcd", "hbcd"])
@@ -215,8 +227,16 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--grobid-url", default=os.getenv("GROBID_URL"))
     ap.add_argument("--reverify", type=Path, default=None,
                     help="re-verify this existing extraction instead of calling an LLM")
-    ap.add_argument("--synthesize", action="store_true",
-                    help="after a bulk run, write a cross-paper synthesis")
+    ap.add_argument("--synthesize", dest="synthesize", action="store_true",
+                    default=None,
+                    help="write a cross-paper synthesis (default: whenever there is "
+                         "more than one paper)")
+    ap.add_argument("--no-synthesize", dest="synthesize", action="store_false",
+                    help="skip the cross-paper synthesis")
+    ap.add_argument("--download-dir", type=Path,
+                    help="where fetched open-access PDFs go (default <input>/abcd_pdfs)")
+    ap.add_argument("--email", help="for Unpaywall when fetching by DOI")
+    ap.add_argument("--limit", type=int, help="process at most N papers")
     ap.add_argument("--allow-no-dictionary", action="store_true",
                     help="proceed with variables marked no_dictionary_loaded")
     ap.add_argument("--offline-atlas", action="store_true",
@@ -256,9 +276,16 @@ def _cli(argv: Optional[List[str]] = None) -> int:
               file=sys.stderr)
         return 1
 
-    inputs = _iter_inputs(a.input, a.bulk)
-    out_dir = a.out_dir or (a.input if a.input.is_dir() else a.input.parent)
+    papers, input_summary = _resolve_inputs(
+        a.input, download_dir=a.download_dir, email=a.email, limit=a.limit)
+    inputs = [p.path for p in papers if p.path]
+    fetch_prov = {str(p.path): p.provenance for p in papers if p.origin != "local"}
+    in_path = Path(a.input).expanduser()
+    out_dir = a.out_dir or (in_path if in_path.is_dir()
+                            else in_path.parent if in_path.exists() else Path.cwd())
     override = json.loads(a.reverify.read_text()) if a.reverify else None
+    # More than one paper implies a synthesis unless told otherwise.
+    do_synth = a.synthesize if a.synthesize is not None else len(inputs) > 1
 
     written_docs: List[dict] = []
     failures: List[Tuple[Path, str]] = []
@@ -267,12 +294,15 @@ def _cli(argv: Optional[List[str]] = None) -> int:
             doc = extract_paper(path, llm_model=a.llm_model, dictionary=dictionary,
                                 atlas=atlas, grobid_url=a.grobid_url,
                                 payload_override=override)
-        except Exception as exc:                      # keep going in bulk mode
+        except Exception as exc:            # one bad paper must not stop a corpus
             failures.append((path, str(exc)))
             print(f"FAILED {path.name}: {exc}", file=sys.stderr)
-            if not a.bulk:
+            if len(inputs) == 1:
                 return 1
             continue
+        if str(path) in fetch_prov:
+            doc["provenance"]["retrieval"] = fetch_prov[str(path)]
+        doc["provenance"]["input_detected_as"] = input_summary["detected_as"]
         base = out_dir / f"{path.stem}_abcd"
         paths = abcd_export.write_all(doc, base, kind="paper", formats=formats)
         v = doc["verification"]
@@ -281,7 +311,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
               f"-> {', '.join(str(p.name) for p in paths.values())}")
         written_docs.append(doc)
 
-    if a.synthesize and written_docs:
+    if do_synth and written_docs:
         from scripts.abcd_synthesize import synthesize
 
         syn = synthesize(written_docs)
