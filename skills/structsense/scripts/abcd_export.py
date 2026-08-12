@@ -480,16 +480,19 @@ def write_all(doc: dict, base: Path, *, kind: str = "paper",
     ttl_fn = paper_turtle if kind == "paper" else synthesis_turtle
     written: Dict[str, Path] = {}
     for fmt in formats:
-        if fmt == "json":
-            p = base.with_suffix(".json")
-            p.write_text(json.dumps(doc, indent=1, ensure_ascii=False))
-        elif fmt == "md":
-            p = base.with_suffix(".md")
-            p.write_text(md_fn(doc))
-        elif fmt == "ttl":
-            p = base.with_suffix(".ttl")
-            p.write_text(ttl_fn(doc))
-        else:
+        if fmt not in ("json", "md", "ttl"):
             raise ValueError(f"unknown format {fmt!r} (json | md | ttl)")
-        written[fmt] = p
+        # APPEND the extension; never with_suffix(). Paper filenames routinely embed
+        # a DOI ("Whitmore-2023-10.1162_imag_a_00037"), and with_suffix() would treat
+        # ".1162_imag_a_00037_abcd" as the suffix and replace it — truncating the name
+        # to "Whitmore-2023-10.json" and silently colliding with every other paper
+        # from the same year and prefix.
+        out = base.parent / f"{base.name}.{fmt}"
+        if fmt == "json":
+            out.write_text(json.dumps(doc, indent=1, ensure_ascii=False))
+        elif fmt == "md":
+            out.write_text(md_fn(doc))
+        else:
+            out.write_text(ttl_fn(doc))
+        written[fmt] = out
     return written

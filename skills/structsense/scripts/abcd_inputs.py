@@ -272,6 +272,14 @@ def resolve(target: str | Path, *, download_dir: Optional[Path] = None,
     if p.is_dir():
         kind = "directory"
         files = sorted(f for f in p.rglob("*") if f.suffix.lower() in PAPER_SUFFIXES)
+        # Drop extracted-text sidecars. `--prepare` writes <stem>.txt next to each
+        # PDF, and counting both would process the same paper twice — and, because
+        # outputs are named from the stem, have the second run overwrite the first.
+        pdf_stems = {f.with_suffix("").as_posix() for f in files
+                     if f.suffix.lower() == ".pdf"}
+        files = [f for f in files
+                 if f.suffix.lower() == ".pdf"
+                 or f.with_suffix("").as_posix() not in pdf_stems]
         papers = [Paper(path=f, title=f.stem) for f in files]
 
     elif p.is_file() and p.suffix.lower() in PAPER_SUFFIXES:

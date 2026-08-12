@@ -43,6 +43,13 @@ interrupted run resumes. NBDC releases start at 6.0, so without this every pre-6
 paper verified against the wrong era. Loading both eras together resolves a paper
 from either and shows the bridge between them.
 
+`--llm-model` is optional, because in Claude Code / Codex the calling agent IS the
+model and there is no API to call. `--prepare` extracts text and prints a plan;
+`--payload` (a .json, a directory of <stem>.payload.json, or a .jsonl) verifies and
+exports an agent-produced payload with no LLM call. Verification and all outputs are
+identical on both paths, and provenance records which one ran. Passing neither is an
+error rather than a guess, since one path spends API credits.
+
 Input handling is now one argument with no mode flags: a PDF, a directory, a
 CSV/TSV/XLSX of DOIs, a DOI list, or a bare DOI. DOIs are fetched open access only
 (Unpaywall -> OpenAlex -> Semantic Scholar), magic-byte verified so a paywall

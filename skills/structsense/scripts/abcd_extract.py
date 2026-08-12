@@ -15,18 +15,33 @@ enumerate the data dictionary. The paper is the only source of what was used; th
 dictionary only decides whether a mentioned name is real, and which release(s)
 contain it.
 
-ONE ARGUMENT, no mode flags. The input is auto-detected (see `abcd_inputs`):
+ONE ARGUMENT, no mode flags. The input is auto-detected (see `abcd_inputs`): a PDF,
+a directory, a CSV/TSV/XLSX of DOIs, a DOI list, or a bare DOI. More than one paper
+implies a cross-paper synthesis (--no-synthesize to skip).
 
-    python -m scripts.abcd_extract paper.pdf              --llm-model MODEL
-    python -m scripts.abcd_extract ./papers               --llm-model MODEL   # directory
-    python -m scripts.abcd_extract paper_titles_dois.csv  --llm-model MODEL   # DOIs -> fetch OA PDFs
-    python -m scripts.abcd_extract 10.1038/s41586-024-00001-2 --llm-model MODEL
+WHO RUNS THE MODEL — two paths, pick by where you are:
 
-More than one paper implies a cross-paper synthesis; a single paper does not need
-one. Suppress with --no-synthesize, force with --synthesize.
+  A. **You are the model** (Claude Code, Codex, Claude Desktop, any agent reading
+     this skill). Do NOT pass --llm-model; there is no API to call. Two steps:
 
-    # re-verify an existing extraction against the paper (no LLM calls)
-    python -m scripts.abcd_extract paper.pdf --reverify paper_abcd.json
+         python -m scripts.abcd_extract ./papers --prepare
+         # -> extracts text to <stem>.txt per paper and prints the plan.
+         # Read each text, follow prompts/extractor-abcd.md yourself, write the
+         # payload JSON next to it as <stem>.payload.json, then:
+         python -m scripts.abcd_extract ./papers --payload ./papers
+
+     Verification, dictionary gating, construct mapping, synthesis and all three
+     output formats are identical on this path — they are scripts, not prompts.
+     Being the model does not exempt you from the quote rule; the verifier will
+     delete anything you cannot support.
+
+  B. **A framework calls an API for you** (Pi, a cron job, a batch runner). Pass
+     --llm-model and it does the extraction itself:
+
+         python -m scripts.abcd_extract ./papers --llm-model openai/gpt-4o-mini
+
+Passing neither is an error, because guessing would either burn API credits you did
+not ask for or silently produce nothing.
 """
 from __future__ import annotations
 
@@ -124,6 +139,29 @@ def _merge(payloads: List[dict]) -> dict:
     return out
 
 
+DOC_LEVEL_FIELDS = ("study", "data_release", "paper_title", "doi", "sample_size",
+                    "design")
+
+
+def _payload_meta(payload: dict) -> Dict[str, Any]:
+    """Document-level fields from an agent-supplied payload.
+
+    Accepts them at the top level (where `prompts/extractor-abcd.md` puts them) or
+    nested under `source_metadata` (where a previous run's output has them), so
+    both a fresh payload and a re-verified result behave the same.
+    """
+    meta: Dict[str, Any] = {}
+    for key in DOC_LEVEL_FIELDS:
+        if payload.get(key) not in (None, ""):
+            meta[key] = payload[key]
+    nested = payload.get("source_metadata")
+    if isinstance(nested, dict):
+        for key, val in nested.items():
+            if val not in (None, ""):
+                meta.setdefault(key, val)
+    return meta
+
+
 # --------------------------------------------------------------------------- #
 # one paper
 # --------------------------------------------------------------------------- #
@@ -140,7 +178,12 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
 
     if payload_override is not None:
         merged = {k: payload_override.get(k) or [] for k in SECTIONS}
-        merged["_meta"] = payload_override.get("source_metadata") or {}
+        # Read document-level fields the same way as the API path. The extractor
+        # prompt puts study / data_release / paper_title / doi at the TOP level, so
+        # looking only in source_metadata silently dropped them — a paper stating
+        # "ABCD 4.0" then verified with no release recorded, which is exactly the
+        # provenance a cross-era comparison depends on.
+        merged["_meta"] = _payload_meta(payload_override)
         chunks_used = payload_override.get("provenance", {}).get("chunks")
     else:
         prompt = PROMPT_PATH.read_text()
@@ -172,7 +215,10 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
         "provenance": {
             "run_at": _now(),
             "skill_version": SKILL_VERSION,
-            "llm_model": llm_model if payload_override is None else "(re-verified, no LLM)",
+            # Who actually did the extraction. "agent" means the calling agent was
+            # the model (Claude Code / Codex path) — no API was involved.
+            "llm_model": llm_model if payload_override is None else "agent (no API call)",
+            "extraction_path": "api" if payload_override is None else "agent_supplied_payload",
             "text_extractor": extractor,
             "text_chars": len(text),
             "chunks": chunks_used,
@@ -218,7 +264,16 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("input", help="a PDF/TXT, a directory, a CSV/TSV/XLSX of DOIs, "
                                   "a DOI list, or a single DOI — auto-detected")
     ap.add_argument("--llm-model", default=os.getenv("STRUCTSENSE_LLM_MODEL", ""),
-                    help="e.g. openai/gpt-4o-mini, anthropic/claude-sonnet-5, ollama/llama3")
+                    help="path B only: have the script call an API "
+                         "(openai/gpt-4o-mini, anthropic/claude-sonnet-5, ollama/llama3). "
+                         "Omit inside Claude Code / Codex — you are the model there.")
+    ap.add_argument("--prepare", action="store_true",
+                    help="path A step 1: extract text per paper and print the plan, "
+                         "so the agent can do the extraction itself")
+    ap.add_argument("--payload", type=Path,
+                    help="path A step 2: agent-produced payload — a .json (single "
+                         "paper), a directory of <stem>.payload.json, or a .jsonl "
+                         "keyed by source_path. No LLM is called.")
     ap.add_argument("--study", default="abcd", choices=["abcd", "hbcd"])
     ap.add_argument("--dd-release", action="append", default=None,
                     help="restrict dictionary snapshots to these releases (repeatable)")
@@ -226,7 +281,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--formats", default="json,md,ttl")
     ap.add_argument("--grobid-url", default=os.getenv("GROBID_URL"))
     ap.add_argument("--reverify", type=Path, default=None,
-                    help="re-verify this existing extraction instead of calling an LLM")
+                    help="re-verify an existing *_abcd.json against its paper "
+                         "(alias of --payload; no LLM is called)")
     ap.add_argument("--synthesize", dest="synthesize", action="store_true",
                     default=None,
                     help="write a cross-paper synthesis (default: whenever there is "
@@ -271,9 +327,16 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     except CognitiveAtlasError as exc:
         print(f"warning: {exc} — constructs will be reported unmapped", file=sys.stderr)
 
-    if a.reverify is None and not a.llm_model:
-        print("error: --llm-model is required (or use --reverify to skip the LLM)",
-              file=sys.stderr)
+    payload_arg = a.payload or a.reverify
+    if not a.prepare and payload_arg is None and not a.llm_model:
+        print(
+            "error: nothing to extract with. Either:\n"
+            "  * you are the model (Claude Code / Codex): run --prepare, do the\n"
+            "    extraction yourself against prompts/extractor-abcd.md, then re-run\n"
+            "    with --payload <file|dir>; or\n"
+            "  * a framework should call an API (Pi, batch): pass --llm-model.\n"
+            "Refusing to guess: one choice spends API credits, the other does not.",
+            file=sys.stderr)
         return 1
 
     papers, input_summary = _resolve_inputs(
@@ -283,7 +346,61 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     in_path = Path(a.input).expanduser()
     out_dir = a.out_dir or (in_path if in_path.is_dir()
                             else in_path.parent if in_path.exists() else Path.cwd())
-    override = json.loads(a.reverify.read_text()) if a.reverify else None
+    if a.prepare:
+        plan = []
+        for path in inputs:
+            try:
+                text, extractor = load_text(path, grobid_url=a.grobid_url)
+            except Exception as exc:
+                plan.append({"paper": str(path), "error": str(exc)})
+                continue
+            sidecar = path.with_suffix(".txt")
+            if path.suffix.lower() != ".txt":
+                try:
+                    sidecar.write_text(text)
+                except Exception:
+                    sidecar = path
+            plan.append({
+                "paper": str(path),
+                "text": str(sidecar),
+                "chars": len(text),
+                "chunks_if_api_path": len(_chunks(text, a.llm_model or "unknown")),
+                "write_payload_to": str(path.with_suffix("")) + ".payload.json",
+            })
+        print(json.dumps({
+            "prompt": str(PROMPT_PATH),
+            "schema": str(PROMPT_PATH.parent.parent / "schemas" / "abcd-paper.schema.json"),
+            "papers": plan,
+            "next": ("Read each `text`, follow `prompt`, write the JSON payload to "
+                     "`write_payload_to`, then re-run with --payload <dir-or-file>."),
+        }, indent=1))
+        return 0
+
+    override = None
+    payload_map: Dict[str, dict] = {}
+    if payload_arg is not None:
+        pth = Path(payload_arg)
+        if pth.is_dir():
+            for cand in sorted(pth.rglob("*.payload.json")):
+                try:
+                    payload_map[cand.name.replace(".payload.json", "")] = \
+                        json.loads(cand.read_text())
+                except Exception as exc:
+                    print(f"warning: {cand}: {exc}", file=sys.stderr)
+            if not payload_map:
+                print(f"error: no *.payload.json under {pth}", file=sys.stderr)
+                return 1
+        elif pth.suffix == ".jsonl":
+            for line in pth.read_text().splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                key = Path(str(rec.get("source_path") or rec.get("paper") or "")).stem
+                if key:
+                    payload_map[key] = rec
+        else:
+            override = json.loads(pth.read_text())
     # More than one paper implies a synthesis unless told otherwise.
     do_synth = a.synthesize if a.synthesize is not None else len(inputs) > 1
 
@@ -291,9 +408,17 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     failures: List[Tuple[Path, str]] = []
     for path in inputs:
         try:
+            this_payload = override
+            if payload_map:
+                this_payload = payload_map.get(path.stem)
+                if this_payload is None:
+                    failures.append((path, "no payload provided for this paper"))
+                    print(f"SKIPPED {path.name}: no payload "
+                          f"(expected {path.stem}.payload.json)", file=sys.stderr)
+                    continue
             doc = extract_paper(path, llm_model=a.llm_model, dictionary=dictionary,
                                 atlas=atlas, grobid_url=a.grobid_url,
-                                payload_override=override)
+                                payload_override=this_payload)
         except Exception as exc:            # one bad paper must not stop a corpus
             failures.append((path, str(exc)))
             print(f"FAILED {path.name}: {exc}", file=sys.stderr)

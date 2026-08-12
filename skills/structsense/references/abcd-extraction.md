@@ -23,6 +23,37 @@ python -m scripts.abcd_extract paper_titles_dois.csv     --llm-model MODEL
 python -m scripts.abcd_extract 10.1016/j.dcn.2021.100948 --llm-model MODEL
 ```
 
+### Who runs the model: two paths
+
+**In Claude Code, Codex or Claude Desktop, YOU are the model.** There is no API to
+call, so `--llm-model` does not apply. Two steps:
+
+```bash
+python -m scripts.abcd_extract ./papers --prepare
+# writes <stem>.txt per paper and prints a plan: text path, char count, and where to
+# put the payload. Read each text, follow prompts/extractor-abcd.md yourself, write
+# <stem>.payload.json, then:
+python -m scripts.abcd_extract ./papers --payload ./papers
+```
+
+`--payload` accepts a single `.json` (one paper), a directory of
+`<stem>.payload.json`, or a `.jsonl` keyed by `source_path`. Verification,
+dictionary gating, construct mapping, synthesis and all three output formats are
+byte-identical on this path — they are scripts, not prompts. Being the model is not
+a licence to skip the quote rule: the verifier deletes whatever you cannot support,
+and `provenance.extraction_path` records `agent_supplied_payload` with
+`llm_model: "agent (no API call)"` so a reader knows who extracted.
+
+**With Pi, a batch runner or a cron job, a framework calls an API.** Pass
+`--llm-model` and the script does the extraction itself:
+
+```bash
+python -m scripts.abcd_extract ./papers --llm-model openai/gpt-4o-mini
+```
+
+Passing neither is an error rather than a guess — one choice spends API credits and
+the other does not, so the script refuses to pick for you.
+
 ### The input is auto-detected — there is no bulk flag
 
 | You pass | What happens |
