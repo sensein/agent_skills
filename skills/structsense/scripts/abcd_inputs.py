@@ -321,20 +321,86 @@ def resolve(target: str | Path, *, download_dir: Optional[Path] = None,
     else:
         raise FileNotFoundError(f"{raw} does not exist and is not a DOI")
 
+    seen_total = len(papers)
+    papers, duplicates = _drop_duplicate_files(papers)
     resolved = [x for x in papers if x.ok]
     summary = {
         "input": raw,
         "detected_as": kind,
         "papers_total": len(papers),
+        "files_seen": seen_total,
         "papers_resolved": len(resolved),
         "papers_unresolved": len(papers) - len(resolved),
         "open_access_email_used": bool(email),
+        "duplicates_dropped": len(duplicates),
+        "duplicates": duplicates[:50],
         "unresolved": [
             {"doi": x.doi, "title": x.title, "reason": x.error}
             for x in papers if not x.ok
         ][:200],
     }
     return resolved, summary
+
+
+def _drop_duplicate_files(papers: List[Paper]) -> Tuple[List[Paper], List[dict]]:
+    """Keep one paper per distinct file content.
+
+    A download directory routinely holds `Aaron-2025-….pdf` and
+    `Aaron-2025-…(1).pdf` — byte-identical copies from two download attempts.
+    Processing both extracts the same paper twice, and because the synthesis counts
+    by paper, a duplicate silently doubles one study's weight in every consensus and
+    turns "two papers agree" into a fact about one paper. Content hashing catches
+    the "(1)" copies, renamed copies and copies in different subdirectories alike;
+    an unreadable file is kept rather than guessed about.
+    """
+    seen: Dict[str, Paper] = {}
+    kept: List[Paper] = []
+    dupes: List[dict] = []
+    for pap in papers:
+        path = pap.path
+        if not path or not Path(path).is_file():
+            kept.append(pap)
+            continue
+        try:
+            digest = _sha256(Path(path))
+        except OSError:
+            kept.append(pap)
+            continue
+        first = seen.get(digest)
+        if first is None:
+            seen[digest] = pap
+            kept.append(pap)
+            continue
+        # Keep the cleaner filename. Output files are named from the stem, so
+        # keeping `paper(1).pdf` over `paper.pdf` produces `paper(1)_abcd.json` and
+        # stops a `paper.payload.json` from ever being found.
+        if _copy_rank(Path(path)) < _copy_rank(Path(str(first.path))):
+            kept[kept.index(first)] = pap
+            seen[digest] = pap
+            pap, first = first, pap
+            path = Path(str(pap.path))
+        dupes.append({"dropped": str(path), "kept": str(first.path),
+                      "sha256": digest[:16], "reason": "identical file content"})
+        print(f"  skipping duplicate {Path(path).name} — identical to "
+              f"{Path(str(first.path)).name}", file=sys.stderr)
+    return kept, dupes
+
+
+_COPY_MARKER = re.compile(r"[ _-]*\((\d+)\)$|[ _-]copy(?:\s*\d+)?$", re.I)
+
+
+def _copy_rank(path: Path) -> tuple:
+    """Lower is preferred: no "(1)"/"copy" marker, then the shorter name."""
+    stem = path.stem
+    return (1 if _COPY_MARKER.search(stem) else 0, len(stem), stem)
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
 
 
 def _fetch_all(entries: List[Tuple[Optional[str], Optional[str]]], src: Path,

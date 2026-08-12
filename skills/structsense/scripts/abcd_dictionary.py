@@ -70,6 +70,10 @@ BUNDLED_DIR = Path(__file__).resolve().parent.parent / "data" / "dictionaries"
 MINIMAL_COLUMNS = (
     "name", "label", "table_name", "table_nda", "domain", "sub_domain",
     "name_nda", "name_deap", "name_short",
+    # Which NDA releases the variable's structure shipped in (";"-joined). Cheap —
+    # one short string per row — and without it the NDA-era snapshot cannot answer
+    # "was this variable available in the release the paper states".
+    "nda_releases",
 )
 
 # r-universe endpoint nbdctools itself uses for the dictionary bundle.
@@ -120,7 +124,18 @@ KEEP_COLUMNS = (
     "name_stata",
     "url_table",
     "url_docs_score",
+    # NDA-sourced only: ";"-joined releases the structure appears in (see
+    # `_rows_from_nda`). Absent from NBDC rows, which are already per-release.
+    "nda_releases",
 )
+# `level_range` is already listed above (the permitted-value string, "0::1440").
+# `_rows_from_nda` now populates it from NDA's `valueRange`; it stays out of
+# MINIMAL_COLUMNS because the bundled snapshots are gzipped for size, and the field
+# only matters when checking whether a number quoted in a paper is in range at all.
+# NOTE for anyone adding a field: it must appear in KEEP_COLUMNS *and*
+# MINIMAL_COLUMNS to survive a minimal build — `_keep` filters on the first and the
+# minimal projection re-filters on the second, so a field in only one vanishes
+# silently, exactly as the alias columns once did.
 
 # The dictionary's column naming differs between the NBDCtools bundle and a
 # portal/CSV export (`table_name` vs `nda_or_nbdc_table`, `domain` vs
@@ -425,12 +440,27 @@ def _rows_from_nda(study: str, *, cache_dir: Path, prefix: Optional[str] = None,
 
     structures = index if isinstance(index, list) else index.get("datastructure", [])
     pref = (prefix or f"{study}_").lower()
+
+    # Match on the short name OR the study word in the title. Prefix alone is not
+    # enough: 128 of ABCD's 420 NDA structures do not start with "abcd_" — the whole
+    # KSADS diagnostic-interview set (`ksads2daic_use_only01`), the ACS
+    # post-stratification weights (`acspsw03`), family history (`fhxp102`), the
+    # nBack task-fMRI beta-weight tables (`nbackr101`), Barkley EF, social
+    # development follow-up. Prefix-only matching silently drops 27,504 variables a
+    # paper can legitimately cite, and because `abcd_nda_api.known_tables()` derives
+    # its study filter from this same snapshot, those structures are then dropped
+    # from LIVE API hits too — a mention gets reported unverified rather than
+    # unmatched. `title` is the NDA index's own study label ("ABCD Cash Choice
+    # Task"), so it is the archive's answer to "is this structure ABCD's", not ours.
+    word = re.compile(rf"\b{re.escape(study)}\b", re.I)
     matching = [s for s in structures
-                if str(s.get("shortName", "")).lower().startswith(pref)]
+                if str(s.get("shortName", "")).lower().startswith(pref)
+                or word.search(str(s.get("title", "")))]
     if not matching:
         raise DictionaryError(
-            f"no NDA structures start with {pref!r} (the index has "
-            f"{len(structures)} structures). Pass --nda-prefix to widen."
+            f"no NDA structures start with {pref!r} or mention {study!r} in their "
+            f"title (the index has {len(structures)} structures). "
+            f"Pass --nda-prefix to widen."
         )
 
     rows: List[dict] = []
@@ -459,6 +489,22 @@ def _rows_from_nda(study: str, *, cache_dir: Path, prefix: Optional[str] = None,
         title = str(doc.get("title") or meta.get("title") or "").strip()
         cats = meta.get("categories") or doc.get("categories") or []
         domain = ", ".join(str(c) for c in cats) if isinstance(cats, list) else str(cats)
+
+        # Which releases this structure shipped in. NDA states it per structure in
+        # `sources` ("ABCD Release 4.0"), and it is the only release signal the NDA
+        # era has — the snapshot is otherwise one undated blob called "nda-legacy",
+        # so "this paper used Release 3.0" cannot be checked at all. Structure-level,
+        # not element-level: a variable inherits its structure's releases, so this
+        # bounds a claim rather than proving it. `_keep` drops the key when a
+        # structure lists no releases.
+        srcs = doc.get("sources") or meta.get("sources") or []
+        if isinstance(srcs, str):
+            srcs = [srcs]
+        rels = sorted({re.sub(r"^.*Release\s+", "", str(s)).strip()
+                       for s in srcs if "Release" in str(s)},
+                      key=_release_sort_key)
+        nda_releases = ";".join(rels)
+
         for el in doc.get("dataElements") or []:
             name = str(el.get("name") or "").strip()
             if not name:
@@ -474,6 +520,11 @@ def _rows_from_nda(study: str, *, cache_dir: Path, prefix: Optional[str] = None,
                 "domain": domain,
                 "type_data": str(el.get("type") or el.get("dataType") or "").strip(),
                 "unit": str(el.get("size") or "").strip(),
+                "nda_releases": nda_releases,
+                # The permitted-value string ("0::1440", "M;F; O; NR"). NDA carries it
+                # for nearly every element and it is what tells a reviewer whether the
+                # number quoted in a paper is even in range for the variable claimed.
+                "level_range": str(el.get("valueRange") or "").strip(),
             }
             aliases = el.get("aliases")
             if isinstance(aliases, str):
@@ -970,6 +1021,14 @@ def load_all_snapshots(*, dir_: Path = DEFAULT_DIR,
     A locally built snapshot WINS over a bundled one for the same study+release:
     the bundle is a convenience so the skill works out of the box, not a ceiling.
     Rebuild from the catalog workbook whenever a new release lands.
+
+    Shadowing is REPORTED, though. A local snapshot built by an older version of
+    this script keeps winning after the bundle is fixed, and does it silently: a
+    stale `dd-abcd-nda-legacy.json` with 85,984 variables (built when structure
+    discovery matched only `abcd_*` short names) shadowed the corrected 116,353-row
+    bundle, so the fix appeared to do nothing and `race_ethnicity` stayed
+    unresolvable. Every shadowed pair is now printed with both counts, and the
+    surviving snapshot records `shadowed_bundled_variable_count`.
     """
     found: Dict[Tuple[str, str], dict] = {}
     sources: List[Path] = []
@@ -986,7 +1045,22 @@ def load_all_snapshots(*, dir_: Path = DEFAULT_DIR,
                     continue
                 snap.setdefault("provenance", {})["snapshot_path"] = str(pth)
                 snap["provenance"]["bundled_with_skill"] = (src == BUNDLED_DIR)
-                found[(snap["study"], snap["release"])] = snap
+                key = (snap["study"], snap["release"])
+                prior = found.get(key)
+                if prior is not None and prior["provenance"].get("bundled_with_skill"):
+                    bundled_n = prior.get("variable_count") or len(prior["variables"])
+                    local_n = snap.get("variable_count") or len(snap["variables"])
+                    snap["provenance"]["shadowed_bundled_variable_count"] = bundled_n
+                    if local_n < bundled_n:
+                        print(
+                            f"warning: your local {pth.name} ({local_n:,} variables) "
+                            f"shadows the one shipped with the skill "
+                            f"({bundled_n:,} variables) and wins. If it was built by "
+                            "an older version, rebuild it or move it aside:\n"
+                            f"  mv {pth} {pth}.superseded",
+                            file=sys.stderr,
+                        )
+                found[key] = snap
     return [found[k] for k in sorted(found, key=lambda k: (k[0], _release_sort_key(k[1])))]
 
 

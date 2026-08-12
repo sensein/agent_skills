@@ -67,7 +67,7 @@ from scripts.abcd_dictionary import Dictionary, DictionaryError
 from scripts.abcd_verify import verify_payload
 from scripts.cognitive_atlas import CognitiveAtlas, CognitiveAtlasError
 
-SKILL_VERSION = "0.6.0"
+SKILL_VERSION = "0.6.1"
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "extractor-abcd.md"
 PDF_SUFFIXES = (".pdf", ".txt", ".md")
 
@@ -223,9 +223,15 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
         releases = abcd_context.releases_for_paper(
             meta.get("data_release"),
             sorted({s["release"] for s in dictionary.snapshots})) or None
+    # NDA labels its structures by release only through 4.0, and the `nda-legacy`
+    # snapshot is the union of 2.0/3.0/4.0 (116,353 variables, of which 87,682
+    # existed in 3.0). When a paper names one of those releases, each row's
+    # `nda_releases` makes the check exact instead of "somewhere in the NDA era".
+    nda_release = abcd_context.nda_release_for_paper(meta.get("data_release"))
     verified = verify_payload(merged, text, dictionary=dictionary, atlas=atlas,
                               context_index=context_index, nda=nda,
-                              releases=releases, study=study)
+                              releases=releases, nda_release=nda_release,
+                              study=study)
 
     paper_id = meta.get("doi") or path.stem
     doc = {
@@ -253,6 +259,7 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
             "elapsed_sec": round(time.time() - started, 2),
             "dictionaries": dictionary.provenance if dictionary else [],
             "dd_releases_matched_against": releases or "all loaded",
+            "nda_release_required": nda_release,
             "construct_vocabularies": atlas.provenance if atlas else [],
             "nda_api": ("consulted" if nda is not None else "not used"),
             "verification_policy": {
@@ -281,6 +288,10 @@ def _resolve_inputs(target: str, *, download_dir: Optional[Path],
     print(f"input {summary['input']!r} detected as {summary['detected_as']}: "
           f"{summary['papers_resolved']}/{summary['papers_total']} papers available",
           file=sys.stderr)
+    if summary.get("duplicates_dropped"):
+        print(f"  {summary['duplicates_dropped']} duplicate file(s) skipped "
+              f"(identical content) — {summary['files_seen']} files, "
+              f"{summary['papers_total']} unique papers", file=sys.stderr)
     if summary["papers_unresolved"]:
         print(f"  {summary['papers_unresolved']} could not be resolved "
               f"(first few: "
@@ -493,6 +504,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         if str(path) in fetch_prov:
             doc["provenance"]["retrieval"] = fetch_prov[str(path)]
         doc["provenance"]["input_detected_as"] = input_summary["detected_as"]
+        doc["provenance"]["input_duplicates_dropped"] = input_summary.get(
+            "duplicates_dropped")
         base = out_dir / f"{path.stem}_abcd"
         paths = abcd_export.write_all(doc, base, kind="paper", formats=formats)
         v = doc["verification"]

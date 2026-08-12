@@ -225,6 +225,14 @@
         "rejected_as_cited_work": {
           "type": "integer",
           "minimum": 0
+        },
+        "variables_merged_as_duplicates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_with_nda_release_conflict": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -326,6 +334,19 @@
           "enum": [
             "consulted",
             "not used"
+          ]
+        },
+        "nda_release_required": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The NDA release label each variable was held to, parsed from the paper's stated release. null for 5.x, which NDA does not label, and for unstated."
+        },
+        "input_duplicates_dropped": {
+          "type": [
+            "integer",
+            "null"
           ]
         }
       },
@@ -499,7 +520,8 @@
             "ambiguous",
             "unverified_variable",
             "not_a_variable_name",
-            "no_dictionary_loaded"
+            "no_dictionary_loaded",
+            "not_declared_in_variables"
           ],
           "description": "How far the mapping got. verified = the paper printed a real dictionary name. context_variable = the paper's wording resolved to one variable using the respondent/metric/instrument it stated. context_family = several variables in one table fit equally well (148 ROI-level FA variables); the table and domain are reported, the variable is not, because the paper did not name one. context_domain = tables disagree but the domain does not. instrument_table = the paper named an instrument rather than a variable. Anything else is reported, never presented as canonical."
         },
@@ -675,7 +697,7 @@
             "null"
           ],
           "additionalProperties": true,
-          "description": "Full audit of the wording-to-dictionary match: cues used (respondent/metric/instrument scope), ranked candidates with scores, the thresholds applied, and why a single variable was or was not named."
+          "description": "Full audit of the wording-to-dictionary match: cues used (respondent/metric/instrument scope), ranked candidates with scores, the thresholds applied, and why a single variable was or was not named. Includes `context_cues.respondent_cue` (what said parent/youth, and whether it came from the extractor, the mention or the surrounding context) and `respondent_cue_from_table_note` when that context was a table \u2014 a table note contradicting the Methods is how a mapping lands confidently on the wrong respondent's version of a scale."
         },
         "nda_api_suggestions": {
           "type": [
@@ -684,6 +706,35 @@
           ],
           "additionalProperties": true,
           "description": "Candidates from NDA's full-text element search, restricted to this study's tables. Suggestions for a human, NOT a mapping: the offline matcher already rejected these for this wording."
+        },
+        "also_written_as": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other wordings this paper used for the same variable at the same timepoint, merged into this entry. Left separate, one wording resolved to a table and another did not, and the synthesis showed a measure half the paper apparently never used."
+        },
+        "merged_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "description": "The duplicate entries folded in, each with its own quote \u2014 nothing is discarded."
+        },
+        "merged_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nda_release_conflict": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "The variable's NDA structure is not listed for the release the paper states. A warning, never a rejection: the check is structure-level and papers do misstate their release."
         }
       }
     },

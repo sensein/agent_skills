@@ -100,6 +100,8 @@ _TOKEN = re.compile(r"[a-z0-9]+")
 # `___1` is a REDCap checkbox option, `_q7` a numbered item: both are single
 # questionnaire items rather than the scored measure a paper reports.
 _ITEM_LEVEL_NAME_RE = re.compile(r"___\d+$|_q\d+$|_\d{1,3}$")
+# Non-response siblings carry a `_dk` / `_refuse` suffix.
+_NONRESPONSE_NAME_RE = re.compile(r"_(?:dk|nr|refuse[d]?|na)$")
 
 # Deliberately small: these are the words that carry no discriminating signal in a
 # dictionary label. Domain words ("conflict", "flanker", "anisotropy") must never
@@ -119,7 +121,12 @@ ADMIN_LABEL_RE = re.compile(
     r"date ?finished|date and time|\btimestamp\b|administ\w*|"
     r"number (?:of )?(?:miss\w*|answer\w*|valid\w*|item\w*|total\w*|question\w*)|"
     r"number with|\bmissing\b|complete\?|completed\?|\bvalidity\b|\bqc\b|"
-    r"quality control|\bflags?\b|\bissues?\b|\badmin\b)",
+    r"quality control|\bflags?\b|\bissues?\b|\badmin\b|"
+    # Non-response codes. `devhx_2_p_dk` is labelled "Birth weight, pounds. Don't
+    # know /No lo sé" and outscored `birth_weight_lbs` ("Birth weight pounds") on
+    # every content word — a paper reporting birth weight never means the
+    # don't-know flag.
+    r"don'?t know|no lo s|\brefus\w*|prefer not to|decline[ds]? to answer)",
     re.I,
 )
 # Every alternative above tolerates a suffix (`answer\w*`, not `answer\b`): the
@@ -197,6 +204,9 @@ W_UNASKED_QUALIFIER = -0.06
 # summary a paper actually analyses. "Child race/ethnicity" is not
 # `dim_yesno_q1` ("have you felt discriminated against because of your race...").
 W_ITEM_LEVEL = -0.10
+W_QUESTION_LABEL = -0.18
+W_LONG_LABEL = -0.20
+LONG_LABEL_TOKENS = 12
 # A two-word mention must match on two words. Without this, "birth weight" matches
 # a language questionnaire whose answer options start with "Birth to 1 year",
 # because `birth` alone carries most of the phrase's IDF mass.
@@ -314,6 +324,37 @@ def decision_rule() -> dict:
 # functional connectivity; and the structural tables say "cortical area" where
 # papers say "surface area". Without this bridge those measures are unmatchable no
 # matter how good the scoring is, because they share no content word at all.
+# Study-design variables. Every ABCD paper reports the site, the wave and the
+# child's sex, and the dictionary labels them in its own words ("Site ID at each
+# event", "Sex of subject at birth", "Design/nesting: Assessment site"). Matching
+# the paper's phrasing directly is worse than useless here: "scan site" scored 0.78
+# against a COVID questionnaire item that happened to contain both "scan" and
+# "on-site", while `site_id_l` scored 0.57 and lost. These are substituted BEFORE
+# matching, not as a retry, and the substitution is recorded in the cues.
+DESIGN_SYNONYMS: Tuple[Tuple[str, str], ...] = (
+    ("scan site", "site id at each event"),
+    ("imaging site", "site id at each event"),
+    ("study site", "site id at each event"),
+    ("data collection site", "site id at each event"),
+    ("recruitment site", "site id at each event"),
+    ("child sex", "sex of subject at birth"),
+    ("sex assigned at birth", "sex of subject at birth"),
+    ("sex at birth", "sex of subject at birth"),
+    ("child age", "age in months at interview"),
+    ("age at assessment", "age in months at interview"),
+    ("family id", "family id"),
+)
+
+
+def design_synonym_for(mention: str) -> Optional[Tuple[str, str]]:
+    """(phrase, dictionary wording) for a study-design variable, or None."""
+    low = norm_text(mention)
+    for phrase, replacement in DESIGN_SYNONYMS:
+        if phrase != replacement and phrase in low:
+            return phrase, replacement
+    return None
+
+
 PHRASE_SYNONYMS: Tuple[Tuple[str, str], ...] = (
     ("axial diffusivity", "longitudinal diffusivity"),
     ("radial diffusivity", "transverse diffusivity"),
@@ -333,6 +374,51 @@ def synonym_for(mention: str) -> Optional[Tuple[str, str]]:
         if phrase != replacement and phrase in low:
             return phrase, replacement
     return None
+
+
+# Releases NDA labels its structures with. There is no 5.x: NDA's `sources` field
+# stops at Release 4.0, so a paper analysing 5.0 has no membership to be checked
+# against and filtering on it would empty the dictionary.
+NDA_LABELLED_RELEASES = ("1.0", "1.1", "2.0", "2.0.1", "3.0", "4.0")
+
+
+def nda_release_for_paper(data_release: Optional[str]) -> Optional[str]:
+    """The NDA release label to hold a paper's variables to, or None.
+
+    The `nda-legacy` snapshot is the union of NDA releases 2.0, 3.0 and 4.0 —
+    116,353 variables, of which only 87,682 existed in 3.0. Matching a 3.0 paper
+    against the union can resolve its wording to a variable that did not exist when
+    it was written. Each row carries `nda_releases`, so when the paper names a
+    release NDA actually labels, that row-level check is available and exact.
+
+    Returns None for 5.x (unlabelled by NDA) and for anything unstated, meaning
+    "search the union" — the same behaviour as before this existed.
+    """
+    m = re.search(r"\b([0-9]+\.[0-9]+(?:\.[0-9]+)?)\b", str(data_release or ""))
+    if not m:
+        return None
+    return m.group(1) if m.group(1) in NDA_LABELLED_RELEASES else None
+
+
+def row_in_nda_release(row: dict, release: Optional[str]) -> bool:
+    """Did this row's structure ship in `release`?
+
+    True when unknown: NBDC rows have no `nda_releases` (they are already
+    per-release snapshots), and a missing label must not be read as absence.
+    """
+    if not release:
+        return True
+    labels = str(row.get("nda_releases") or "")
+    return (not labels) or release in labels.split(";")
+
+
+# What makes a phrase an instrument name rather than a description. ABCD's own
+# labels are consistent about this: every instrument head carries one of these.
+_INSTRUMENT_WORD_RE = re.compile(
+    r"\b(scales?|subscales?|checklists?|inventor(?:y|ies)|questionnaires?|"
+    r"interviews?|tests?|tasks?|toolbox|batter(?:y|ies)|surveys?|schedules?|"
+    r"screeners?|forms?|reports?|assessments?|indices|examinations?|protocols?|"
+    r"diagnostic|instruments?)\b", re.I)
 
 
 def _words(text: str) -> int:
@@ -373,6 +459,7 @@ class Candidate:
     respondent: Optional[str]
     metrics: List[str]
     admin: bool
+    nda_releases: List[str] = field(default_factory=list)
 
     def to_dict(self, *, brief: bool = False) -> dict:
         out = {
@@ -394,6 +481,7 @@ class Candidate:
                 "respondent": self.respondent,
                 "metrics": self.metrics,
                 "administrative": self.admin,
+                "nda_releases": self.nda_releases or None,
             })
         return out
 
@@ -527,6 +615,15 @@ class ContextIndex:
             return
         if ADMIN_LABEL_RE.search(head):
             return
+        # A head is only an instrument if it names one. Without this test every
+        # label prefix became an "instrument": "Median family income" was indexed
+        # and then claimed the mention "family income", overriding a perfectly good
+        # variable-level match with a table lookup dressed up as an instrument.
+        words = _INSTRUMENT_WORD_RE.findall(head)
+        if not words:
+            return
+        if {w.lower() for w in words} <= {"report", "reports"} and _words(head) < 3:
+            return
         key = norm_text(head)
         slot = (
             study,
@@ -551,7 +648,8 @@ class ContextIndex:
     def _score_row(self, idx: int, qw: Dict[str, float], qtot: float,
                    aw: Dict[str, float], ctx_tokens: frozenset,
                    want_respondent: Optional[str],
-                   want_metrics: Sequence[str]) -> Optional[Candidate]:
+                   want_metrics: Sequence[str],
+                   mention_is_question: bool = False) -> Optional[Candidate]:
         row = self._rows[idx]
         label = str(row.get("label") or "")
         ltoks = self._row_tokens[idx]
@@ -601,10 +699,26 @@ class ContextIndex:
             elif metrics:
                 score += W_METRIC_MISMATCH
 
-        if _ITEM_LEVEL_NAME_RE.search(name) or label.rstrip().endswith("?"):
+        if _ITEM_LEVEL_NAME_RE.search(name):
             score += W_ITEM_LEVEL
+        if label.rstrip().endswith("?") and not mention_is_question:
+            # A label that is a question is a raw questionnaire item. Papers cite
+            # scored measures, so an item only wins when the paper's own wording is
+            # itself a question.
+            score += W_QUESTION_LABEL
+            if len(ltoks) > LONG_LABEL_TOKENS:
+                # ...and a LONG question is weaker still: "scan site" matched a
+                # 30-word COVID item asking how likely a family was to "return to
+                # your ABCD on-site location ... for an MRI scan". The length
+                # penalty is confined to questions on purpose — scored-measure
+                # labels are long for a legitimate reason (`fes_p_ss_fc` spells out
+                # its item formula), and penalising them by length demoted the
+                # correct FES conflict subscale below its sibling subscales.
+                score += W_LONG_LABEL * min(
+                    1.0, (len(ltoks) - LONG_LABEL_TOKENS) / LONG_LABEL_TOKENS)
 
-        admin = bool(ADMIN_LABEL_RE.search(label))
+        admin = bool(ADMIN_LABEL_RE.search(label)
+                     or _NONRESPONSE_NAME_RE.search(name))
         if admin:
             score += W_ADMIN
         unasked = [m for m in metrics
@@ -635,6 +749,7 @@ class ContextIndex:
             respondent=respondent,
             metrics=metrics,
             admin=admin,
+            nda_releases=[r for r in str(row.get("nda_releases") or "").split(";") if r],
         )
 
     @staticmethod
@@ -657,6 +772,41 @@ class ContextIndex:
         "longitudinal diffusivity" and can reject that reading.
         """
         first = self._match_once(mention, **kwargs)
+        if first.status == "context_variable":
+            # One exception: the mention names an instrument, and the variable we
+            # resolved lives in a different instrument's table. "Youth Self-Report
+            # (YSR)" shares only "youth" and "report" with the prosocial-behaviour
+            # youth-report scale, and won on those; the paper said YSR, so the YSR
+            # table is the answer and the variable is not.
+            hit = self.match_instrument(mention)
+            inst_table = (hit[1][2] or hit[1][1]) if hit else None
+            if inst_table and inst_table != first.nda_or_nbdc_table:
+                out = self._instrument_match(mention, hit, first.cues,
+                                             candidates=first.candidates)
+                out.cues["preferred_instrument_over"] = {
+                    "status": first.status, "variable": first.variable,
+                    "table": first.nda_or_nbdc_table,
+                    "why": ("the mention is an instrument name and the variable "
+                            "resolved into a different instrument's table"),
+                }
+                return out
+            return first
+        if first.status in ("context_family", "context_domain", "ambiguous"):
+            # A diffuse variable-level match adds nothing over the instrument the
+            # paper actually named. "Youth Self-Report (YSR)" landed on a family in
+            # the youth-technology table; the instrument index puts it in the YSR
+            # table, which is what the sentence says.
+            hit = self.match_instrument(mention)
+            if hit:
+                out = self._instrument_match(mention, hit, first.cues,
+                                             candidates=first.candidates)
+                out.cues["preferred_instrument_over"] = {
+                    "status": first.status,
+                    "table": first.nda_or_nbdc_table,
+                    "family_prefix": first.family_prefix,
+                }
+                return out
+            return first
         if first.matched:
             return first
         pair = synonym_for(mention)
@@ -676,6 +826,7 @@ class ContextIndex:
               context: Optional[str] = None, instrument: Optional[str] = None,
               respondent: Optional[str] = None, study: Optional[str] = None,
               releases: Optional[Iterable[str]] = None,
+              nda_release: Optional[str] = None,
               role: Optional[str] = None,
               top_k: int = 8) -> ContextMatch:
         """Map one paper mention to a variable, a family, or a table.
@@ -688,10 +839,26 @@ class ContextIndex:
         mention = (mention or "").strip()
         query_text = " ".join(p for p in (mention, label, instrument) if p)
         ctx = context or ""
-        want_respondent = respondent or self._respondent_cue(query_text + " " + ctx)
+        # Where the respondent cue came from matters as much as what it says. This
+        # corpus contains a paper whose Table 1 note says the FES was
+        # parent-completed while its Methods, figure and results all say youth —
+        # and since fes_p_ss_fc and fes_y_ss_fc are different measures, a cue read
+        # from a table note produces a confidently wrong mapping. Recording the
+        # matched words and which text they came from lets a reviewer see that.
+        cue_source = "extractor_field" if respondent else None
+        cue_text = respondent or None
+        want_respondent = respondent
+        if not want_respondent:
+            for source, text in (("mention_or_label", query_text), ("context", ctx)):
+                found, matched = self._respondent_cue(text)
+                if found:
+                    want_respondent, cue_source, cue_text = found, source, matched
+                    break
         want_metrics = _cues(query_text + " " + ctx, METRIC_QUERY_CUES)
         cues = {
             "respondent": want_respondent,
+            "respondent_cue": ({"who": want_respondent, "matched_text": cue_text,
+                                "source": cue_source} if want_respondent else None),
             "metrics": want_metrics,
             "instrument_hint": instrument or None,
         }
@@ -712,6 +879,13 @@ class ContextIndex:
         # the denominator matters: a helpful label ("CBCL externalizing broadband
         # T-score, parent report") adds words the dictionary label will never
         # contain, and counting them as unexplained sinks a correct match.
+        mention_is_question = "?" in (mention or "")
+        design = design_synonym_for(mention)
+        if design:
+            cues["design_synonym_applied"] = {"paper_wording": design[0],
+                                              "dictionary_wording": design[1]}
+            mention = re.sub(re.escape(design[0]), design[1], mention, flags=re.I)
+            query_text = mention if not label else f"{mention} {label}"
         qtoks = tokens(mention) or tokens(query_text)
         aux_toks = [t for t in tokens(query_text) if t not in qtoks]
         if not qtoks:
@@ -784,6 +958,8 @@ class ContextIndex:
 
         want_study = (study or "").lower() or None
         want_releases = {str(r) for r in releases} if releases else None
+        if nda_release:
+            cues["nda_release"] = nda_release
 
         def score_hits(scope: Optional[str]) -> Tuple[List[Candidate], int]:
             kept: List[Candidate] = []
@@ -794,8 +970,11 @@ class ContextIndex:
                     continue
                 if want_releases and snap_release not in want_releases:
                     continue
+                if not row_in_nda_release(self._rows[idx], nda_release):
+                    continue
                 cand = self._score_row(idx, qw, qtot, aw, ctx_tokens,
-                                       want_respondent, want_metrics)
+                                       want_respondent, want_metrics,
+                                       mention_is_question)
                 if not cand:
                     continue
                 if scope and (cand.nda_or_nbdc_table or cand.table) != scope:
@@ -828,7 +1007,8 @@ class ContextIndex:
             # this paper needs — so the phrase looked unsearchable when it was not.
             scored = self._intersect_scored(
                 search_toks, qw, qtot, aw, ctx_tokens, want_respondent,
-                want_metrics, want_study, want_releases, scope_table)
+                want_metrics, want_study, want_releases, scope_table,
+                nda_release)
             if scored:
                 cues["candidate_generation"] = "common_token_intersection"
         if not scored:
@@ -873,7 +1053,8 @@ class ContextIndex:
 
     def _intersect_scored(self, search_toks: List[str], qw, qtot, aw, ctx_tokens,
                           want_respondent, want_metrics, want_study,
-                          want_releases, scope_table) -> List[Candidate]:
+                          want_releases, scope_table,
+                          nda_release: Optional[str] = None) -> List[Candidate]:
         """Score rows containing two of the query's tokens.
 
         Pairs are tried least-common first and the first pair with any in-release
@@ -906,6 +1087,8 @@ class ContextIndex:
                 continue
             if want_releases and snap_release not in want_releases:
                 continue
+            if not row_in_nda_release(self._rows[idx], nda_release):
+                continue
             cand = self._score_row(idx, qw, qtot, aw, ctx_tokens,
                                    want_respondent, want_metrics)
             if not cand:
@@ -935,6 +1118,24 @@ class ContextIndex:
         rivals = [c for c in in_table[1:] if c.name != winner.name]
         margin_ok = (not rivals) or (winner.score - rivals[0].score) >= NAME_MARGIN
 
+        names = {c.name for c in top}
+        if not table_confident and len(names) == 1:
+            # Every candidate IS the same variable, sitting in many tables. NDA
+            # repeats shared elements (`sex`, `interview_age`, `subjectkey`) in
+            # every structure that carries them, so "spread across tables" is not
+            # ambiguity here — the variable is certain and the table is simply not
+            # unique.
+            winner = keep[0]
+            return ContextMatch(
+                status="context_variable", mention=mention, variable=winner.name,
+                label=winner.label, nda_or_nbdc_table=None,
+                nbdc_domain=winner.domain, study=winner.study,
+                dd_releases=sorted({r for c in keep for r in c.releases}),
+                tables=sorted({t for c in keep
+                               if (t := c.nda_or_nbdc_table or c.table)})[:12],
+                score=winner.score, cues=cues, candidates=keep[:top_k],
+                reason=("a shared element: the same variable appears in every "
+                        "structure that carries it, so no single table applies"))
         if not table_confident:
             # Tables disagree. The domain often still agrees — every fractional
             # anisotropy variable is imaging, spread over per-atlas tables — and
@@ -1030,12 +1231,18 @@ class ContextIndex:
             keys = [norm]
         else:
             for key in self._instruments:
-                # Two words minimum. A one-word "instrument" harvested from a
-                # label prefix ("Externalizing") is a scale name fragment, and
-                # accepting it maps "externalizing behaviors" onto whichever table
-                # happens to start a label with that word — an Adult Behavior
-                # Checklist row, in the case that made this rule exist.
-                if len(key) >= 12 and _words(key) >= 2 and (key in norm or norm in key):
+                # Two words minimum on BOTH sides. A one-word "instrument"
+                # harvested from a label prefix ("Externalizing") is a scale-name
+                # fragment, and accepting it maps "externalizing behaviors" onto
+                # whichever table happens to start a label with that word — an
+                # Adult Behavior Checklist row, in the case that made this rule
+                # exist. And a short query must not be tested for containment at
+                # all: as a bare substring, "race" is inside dozens of instrument
+                # phrases, which sent it to an n-back beta-weight table.
+                if len(key) < 12 or _words(key) < 2:
+                    continue
+                if key in norm or (len(norm) >= 12 and _words(norm) >= 2
+                                   and norm in key):
                     keys.append(key)
         if not keys:
             for acr in re.findall(r"\b[A-Z][A-Z0-9\-]{2,7}\b", text or ""):
@@ -1059,11 +1266,16 @@ class ContextIndex:
     # -- helpers ------------------------------------------------------------ #
 
     @staticmethod
-    def _respondent_cue(text: str) -> Optional[str]:
-        found = [who for who, pat in RESPONDENT_QUERY_RE.items() if pat.search(text)]
-        # An ambiguous sentence ("parent- and youth-reported") gives no cue rather
-        # than an arbitrary one.
-        return found[0] if len(found) == 1 else None
+    def _respondent_cue(text: str) -> Tuple[Optional[str], Optional[str]]:
+        """(respondent, the words that said so) — or (None, None).
+
+        An ambiguous sentence ("parent- and youth-reported") gives no cue rather
+        than an arbitrary one.
+        """
+        hits = [(who, m.group(0))
+                for who, pat in RESPONDENT_QUERY_RE.items()
+                if (m := pat.search(text or ""))]
+        return hits[0] if len(hits) == 1 else (None, None)
 
     @property
     def stats(self) -> dict:

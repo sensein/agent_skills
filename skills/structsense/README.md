@@ -1,6 +1,6 @@
 # StructSense Skills
 
-**Current version: 0.6.0** (see [CHANGELOG.md](CHANGELOG.md)).
+**Current version: 0.6.1** (see [CHANGELOG.md](CHANGELOG.md)).
 
 A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with optional ontology mapping (BioPortal / OLS / local hybrid), quality scoring, and human-in-the-loop review.
 
@@ -327,8 +327,8 @@ Every run writes `<stem>_abcd.json`, `.md` (tables) and `.ttl` (PROV-O triples).
 than one paper also produces `abcd_synthesis.{json,md,ttl}`.
 
 **Dictionaries ship with the skill** — `data/dictionaries/` holds all seven releases
-(ABCD `nda-legacy` for 4.x/5.x, `6.0`, `6.1`, `7.0`; HBCD `1.0`, `1.1`, `2.0`),
-539,781 variables in 8.6 MB gzipped. No workbook, no network, no R:
+(ABCD `nda-legacy` for 2.0/3.0/4.0/5.x, `6.0`, `6.1`, `7.0`; HBCD `1.0`, `1.1`,
+`2.0`), 570,150 variables in 9.1 MB gzipped. No workbook, no network, no R:
 
 ```bash
 python -m scripts.abcd_dictionary info
@@ -354,7 +354,7 @@ disambiguated by what the paper itself said:
 | `instrument` — "Child Behavior Checklist" | Scopes candidates to one table. `externalizing` exists in the CBCL, ABCL, YSR and BPM; naming the instrument settles it. |
 | `respondent` — "children completed the FES" | `fes_y_ss_fc`, not `fes_p_ss_fc`. A different measure, not a near miss — so mismatches are filtered out, not merely penalised. |
 | `metric` — "fully corrected T-scores" | `nihtbx_cryst_fc` over `nihtbx_cryst_rawscore`, and any metric cue outranks the administrative siblings (Version, Language, ItmCnt) that share every content word with the measure. |
-| `data_release` — "Release 5.0" | Which snapshot is eligible at all. Matching a 5.0 paper against 6.1 turns one clear measure into rival candidates in two tables. |
+| `data_release` — "Release 5.0" | Which snapshot is eligible at all. Matching a 5.0 paper against 6.1 turns one clear measure into rival candidates in two tables. For NDA 2.0/3.0/4.0 the check is per-row: each row records which releases its structure shipped in, so a 3.0 paper is held to 3.0's 87,682 variables rather than the 116,353-variable union. |
 
 On a three-paper sample this moved 1 of 57 variables carrying a dictionary table to
 29 of 57. What it will not do is name a variable the paper did not name:
@@ -398,7 +398,12 @@ Full detail in [`references/abcd-extraction.md`](references/abcd-extraction.md):
    `variables[]` is listed in `coverage.referenced_but_not_declared` — a hole in the
    extraction, not a detail, since those rows reach the synthesis with no evidence,
    no table and no domain.
-5. **Single or bulk, same guarantees.** One failing paper does not abort a corpus, and
+5. **One paper per distinct file, one entry per variable.** Inputs are deduplicated by
+   content checksum before any PDF is parsed (`paper.pdf` and `paper(1).pdf` are one
+   paper — otherwise a duplicate doubles that study's weight in every
+   paper-counted consensus), and duplicate wordings of the same variable inside a
+   paper are merged with every quote kept.
+6. **Single or bulk, same guarantees.** One failing paper does not abort a corpus, and
    per-paper evidence stays inspectable — the synthesis is never the only record.
 
 ### The synthesis

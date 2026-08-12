@@ -1,5 +1,98 @@
 # Changelog
 
+## 0.6.1 — Dictionary coverage, citation detection, duplicate handling
+
+Three of these are other people's fixes, verified before applying and credited as
+such; the rest are the regressions they exposed.
+
+### NDA structure discovery (fix from a parallel audit)
+
+- `_rows_from_nda` matched structures by `shortName.startswith("abcd_")`, which finds
+  292 of ABCD's 420 NDA structures. The missing 128 include `acspsw03` (which holds
+  `race_ethnicity` and `rel_family_id`, variables a large share of ABCD papers use),
+  the whole KSADS diagnostic set, `fhxp102`, the nBack beta-weight tables and Barkley
+  EF — 27,504 variables that resolved as unverified. Matching on the short name *or*
+  the study word in NDA's own title fixes it: **85,984 → 116,353 variables**,
+  142,913 → 189,493 resolvable names, none lost.
+- Sneaky because it degraded `abcd_nda_api.known_tables()` too, so the live API
+  second opinion could not rescue what the offline snapshot never knew — offline and
+  online failed together.
+- Verified independently before applying: the NDA index has 6,433 structures, 292
+  match by prefix, 420 by prefix-or-title, and all 128 additions are unambiguously
+  ABCD ("ABCD Cash Choice Task", "ABCD Family History Assessment"). Immediate effect:
+  "Child race/ethnicity" resolves to `race_ethnicity` in `acspsw03` instead of a
+  discrimination item in `abcd_ydmes01`.
+
+### Citation detection (fix from the same audit)
+
+- `_CITATION_RE` put the opening `\(` outside the alternation, so the narrative
+  branch (`Telzer and Fuligni (2013) found`) and the numeric branch (`[12]`) were
+  dead code — they could only match a sentence that literally opens a paren. Gate 2
+  was passing cited work whenever prior-work phrasing happened to be absent.
+- The branch now also accepts `&` (as common as "and" in APA prose) and the
+  single-author form (`Steinberg (2001) warned`). Verified both directions on 12
+  strings: all citation forms fire; the paper's own parentheticals — `(35 items;
+  e.g., …)`, `(n = 11,868)`, `(CFI = 0.98)`, `(FES-Conflict; Moos & Moos, 1976)` —
+  stay silent.
+- Gap statements are exempted: "no prior work has considered … problem behaviors" is
+  the paper motivating its own study, and it was rejecting the construct in this
+  paper's own title on the words "prior work".
+
+### Fields NDA returns that the code discarded
+
+- `nda_releases` (from `sources`) and `level_range` (from `valueRange`) are now
+  populated. A field must be in **both** `KEEP_COLUMNS` and `MINIMAL_COLUMNS` to
+  survive a minimal build — `_keep` filters on the first, the projection re-filters
+  on the second — and `level_range` was already in `KEEP_COLUMNS`, so an earlier
+  version of this entry duplicated it.
+- `nda_releases` is now used, not just stored: a paper naming release 2.0/3.0/4.0 is
+  matched against that release's rows only, and a literal name resolving outside it
+  is flagged `nda_release_conflict`.
+
+### Snapshot shadowing
+
+- A local snapshot beats a bundled one by design; it also did so silently. The stale
+  85,984-variable local build shadowed the corrected bundle, so applying the fix
+  changed nothing until the local file was moved aside. Shadowing now warns with both
+  counts and the exact `mv` command.
+
+### Duplicate inputs and duplicate variables
+
+- Inputs are deduplicated by SHA-256 **before** any PDF is parsed, so `paper.pdf` and
+  `paper(1).pdf` are one paper — a duplicate otherwise doubles one study's weight in
+  every paper-counted consensus. The clean filename is kept over the copy.
+- Variable entries are merged per (variable, timepoint) within a paper, keeping the
+  strongest mapping and every wording and quote (`also_written_as`, `merged_from`).
+
+### Regressions this exposed, and their fixes
+
+- **The instrument index accepted any label head.** "Median family income" was
+  indexed as an instrument and claimed the mention "family income". A head is now
+  only an instrument if it names one (scale, checklist, inventory, questionnaire,
+  interview, test, task, toolbox, …): 18,397 "instruments" → 603 real ones.
+- **A long-label penalty demoted correct answers.** Introduced to stop "scan site"
+  matching a 30-word COVID question, it also demoted `fes_p_ss_fc`, whose label
+  spells out its item formula, below its sibling subscales. The penalty is now
+  confined to labels that are questions.
+- **An instrument guessed from context could not be overridden.** Now, when the paper
+  names an instrument and the resolved variable sits in a *different* instrument's
+  table, the instrument wins ("Youth Self-Report (YSR)" was landing on a
+  prosocial-behaviour scale that shares only "youth" and "report").
+- **Non-response codes outscored measures.** `devhx_2_p_dk` ("Birth weight, pounds.
+  Don't know") beat `birth_weight_lbs` on every content word; "don't know" /
+  "refused" labels and `_dk`-suffixed names are now treated as administrative.
+- **`ambiguous` was reported as `not_a_variable_name`.** The matcher's refusal to
+  choose between candidates is different information from finding nothing, and the
+  status now says which.
+- Study-design wording is substituted before matching from a short documented table
+  ("scan site" → "Site ID at each event", "child sex" → "Sex of subject at birth"):
+  "scan site" scored 0.78 against a COVID item containing both "scan" and "on-site"
+  while `site_id_l` scored 0.57 and lost.
+- Respondent cues now record what said parent/youth, where it came from, and whether
+  that was a table note — this corpus contains a paper whose Table 1 note contradicts
+  its own Methods about which FES version was used, and the two are different
+  measures.
+
 ## 0.6.0 — Context-aware variable mapping, own-study scope, provenance-carrying synthesis
 
 Driven by a real three-paper run whose output was mostly empty columns: 1 of 57

@@ -256,13 +256,22 @@ def verify_evidence(item: dict, index: TextIndex, *,
 # --------------------------------------------------------------------------- #
 
 # A citation attached to a claim means the claim belongs to somebody else.
+# The opening "\(" belongs to the FIRST alternative only. Hoisting it in front of the
+# group — as this pattern did — silently killed the other two: a narrative citation
+# ("Telzer and Fuligni (2013) found ...") and a numeric one ("[12]") can only start
+# with "(" if the sentence literally opens one, so they never matched real text and
+# gate 2 saw no citation at all. That is the failure mode this gate exists to prevent:
+# an Introduction sentence reporting somebody else's result passes as the paper's own
+# unless some other cue happens to fire.
 _CITATION_RE = re.compile(
-    r"\((?:[A-Z][A-Za-z\-']+(?:\s+(?:et\s+al\.?|and|&)\s+[A-Z][A-Za-z\-']+)?"
+    r"\([A-Z][A-Za-z\-']+(?:\s+(?:et\s+al\.?|and|&)\s+[A-Z][A-Za-z\-']+)?"
     r"(?:\s+et\s+al\.?)?,?\s*(?:19|20)\d{2}[a-z]?(?:;[^)]*)?\)"      # (Smith, 2019)
-    r"|\b[A-Z][A-Za-z\-']+\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z\-']+)\s*"
-    r"\((?:19|20)\d{2}[a-z]?\)"                                       # Smith et al. (2019)
-    r"|\[\d{1,3}(?:[,\-–]\s*\d{1,3})*\]\)?"                           # [12], [3-5]
-    r")"
+    # Narrative form. "&" is as common as "and" in APA-style prose
+    # ("Tezler & Fugilini (2013) found"), and a single-author narrative citation
+    # ("Steinberg (2001) warned") carries exactly the same meaning, so both count.
+    r"|\b[A-Z][A-Za-z\-']+(?:\s+(?:et\s+al\.?|and|&)\s+[A-Z][A-Za-z\-']+)?"
+    r"(?:\s+et\s+al\.?)?\s*\((?:19|20)\d{2}[a-z]?\)"                 # Smith et al. (2019)
+    r"|\[\d{1,3}(?:[,\-–]\s*\d{1,3})*\]"                             # [12], [3-5]
 )
 # The paper talking about its own analysis.
 _OWN_STUDY_RE = re.compile(
@@ -270,6 +279,21 @@ _OWN_STUDY_RE = re.compile(
     r"in the (?:present|current) (?:study|analysis)|this study|the present "
     r"investigation|here we)\b|\bresults? (?:showed|indicated|revealed)\b|"
     r"\bas (?:shown|reported) in (?:table|figure|fig)\b", re.I)
+# The paper stating what has NOT been done — its own contribution, not a borrowed
+# claim. Checked before the prior-work cues so "no prior work has considered the
+# impact of family conflict on problem behaviors" is not read as somebody else's
+# finding.
+_GAP_STATEMENT_RE = re.compile(
+    r"\b(?:no|little|few|limited|scarce|scant)\s+(?:prior\s+|previous\s+|"
+    r"existing\s+)?(?:work|research|studies|study|evidence|data|attention)\b"
+    r"|\bhas\s+not\s+(?:yet\s+)?been\s+(?:examined|tested|studied|explored|"
+    r"established|investigated|addressed)"
+    r"|\bhave\s+not\s+(?:yet\s+)?been\s+(?:examined|tested|studied|explored|"
+    r"established|investigated|addressed)"
+    r"|\bremains?\s+(?:un(?:clear|known|examined|tested)|to be (?:examined|tested))"
+    r"|\bis\s+not\s+(?:yet\s+)?(?:clear|known|established)"
+    r"|\bwe\s+(?:are\s+aware\s+of\s+no|know\s+of\s+no)\b", re.I)
+
 # Prior-literature framing, even without a bracketed citation.
 _PRIOR_WORK_RE = re.compile(
     r"\b(?:previous(?:ly)?|prior|earlier|existing|extant|other) "
@@ -313,10 +337,14 @@ def gate_scope(item: dict, *, strict: bool) -> Tuple[dict, Optional[str]]:
     head = _section_head(ev.get("section"))
     blob = f"{quote} {context}"
 
+    # "no prior work has considered X" is the paper motivating its own study, not a
+    # claim borrowed from anybody. Without this the gate rejected the construct in
+    # this paper's own title, matching on the words "prior work".
+    negated_gap = bool(_GAP_STATEMENT_RE.search(quote))
     cited = bool(_CITATION_RE.search(quote))
     cited_ctx = bool(_CITATION_RE.search(context))
     own_words = bool(_OWN_STUDY_RE.search(blob))
-    prior_words = bool(_PRIOR_WORK_RE.search(quote))
+    prior_words = bool(_PRIOR_WORK_RE.search(quote)) and not negated_gap
     in_own_section = any(head.startswith(s) for s in _OWN_SECTIONS)
     in_lit_section = any(head.startswith(s) for s in _LITERATURE_SECTIONS)
 
@@ -328,6 +356,7 @@ def gate_scope(item: dict, *, strict: bool) -> Tuple[dict, Optional[str]]:
         "citation_in_context": cited_ctx,
         "own_study_phrasing": own_words,
         "prior_work_phrasing": prior_words,
+        "gap_statement": negated_gap,
     }
 
     if strict:
@@ -365,6 +394,7 @@ MAPPED_STATUSES = ("verified", "verified_via_nda_api", "context_variable",
 def gate_variable(item: dict, dictionary: Optional[Dictionary], *,
                   context_index: Optional["Any"] = None,
                   releases: Optional[Sequence[str]] = None,
+                  nda_release: Optional[str] = None,
                   study: Optional[str] = None,
                   nda: Optional["Any"] = None) -> dict:
     """Attach dictionary verification to a variable item (never drops it).
@@ -414,6 +444,9 @@ def gate_variable(item: dict, dictionary: Optional[Dictionary], *,
         if missing:
             # Present in some loaded releases but not others: usually a rename.
             out["dd_release_gap"] = missing
+        gap = _nda_release_conflict(getattr(best, "row", None) or {}, nda_release)
+        if gap:
+            out["nda_release_conflict"] = gap
         return out
 
     # -- 3. the paper's wording, in context -------------------------------- #
@@ -429,8 +462,16 @@ def gate_variable(item: dict, dictionary: Optional[Dictionary], *,
             role=str(item.get("role") or "").strip().lower() or None,
             study=study,
             releases=releases,
+            nda_release=nda_release,
         )
         out["context_mapping"] = result.to_dict()
+        cue = (result.cues or {}).get("respondent_cue") or {}
+        section = str(((item.get("evidence") or {}).get("section") or "")).strip()
+        if cue.get("source") == "context" and re.match(r"table\b", section, re.I):
+            # The cue was read from prose around a table row. Tables carry notes
+            # that contradict the Methods often enough to be worth flagging: a
+            # parent/youth mix-up here is a different measure, not a near miss.
+            out["context_mapping"]["respondent_cue_from_table_note"] = True
         if result.matched:
             out["dictionary_status"] = result.status
             out["dictionary_match"] = {
@@ -455,6 +496,13 @@ def gate_variable(item: dict, dictionary: Optional[Dictionary], *,
             if result.variable:
                 out["dd_releases_containing"] = (
                     dictionary.releases_for(result.variable) or result.dd_releases)
+            return out
+        # Not matched, but the matcher may still have a more precise verdict than
+        # "not a variable name" — `ambiguous` means it found candidates and refused
+        # to choose, which is a different thing for a reader to act on.
+        if result.status == "ambiguous":
+            out["dictionary_status"] = "ambiguous"
+            out["dictionary_match"] = None
             return out
 
     # -- 2/4. ask NDA, if the caller enabled it ---------------------------- #
@@ -545,6 +593,27 @@ def _ask_nda(candidate: str, label: str, dictionary: Optional[Dictionary],
         return None
 
 
+def _nda_release_conflict(row: dict, nda_release: Optional[str]) -> Optional[dict]:
+    """Did the paper cite a variable whose structure did not ship in its release?
+
+    A warning, never a rejection. `nda_releases` is structure-level, papers do
+    misstate their release, and deleting a variable the paper plainly analysed would
+    be worse than flagging it. But it is checkable now, and passing it over in
+    silence is what let a 3.0 paper cite a 4.0-only variable unremarked.
+    """
+    if not nda_release:
+        return None
+    labels = [r for r in str(row.get("nda_releases") or "").split(";") if r]
+    if not labels or nda_release in labels:
+        return None
+    return {
+        "paper_states_release": nda_release,
+        "structure_shipped_in": labels,
+        "note": ("structure-level check: the variable's NDA structure is not listed "
+                 "for the release the paper states"),
+    }
+
+
 _NDA_ADMIN_RE = re.compile(
     r"\b(?:number (?:of )?(?:answer\w*|miss\w*|valid\w*|total\w*|question\w*)|"
     r"date ?finished|version|language|itmcnt|theta)\b", re.I)
@@ -598,6 +667,7 @@ def verify_payload(payload: dict, text: str, *,
                    context_index: Optional["Any"] = None,
                    nda: Optional["Any"] = None,
                    releases: Optional[Sequence[str]] = None,
+                   nda_release: Optional[str] = None,
                    study: Optional[str] = None) -> dict:
     """Verify a whole extractor payload for one paper.
 
@@ -658,7 +728,8 @@ def verify_payload(payload: dict, text: str, *,
     out["variables"] = run(
         "variables", payload.get("variables"),
         lambda it: gate_variable(it, dictionary, context_index=context_index,
-                                 releases=releases, study=study, nda=nda),
+                                 releases=releases, nda_release=nda_release,
+                                 study=study, nda=nda),
         require_surface=True, surface_keys=("name", "variable", "term"))
     # A construct is a reading of the prose — the label need not be verbatim, but
     # the quote must exist and `label_in_quote` records which case it was.
@@ -679,6 +750,7 @@ def verify_payload(payload: dict, text: str, *,
                           refs_from=("variables", "variable", "predictor",
                                      "outcome", "mediator", "moderator"),
                           strict_scope=True)
+    out["variables"], merged_n = _merge_duplicate_variables(out["variables"])
     out["rejected"] = rejected
     out["coverage"] = _coverage_audit(out)
 
@@ -705,6 +777,9 @@ def verify_payload(payload: dict, text: str, *,
         "constructs_unmapped": sum(1 for c in out["constructs"]
                                    if not c.get("construct_id")),
         "rejected_total": len(rejected),
+        "variables_merged_as_duplicates": merged_n,
+        "variables_with_nda_release_conflict": sum(
+            1 for v in out["variables"] if v.get("nda_release_conflict")),
         "rejected_as_cited_work": sum(
             1 for r in rejected
             if str(r.get("reason") or "").startswith(("finding_not_from",
@@ -712,6 +787,70 @@ def verify_payload(payload: dict, text: str, *,
                                                       "measure_only"))),
     }
     return out
+
+
+# Ranked best-first: a merged entry keeps the strongest mapping any of its
+# duplicates achieved, so one wording resolving and another not stops producing two
+# rows that disagree about the same measure.
+_STATUS_RANK = {s: i for i, s in enumerate(
+    ("verified", "verified_via_nda_api", "context_variable", "context_family",
+     "context_domain", "instrument_table", "ambiguous", "unverified_variable",
+     "not_a_variable_name", "no_dictionary_loaded"))}
+
+
+def _merge_duplicate_variables(variables: List[dict]) -> Tuple[List[dict], int]:
+    """One entry per (variable, timepoint) — the extractor's own definition.
+
+    A paper writes "internalizing behaviors" in its Methods and "internalizing
+    behavior" in its Results, and the extractor emits both. They are one variable:
+    left separate, one of them resolves to a table and the other does not, and the
+    synthesis shows a measure that half the paper apparently did not use.
+
+    Timepoint is part of the key on purpose — family conflict at year 1 and at year
+    2 ARE distinct quantities, and the prompt asks for them separately.
+    """
+    groups: Dict[Tuple[str, str], List[dict]] = {}
+    order: List[Tuple[str, str]] = []
+    for v in variables:
+        key = (_norm_key(v.get("name") or v.get("variable")),
+               _norm_key(v.get("timepoint")))
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(v)
+
+    out: List[dict] = []
+    merged = 0
+    for key in order:
+        items = groups[key]
+        if len(items) == 1:
+            out.append(items[0])
+            continue
+        merged += len(items) - 1
+        best = min(items, key=lambda v: _STATUS_RANK.get(
+            str(v.get("dictionary_status")), 99))
+        winner = dict(best)
+        others = [v for v in items if v is not best]
+        winner["also_written_as"] = sorted({
+            str(v.get("mention_as_written") or v.get("name"))
+            for v in others} - {str(winner.get("mention_as_written"))})
+        winner["merged_from"] = [
+            {"mention_as_written": v.get("mention_as_written"),
+             "role": v.get("role"),
+             "dictionary_status": v.get("dictionary_status"),
+             "evidence": {k: (v.get("evidence") or {}).get(k)
+                          for k in ("section", "page", "quote")}}
+            for v in others
+        ]
+        roles = [str(v.get("role") or "unspecified") for v in items]
+        claimed = [r for r in roles if r != "unspecified"]
+        if claimed and str(winner.get("role") or "unspecified") == "unspecified":
+            # Keep a stated role over an unstated one; a merge must not lose the
+            # only role claim the paper made.
+            winner["role"] = claimed[0]
+        winner["merged_roles"] = sorted(set(roles))
+        out.append(winner)
+    return out, merged
 
 
 def _coverage_audit(doc: dict) -> dict:
