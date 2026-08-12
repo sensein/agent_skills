@@ -70,6 +70,10 @@ KEEP_COLUMNS = (
     "label",
     "description",
     "table_name",
+    "table_label",
+    # NDA structure name. Kept because the NBDC catalog carries both namings and a
+    # paper may cite either.
+    "table_nda",
     "nda_or_nbdc_table",
     "domain",
     "nbdc_domain",
@@ -80,8 +84,21 @@ KEEP_COLUMNS = (
     "atlas",
     "type_data",
     "type_level",
+    "type_var",
     "unit",
     "level_range",
+    # Alternate variable names (see NAME_ALIAS_COLUMNS). ABCD 6.x renamed variables
+    # wholesale — `nc_y_flnkr_adm___1` in 6.1 is `neurocog_2_flanker___1` in NDA and
+    # `neurocog_2_flanker` in DEAP — so dropping these would make every paper that
+    # cites an NDA or DEAP name look unverifiable.
+    "name_nda",
+    "name_deap",
+    "name_redcap",
+    "name_redcap_exp",
+    "name_short",
+    "name_stata",
+    "url_table",
+    "url_docs_score",
 )
 
 # The dictionary's column naming differs between the NBDCtools bundle and a
@@ -90,9 +107,25 @@ KEEP_COLUMNS = (
 # whichever column the loaded snapshot actually has, so downstream consumers get
 # one stable shape regardless of where the dictionary came from.
 FIELD_ALIASES = {
-    "nda_or_nbdc_table": ("nda_or_nbdc_table", "table_name"),
+    # `table_nda` is the NDA structure name in the NBDC variable catalog; prefer an
+    # explicit nda_or_nbdc_table when an export supplies one, else the catalog's
+    # NDA table, else the NBDC table.
+    "nda_or_nbdc_table": ("nda_or_nbdc_table", "table_nda", "table_name"),
     "nbdc_domain": ("nbdc_domain", "domain"),
     "nbdc_sub_domain": ("nbdc_sub_domain", "sub_domain"),
+}
+
+# Columns of the NBDC variable catalog that hold ALTERNATE names for the same
+# variable. Papers cite whichever naming their pipeline used — NDA element names
+# and DEAP names are both common in methods sections — so each is indexed as a way
+# in, and the match method records which naming the paper used.
+NAME_ALIAS_COLUMNS = {
+    "name_nda": "nda_name",
+    "name_deap": "deap_name",
+    "name_redcap": "redcap_name",
+    "name_redcap_exp": "redcap_name",
+    "name_short": "short_name",
+    "name_stata": "stata_name",
 }
 
 
@@ -327,15 +360,125 @@ def _rows_from_csv(path: Path) -> Tuple[List[dict], dict]:
     }
 
 
+def _parse_sheet_name(sheet: str) -> Optional[Tuple[str, str]]:
+    """'ABCD 6.1' -> ('abcd', '6.1'). None for non-release sheets (legends etc.)."""
+    m = re.match(r"^\s*(ABCD|HBCD)\s+([0-9]+(?:\.[0-9]+)?)\s*$", sheet, re.I)
+    return (m.group(1).lower(), m.group(2)) if m else None
+
+
+def xlsx_sheets(path: Path) -> List[Tuple[str, str, str]]:
+    """Release sheets in a catalog workbook as (sheet_name, study, release)."""
+    try:
+        from openpyxl import load_workbook  # type: ignore
+    except ImportError as exc:
+        raise DictionaryError(
+            "reading an .xlsx catalog needs openpyxl — `pip install openpyxl`"
+        ) from exc
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        out = []
+        for name in wb.sheetnames:
+            parsed = _parse_sheet_name(name)
+            if parsed:
+                out.append((name, parsed[0], parsed[1]))
+        return out
+    finally:
+        wb.close()
+
+
+def _rows_from_xlsx(path: Path, study: str, release: str, *,
+                    sheet: Optional[str] = None,
+                    progress: bool = False) -> Tuple[List[dict], dict]:
+    """Read one release sheet of the NBDC variable catalog workbook.
+
+    The catalog (NBDC_variable_catalog_full.xlsx) has one sheet per study+release
+    with ~40 columns and 80-95k rows. Only the columns needed for verification and
+    description are kept — a full copy would make the snapshot enormous for no
+    gain.
+    """
+    try:
+        from openpyxl import load_workbook  # type: ignore
+    except ImportError as exc:
+        raise DictionaryError(
+            "reading an .xlsx catalog needs openpyxl — `pip install openpyxl`"
+        ) from exc
+
+    wanted = set(KEEP_COLUMNS) | set(NAME_ALIAS_COLUMNS) | {
+        "table_label", "url_table", "url_docs_score", "type_var",
+    }
+
+    wb = load_workbook(path, read_only=True, data_only=True)
+    try:
+        target = sheet
+        if target is None:
+            for name in wb.sheetnames:
+                parsed = _parse_sheet_name(name)
+                if parsed == (study, release):
+                    target = name
+                    break
+        if target is None:
+            have = ", ".join(f"{s}" for s, _, _ in xlsx_sheets(path)) or "none"
+            raise DictionaryError(
+                f"no sheet for {study} {release} in {path.name} "
+                f"(release sheets: {have})"
+            )
+
+        ws = wb[target]
+        it = ws.iter_rows(values_only=True)
+        header = next(it, None)
+        if not header:
+            raise DictionaryError(f"sheet {target!r} is empty")
+        cols = {str(h).strip(): i for i, h in enumerate(header) if h}
+        if "name" not in cols:
+            raise DictionaryError(
+                f"sheet {target!r} has no `name` column (saw: "
+                f"{', '.join(list(cols)[:10])})"
+            )
+        keep = {c: i for c, i in cols.items() if c in wanted}
+
+        rows: List[dict] = []
+        for n, raw in enumerate(it, 1):
+            name = raw[cols["name"]] if cols["name"] < len(raw) else None
+            if name is None or not str(name).strip():
+                continue
+            rec: Dict[str, Any] = {}
+            for col, idx in keep.items():
+                if idx < len(raw):
+                    val = raw[idx]
+                    if val not in (None, ""):
+                        rec[col] = val if isinstance(val, (str, int, float, bool)) \
+                            else str(val)
+            rows.append(_keep(rec))
+            if progress and n % 20000 == 0:
+                print(f"  {target}: {n} rows…", file=sys.stderr)
+    finally:
+        wb.close()
+
+    if not rows:
+        raise DictionaryError(f"sheet {target!r} produced no variables")
+    return rows, {
+        "source": str(path),
+        "source_sha256": _sha256_file(path),
+        "source_sheet": target,
+        "source_format": "xlsx_variable_catalog",
+        "nbdctools_data_releases_available": None,
+    }
+
+
 def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
                    from_csv: Optional[Path] = None, from_rds: Optional[Path] = None,
+                   from_xlsx: Optional[Path] = None, sheet: Optional[str] = None,
                    progress: bool = False) -> Path:
     """Write one study+release snapshot and return its path."""
     study = study.lower().strip()
     if study not in ("abcd", "hbcd"):
         raise DictionaryError(f"study must be 'abcd' or 'hbcd', got {study!r}")
 
-    if from_csv is not None:
+    if from_xlsx is not None:
+        rows, prov = _rows_from_xlsx(Path(from_xlsx), study, release, sheet=sheet,
+                                     progress=progress)
+        resolved = release
+    elif from_csv is not None:
         rows, prov = _rows_from_csv(Path(from_csv))
         resolved = release
     else:
@@ -366,7 +509,8 @@ def build_snapshot(study: str, release: str, *, out_dir: Path = DEFAULT_DIR,
         "columns": sorted({k for r in rows for k in r}),
         "provenance": {
             "retrieved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "method": "csv_export" if from_csv else "nbdctools",
+            "method": ("xlsx_catalog" if from_xlsx
+                       else "csv_export" if from_csv else "nbdctools"),
             "tool_version": _nbdctools_version(),
             **docs_note,
             **prov,
@@ -471,6 +615,11 @@ class Match:
             "nda_or_nbdc_table": canonical_field(self.row, "nda_or_nbdc_table"),
             "nbdc_domain": canonical_field(self.row, "nbdc_domain"),
             "nbdc_sub_domain": canonical_field(self.row, "nbdc_sub_domain"),
+            "nbdc_table": self.row.get("table_name"),
+            "table_label": self.row.get("table_label"),
+            "name_nda": self.row.get("name_nda"),
+            "name_deap": self.row.get("name_deap"),
+            "url_table": self.row.get("url_table"),
         }
 
 
@@ -503,6 +652,15 @@ class Dictionary:
                 self._by_name.setdefault(norm_name(name), []).append(
                     Match(name, study, rel, "exact_name", 1.0, row)
                 )
+                # Alternate namings (NDA element name, DEAP name, REDCap, short,
+                # Stata). A paper citing any of them is citing this variable, and
+                # the match method records which naming it used.
+                for col, method in NAME_ALIAS_COLUMNS.items():
+                    alt = str(row.get(col) or "").strip()
+                    if alt and norm_name(alt) != norm_name(name):
+                        self._by_name.setdefault(norm_name(alt), []).append(
+                            Match(name, study, rel, method, 0.98, row)
+                        )
                 for col in ("label", "description"):
                     txt = norm_text(str(row.get(col) or ""))
                     if len(txt) >= 8:
@@ -634,7 +792,13 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                    help="release id (e.g. 6.1) or 'latest'")
     b.add_argument("--all-releases", action="store_true",
                    help="snapshot every release the bundle offers")
-    b.add_argument("--from-csv", type=Path, help="build from your own CSV export")
+    b.add_argument("--from-csv", type=Path, help="build from your own CSV/TSV export")
+    b.add_argument("--from-xlsx", type=Path,
+                   help="build from an NBDC variable catalog workbook "
+                        "(NBDC_variable_catalog_full.xlsx)")
+    b.add_argument("--sheet", help="explicit sheet name in the workbook")
+    b.add_argument("--all-sheets", action="store_true",
+                   help="with --from-xlsx: build every release sheet in the workbook")
     b.add_argument("--from-rds", type=Path, help="use an already-downloaded lst_dds.rds")
     b.add_argument("--dir", type=Path, default=DEFAULT_DIR)
     b.add_argument("--progress", action="store_true")
@@ -661,13 +825,27 @@ def _cli(argv: Optional[List[str]] = None) -> int:
 
     try:
         if a.cmd == "build":
+            if a.from_xlsx and a.all_sheets:
+                sheets = xlsx_sheets(Path(a.from_xlsx))
+                if not sheets:
+                    print(f"no release sheets found in {a.from_xlsx}", file=sys.stderr)
+                    return 1
+                for sheet_name, study, rel in sheets:
+                    out = build_snapshot(study, rel, out_dir=a.dir,
+                                         from_xlsx=a.from_xlsx, sheet=sheet_name,
+                                         progress=a.progress)
+                    snap = load_snapshot(out)
+                    print(f"wrote {out}  ({snap['variable_count']} variables)")
+                return 0
+
             targets = [a.release]
             if a.all_releases:
                 targets = available_releases(a.study, progress=a.progress)
                 print(f"releases: {', '.join(targets)}", file=sys.stderr)
             for rel in targets:
                 out = build_snapshot(a.study, rel, out_dir=a.dir, from_csv=a.from_csv,
-                                     from_rds=a.from_rds, progress=a.progress)
+                                     from_rds=a.from_rds, from_xlsx=a.from_xlsx,
+                                     sheet=a.sheet, progress=a.progress)
                 snap = load_snapshot(out)
                 print(f"wrote {out}  ({snap['variable_count']} variables)")
             return 0

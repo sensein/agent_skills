@@ -32,8 +32,11 @@ quote is not found**, recording the failure. So:
 
 A variable is a measured quantity the study analysed. Two forms count:
 
-- a **dictionary name** the paper prints: `nihtbx_flanker_uncorrected`,
-  `cbcl_scr_syn_internal_r`, `smri_vol_cdk_banksstslh`
+- a **dictionary name** the paper prints, in whatever naming the study used —
+  NBDC 6.x (`nc_y_nihtb__flnkr__uncor_score`), NDA/5.x-era
+  (`nihtbx_flanker_uncorrected`), DEAP (`neurocog_2_flanker`), or REDCap. Copy it
+  exactly as printed; the pipeline resolves all of these namings to the same
+  variable, so you never need to translate between them.
 - a **named measure** the paper describes without an id: "NIH Toolbox Flanker
   uncorrected standard score", "CBCL Internalizing raw score"
 

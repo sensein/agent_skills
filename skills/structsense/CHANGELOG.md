@@ -37,7 +37,16 @@ the Cognitive Atlas are used to verify and join, never to enumerate.
   `schemas/abcd-synthesis.schema.json`, `references/abcd-extraction.md`, and
   SKILL.md hard rule 16.
 
-Dictionary imports accept a DEAP variable export or an NDA data-dictionary
+The preferred dictionary source is the NBDC variable catalog workbook
+(`--from-xlsx`, `--all-sheets`): one sheet per study+release, ~83-96k variables
+each, read with openpyxl. It carries the alternate namings, which is what makes the
+mode work on real papers — ABCD 6.x renamed variables wholesale, so
+`nihtbx_flanker_uncorrected` from a 2022 paper appears nowhere in 6.1's `name`
+column but resolves through `name_nda` to `nc_y_nihtb__flnkr__uncor_score`. NDA,
+DEAP, REDCap, short and Stata names are all indexed, and the match method records
+which naming the paper used.
+
+Dictionary imports also accept a DEAP variable export or an NDA data-dictionary
 download as-is (CSV or TSV, BOM tolerated, headers matched across the spellings
 those sources use), recording the header translation in provenance. DEAP's own API
 is behind NDA login and is not scraped. ABCD release ids are cross-checked against

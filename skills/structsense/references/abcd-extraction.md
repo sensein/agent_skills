@@ -120,7 +120,55 @@ becomes the only record.
 
 ## Where the variable list comes from
 
-`NBDCtools` keeps the ABCD/HBCD data dictionary in a companion R data package
+**Best source: the NBDC variable catalog workbook** (`NBDC_variable_catalog_full.xlsx`,
+downloadable from the NBDC Data Hub). One sheet per study+release — ABCD 6.0 / 6.1 /
+7.0, HBCD 1.0 / 1.1 / 2.0 — with ~83–96k variables each and, crucially, the
+alternate namings.
+
+```bash
+pip install openpyxl
+# one release
+python -m scripts.abcd_dictionary build --study abcd --release 6.1 \
+    --from-xlsx ~/Downloads/NBDC_variable_catalog_full.xlsx
+# every release sheet in the workbook, in one pass
+python -m scripts.abcd_dictionary build --from-xlsx ~/Downloads/NBDC_variable_catalog_full.xlsx --all-sheets
+```
+
+Sheet names are parsed for study and release, so `--all-sheets` produces six
+snapshots. Each is ~36 MB of JSON for an ABCD release and loads in under a second.
+
+### Why the alternate namings matter more than anything else here
+
+**ABCD 6.x renamed variables wholesale.** The Flanker administration variable is
+`nc_y_flnkr_adm___1` in the 6.1 dictionary, but it is `neurocog_2_flanker___1` in
+NDA and `neurocog_2_flanker` in DEAP. A 2022 paper cites the 5.x/NDA name
+`nihtbx_flanker_uncorrected`, which appears **nowhere** in the 6.1 `name` column.
+
+So the catalog's `name_nda`, `name_deap`, `name_redcap`, `name_short` and
+`name_stata` columns are all indexed as ways in, and the match method records which
+naming the paper used:
+
+```
+nc_y_flnkr_adm___1          -> nc_y_flnkr_adm___1              via exact_name
+neurocog_2_flanker___1      -> nc_y_flnkr_adm___1              via nda_name
+neurocog_2_flanker          -> nc_y_flnkr_adm___1              via deap_name
+nihtbx_flanker_uncorrected  -> nc_y_nihtb__flnkr__uncor_score  via nda_name
+bogus_variable_xyz          -> UNVERIFIED
+```
+
+Without this, virtually every pre-6.0 paper would report `unverified_variable` for
+variables that are perfectly real. `nda_or_nbdc_table` comes from the catalog's
+`table_nda` (`abcd_tbss01`) and `nbdc_table` keeps the NBDC table (`nc_y_nihtb`), so
+both namings survive into the output.
+
+Note the workbook covers 6.0 and later. A paper analysing release 4.0 or 5.1 needs a
+dictionary for that release (via `nbdctools`, or a CSV export) — matching a 5.x name
+through the 6.x `name_nda` column often works, but the release you verified against
+is recorded in provenance either way, so the reader can judge.
+
+### Alternative: NBDCtools
+
+`NBDCtools` keeps the same dictionary in a companion R data package
 (`NBDCtoolsData`, dataset `lst_dds`), keyed by study → release. `nbdctools` on
 PyPI downloads and reads it **without R**.
 
