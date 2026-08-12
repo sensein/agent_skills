@@ -366,7 +366,7 @@ async def run(args: argparse.Namespace) -> int:
         review_id=protocol.review_id,
         model_name=args.model,
         pipeline_kwargs={
-            "entrypoint": "synthscholar-skills/run_local_review.py",
+            "entrypoint": "synthscholar/run_local_review.py",
             "corpus_provenance": "user_supplied_pdfs",
             "corpus_size": len(articles),
             "corpus_full_text_count": n_ft,
