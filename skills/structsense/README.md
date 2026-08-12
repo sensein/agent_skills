@@ -1,8 +1,10 @@
 # StructSense Skills
 
-**Current version: 0.3.1** (see [CHANGELOG.md](CHANGELOG.md)).
+**Current version: 0.5.0** (see [CHANGELOG.md](CHANGELOG.md)).
 
 A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with optional ontology mapping (BioPortal / OLS / local hybrid), quality scoring, and human-in-the-loop review.
+
+Since 0.5.0 it also does **ABCD / HBCD extraction and cross-paper synthesis** — which variables a study used (resolved against the NBDC data dictionary, with `nda_or_nbdc_table` and `nbdc_domain`), the constructs behind them (Cognitive Atlas), the models specified, and the findings reported — under strict quote-level verification, for one PDF or a whole corpus. See [ABCD / HBCD extraction](#abcd--hbcd-extraction).
 
 Works with any LLM — Claude, GPT, Gemini, Pi, local Ollama / vLLM. The skill ships system prompts, JSON Schemas, and pure-Python helper scripts, and does not depend on the `structsense` library.
 
@@ -33,11 +35,13 @@ structsense/
 │   ├── chunking-strategy.md
 │   ├── json-output-discipline.md
 │   ├── model-selection.md
-│   └── human-feedback.md
+│   ├── human-feedback.md
+│   └── abcd-extraction.md                 ← ABCD/HBCD mode: verification, provenance, synthesis
 ├── prompts/                 ← copy-paste-ready system + user prompts
 │   ├── extractor-ner-general.md           ← Person / Org / Location / Product / Event / …
 │   ├── extractor-ner-neuroscience.md      ← BrainRegion / Gene / Protein / Drug / Method / …
 │   ├── extractor-ner-cns-cells.md         ← CellType / CellSubtype / LineageMarker / Ephys / …
+│   ├── extractor-abcd.md                  ← ABCD/HBCD variables / constructs / models / findings
 │   ├── mask-recall-pass.md                ← pass-2: catch mentions pass-1 missed
 │   ├── mask-verify-pass.md                ← per-item cloze label check
 │   ├── extractor-resource.md              ← Model / Dataset / Tool / Benchmark / …
@@ -49,7 +53,9 @@ structsense/
 │   ├── ner-output.schema.json
 │   ├── resource-output.schema.json
 │   ├── aligned-item.schema.json
-│   └── judged-item.schema.json
+│   ├── judged-item.schema.json
+│   ├── abcd-paper.schema.json             ← ABCD per-paper result (+ rejected[], verification)
+│   └── abcd-synthesis.schema.json         ← cross-paper consensus / divergence / roles
 ├── scripts/                 ← pure-Python runnable helpers
 │   ├── chunking.py
 │   ├── json_repair.py
@@ -73,8 +79,24 @@ structsense/
 │   │                          from a free-text description. Heuristic + LLM.
 │   ├── model_context.py     ← model context-window registry + downstream
 │   │                          chunk-size math.
-│   └── pipeline.py          ← reference driver: ensemble + LLM extract → mask-recall →
-│                              align (cascade) → judge → normalize → group → stats
+│   ├── pipeline.py          ← reference driver: ensemble + LLM extract → mask-recall →
+│   │                          align (cascade) → judge → normalize → group → stats
+│   ├── abcd_dictionary.py   ← ABCD/HBCD dictionary: build release snapshots (bundled
+│   │                          workbook / NDA API / CSV), resolve a mention across
+│   │                          releases and namings. CLI: build/info/lookup/releases
+│   ├── cognitive_atlas.py   ← Cognitive Atlas concepts + tasks, cached; tool-only
+│   ├── abcd_verify.py       ← the verifier: anchor every quote in the paper, gate
+│   │                          variables on the dictionary, constructs on the Atlas
+│   ├── abcd_inputs.py       ← input resolver: PDF / directory / DOI table / DOI,
+│   │                          fetching open-access PDFs (no paywall, no proxy)
+│   ├── abcd_extract.py      ← driver: one argument, auto-detected. --prepare/--payload
+│   │                          when you are the model; --llm-model when a framework calls
+│   ├── abcd_synthesize.py   ← cross-paper consensus/divergence + role consistency
+│   └── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
+├── data/
+│   └── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
+│                              539,781 variables in 8.6 MB gzipped (self-contained)
+├── requirements.txt         ← core deps; -llm / -ner / -dev for the optional paths
 └── examples/                ← worked end-to-end examples
     ├── ner-example.md
     ├── resource-example.md
@@ -282,6 +304,62 @@ Small local models often produce malformed JSON; pair them with `scripts/json_re
 
 ---
 
+## ABCD / HBCD extraction
+
+Extracts what an ABCD or HBCD study **used** (variables, constructs, models) and
+**found** (findings with direction and role) from the publication itself, then
+compares across papers: where constructs reach consensus, where they diverge, and
+whether particular variables are consistently mediators or moderators.
+
+The paper is the only source of what a study used. The data dictionary and the
+Cognitive Atlas verify and join; neither is enumerated into the output.
+
+```bash
+pip install -r requirements.txt
+
+# one argument, auto-detected: a PDF, a directory, a CSV/TSV/XLSX of DOIs, or a DOI
+python -m scripts.abcd_extract paper.pdf --prepare          # you are the model
+python -m scripts.abcd_extract paper.pdf --payload paper.payload.json
+python -m scripts.abcd_extract ./papers --llm-model MODEL   # a framework calls an API
+```
+
+Every run writes `<stem>_abcd.json`, `.md` (tables) and `.ttl` (PROV-O triples). More
+than one paper also produces `abcd_synthesis.{json,md,ttl}`.
+
+**Dictionaries ship with the skill** — `data/dictionaries/` holds all seven releases
+(ABCD `nda-legacy` for 4.x/5.x, `6.0`, `6.1`, `7.0`; HBCD `1.0`, `1.1`, `2.0`),
+539,781 variables in 8.6 MB gzipped. No workbook, no network, no R:
+
+```bash
+python -m scripts.abcd_dictionary info
+python -m scripts.abcd_dictionary lookup nihtbx_flanker_uncorrected
+```
+
+That lookup matters: ABCD 6.x renamed variables wholesale, so a 2021 paper's
+`nihtbx_flanker_uncorrected` is `nc_y_nihtb__flnkr__uncor_score` in 6.1. The
+catalog's NDA / DEAP / short / Stata names are all indexed, and the match method
+records which naming the paper used, so a name resolves across every era.
+
+Three things are non-negotiable in this mode, because they are what make the output
+trustworthy — full detail in [`references/abcd-extraction.md`](references/abcd-extraction.md):
+
+1. **Strict verification.** Every item carries a verbatim quote (≥25 chars) that must
+   be findable in *that* paper; failures land in `rejected[]` with a reason instead of
+   vanishing. A variable name must appear literally in its quote; a construct need not
+   (it is a reading of the prose) and `label_in_quote` records which case it was.
+2. **Complete provenance**, including position: `section`, `page`, char offsets into
+   the original text, `used_context` (the surrounding sentences), plus every
+   dictionary snapshot consulted and the Atlas vocabulary versions.
+3. **Single or bulk, same guarantees.** One failing paper does not abort a corpus, and
+   per-paper evidence stays inspectable — the synthesis is never the only record.
+
+Synthesis counts **by paper, not by finding**, so one verbose paper cannot outvote
+several others; `divergent` means opposing signs, not differing magnitudes; and a
+contested mediator/moderator role is reported as contested rather than resolved by
+majority.
+
+---
+
 ## Running the reference pipeline end-to-end
 
 `scripts/pipeline.py` wires together: (optional) HF NER ensemble + LLM extraction → mask-recall → ontology-mapping cascade → judging → grouping → stats. Standalone, no framework:
@@ -374,7 +452,20 @@ See `examples/ner-example.md`, `examples/resource-example.md`, and `examples/rep
 
 ## Helper-script dependencies
 
-Pure-Python deps, install only what you use:
+Declared in requirements files, split by who needs them:
+
+```bash
+pip install -r requirements.txt          # core: HTTP, JSON repair + validation, PDF, xlsx
+pip install -r requirements-llm.txt      # provider SDKs — only when a framework calls an API
+pip install -r requirements-ner.txt      # HuggingFace NER ensemble (heavy: torch)
+pip install -r requirements-dev.txt      # rdflib/pandas, for validating output while developing
+```
+
+`requirements.txt` alone runs every mode with the calling agent as the model,
+including ABCD/HBCD. A missing PDF backend is the most common first-run failure
+("all PDF extractors failed"), and it is in that file.
+
+What each piece is for, if you prefer installing by hand:
 
 ```bash
 # Always useful
@@ -385,6 +476,12 @@ pip install json-repair
 
 # For repair_to_schema()
 pip install jsonschema
+
+# PDF text extraction — input_loader tries GROBID -> PyMuPDF -> pdfminer.six
+pip install pymupdf pdfminer.six
+
+# Excel: the NBDC variable catalog workbook, and .xlsx DOI lists
+pip install openpyxl
 
 # For llm_client.py — install whichever providers you actually use
 pip install openai                # OpenAI / OpenRouter / vLLM
@@ -417,6 +514,7 @@ None of the scripts depend on `structsense` or `crewai` — they're standalone.
 10. **Mapping cascade:** local hybrid (`http://localhost:8000`, verify at `/docs`) → BioPortal → **ask the user** for an alternative URL → skip alignment only if they decline. Don't hardcode the URL.
 11. **Document metadata at top, not per entity.** `paper_title` / `doi` / `source_path` go ONCE in `source_metadata`. `paper_location` stays per-entity because it varies.
 12. **Always emit both `entities[]` (raw) and `entities_grouped[]` (per-entity index).** The raw list is one-per-occurrence; the grouped list collapses by canonical (entity, label) with merged sentences + every contributing `source_model`.
+13. **ABCD/HBCD mode: verification is the feature.** The paper is the only source of what a study used; a quote must be findable in that paper or the item is rejected with a reason; a string is only called a variable when a real dictionary release contains it; construct ids come from a Cognitive Atlas lookup, never from the model; and provenance records where in the paper each claim came from. See rule 16 in `SKILL.md`.
 
 ---
 

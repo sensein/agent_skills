@@ -26,6 +26,14 @@ requests>=2.31,<3
 # --- Output validation against schemas/*.json ---
 jsonschema>=4.20,<5
 
+# --- JSON repair, tier 3 -----------------------------------------------------
+# scripts/json_repair.py has four tiers; tier 3 delegates to this library for
+# trailing commas, single quotes and unquoted keys — the failure modes small models
+# hit most. Without it that tier is skipped and more responses fall through to
+# truncate-to-balanced. Note the import name (json_repair) matches the local script
+# of the same name; the PyPI distribution is json-repair.
+json-repair>=0.30,<1
+
 # --- PDF text extraction -----------------------------------------------------
 # input_loader tries GROBID -> PyMuPDF -> pdfminer.six and uses whichever is
 # present. PyMuPDF alone is enough and is by far the fastest; pdfminer.six is a
@@ -47,6 +55,12 @@ openpyxl>=3.1,<4
 # catalog workbook and the NDA API cover releases 6.0+ and 4.x/5.x respectively
 # with no extra dependency. Uncomment if you want that path.
 # nbdctools>=0.1,<1
+
+# --- Sentence-aligned chunking (optional) -----------------------------------
+# chunking.py uses spaCy sentence boundaries when available and falls back to a
+# regex splitter otherwise. Worth it for long documents where a chunk boundary
+# mid-sentence would split a quote.
+# spacy>=3.7,<4     # then: python -m spacy download en_core_web_sm
 
 # --- CSV round-tripping (optional) ------------------------------------------
 # input_loader re-serialises CSV input through pandas when available, and falls
