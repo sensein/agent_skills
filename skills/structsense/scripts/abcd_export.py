@@ -15,6 +15,15 @@ in SPARQL rather than by re-reading the PDF.
 """
 from __future__ import annotations
 
+# Run either way: `python -m scripts.<mod>` from the skill directory, or
+# `python /abs/path/to/scripts/<mod>.py` from anywhere. Without this, running the
+# file directly fails with ModuleNotFoundError: scripts — which forces callers to
+# cd into the skill first, for no reason.
+if __package__ in (None, ""):  # executed as a file, not as part of the package
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+
 import json
 import re
 from pathlib import Path
