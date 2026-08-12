@@ -5,8 +5,10 @@ Run this first, every time. It walks the chain of preconditions in dependency
 order and stops at the first broken link, because a later check cannot be
 meaningfully interpreted while an earlier one is failing.
 
-    python3 orcd_doctor.py            # diagnose
-    python3 orcd_doctor.py --fix      # also write ~/.ssh/config and open the master
+    python3 orcd_doctor.py                  # diagnose
+    python3 orcd_doctor.py --fix            # also write ~/.ssh/config and open the master
+    python3 orcd_doctor.py --sandbox-setup  # sandbox with internet: mint a key and
+                                            # print the command that authorizes it
 
 Exit status is 0 when the cluster is reachable and 1 otherwise, so callers can
 gate on it.
@@ -19,6 +21,7 @@ import re
 import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import orcd_common as oc
@@ -135,6 +138,128 @@ def print_key_instructions(identity: Path | None, user: str, hostname: str) -> N
         f"Leave the browser session signed in for that first SSH. The Duo device\n"
         f"trust it establishes is what lets SSH finish without prompting you.\n"
     )
+    print(
+        "NOTE if this session runs in a cloud or remote agent environment (Claude\n"
+        "Code on the web, a CI runner, a devcontainer) rather than on your own\n"
+        "machine: the key pair above lives in that environment, and installing its\n"
+        "public key gives that environment SSH access to your ORCD account. Get the\n"
+        "account owner's explicit OK first, use a dedicated key with an identifying\n"
+        "comment (e.g. ssh-keygen -C \"agent-cloud-$(date +%Y%m%d)\") so it is easy\n"
+        "to spot, and remove that line from ~/.ssh/authorized_keys on ORCD when the\n"
+        "environment is retired. Cloud containers are usually ephemeral: the private\n"
+        "key may vanish when the session ends. That is normal -- generate and install\n"
+        "a fresh key next time instead of copying private keys out of the container.\n"
+        "If this environment has SSH egress, `python3 orcd_doctor.py --sandbox-setup`\n"
+        "does the client side: it mints a dedicated key and prints the exact command\n"
+        "for the account owner to authorize it.\n"
+    )
+
+
+def egress_blocked_message(hostname: str) -> None:
+    oc.heading("SSH egress is blocked")
+    print(
+        f"`{hostname}` resolves, but nothing answers on port 22 -- the\n"
+        "network between this machine and ORCD is dropping SSH. Keys and Duo\n"
+        "are not the problem, and installing a key will not help from here.\n"
+        "Common causes:\n\n"
+        "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
+        "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
+        "    environment's network policy, or drive ORCD from a machine with\n"
+        "    direct SSH access instead. Tunneling through the environment's\n"
+        "    HTTPS proxy usually fails the same way: the proxy may answer 200\n"
+        "    to CONNECT host:22 yet never deliver an SSH banner, because the\n"
+        "    policy is enforced on the proxy's upstream connection.\n"
+        "  - A restrictive campus or corporate network; try the MIT VPN.\n"
+    )
+
+
+def sandbox_setup(user: str, hostname: str) -> int:
+    """Prepare a sandbox that has internet access to reach ORCD.
+
+    Verifies SSH egress first (no point minting a key the network can never
+    present), ensures a dedicated identifiable key exists in this environment,
+    and prints the exact command the ACCOUNT OWNER runs on ORCD to authorize
+    it -- plus the command that revokes it later. Adding the key is the
+    owner's action, never the agent's: handing over the command is the
+    authorization step.
+    """
+    if not oc.ssh_available():
+        print("no `ssh` on PATH; install OpenSSH first (e.g. apt-get install openssh-client)",
+              file=sys.stderr)
+        return 1
+    try:
+        socket.getaddrinfo(hostname, 22)
+    except socket.gaierror as exc:
+        print(f"{hostname} does not resolve: {exc.strerror or exc}", file=sys.stderr)
+        return 1
+    try:
+        socket.create_connection((hostname, 22), timeout=10).close()
+    except OSError:
+        egress_blocked_message(hostname)
+        blocked_key, _ = find_identity()
+        if blocked_key is not None:
+            print(
+                "If you still want to pre-authorize this environment anyway, its public\n"
+                f"key is at {blocked_key}.pub -- but note that a future sandbox will carry\n"
+                "a different key, so this only helps if THIS session later gains egress.\n"
+            )
+        return 1
+
+    identity, _ = find_identity()
+    created = False
+    if identity is None:
+        SSH_DIR.mkdir(mode=0o700, exist_ok=True)
+        identity = SSH_DIR / "id_ed25519"
+        comment = f"orcd-sandbox-{user or 'agent'}-{time.strftime('%Y%m%d')}"
+        proc = subprocess.run(
+            ["ssh-keygen", "-t", "ed25519", "-N", "", "-C", comment, "-f", str(identity), "-q"],
+            capture_output=True, text=True,
+        )
+        if proc.returncode != 0:
+            print(f"ssh-keygen failed: {(proc.stderr or '').strip()}", file=sys.stderr)
+            return 1
+        created = True
+
+    pub_path = Path(f"{identity}.pub")
+    if not pub_path.is_file():
+        print(f"{identity} has no matching {pub_path}; regenerate the key pair", file=sys.stderr)
+        return 1
+    pubkey = pub_path.read_text().strip()
+    if "'" in pubkey or "\n" in pubkey:
+        print(f"{pub_path} does not look like a single-line public key; append it manually",
+              file=sys.stderr)
+        return 1
+
+    oc.heading("Authorize this sandbox on ORCD")
+    origin = "newly generated for this sandbox, no passphrase (headless environment)" \
+        if created else "already present in this environment"
+    print(
+        f"Port 22 to {hostname} is reachable from here, so this sandbox can\n"
+        "connect once its key is authorized. The key pair lives in this sandbox\n"
+        f"and is {origin}.\n\n"
+        "ACCOUNT OWNER: if you approve this environment having access to your\n"
+        "ORCD account, run this in an ORCD shell (portal: "
+        f"{oc.OOD_URL}\n"
+        "-> Clusters -> Shell Access, or any existing SSH session):\n\n"
+        f"    mkdir -p ~/.ssh && chmod 700 ~/.ssh && printf '%s\\n' '{pubkey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\n"
+    )
+    parts = pubkey.split()
+    tag = parts[2] if len(parts) >= 3 else ""
+    if re.fullmatch(r"[A-Za-z0-9@._-]+", tag or ""):
+        print(
+            "When this sandbox is retired, revoke its access with:\n\n"
+            f"    sed -i '/{tag}/d' ~/.ssh/authorized_keys\n"
+        )
+    else:
+        print("When this sandbox is retired, delete this key's line from ~/.ssh/authorized_keys.\n")
+    print(
+        "After the key is added, verify and write the ssh config from here:\n\n"
+        f"    python3 orcd_doctor.py --fix --user {user or '<username>'}\n\n"
+        "Sandbox containers are usually ephemeral: the private key vanishes with\n"
+        "the container. That is fine -- mint and authorize a fresh key next time,\n"
+        "and never copy a private key out of the sandbox."
+    )
+    return 0
 
 
 def main() -> int:
@@ -144,7 +269,14 @@ def main() -> int:
     ap.add_argument("--user", default=os.environ.get("ORCD_USER") or os.environ.get("USER", ""),
                     help="your MIT/ORCD username (default: local $USER)")
     ap.add_argument("--fix", action="store_true", help="write ~/.ssh/config and open the master connection")
+    ap.add_argument("--sandbox-setup", action="store_true",
+                    help="sandbox with internet access: verify egress, mint a dedicated key "
+                         "if none exists, and print the command the account owner runs on "
+                         "ORCD to authorize this environment")
     args = ap.parse_args()
+
+    if args.sandbox_setup:
+        return sandbox_setup(args.user, args.hostname)
 
     rep = Report()
     failure_detail = ""
@@ -192,6 +324,20 @@ def main() -> int:
         resolves = False
         rep.add(BAD, "hostname resolves", f"{args.hostname}: {exc.strerror or exc}")
 
+    # 4b. TCP to port 22, probed before any ssh attempt. Cloud agent
+    # environments and locked-down networks often allow only HTTPS egress and
+    # silently drop SSH; without this probe the eventual ssh failure is
+    # indistinguishable from an auth problem and sends people chasing keys
+    # and Duo that were never broken.
+    port_blocked = False
+    if resolves:
+        try:
+            socket.create_connection((args.hostname, 22), timeout=10).close()
+            rep.add(OK, "tcp port 22", "reachable")
+        except OSError as exc:
+            port_blocked = True
+            rep.add(BAD, "tcp port 22", f"cannot connect: {exc.strerror or exc}")
+
     # 5. Reachability. This is the check that actually matters.
     reachable = False
     if identity is None:
@@ -199,6 +345,9 @@ def main() -> int:
     elif not resolves:
         rep.add(BAD, "login node reachable", "skipped: hostname does not resolve")
         failure_detail = "could not resolve"
+    elif port_blocked:
+        rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
+        failure_detail = "port 22 blocked"
     else:
         target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
@@ -221,7 +370,9 @@ def main() -> int:
                 'echo "@@WHO"; hostname -s; whoami\n'
                 'echo "@@SLURM"; command -v sinfo >/dev/null && sinfo --version || echo MISSING\n'
                 'echo "@@ASSOC"; sacctmgr -nP show assoc user=$USER format=Account,QOS 2>/dev/null | head -5\n'
-                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n',
+                'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n'
+                'echo "@@UV"; if [ -x "$HOME/.local/bin/uv" ]; then "$HOME/.local/bin/uv" --version 2>/dev/null; '
+                'elif command -v uv >/dev/null 2>&1; then uv --version 2>/dev/null; else echo MISSING; fi\n',
                 host=target,
                 timeout=60,
             )
@@ -251,6 +402,14 @@ def main() -> int:
                 rep.add(OK, "storage groups", f"{ngroups[0]} orcd_rg_* group memberships")
             else:
                 rep.add(WARN, "storage groups", "no orcd_rg_* groups; only $HOME will be writable")
+            uv = [l for l in blocks.get("UV", []) if l.strip()]
+            if uv and uv[0] != "MISSING":
+                rep.add(OK, "uv (cluster $HOME)", uv[0])
+            else:
+                rep.add(
+                    WARN, "uv (cluster $HOME)",
+                    "not installed; `python3 orcd_uv.py --install` (never edits shell profiles)",
+                )
 
     rep.render()
 
@@ -259,7 +418,11 @@ def main() -> int:
         unreachable = any(r[1] == "login node reachable" and r[0] == MARK[BAD] for r in rep.rows)
         user = args.user or "<your-username>"
 
-        if needs_key:
+        if port_blocked:
+            # Checked before the missing-key case on purpose: installing a key
+            # cannot help until packets can reach the login node at all.
+            egress_blocked_message(args.hostname)
+        elif needs_key:
             print_key_instructions(identity, user, args.hostname)
         elif unreachable:
             # A local key exists, so lead with the cause the error points at

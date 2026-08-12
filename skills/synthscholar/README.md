@@ -1,4 +1,4 @@
-# synthscholar-skills
+# synthscholar
 
 An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
 for setting up, running, and querying SynthScholar systematic reviews. Three
@@ -44,7 +44,7 @@ PDFs, OCR scanned documents, or store any credential.
 ## Layout
 
 ```
-synthscholar-skills/
+synthscholar/
 ├── SKILL.md                     # skill entry point (all modes, interaction pattern)
 ├── references/
 │   ├── protocol_intake.md       # complete ReviewProtocol field catalog (intake)
@@ -184,7 +184,7 @@ run) is host-agnostic.
 Copy or symlink this directory into a skills path Claude Code discovers, e.g.:
 
 ```bash
-ln -s "$PWD/synthscholar-skills" ~/.claude/skills/synthscholar-skills
+ln -s "$PWD/synthscholar" ~/.claude/skills/synthscholar
 ```
 
 Then invoke it by asking to set up / scope a review, or about included
