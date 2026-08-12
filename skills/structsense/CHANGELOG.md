@@ -25,8 +25,12 @@ without saying which paper measured what, with which instrument, in which releas
   and the handful of documented naming differences where a paper and the dictionary
   share no content word at all (axial/longitudinal diffusivity,
   connectivity/correlation, surface/cortical area).
+- The instrument scope is dropped and the match rescored when scoping excludes every
+  candidate — an instrument read out of the surrounding sentence is a guess, and one
+  wrong guess ("functional MRI", from a paragraph that also described cortical
+  thickness) discarded all 136 correct candidates in the structural table.
 - Result on the sample corpus: variables carrying `nda_or_nbdc_table` went from 1/57
-  to 29/57.
+  to 32/57 (29 of 49 distinct variables in the synthesis).
 
 ### NDA element API (`scripts/abcd_nda_api.py`, new)
 
