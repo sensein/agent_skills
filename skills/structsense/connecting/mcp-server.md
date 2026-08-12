@@ -1,4 +1,4 @@
-# Connecting structsense-skills as an MCP server
+# Connecting structsense as an MCP server
 
 The Model Context Protocol (MCP) lets you expose `scripts/pipeline.py` as a tool callable from any MCP-aware client: Claude Code, ChatGPT desktop, the Anthropic SDK, the OpenAI Agents SDK, Cursor, and others. This guide shows the simplest setup.
 
@@ -24,7 +24,7 @@ pip install transformers torch
 Create `connecting/mcp_server.py` (referenced here; not included so you can adapt freely):
 
 ```python
-"""Minimal MCP server exposing the structsense-skills pipeline.
+"""Minimal MCP server exposing the structsense pipeline.
 
 Run with:
     python connecting/mcp_server.py
@@ -42,7 +42,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 import json
 
-server = Server("structsense-skills")
+server = Server("structsense")
 
 
 @server.list_tools()
@@ -51,7 +51,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="extract_ner",
             description=("Extract named entities and key terms from a passage "
-                         "using the structsense-skills pipeline. Returns a "
+                         "using the structsense pipeline. Returns a "
                          "result with source_metadata at top level, "
                          "entities[] (one per occurrence), entities_grouped[] "
                          "(per-entity index), and stats."),
@@ -74,7 +74,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="normalize_result",
-            description="Normalize a legacy structsense-skills result JSON to "
+            description="Normalize a legacy structsense result JSON to "
                         "the canonical 0.3.0 shape. Idempotent.",
             inputSchema={
                 "type": "object",
@@ -139,9 +139,9 @@ Add to your Claude Code MCP config (`~/.claude/mcp.json` or your project's `.cla
 ```json
 {
   "mcpServers": {
-    "structsense-skills": {
+    "structsense": {
       "command": "python",
-      "args": ["/abs/path/to/structsense-skills/connecting/mcp_server.py"],
+      "args": ["/abs/path/to/structsense/connecting/mcp_server.py"],
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
         "ANTHROPIC_API_KEY":  "${ANTHROPIC_API_KEY}",
@@ -167,7 +167,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from pipeline import run
 
-app = FastAPI(title="structsense-skills", version="0.3.0")
+app = FastAPI(title="structsense", version="0.3.0")
 
 
 class ExtractReq(BaseModel):
@@ -242,8 +242,8 @@ From Claude Code, after restarting:
 
 > "list MCP tools"
 
-You should see `structsense-skills/extract_ner` and `structsense-skills/normalize_result`.
+You should see `structsense/extract_ner` and `structsense/normalize_result`.
 
-> "use the structsense-skills extract_ner tool on this text: [paste]"
+> "use the structsense extract_ner tool on this text: [paste]"
 
 The result should arrive as a single JSON blob with `source_metadata`, `entities`, `entities_grouped`, `stats`, etc.

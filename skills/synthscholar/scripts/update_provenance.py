@@ -118,7 +118,7 @@ def apply_provenance(result, provenance: dict, args: argparse.Namespace) -> list
     # Keep the run-configuration snapshot honest about the late edit.
     if changes and result.run_configuration is not None:
         result.run_configuration.pipeline_kwargs["provenance_updated_by"] = (
-            "synthscholar-skills/update_provenance.py"
+            "synthscholar/update_provenance.py"
         )
 
     return changes

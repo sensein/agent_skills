@@ -175,9 +175,9 @@ This is the kind of signal you act on: re-run with the **CNS-cells** variant and
 ## Running it end-to-end
 
 ```bash
-# from the repo containing structsense-skills/
+# from the repo containing structsense/
 export OPENROUTER_API_KEY=sk-or-v1-...
-python -m structsense-skills.scripts.pipeline \
+python -m structsense.scripts.pipeline \
     --task ner --input paper.txt \
     --extractor openrouter/anthropic/claude-sonnet-4-6 \
     --judge openrouter/openai/gpt-4o-mini \

@@ -1,18 +1,18 @@
-# Connecting structsense-skills to ChatGPT (Custom GPT)
+# Connecting structsense to ChatGPT (Custom GPT)
 
 OpenAI doesn't yet have a first-class "skills" concept the way Claude does, but a **Custom GPT** with the right Instructions + Knowledge files + (optionally) an Action gives you a comparable connection. This guide walks through it.
 
 ## What you'll build
 
 A Custom GPT that:
-- Knows the structsense-skills pattern (extract → align → judge → group) from its Instructions.
+- Knows the structsense pattern (extract → align → judge → group) from its Instructions.
 - Has the relevant prompt files + JSON Schemas as Knowledge files.
 - (Optional) Calls a hosted `pipeline.py` HTTP service via an Action when the user wants full end-to-end runs.
 
 ## 1. Create the GPT
 
 1. In ChatGPT, click "Create a GPT".
-2. Name it "**structsense-skills**" (or similar).
+2. Name it "**structsense**" (or similar).
 3. Set the description to the same text as the `description:` field in [SKILL.md](../SKILL.md). This is what users will see in the GPT picker.
 
 ## 2. Instructions
@@ -46,7 +46,7 @@ This nudges GPT to follow the same conventions the SKILL.md describes.
 
 ## 3. Knowledge files
 
-Upload the following from the `structsense-skills/` folder:
+Upload the following from the `structsense/` folder:
 
 | File | Why upload |
 |---|---|
@@ -85,7 +85,7 @@ If you have a server running `scripts/pipeline.py` as an HTTP service (FastAPI w
 ```yaml
 openapi: 3.0.0
 info:
-  title: structsense-skills pipeline
+  title: structsense pipeline
   version: 0.3.0
 servers:
   - url: https://your-server.example.com   # replace
@@ -93,7 +93,7 @@ paths:
   /extract:
     post:
       operationId: run_pipeline
-      summary: Run the full structsense-skills pipeline on a text input
+      summary: Run the full structsense pipeline on a text input
       requestBody:
         required: true
         content:
@@ -115,7 +115,7 @@ paths:
                 doi:             { type: string, nullable: true }
       responses:
         '200':
-          description: Pipeline result in the canonical structsense-skills shape.
+          description: Pipeline result in the canonical structsense shape.
           content:
             application/json:
               schema:

@@ -117,7 +117,7 @@ The judge scores **only the primary resource** under `"1"`, not the items inside
 ## Running it end-to-end
 
 ```bash
-python -m structsense-skills.scripts.pipeline \
+python -m structsense.scripts.pipeline \
     --task resource --input paper.txt \
     --extractor openrouter/anthropic/claude-sonnet-4-6 \
     --judge openrouter/openai/gpt-4o-mini \

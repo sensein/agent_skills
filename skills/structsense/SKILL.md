@@ -1,5 +1,5 @@
 ---
-name: structsense-skills
+name: structsense
 version: 0.4.0
 description: Extract structured information (named entities, key terms, resources like tools/datasets/models/benchmarks, or any target JSON schema) from unstructured text and PDFs using a model-agnostic multi-stage pipeline (extract → align to ontologies → judge → optional human feedback). Use this skill when the user asks to do NER, pull resources out of papers, convert documents to a target JSON schema (e.g. ReproSchema), or map terms to ontologies (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, etc.). Works with any LLM (Claude, GPT, Gemini, Pi, local Ollama/vLLM) — no library dependency.
 license: Apache-2.0

@@ -1,4 +1,4 @@
-# Connecting structsense-skills to Pi (pi.dev)
+# Connecting structsense to Pi (pi.dev)
 
 [Pi](https://pi.dev) is an open-source CLI coding agent by Earendil Inc. (Mario Zechner) — terminal-based, runs locally, no SaaS backend. It natively supports the **Agent Skills** standard (the same `SKILL.md` layout this repo uses) and has built-in `read`/`write`/`edit`/`bash` tools, so it can both discover the skill and run `scripts/pipeline.py` directly. In practice this is the same story as Claude Code: drop the folder in a directory Pi searches, and it loads.
 
@@ -38,14 +38,14 @@ Pick a scope:
 
 ```bash
 mkdir -p ~/.pi/agent/skills
-cp -r /path/to/structsense-skills ~/.pi/agent/skills/
+cp -r /path/to/structsense ~/.pi/agent/skills/
 ```
 
 Or, if you want the skill available to **both Pi and other Agent-Skills tools** from one copy, use the shared location instead:
 
 ```bash
 mkdir -p ~/.agents/skills
-cp -r /path/to/structsense-skills ~/.agents/skills/
+cp -r /path/to/structsense ~/.agents/skills/
 ```
 
 ### Per-project (versioned with the repo)
@@ -53,8 +53,8 @@ cp -r /path/to/structsense-skills ~/.agents/skills/
 ```bash
 cd /path/to/your/project
 mkdir -p .pi/skills
-cp -r /path/to/structsense-skills .pi/skills/
-git add .pi/skills/structsense-skills && git commit -m "Add structsense-skills"
+cp -r /path/to/structsense .pi/skills/
+git add .pi/skills/structsense && git commit -m "Add structsense"
 ```
 
 Project-scoped skills take precedence over user-global ones with the same name.
@@ -69,9 +69,9 @@ In a Pi session, list available skills (the exact command may vary by version �
 /skills
 ```
 
-You should see `structsense-skills` with its description. If you don't:
+You should see `structsense` with its description. If you don't:
 
-- The folder must be `structsense-skills/` with `SKILL.md` at its root (not nested in a subfolder).
+- The folder must be `structsense/` with `SKILL.md` at its root (not nested in a subfolder).
 - `SKILL.md` frontmatter MUST have both `name:` and `description:` (three dashes, key/value lines, three dashes).
 - Make sure it's in one of the search paths in §1 — a typo like `~/.pi/skills/` (missing `agent/`) won't be found.
 - If you added the skill while this Pi session was already open, run `/reload` (or restart Pi) — Pi only scans the search paths at startup, so newly copied skills aren't picked up until you reload.
@@ -81,7 +81,7 @@ You should see `structsense-skills` with its description. If you don't:
 Pi lets you invoke a skill explicitly by name:
 
 ```
-/skill:structsense-skills
+/skill:structsense
 ```
 
 …or implicitly, by describing the task and letting Pi pick it up:
@@ -93,7 +93,7 @@ Pi lets you invoke a skill explicitly by name:
 You can also point Pi at a file directly when launching:
 
 ```bash
-pi @paper.txt "Use structsense-skills to extract entities and write the result as paper_final.json."
+pi @paper.txt "Use structsense to extract entities and write the result as paper_final.json."
 ```
 
 ## 4. What Pi will do
@@ -161,7 +161,7 @@ If you want Pi to *always* follow certain conventions when this skill runs (e.g.
 ```markdown
 # Project conventions
 
-When using the structsense-skills skill:
+When using the structsense skill:
 - Default extractor: openrouter/anthropic/claude-sonnet-4-6; default judge: gpt-4o-mini.
 - Always emit the canonical shape (top-level source_metadata, entities[] one per
   occurrence, entities_grouped[], stats). Never put paper_title/doi on each entity.
@@ -186,16 +186,16 @@ Treat this as an ecosystem add-on, not core Pi behavior. For a single-machine wo
 When you pull a new version:
 
 ```bash
-cd ~/.pi/agent/skills/structsense-skills    # or .pi/skills/structsense-skills, or ~/.agents/skills/...
+cd ~/.pi/agent/skills/structsense    # or .pi/skills/structsense, or ~/.agents/skills/...
 git pull                                    # if it's a checkout
 # OR
-rm -rf structsense-skills/ && cp -r /path/to/new/structsense-skills .
+rm -rf structsense/ && cp -r /path/to/new/structsense .
 ```
 
 Check the version:
 
 ```bash
-head -5 ~/.pi/agent/skills/structsense-skills/SKILL.md   # look for version: 0.4.0 or higher
+head -5 ~/.pi/agent/skills/structsense/SKILL.md   # look for version: 0.4.0 or higher
 ```
 
 If you have output JSON from an older version, bring it up to the canonical shape (idempotent):
@@ -211,7 +211,7 @@ python -m scripts.normalize_result old_output.json --input paper.txt \
 |---|---|---|
 | Skill not listed | Wrong folder location or missing frontmatter | Confirm it's under a §1 search path; check `name:` + `description:` in `SKILL.md`. |
 | `/skills` not recognized | Command name differs by version | Run `/help` to find the skill-listing / `/skill:` command for your build. |
-| Pi ignores the skill in conversation | No trigger detected | Invoke explicitly with `/skill:structsense-skills`, or name the task ("extract entities", "map to ontologies"). |
+| Pi ignores the skill in conversation | No trigger detected | Invoke explicitly with `/skill:structsense`, or name the task ("extract entities", "map to ontologies"). |
 | Pipeline can't find the mapping service | `search_hybrid` not running on the expected port | Start it, verify with `curl http://localhost:8000/docs`, then re-run. |
 | HF NER models fail ("transformers not installed") | `transformers` missing | `pip install transformers torch`, or omit `--ner-profile` to skip the ensemble. |
 | Pipeline auth fails even after `/login` | `/login` auths Pi's model, not the pipeline subprocess | Export `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` etc. in the shell that launched Pi (§5). |
