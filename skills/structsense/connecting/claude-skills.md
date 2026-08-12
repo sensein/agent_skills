@@ -1,4 +1,4 @@
-# Connecting structsense-skills as a hosted Claude Skill
+# Connecting structsense as a hosted Claude Skill
 
 Anthropic Skills (in claude.ai and the Claude Agent SDK) accept the **same `SKILL.md` + supporting files** layout this repo uses. There's nothing to change in the skill itself — just upload or reference it.
 
@@ -6,9 +6,9 @@ Anthropic Skills (in claude.ai and the Claude Agent SDK) accept the **same `SKIL
 
 1. Go to claude.ai → Settings → Skills (or the analogous menu in your workspace).
 2. Click "Create Skill" / "Upload Skill".
-3. Upload the **entire `structsense-skills/` folder** (or zip it first).
+3. Upload the **entire `structsense/` folder** (or zip it first).
 4. Claude reads `SKILL.md`'s `name:` + `description:` for discovery and `version:` for change-tracking. The frontmatter is already correct.
-5. The skill becomes available in any conversation by mention ("use the structsense-skills skill", or by invoking it implicitly with a triggering request).
+5. The skill becomes available in any conversation by mention ("use the structsense skill", or by invoking it implicitly with a triggering request).
 
 Files Claude loads on demand from the skill:
 - `references/*.md` — methodology docs (loaded only when relevant).
@@ -23,7 +23,7 @@ from anthropic import Anthropic
 from pathlib import Path
 
 client = Anthropic()
-SKILL = Path("structsense-skills")
+SKILL = Path("structsense")
 
 # Load SKILL.md + the prompts the task needs as the system message
 system = "\n\n---\n\n".join([
@@ -46,7 +46,7 @@ Or, if the Skills API in the SDK takes a folder path directly:
 ```python
 response = client.messages.create(
     model="claude-sonnet-4-6",
-    skills=[{"path": "structsense-skills"}],   # SDK-specific
+    skills=[{"path": "structsense"}],   # SDK-specific
     messages=[...],
 )
 ```
@@ -82,7 +82,7 @@ Never paste keys into chat — Claude will refuse and warn you.
 Re-upload after a version bump. Check `version:` in `SKILL.md`:
 
 ```bash
-grep ^version structsense-skills/SKILL.md
+grep ^version structsense/SKILL.md
 ```
 
 If the hosted version is behind, re-upload. Result files from earlier versions can be repaired in-place:

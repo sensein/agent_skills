@@ -1,4 +1,4 @@
-# Connecting structsense-skills to Claude Code
+# Connecting structsense to Claude Code
 
 Claude Code (the CLI tool) auto-discovers skills via the `name` + `description` in `SKILL.md`'s YAML frontmatter. There's nothing to configure — drop the folder in the right place and Claude Code will load it.
 
@@ -10,7 +10,7 @@ Pick a scope:
 
 ```bash
 mkdir -p ~/.claude/skills
-cp -r /path/to/structsense-skills ~/.claude/skills/
+cp -r /path/to/structsense ~/.claude/skills/
 ```
 
 After this, every Claude Code session on this machine has the skill available.
@@ -20,8 +20,8 @@ After this, every Claude Code session on this machine has the skill available.
 ```bash
 cd /path/to/your/project
 mkdir -p .claude/skills
-cp -r /path/to/structsense-skills .claude/skills/
-git add .claude/skills/structsense-skills && git commit -m "Add structsense-skills"
+cp -r /path/to/structsense .claude/skills/
+git add .claude/skills/structsense && git commit -m "Add structsense"
 ```
 
 Per-project takes precedence over user-global with the same name.
@@ -32,9 +32,9 @@ Per-project takes precedence over user-global with the same name.
 /skills
 ```
 
-You should see `structsense-skills` listed with its description. If you don't:
+You should see `structsense` listed with its description. If you don't:
 
-- The folder must be `structsense-skills/` containing `SKILL.md` at its root (not `SKILL.md` inside a subfolder).
+- The folder must be `structsense/` containing `SKILL.md` at its root (not `SKILL.md` inside a subfolder).
 - The frontmatter MUST have both `name:` and `description:` (and they MUST match the YAML format — three dashes, key/value lines, three dashes).
 - Restart Claude Code (some installations cache the skill registry).
 
@@ -48,7 +48,7 @@ Either implicitly (Claude picks it up from your message):
 
 Or explicitly:
 
-> "Use the structsense-skills skill to extract entities from this PDF and write the result as paper_final.json."
+> "Use the structsense skill to extract entities from this PDF and write the result as paper_final.json."
 
 ## 4. What Claude will do
 
@@ -105,16 +105,16 @@ curl -s http://localhost:8000/docs > /dev/null && echo OK
 When you pull a new version of the skill:
 
 ```bash
-cd ~/.claude/skills/structsense-skills    # or .claude/skills/structsense-skills
+cd ~/.claude/skills/structsense    # or .claude/skills/structsense
 git pull                                  # if it's a checkout
 # OR
-rm -rf structsense-skills/ && cp -r /path/to/new/structsense-skills .
+rm -rf structsense/ && cp -r /path/to/new/structsense .
 ```
 
 Check the version with:
 
 ```bash
-head -5 ~/.claude/skills/structsense-skills/SKILL.md
+head -5 ~/.claude/skills/structsense/SKILL.md
 ```
 
 Look for `version: 0.3.0` (or higher). If you have output JSON from an older version, run:

@@ -13,7 +13,7 @@ Works with any LLM — Claude, GPT, Gemini, Pi, local Ollama / vLLM. The skill s
 ## Directory map
 
 ```
-structsense-skills/
+structsense/
 ├── SKILL.md                 ← entry point with name + description + version frontmatter (load this first)
 ├── README.md                ← you are here
 ├── CHANGELOG.md             ← what changed in each version
@@ -140,15 +140,15 @@ For NER, **always run mask-recall on top of pass-1** unless cost is critical. Ty
 ### As a project skill
 
 ```bash
-cp -r structsense-skills/ /path/to/your/project/.claude/skills/structsense-skills/
+cp -r structsense/ /path/to/your/project/.claude/skills/structsense/
 ```
 
-Claude Code will discover it automatically from the `name` + `description` in `SKILL.md`'s frontmatter. Invoke implicitly by mentioning the task ("extract entities from this paper") or explicitly ("use the structsense-skills skill").
+Claude Code will discover it automatically from the `name` + `description` in `SKILL.md`'s frontmatter. Invoke implicitly by mentioning the task ("extract entities from this paper") or explicitly ("use the structsense skill").
 
 ### As a user-global skill (auto-loaded on every project)
 
 ```bash
-cp -r structsense-skills/ ~/.claude/skills/structsense-skills/
+cp -r structsense/ ~/.claude/skills/structsense/
 ```
 
 ### Verify it loaded
@@ -159,7 +159,7 @@ In Claude Code:
 /skills
 ```
 
-You should see `structsense-skills` in the list with its one-line description.
+You should see `structsense` in the list with its one-line description.
 
 ---
 
@@ -171,7 +171,7 @@ The skill files are plain Markdown / JSON / Python — there's no SDK-specific f
 from pathlib import Path
 from anthropic import Anthropic
 
-SKILL_DIR = Path("structsense-skills")
+SKILL_DIR = Path("structsense")
 client = Anthropic()
 
 # Load the NER extractor prompt (neuroscience variant)
@@ -215,7 +215,7 @@ Same pattern as the Anthropic example:
 from pathlib import Path
 from openai import OpenAI
 
-SKILL_DIR = Path("structsense-skills")
+SKILL_DIR = Path("structsense")
 client = OpenAI()
 
 system_prompt = (SKILL_DIR / "prompts" / "extractor-ner-neuroscience.md").read_text()
@@ -268,7 +268,7 @@ from scripts.llm_client import call
 
 raw = call(
     model="ollama/qwen2.5:14b",
-    system=Path("structsense-skills/prompts/extractor-ner-neuroscience.md").read_text(),
+    system=Path("structsense/prompts/extractor-ner-neuroscience.md").read_text(),
     user=f"INPUT TEXT:\n<<<\n{paper_text}\n>>>",
     base_url="http://localhost:11434",
     json_mode=True,

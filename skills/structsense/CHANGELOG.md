@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `structsense-skills`. Versions follow semantic versioning.
+All notable changes to `structsense`. Versions follow semantic versioning.
 The `version:` field in `SKILL.md` frontmatter is the source of truth; this file
 records what changed between versions so you can tell which features your local
 copy has.

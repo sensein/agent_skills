@@ -1,4 +1,4 @@
-# Connecting structsense-skills to Claude Desktop
+# Connecting structsense to Claude Desktop
 
 Claude Desktop is the third major Claude runtime, alongside Claude Code (CLI) and claude.ai (web). It looks like a local app on your machine, but it has a **split execution model** that surprises most users — and is the reason your local `http://localhost:8000` mapping service appears "unreachable" even when you can hit it with curl in another terminal.
 
@@ -41,10 +41,10 @@ Add an entry that launches a small MCP server which proxies HTTP calls to your l
 ```json
 {
   "mcpServers": {
-    "structsense-skills": {
+    "structsense": {
       "command": "python3",
       "args": [
-        "/absolute/path/to/structsense-skills/connecting/mcp_server.py"
+        "/absolute/path/to/structsense/connecting/mcp_server.py"
       ],
       "env": {
         "LOCAL_CONCEPT_MAPPING_URL": "http://localhost:8000",
@@ -59,8 +59,8 @@ Add an entry that launches a small MCP server which proxies HTTP calls to your l
 Then in Claude Desktop:
 
 1. Quit the app entirely (Cmd-Q / right-click tray → Quit). Don't just close the window.
-2. Reopen. Look for the 🔌 icon in the input field — clicking it should list `structsense-skills` and its tools.
-3. Ask Claude to use the tool: *"use structsense-skills/extract_ner on this paper, with the local mapper at http://localhost:8000"*.
+2. Reopen. Look for the 🔌 icon in the input field — clicking it should list `structsense` and its tools.
+3. Ask Claude to use the tool: *"use structsense/extract_ner on this paper, with the local mapper at http://localhost:8000"*.
 
 Claude will now call the MCP server (on your machine) instead of trying to dial localhost from the cloud sandbox. The MCP server has network access to localhost and will return the mapped concepts.
 
@@ -117,6 +117,6 @@ If you're not sure which runtime produced an output file, look for these signs:
 |---|---|---|
 | The MCP server doesn't show up after editing the config | App not fully quit, or JSON syntax error | Quit and reopen; validate JSON with `jq . < claude_desktop_config.json`. |
 | MCP server appears but tools fail with "connection refused" | The MCP process can't reach the local mapper either (firewall, wrong port) | From a terminal: `curl http://localhost:8000/docs` — if that fails, the mapper isn't running where you think. |
-| Claude says "local mapper unreachable" even with MCP configured | Claude is still trying the sandbox path. Be explicit in your message. | "Use the structsense-skills/extract_ner MCP tool" — naming the tool forces the MCP route. |
+| Claude says "local mapper unreachable" even with MCP configured | Claude is still trying the sandbox path. Be explicit in your message. | "Use the structsense/extract_ner MCP tool" — naming the tool forces the MCP route. |
 | You get the OLS-fallback output anyway | Same as above + the model wasn't told to insist on the local mapper | Add to your message: "Do NOT fall back to OLS. If the MCP tool fails, ask me for an alternate URL." |
 | Output has `paper_title`/`doi` on every entity | Old skill version, or the model emitted the legacy shape | Run `python -m scripts.normalize_result <file> --input <text> --llm-model <model>` — idempotent. |
