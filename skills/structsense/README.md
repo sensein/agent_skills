@@ -323,8 +323,22 @@ python -m scripts.abcd_extract paper.pdf --payload paper.payload.json
 python -m scripts.abcd_extract ./papers --llm-model MODEL   # a framework calls an API
 ```
 
-Every run writes `<stem>_abcd.json`, `.md` (tables) and `.ttl` (PROV-O triples). More
-than one paper also produces `abcd_synthesis.{json,md,ttl}`.
+Every run writes `<stem>_abcd.json`, `.md` (tables) and `.ttl` (PROV-O triples) into
+`<input>/abcd_results/`, never beside the papers — plus `abcd_synthesis.{json,md,ttl}`
+when there is more than one paper:
+
+```
+papers/                                  <- your PDFs, untouched
+└── abcd_results/                        <- --out-dir to put it elsewhere
+    ├── <stem>_abcd.{json,md,ttl}        one set per paper
+    ├── abcd_synthesis.{json,md,ttl}     the cross-paper pass
+    ├── text/<stem>.txt                  --prepare writes extracted text here
+    └── payloads/<stem>.payload.json     ...and expects your payloads here
+```
+
+`abcd_results/` is excluded from input scanning, so a rerun does not read its own
+`text/` copies back in as papers. With payloads in place, `--payload` can be omitted
+entirely — the run finds them.
 
 **Dictionaries ship with the skill** — `data/dictionaries/` holds all seven releases
 (ABCD `nda-legacy` for 2.0/3.0/4.0/5.x, `6.0`, `6.1`, `7.0`; HBCD `1.0`, `1.1`,

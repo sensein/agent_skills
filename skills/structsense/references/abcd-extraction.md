@@ -118,6 +118,28 @@ Every run emits all three formats: **JSON** (machine record, includes rejected
 claims), **Markdown** (tables to read), **Turtle** (triples for a graph store,
 PROV-O provenance). Restrict with `--formats json,md`.
 
+## Where the output goes
+
+```
+papers/                                  <- inputs, never written to
+└── abcd_results/                        <- everything this skill produces
+    ├── <stem>_abcd.{json,md,ttl}
+    ├── abcd_synthesis.{json,md,ttl}
+    ├── text/<stem>.txt                  extracted text (--prepare)
+    └── payloads/<stem>.payload.json     agent payloads (--prepare -> --payload)
+```
+
+`--out-dir` moves it. Two properties matter beyond tidiness:
+
+- **The results directory is skipped when scanning inputs.** It contains a `.txt` of
+  every paper, so a second run over the same corpus would otherwise process each
+  study twice — once from the PDF and once from its own extracted text. Content
+  checksums cannot catch that pair, since the two files genuinely differ.
+- **`--payload` becomes optional.** If `abcd_results/payloads/` holds payloads, a bare
+  `abcd_extract <input>` uses them. Reading files that already exist spends nothing;
+  the refusal to guess exists to protect API credits, not to make you retype a path
+  the script chose.
+
 ## The three hard rules of this mode
 
 ### 1. Strict verification — a claim exists only if it is in the paper

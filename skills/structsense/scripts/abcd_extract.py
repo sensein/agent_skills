@@ -60,7 +60,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from scripts import abcd_context, abcd_export, abcd_inputs
 from scripts.abcd_dictionary import Dictionary, DictionaryError
@@ -68,6 +68,9 @@ from scripts.abcd_verify import verify_payload
 from scripts.cognitive_atlas import CognitiveAtlas, CognitiveAtlasError
 
 SKILL_VERSION = "0.6.1"
+# Results live here, beside the input rather than inside it. Overridable with
+# --out-dir; excluded from input scanning so a rerun does not read its own output.
+DEFAULT_OUT_DIRNAME = "abcd_results"
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "extractor-abcd.md"
 PDF_SUFFIXES = (".pdf", ".txt", ".md")
 
@@ -281,10 +284,12 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
 # --------------------------------------------------------------------------- #
 
 def _resolve_inputs(target: str, *, download_dir: Optional[Path],
-                    email: Optional[str], limit: Optional[int]):
+                    email: Optional[str], limit: Optional[int],
+                    ignore_dirs: Sequence[Path] = ()):
     """Auto-detect the input and return (papers, summary). No --bulk needed."""
     papers, summary = abcd_inputs.resolve(target, download_dir=download_dir,
-                                          email=email, limit=limit)
+                                          email=email, limit=limit,
+                                          ignore_dirs=ignore_dirs)
     print(f"input {summary['input']!r} detected as {summary['detected_as']}: "
           f"{summary['papers_resolved']}/{summary['papers_total']} papers available",
           file=sys.stderr)
@@ -321,7 +326,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--study", default="abcd", choices=["abcd", "hbcd"])
     ap.add_argument("--dd-release", action="append", default=None,
                     help="restrict dictionary snapshots to these releases (repeatable)")
-    ap.add_argument("--out-dir", type=Path, default=None)
+    ap.add_argument("--out-dir", type=Path, default=None,
+                    help=f"where results go (default: <input>/{DEFAULT_OUT_DIRNAME})")
     ap.add_argument("--formats", default="json,md,ttl")
     ap.add_argument("--grobid-url", default=os.getenv("GROBID_URL"))
     ap.add_argument("--reverify", type=Path, default=None,
@@ -353,6 +359,19 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     a = ap.parse_args(argv)
 
     formats = [f.strip() for f in a.formats.split(",") if f.strip()]
+
+    in_path = Path(a.input).expanduser()
+    # Results go in their own directory, never mixed in with the PDFs. A corpus
+    # directory otherwise ends up with four files per paper interleaved with the
+    # papers themselves, and the next run has to tell them apart.
+    base = (in_path if in_path.is_dir()
+            else in_path.parent if in_path.exists() else Path.cwd())
+    out_dir = a.out_dir or (base / DEFAULT_OUT_DIRNAME)
+    out_dir = out_dir.expanduser()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    text_dir = out_dir / "text"
+    payload_dir = out_dir / "payloads"
+
 
     # Dictionary — required unless explicitly waived, because without it no
     # variable claim can be verified (only reported).
@@ -390,6 +409,14 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         print(f"warning: {exc} — constructs will be reported unmapped", file=sys.stderr)
 
     payload_arg = a.payload or a.reverify
+    if payload_arg is None and not a.prepare and not a.llm_model:
+        # --prepare told the agent to write payloads into <out>/payloads, so look
+        # there before complaining. Reading files that already exist costs nothing;
+        # the refusal below exists to avoid spending API credits by accident, not to
+        # make the caller retype a path this script chose.
+        if any(payload_dir.glob("*.payload.json")):
+            payload_arg = payload_dir
+            print(f"using payloads from {payload_dir}", file=sys.stderr)
     if not a.prepare and payload_arg is None and not a.llm_model:
         print(
             "error: nothing to extract with. Either:\n"
@@ -402,7 +429,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         return 1
 
     papers, input_summary = _resolve_inputs(
-        a.input, download_dir=a.download_dir, email=a.email, limit=a.limit)
+        a.input, download_dir=a.download_dir, email=a.email, limit=a.limit,
+        ignore_dirs=[out_dir])
     nda = None
     if a.nda_api != "off" and dictionary is not None:
         if a.nda_api == "on" or len(papers) <= NDA_SEARCH_PAPER_BUDGET:
@@ -417,9 +445,6 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                   "pass --nda-api on to force it", file=sys.stderr)
     inputs = [p.path for p in papers if p.path]
     fetch_prov = {str(p.path): p.provenance for p in papers if p.origin != "local"}
-    in_path = Path(a.input).expanduser()
-    out_dir = a.out_dir or (in_path if in_path.is_dir()
-                            else in_path.parent if in_path.exists() else Path.cwd())
     if a.prepare:
         plan = []
         for path in inputs:
@@ -428,9 +453,10 @@ def _cli(argv: Optional[List[str]] = None) -> int:
             except Exception as exc:
                 plan.append({"paper": str(path), "error": str(exc)})
                 continue
-            sidecar = path.with_suffix(".txt")
+            sidecar = text_dir / f"{path.stem}.txt"
             if path.suffix.lower() != ".txt":
                 try:
+                    text_dir.mkdir(parents=True, exist_ok=True)
                     sidecar.write_text(text)
                 except Exception:
                     sidecar = path
@@ -439,14 +465,17 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                 "text": str(sidecar),
                 "chars": len(text),
                 "chunks_if_api_path": len(_chunks(text, a.llm_model or "unknown")),
-                "write_payload_to": str(path.with_suffix("")) + ".payload.json",
+                "write_payload_to": str(payload_dir / f"{path.stem}.payload.json"),
             })
+        payload_dir.mkdir(parents=True, exist_ok=True)
         print(json.dumps({
             "prompt": str(PROMPT_PATH),
+            "out_dir": str(out_dir),
             "schema": str(PROMPT_PATH.parent.parent / "schemas" / "abcd-paper.schema.json"),
             "papers": plan,
             "next": ("Read each `text`, follow `prompt`, write the JSON payload to "
-                     "`write_payload_to`, then re-run with --payload <dir-or-file>."),
+                     "`write_payload_to`, then re-run with --payload "
+                     f"{payload_dir}."),
         }, indent=1))
         return 0
 
@@ -454,6 +483,9 @@ def _cli(argv: Optional[List[str]] = None) -> int:
     payload_map: Dict[str, dict] = {}
     if payload_arg is not None:
         pth = Path(payload_arg)
+        if pth.is_dir() and not any(pth.glob("*.payload.json")) \
+                and (pth / "payloads").is_dir():
+            pth = pth / "payloads"      # pointed at the results dir, not its payloads
         if pth.is_dir():
             for cand in sorted(pth.rglob("*.payload.json")):
                 try:
@@ -532,6 +564,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
               f"{t['divergent_constructs']} divergent -> "
               f"{', '.join(str(p.name) for p in paths.values())}")
 
+    if written_docs:
+        print(f"results in {out_dir}")
     if failures:
         print(f"\n{len(failures)} of {len(inputs)} inputs failed:", file=sys.stderr)
         for p, why in failures:

@@ -56,6 +56,23 @@ such; the rest are the regressions they exposed.
   changed nothing until the local file was moved aside. Shadowing now warns with both
   counts and the exact `mv` command.
 
+### Output layout
+
+- Results go to `<input>/abcd_results/` instead of being written beside the papers,
+  with `text/` for `--prepare`'s extracted text and `payloads/` for the agent's
+  payloads. `--out-dir` overrides it.
+- That directory is excluded from input scanning, and it has to be: it holds a `.txt`
+  of every paper, so a rerun would extract each study twice — once from the PDF, once
+  from its own extracted text — and the checksum dedupe cannot see that pair as
+  duplicates, because the two files really are different.
+- `--payload` is now optional when `abcd_results/payloads/` is populated, and a
+  `--payload` pointing at the results directory finds `payloads/` underneath it.
+- Fixed while testing this: a single `.txt` paper was being read as a **DOI list**,
+  because the old test was "does any line contain a DOI" and a reference list
+  satisfies it. Pointed at one paper's extracted text, the run went off and
+  downloaded its references instead. A `.txt` now counts as a list only if most of
+  its lines are DOIs and none is prose-length.
+
 ### Duplicate inputs and duplicate variables
 
 - Inputs are deduplicated by SHA-256 **before** any PDF is parsed, so `paper.pdf` and

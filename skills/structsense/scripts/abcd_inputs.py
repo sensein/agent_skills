@@ -46,6 +46,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+# A .txt input counts as a DOI list only if it looks like one: mostly DOI lines and
+# no line of prose length. A paper's extracted text otherwise qualifies on its
+# reference list alone, and the run goes off to download the references.
+LIST_DOI_SHARE = 0.60
+LIST_MAX_LINE_CHARS = 300
+
 PAPER_SUFFIXES = (".pdf", ".txt", ".md")
 TABLE_SUFFIXES = (".csv", ".tsv", ".tab", ".xlsx")
 DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\"'<>,;)\]]+", re.I)
@@ -253,14 +259,28 @@ def read_table(path: Path) -> List[Tuple[Optional[str], Optional[str]]]:
 
 
 def _read_list(path: Path) -> List[Tuple[Optional[str], Optional[str]]]:
-    out = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        doi = normalize_doi(line)
-        if doi:
-            out.append((doi, None))
+    """DOIs from a plain-text list — or nothing, if the file is a paper.
+
+    A `.txt` input is ambiguous: it can be a list of DOIs to fetch, or the extracted
+    text of a paper. Deciding on "does any line contain a DOI" is wrong, because a
+    paper's reference list is full of them: handed one paper's extracted text, this
+    used to return the DOIs of its *references* and go download those papers
+    instead. So a file only counts as a list when it looks like one — mostly DOI
+    lines, and no line of prose length.
+    """
+    lines = [ln.strip() for ln in
+             path.read_text(encoding="utf-8", errors="replace").splitlines()]
+    content = [ln for ln in lines if ln and not ln.startswith("#")]
+    if not content:
+        return []
+    out: List[Tuple[Optional[str], Optional[str]]] = [
+        (doi, None) for ln in content if (doi := normalize_doi(ln))]
+    if not out:
+        return []
+    doi_share = len(out) / len(content)
+    longest = max(len(ln) for ln in content)
+    if doi_share < LIST_DOI_SHARE or longest > LIST_MAX_LINE_CHARS:
+        return []
     return out
 
 
@@ -270,17 +290,36 @@ def _read_list(path: Path) -> List[Tuple[Optional[str], Optional[str]]]:
 
 def resolve(target: str | Path, *, download_dir: Optional[Path] = None,
             email: Optional[str] = None, limit: Optional[int] = None,
+            ignore_dirs: Sequence[Path] = (),
             progress: bool = True) -> Tuple[List[Paper], dict]:
-    """Turn one argument into a list of papers. Single vs bulk is inferred."""
+    """Turn one argument into a list of papers. Single vs bulk is inferred.
+
+    `ignore_dirs` are skipped when scanning a directory. The results directory has
+    to be one of them: it holds a `text/` copy of every paper, and a second run
+    over the same input would otherwise pick those up as papers in their own right
+    and extract every study twice — once from the PDF, once from its own extracted
+    text. The checksum dedupe cannot catch that, since a PDF and its text layer are
+    genuinely different files.
+    """
     email = email or os.getenv("STRUCTSENSE_EMAIL") or os.getenv("SYNTHSCHOLAR_EMAIL")
     raw = str(target)
     p = Path(raw).expanduser()
     papers: List[Paper] = []
     kind: str
 
+    ignored = [Path(d).expanduser().resolve() for d in ignore_dirs if d]
+
+    def _ignored(path: Path) -> bool:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            return False
+        return any(resolved == d or d in resolved.parents for d in ignored)
+
     if p.is_dir():
         kind = "directory"
-        files = sorted(f for f in p.rglob("*") if f.suffix.lower() in PAPER_SUFFIXES)
+        files = sorted(f for f in p.rglob("*")
+                       if f.suffix.lower() in PAPER_SUFFIXES and not _ignored(f))
         # Drop extracted-text sidecars. `--prepare` writes <stem>.txt next to each
         # PDF, and counting both would process the same paper twice — and, because
         # outputs are named from the stem, have the second run overwrite the first.
