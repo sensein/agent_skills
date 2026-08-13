@@ -10,7 +10,16 @@ description: >-
 ---
 
 # BrainKB Skills
-This skill provides tools for ingesting, querying, and exploring **BrainKB (Brain Knowledgebase)**. It preferentially uses the **`brainkb_mcp`** server (`brainkb_mcp/`) when available, enabling direct MCP-based interaction. If the MCP server is unavailable, equivalent operations are performed through the BrainKB REST API using `curl` (see below).
+This skill provides tools for ingesting, querying, and exploring **BrainKB (Brain Knowledgebase)**.
+
+**Every BrainKB operation goes through the `brainkb_*` MCP tools. There is no
+fallback.** If a tool errors, read the error and fix the cause — do not reach for
+`curl`, a shell script, a different MCP server, or a direct HTTP call to
+`queryservice`/`usermanagement`. Those paths bypass the identity the MCP holds, so
+they either fail differently or succeed under the wrong attribution, and a mutation
+attributed to the wrong caller cannot be undone. The only `curl` in this document is
+the **operator's** deployment health check at the end, run on the deploy host by a
+human, and it is not an agent fallback.
 
 ## Connectivity — READ FIRST
 
@@ -40,8 +49,8 @@ Two notes on diagnosing failures:
   text/event-stream"**. That is the endpoint working, not an outage; `/` serves a
   plain landing page and `/healthz` returns `ok`.
 
-Do not fall back to curl from a non-local session — use the hosted remote's MCP
-tools.
+Do not fall back to curl, a local script, or another MCP server from any session —
+use the hosted remote's MCP tools, or stop and report what is blocking.
 
 **Rate limits apply on the hosted remote** (per caller IP): roughly 8 logins, 40
 writes/ingests, 120 reads and 30 admin calls per minute. A limited call returns
@@ -327,14 +336,66 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
   (owner/editor). Then ingest into that `graph_iri`.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
-- Files: `brainkb_ingest_files(graph_iri, [paths])`. **Paths resolve on the MCP
-  SERVER's filesystem, not the user's machine.** On the hosted remote, file ingest
-  is **disabled unless the operator set `MCP_INGEST_ROOT`**, and paths must sit
-  inside that directory (anything outside is refused). So for remote/large data,
-  either place files under `MCP_INGEST_ROOT` on the server, or use
-  `brainkb_ingest_text` for content you already have in hand. Locally (stdio) the
-  paths are just your own filesystem.
+- Files: `brainkb_ingest_files(graph_iri, [paths])`. The tool **opens the file and
+  uploads the bytes**, so the file must exist on the machine running the MCP
+  *process* — on the hosted remote that is the server, not the user's laptop. Remote
+  file ingest is therefore **disabled unless the operator set `MCP_INGEST_ROOT`**,
+  and paths must sit inside that directory.
 - Both return a `job_id`. Tell the user ingestion is running in the background.
+
+**Never re-emit a file's RDF through `brainkb_ingest_text`.** This is the rule that
+matters most in this whole section, because breaking it is unrecoverable:
+
+- `ingest_text` takes the RDF as a *string*, which means the bytes pass through the
+  model. Turtle is dense and full of exactly what gets silently altered in
+  transcription — ligatures (`speciﬁc`), Greek (α, β), embedded newlines, escaped
+  quotes, long IRIs. Byte-exact reproduction of a real file is not something to
+  gamble on.
+- Ingest is **append-only**. There is no delete for triples and no unregister for a
+  graph. One mangled literal is in that graph permanently, and the provenance record
+  records it as yours.
+- So `ingest_text` is for RDF **you authored in this session** — a handful of triples
+  you just constructed and can see in full. It is not a transport for a file.
+
+**Never split one RDF document across several ingest calls.** Not "carefully", not
+"at subject boundaries" — the reason is not size, it is identity. Blank-node labels
+(`_:b10`) are scoped to a single document, and each `ingest_text` call is a separate
+parse. A blank node referenced in call A and call B becomes **two different nodes**,
+so the triples hanging off it detach from the subject they describe. The result is a
+graph that ingests cleanly, reports success, and is quietly wrong — in an
+append-only store. A real review export hits this immediately: its `content_text`
+literals hang off shared blank nodes, and the only unit that is safe to send alone
+is a whole subject closure, which for that file was 409 KB.
+
+**Never split RDF as text.** If a payload genuinely exceeds the raw-text cap
+(`MCP_MAX_INGEST_BYTES`, 10 MB by default), splitting on blank lines or statement
+boundaries cuts inside multi-line `"""` literals and produces chunks that still
+parse individually while losing triples. Split with a real parser (rdflib, at
+subject boundaries), and reconcile the triple count of the parts against the whole
+before ingesting anything. A file under 10 MB needs no splitting at all — the cap is
+not the reason a large file fails on the remote; the filesystem boundary is.
+
+**Deciding what to do with a file the user hands you:**
+
+| Situation | Do this |
+|---|---|
+| File is on the machine running the MCP process (local stdio) | `brainkb_ingest_files` — bytes stream from disk, nothing passes through the model |
+| Hosted remote, `MCP_INGEST_ROOT` set, file already inside it | `brainkb_ingest_files` with a path under that root |
+| Hosted remote, file only on the user's machine | **Stop and hand it to the operator.** They set `MCP_INGEST_ROOT` plus the matching bind mount in `docker-compose.yml` and place the file there. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
+| RDF you generated in this session, small enough to see whole | `brainkb_ingest_text`, with `sha256=` |
+
+`brainkb_ingest_text` accepts `sha256=` and `expected_bytes=`. Use them every time
+the RDF has a canonical form you can hash (`shasum -a 256 file.ttl`, `wc -c`): the
+server compares them against what actually arrived and **refuses the write on any
+mismatch**, which is the difference between a clean rejection and permanent
+corruption. A digest mismatch is the guard working — do not retry by re-typing the
+RDF, because the second attempt is no more faithful than the first.
+
+**Verify every ingest against a count you knew in advance.** After the job reaches a
+terminal state, `brainkb_delta(job_id)` reports the exact triples it added. Compare
+that number to the source's triple count. A silent shortfall is the characteristic
+failure of any path that moves RDF through text, and it looks like success until
+someone counts.
 
 ### 4. Check ingest status
 - `brainkb_job_status(job_id)` → status (`pending`/`running`/`done`/`partial`/
