@@ -82,18 +82,13 @@ window. Never retry-loop, and never split one job into many calls to get around 
 - **Base URL**: on the hosted remote it is fixed by the operator — omit `base_url`
   entirely. For a local stdio MCP the default is `http://localhost:8010`; ask only
   if it isn't already set and the user hasn't said where the deployment is.
-- **Never print, echo, or store the password or the JWT token.** Pass them
-  straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat. (The one exception is the PAT returned by
-  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+- **Never print, echo, or store the password or the JWT token.** Pass them straight
+  to the login step, and keep them out of chat — in the operator's shell snippets
+  read them from an environment variable, never inline. (The one exception is the PAT
+  returned by `brainkb_create_token`, shown to the user **once** so they can copy it
   into their config — never re-display it afterward.)
 - A PAT is **revocable instantly** (`brainkb_revoke_token`) and its roles are
   re-checked live on every use, so a ban/demotion takes effect at once.
-- **Never print, echo, or store the password or the JWT token.** Pass them
-  straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat. (The one exception is the PAT returned by
-  `brainkb_create_token`, which is shown to the user **once** so they can copy it
-  into their config — never re-display it afterward.)
 - **Identity must be verified, never assumed — this is the #1 correctness rule.**
   Mutations (create space, ingest, add member, grant) are **attributed to the
   authenticated identity permanently** (provenance records who did what). A login
@@ -335,27 +330,27 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
   no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
   (owner/editor). Then ingest into that `graph_iri`.
-- **A file, on the hosted remote — first choice: stage it, then ingest by id.** Ask
-  the user to run (or run for them — the shell reads the file, so nothing enters your
-  context):
-  ```bash
-  shasum -a 256 review.ttl                      # note the digest
-  curl -H "Authorization: Bearer $BRAINKB_TOKEN" --data-binary @review.ttl \
-    "https://mcp.brainkb.org/upload?filename=review.ttl&sha256=<digest>"
+- **A file, on the hosted remote: upload it, then ingest by id.** Run this (or have
+  the user run it) — the HTTP library reads the file off disk, so not one byte enters
+  your context:
+  ```python
+  import requests, hashlib, pathlib
+  f = pathlib.Path("review.ttl")
+  r = requests.post(
+      "https://mcp.brainkb.org/upload",
+      params={"filename": f.name,
+              "sha256": hashlib.sha256(f.read_bytes()).hexdigest(),
+              "graph": "https://brainkb.org/graph/my-lab/"},   # omit to stage only
+      headers={"Authorization": f"Bearer {TOKEN}"},
+      data=f.open("rb"),          # streamed — never buffered, never in context
+  )
+  print(r.json())
   ```
-  That returns an `upload_id`; then `brainkb_ingest_upload(graph_iri, upload_id)`.
-  Appending `&graph=<iri>` to the URL instead makes it fire-and-forget — the server
-  submits the ingest itself and returns immediately, and you poll
-  `brainkb_upload_status(upload_id)` until it reports a `job_id`. 5 GB per file.
-  This works with nothing but the PAT the user already has: no operator change.
-- **A file already reachable by URL: `brainkb_ingest_url(graph_iri, url, sha256=...)`.**
-  Put the file behind an HTTPS URL the server can reach — S3/GCS presigned, a release
-  asset, an internal artifact store — and pass the URL. The server fetches it and
-  streams it to the ingest API, so the bytes never enter anyone's context: no
-  transcription risk, no context-window ceiling, no reason to split the document.
-  Give `sha256` (`shasum -a 256 file.ttl`) and it is verified before anything is
-  written. Needs `MCP_INGEST_URL_ALLOWLIST` set by the operator, and the host must be
-  on it (private/loopback/metadata resolutions and redirects are refused by design).
+  With `graph` set the server submits the ingest itself and answers `202` at once —
+  upload and forget; poll `brainkb_upload_status(upload_id)` until it reports a
+  `job_id`. Without it you get a staged `upload_id` for
+  `brainkb_ingest_upload(graph_iri, upload_id)`. **5 GB per file**, and it needs
+  nothing but the PAT the user already has — no operator change.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
 - Files: `brainkb_ingest_files(graph_iri, [paths])`. The tool **opens the file and
   uploads the bytes**, so the file must exist on the machine running the MCP
@@ -400,11 +395,10 @@ not the reason a large file fails on the remote; the filesystem boundary is.
 
 | Situation | Do this |
 |---|---|
-| Hosted remote, file on the user's machine | **`POST /upload` then `brainkb_ingest_upload`** — the normal answer. One `curl --data-binary @file` with their PAT; the shell moves the bytes, you never see them. `&graph=<iri>` makes it fire-and-forget |
-| Hosted remote, file already served over HTTPS (presigned S3/GCS, release asset) | `brainkb_ingest_url(graph_iri, url, sha256=...)` — the server fetches it |
+| Hosted remote, file on the user's machine | **`POST /upload` then `brainkb_ingest_upload`** — the normal answer. A few lines of `requests` with their PAT; the library moves the bytes, you never see them. Pass `graph=` to make it fire-and-forget |
 | File is on the machine running the MCP process (local stdio) | `brainkb_ingest_files` — bytes stream from disk, nothing passes through the model |
 | Hosted remote, `MCP_INGEST_ROOT` set, file already inside it | `brainkb_ingest_files` with a path under that root |
-| Hosted remote, uploads disabled AND `MCP_INGEST_URL_ALLOWLIST` unset | **Stop and hand it to the operator**: they set `MCP_INGEST_URL_ALLOWLIST`, or `MCP_INGEST_ROOT` plus the matching bind mount. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
+| Hosted remote, uploads disabled (`MCP_UPLOAD_ENABLED=false`) | **Stop and hand it to the operator**: they re-enable uploads, or set `MCP_INGEST_ROOT` plus a bind mount for data already on the server. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
 | RDF you generated in this session, small enough to see whole | `brainkb_ingest_text`, with `sha256=` |
 
 `brainkb_ingest_text` accepts `sha256=` and `expected_bytes=`. Use them every time
