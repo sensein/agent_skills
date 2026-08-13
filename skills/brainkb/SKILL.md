@@ -426,12 +426,32 @@ someone counts.
 - Poll every few seconds until terminal; report success/failure counts. Use
   `brainkb_list_jobs()` to show recent jobs. If a job is stuck/errored, offer
   `brainkb_recover_job(job_id)`.
+- For an upload staged via `POST /upload`, the job only exists once the server has
+  submitted it: `brainkb_upload_status(upload_id)` reports `staged` → `submitting` →
+  `submitted` (with the `job_id` to poll) or `failed`. A `failed` submission **keeps
+  the staged bytes**, so retry with `brainkb_ingest_upload` — never re-upload, and
+  never fall back to retyping the RDF.
+- **Always finish by reconciling the count.** `brainkb_delta(job_id)` reports the
+  triples the job actually added; compare it to the source's own count (`rapper -c
+  file.ttl`, or rdflib). "Job done" plus a short count means data was lost, and it is
+  the only way that failure ever becomes visible.
 
 ### 5. Read / search
 - Search (access-filtered): `brainkb_search(q, space?, limit?)`. Omit `space` for
   a full search across everything the user may read.
 - Read a whole space's RDF: `brainkb_read_space(slug)`.
 - List registered graphs: `brainkb_list_registered_graphs()`.
+- **"All named graphs in the store" is answerable without SPARQL.** The registry at
+  `https://brainkb.org/metadata/named-graph` is not a partial view of the data
+  graphs — it is all of them, for every space: both insert endpoints run an `ASK`
+  against it (`check_named_graph_exists`) and refuse to ingest into a graph that is
+  not registered, so no data graph can exist outside it. The rest of the store is
+  fixed infrastructure, enumerated in the backend's own skip-list:
+  `metadata/named-graph`, `metadata/spaces/`, `provenance/`, plus one
+  `provenance/delta/{job_id}` per ingest job (from `brainkb_list_jobs()`). So the
+  complete answer is `brainkb_list_registered_graphs()` + those four, and saying "I
+  can't enumerate the store without SPARQL" is wrong. What SPARQL *is* needed for is
+  **triple counts per graph** — there is no counting endpoint.
 - Arbitrary SPARQL: `brainkb_sparql(query)` — **last resort.** It needs an
   Admin/SuperAdmin role (the `sparql_admin` capability), so for most users it 403s.
   Reach for the purpose-built tool first: "what graphs exist" is
@@ -439,6 +459,13 @@ someone counts.
   this space" is `brainkb_read_space(slug)`; "find X" is `brainkb_search(q)`;
   "what changed" is the delta tools below. Hand-writing SPARQL for a question one
   of those answers is how a 403 gets mistaken for a broken deployment.
+
+**Telling "the tool is missing" from "the tool is disabled".** These look the same
+from a failed call and are not: a tool absent from the server's `tools/list` means the
+deployment predates it (the operator has not rebuilt), while a tool that answers 403
+with a message naming an env var is present and switched off. Never report a feature
+as "hidden because unconfigured" without checking which case it is — if the tool does
+not appear in your available tools at all, the fix is a redeploy, not configuration.
 
 **An empty result is not proof of absence.** `brainkb_list_spaces()` serves
 anonymous callers a public-only view, so `{"spaces": []}` can mean *either* "you
@@ -778,6 +805,10 @@ with real values.
 | Provenance | `https://brainkb.org/provenance/` |
 | Per-job delta | `https://brainkb.org/provenance/delta/{job_id}` |
 | A data graph | e.g. `https://brainkb.org/graph/my-lab/` |
+
+Only data graphs appear in the registry; the four above are infrastructure the
+backend maintains itself (`_SKIP_GRAPHS` in `indexing.py`, `PROVENANCE_DELTA_BASE`
+in `provenance.py`). Registry + those four = the whole store.
 
 **Common prefixes**
 
