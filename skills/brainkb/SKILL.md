@@ -335,7 +335,20 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
   no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
   (owner/editor). Then ingest into that `graph_iri`.
-- **A file, on the hosted remote: `brainkb_ingest_url(graph_iri, url, sha256=...)`.**
+- **A file, on the hosted remote — first choice: stage it, then ingest by id.** Ask
+  the user to run (or run for them — the shell reads the file, so nothing enters your
+  context):
+  ```bash
+  shasum -a 256 review.ttl                      # note the digest
+  curl -H "Authorization: Bearer $BRAINKB_TOKEN" --data-binary @review.ttl \
+    "https://mcp.brainkb.org/upload?filename=review.ttl&sha256=<digest>"
+  ```
+  That returns an `upload_id`; then `brainkb_ingest_upload(graph_iri, upload_id)`.
+  Appending `&graph=<iri>` to the URL instead makes it fire-and-forget — the server
+  submits the ingest itself and returns immediately, and you poll
+  `brainkb_upload_status(upload_id)` until it reports a `job_id`. 5 GB per file.
+  This works with nothing but the PAT the user already has: no operator change.
+- **A file already reachable by URL: `brainkb_ingest_url(graph_iri, url, sha256=...)`.**
   Put the file behind an HTTPS URL the server can reach — S3/GCS presigned, a release
   asset, an internal artifact store — and pass the URL. The server fetches it and
   streams it to the ingest API, so the bytes never enter anyone's context: no
@@ -387,10 +400,11 @@ not the reason a large file fails on the remote; the filesystem boundary is.
 
 | Situation | Do this |
 |---|---|
-| Hosted remote, file can be served over HTTPS (or you can upload it to one — presigned S3/GCS, release asset) | `brainkb_ingest_url(graph_iri, url, sha256=...)` — **the normal answer for a large file**. Ask the user to put it somewhere fetchable; that is a one-line `aws s3 presign` for them, and it costs nothing in context |
+| Hosted remote, file on the user's machine | **`POST /upload` then `brainkb_ingest_upload`** — the normal answer. One `curl --data-binary @file` with their PAT; the shell moves the bytes, you never see them. `&graph=<iri>` makes it fire-and-forget |
+| Hosted remote, file already served over HTTPS (presigned S3/GCS, release asset) | `brainkb_ingest_url(graph_iri, url, sha256=...)` — the server fetches it |
 | File is on the machine running the MCP process (local stdio) | `brainkb_ingest_files` — bytes stream from disk, nothing passes through the model |
 | Hosted remote, `MCP_INGEST_ROOT` set, file already inside it | `brainkb_ingest_files` with a path under that root |
-| Hosted remote, no URL possible and `MCP_INGEST_URL_ALLOWLIST` unset | **Stop and hand it to the operator**: they set `MCP_INGEST_URL_ALLOWLIST`, or `MCP_INGEST_ROOT` plus the matching bind mount. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
+| Hosted remote, uploads disabled AND `MCP_INGEST_URL_ALLOWLIST` unset | **Stop and hand it to the operator**: they set `MCP_INGEST_URL_ALLOWLIST`, or `MCP_INGEST_ROOT` plus the matching bind mount. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
 | RDF you generated in this session, small enough to see whole | `brainkb_ingest_text`, with `sha256=` |
 
 `brainkb_ingest_text` accepts `sha256=` and `expected_bytes=`. Use them every time
