@@ -335,6 +335,14 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
   no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
   (owner/editor). Then ingest into that `graph_iri`.
+- **A file, on the hosted remote: `brainkb_ingest_url(graph_iri, url, sha256=...)`.**
+  Put the file behind an HTTPS URL the server can reach — S3/GCS presigned, a release
+  asset, an internal artifact store — and pass the URL. The server fetches it and
+  streams it to the ingest API, so the bytes never enter anyone's context: no
+  transcription risk, no context-window ceiling, no reason to split the document.
+  Give `sha256` (`shasum -a 256 file.ttl`) and it is verified before anything is
+  written. Needs `MCP_INGEST_URL_ALLOWLIST` set by the operator, and the host must be
+  on it (private/loopback/metadata resolutions and redirects are refused by design).
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
 - Files: `brainkb_ingest_files(graph_iri, [paths])`. The tool **opens the file and
   uploads the bytes**, so the file must exist on the machine running the MCP
@@ -379,9 +387,10 @@ not the reason a large file fails on the remote; the filesystem boundary is.
 
 | Situation | Do this |
 |---|---|
+| Hosted remote, file can be served over HTTPS (or you can upload it to one — presigned S3/GCS, release asset) | `brainkb_ingest_url(graph_iri, url, sha256=...)` — **the normal answer for a large file**. Ask the user to put it somewhere fetchable; that is a one-line `aws s3 presign` for them, and it costs nothing in context |
 | File is on the machine running the MCP process (local stdio) | `brainkb_ingest_files` — bytes stream from disk, nothing passes through the model |
 | Hosted remote, `MCP_INGEST_ROOT` set, file already inside it | `brainkb_ingest_files` with a path under that root |
-| Hosted remote, file only on the user's machine | **Stop and hand it to the operator.** They set `MCP_INGEST_ROOT` plus the matching bind mount in `docker-compose.yml` and place the file there. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
+| Hosted remote, no URL possible and `MCP_INGEST_URL_ALLOWLIST` unset | **Stop and hand it to the operator**: they set `MCP_INGEST_URL_ALLOWLIST`, or `MCP_INGEST_ROOT` plus the matching bind mount. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
 | RDF you generated in this session, small enough to see whole | `brainkb_ingest_text`, with `sha256=` |
 
 `brainkb_ingest_text` accepts `sha256=` and `expected_bytes=`. Use them every time
