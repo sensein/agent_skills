@@ -47,6 +47,41 @@ Four cooperating roles, run sequentially. Each role's output is the next role's 
 
 You can run any subset — see `references/pipeline-pattern.md`.
 
+## Who runs the LLM stages — read this before asking for an API key
+
+The four roles above say *what* runs, not *who* runs it. There are two modes, and
+picking the wrong one is the most common way a run stalls before it starts.
+
+| | **Host-model mode** (the default when an agent is reading this) | **Framework mode** |
+|---|---|---|
+| Who is the extractor / judge | **you**, the model reading this file | `scripts/pipeline.py`, calling out over HTTP |
+| Where it applies | Claude Code, Codex CLI, Claude Desktop, Pi, any agent session | batch jobs, cron, CI, an MCP server, a script |
+| LLM API key | **none — there is no API to call** | required (`OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`) |
+| `--extractor` / `--judge` (pipeline.py) | **do not pass them** — nothing to point at | required |
+| `--llm-model` (normalize_result.py) | **do pass it**, set to your own model id — it is a provenance label, not a call | pass the extractor model |
+| How the prompt is used | read `prompts/<variant>.md` and follow it yourself | passed to the provider by `llm_client.py` |
+
+**If you are an agent reading this, you are in host-model mode.** Read the extractor
+prompt and produce the JSON yourself, then use the scripts for the deterministic work
+— `mask_pass.py`, `group_by_entity.py`, `normalize_result.py`, `stats.py`,
+`iri_validation.py`. None of those call an LLM. So the whole pipeline runs with **no
+LLM API key at all**, and asking the user for one is a bug, not diligence.
+
+Switch to framework mode only when the user explicitly wants it: a headless/scheduled
+run, or a *different* model than the host (cheaper extraction, a local Ollama, a
+model you can't be). Then `--extractor` and a key are genuinely required.
+
+**Two keys that are not LLM keys, and are needed in either mode:**
+
+- `BIOPORTAL_API_KEY` — the concept-mapping **tool** (rule 15's cascade). Free, and
+  the only key that ever matters for a host-model run. If mapping falls through to
+  BioPortal and this is unset, ask for *this* by name — never as "an API key".
+- `SEMANTIC_SCHOLAR_API_KEY`, and similar service keys — optional rate-limit lifts.
+
+When you do need to ask, name the exact variable and what breaks without it. "This
+needs an API key" is the ambiguous phrasing that sends users hunting for an
+OpenRouter account they don't need.
+
 ## Quick decision flow
 
 1. **What kind of extraction?**
@@ -97,6 +132,7 @@ These prevent the most common failures.
     - Every `ontology_id` is **structurally validated** against known IRI patterns (OBO PURLs, identifiers.org, BioPortal PURLs, EBI OLS, semanticweb.org, generic `<NS>_<NUM>` OWL IRIs). Malformed strings get demoted too.
     - The output's `stats.validation` block reports `passed` / `demoted` counts and the breakdown by failure reason — so you can tell at a glance whether the LLM tried to hallucinate.
     - If you cannot reach a real mapping tool, **say so to the user** and let them decide. Never invent IRIs to make the run "look complete."
+16. **Never ask for an LLM API key in host-model mode.** If you are an agent reading this file, you *are* the extractor and the judge — there is no API to call, so `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are irrelevant and `pipeline.py`'s `--extractor` / `--judge` have nothing to point at. (`--llm-model` on `normalize_result.py` is the exception that proves the rule: it is a provenance *label*, makes no call, and you SHOULD pass your own model id or every item lands as `llm_ner:unknown`.) Read the prompt, produce the JSON, and use the scripts for the deterministic stages (`mask_pass.py`, `group_by_entity.py`, `normalize_result.py`, `stats.py`, `iri_validation.py` — none of them call an LLM). A key is required only when the *user* asks for a headless run or a different model than you. The one key a host-model run can legitimately need is `BIOPORTAL_API_KEY`, which is a concept-mapping **tool** credential, not an LLM one — ask for it by name, and only after the local mapper has actually failed (rule 15). Blocking a run on "please provide an API key" when none is needed is a defect. See "Who runs the LLM stages".
 
 16. **ABCD/HBCD mode: verification is the feature, not a formality.**
     - **Who runs the model depends on where you are.** In Claude Code / Codex **you** are the model: run `--prepare`, do the extraction yourself against `prompts/extractor-abcd.md`, write `<stem>.payload.json`, then `--payload <dir>`. Do **not** pass `--llm-model` there — there is no API to call. Only pass it when a framework (Pi, batch, cron) should call an API. Verification and every output are identical on both paths, and `provenance.extraction_path` records which was used.
@@ -214,7 +250,13 @@ The files below are intentionally separated so you only load what the current ta
 - `reproschema-example.md` — end-to-end PDF → ReproSchema worked example.
 
 ### `connecting/` (how to wire the skill into different LLM platforms)
-- `claude-code.md` — install as a Claude Code skill (`~/.claude/skills/` or `.claude/skills/`). Auto-discovery via the `SKILL.md` frontmatter.
+
+All of these are **host-model mode** (see "Who runs the LLM stages") except the MCP
+server and a deliberately headless `pipeline.py` run: the agent is the extractor, so
+no LLM API key is involved. Codex CLI needs no guide of its own — it reads `SKILL.md`
+and behaves like Claude Code here.
+
+- `claude-code.md` — install as a Claude Code skill (`~/.claude/skills/` or `.claude/skills/`). Auto-discovery via the `SKILL.md` frontmatter. Also the reference for "why no API key is needed".
 - `pi-dev.md` — install as a [Pi](https://pi.dev) skill (`~/.pi/agent/skills/`, `~/.agents/skills/`, or `.pi/skills/`). Pi is a CLI coding agent with native Agent Skills support and a built-in `bash` tool, so it runs the pipeline directly — same story as Claude Code.
 - `claude-desktop.md` — **Claude Desktop has a split execution model**: chat UI on your machine, code interpreter in Anthropic's cloud sandbox (so it cannot reach your `localhost:8000` directly). Use the MCP server config in this guide to bridge.
 - `claude-skills.md` — upload as a hosted Anthropic Skill on claude.ai or use with the Claude Agent SDK.
