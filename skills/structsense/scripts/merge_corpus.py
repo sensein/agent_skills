@@ -6,7 +6,11 @@ This adds the corpus view on top: one canonical row per cell across every paper,
 which documents it appears in, so you can answer "which cell types does this corpus
 talk about, and where" without opening N files.
 
-    python -m scripts.merge_corpus out/*_final.json --out-json corpus.json --out-md corpus.md
+    python -m scripts.merge_corpus out/*_final.json --out out/corpus_synthesis
+
+writing ``corpus_synthesis.json`` + ``corpus_synthesis.md``, mirroring
+``scripts/abcd_synthesize.py``'s ``--out abcd_synthesis`` so the skill's two
+cross-paper passes share one interface.
 
 Design notes
 ------------
@@ -323,11 +327,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     ap.add_argument("inputs", nargs="+", type=Path,
                     help="per-paper result JSON files (e.g. out/*_final.json)")
-    ap.add_argument("--out-json", type=Path, default=Path("corpus_final.json"))
-    # str, not Path: Path("") is Path("."), which is truthy and a directory, so a
-    # Path-typed default turned "skip the report" into IsADirectoryError.
-    ap.add_argument("--out-md", default="corpus_final.md",
-                    help="Markdown report path; pass '' or 'none' to skip it")
+    # Output stem, matching scripts/abcd_synthesize.py's `--out abcd_synthesis` →
+    # abcd_synthesis.{json,md,ttl}. Same convention so the two cross-paper passes in
+    # this skill do not each invent their own interface.
+    ap.add_argument("--out", type=Path, default=Path("corpus_synthesis"),
+                    help="output stem; writes <stem>.json and <stem>.md "
+                         "(default: corpus_synthesis)")
+    ap.add_argument("--formats", default="json,md",
+                    help="comma-separated subset of json,md (default: both)")
     ap.add_argument("--include-mentions", action="store_true",
                     help="embed every raw mention in the index (exact, but large — "
                          "the per-paper files already hold them)")
@@ -341,21 +348,28 @@ def main(argv: Optional[list[str]] = None) -> int:
     if missing:
         raise SystemExit("not a file: " + ", ".join(str(p) for p in missing))
 
+    formats = {f.strip().lower() for f in args.formats.split(",") if f.strip()}
+    unknown = formats - {"json", "md"}
+    if unknown:
+        raise SystemExit(f"unknown format(s): {', '.join(sorted(unknown))} "
+                         "(supported: json, md)")
+    if not formats:
+        raise SystemExit("--formats selected nothing; pass json, md, or json,md")
+
     corpus = build_corpus(args.inputs, include_mentions=args.include_mentions,
                           with_index=not args.no_index)
 
-    args.out_json.parent.mkdir(parents=True, exist_ok=True)
-    args.out_json.write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n",
-                             encoding="utf-8")
-    print(f"wrote {args.out_json}")
-
-    out_md = (args.out_md or "").strip()
-    if out_md and out_md.lower() != "none":
-        md_path = Path(out_md)
-        md = render_markdown(corpus, top_n=args.top)
-        md_path.parent.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(md + "\n", encoding="utf-8")
-        print(f"wrote {md_path}")
+    stem = args.out
+    stem.parent.mkdir(parents=True, exist_ok=True)
+    if "json" in formats:
+        path = stem.with_suffix(".json")
+        path.write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8")
+        print(f"wrote {path}")
+    if "md" in formats:
+        path = stem.with_suffix(".md")
+        path.write_text(render_markdown(corpus, top_n=args.top) + "\n", encoding="utf-8")
+        print(f"wrote {path}")
 
     t = corpus["stats"]["totals"]
     print(f"  {t['document_count']} document(s), {t.get('total_entities', 0)} mentions, "

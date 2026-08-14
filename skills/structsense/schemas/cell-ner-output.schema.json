@@ -93,7 +93,7 @@
 
         "source_model": {
           "type": ["string", "null"],
-          "description": "Which model surfaced this mention. HF model id (e.g. 'pruas/BENT-PubMedBERT-NER-Cell-Type'), or 'llm_ner:<llm_model>'. In host-model mode this is your own model id — see SKILL.md rule 16."
+          "description": "Which model surfaced this mention. HF model id (e.g. 'pruas/BENT-PubMedBERT-NER-Cell-Type'), or 'llm_ner:<llm_model>'. In host-model mode this is your own model id — see SKILL.md rule 17."
         },
         "source_score": {
           "type": ["number", "null"],

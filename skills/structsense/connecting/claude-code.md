@@ -75,7 +75,7 @@ path in §6.
 **Running the skill in Claude Code does not require an LLM API key.** Claude *is* the
 extractor and the judge. There is no OpenRouter/OpenAI/Anthropic call in the loop, so
 `OPENROUTER_API_KEY` and friends do nothing. If Claude asks you for one, that is a bug
-in the run, not a missing prerequisite — point it at rule 16 in `SKILL.md`.
+in the run, not a missing prerequisite — point it at rule 17 in `SKILL.md`.
 
 Two keys can matter, and neither is an LLM key:
 
@@ -158,7 +158,7 @@ to bring it up to the current canonical shape (idempotent).
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| **Claude asks you for an OpenRouter / OpenAI / Anthropic key** | It picked framework mode when it should be the extractor itself | None needed — say "you are the model, no API key". See §5 and `SKILL.md` rule 16. Report it; the skill is meant to prevent this. |
+| **Claude asks you for an OpenRouter / OpenAI / Anthropic key** | It picked framework mode when it should be the extractor itself | None needed — say "you are the model, no API key". See §5 and `SKILL.md` rule 17. Report it; the skill is meant to prevent this. |
 | Claude asks for `BIOPORTAL_API_KEY` | Different thing: the local mapper at `:8000` is unreachable and the cascade fell through to BioPortal | Either start `search_hybrid` (§7) or get a free BioPortal key. This ask is legitimate. |
 | `pipeline.py: error: argument --extractor is required` | `pipeline.py` was invoked for a stage the host model should have run | Don't drive the LLM stages through `pipeline.py` in a Claude Code session; use it only for the non-LLM helpers. |
 | `/skills` doesn't list the skill | Wrong folder name or missing frontmatter | Check `name:` + `description:` in `SKILL.md`. |

@@ -78,7 +78,7 @@ corpus view is a separate deliverable, not a replacement (rule 9b):
 
 ```bash
 python -m scripts.merge_corpus out/*_final.json \
-       --out-json out/corpus_final.json --out-md out/corpus_final.md
+       --out out/corpus_synthesis            # -> corpus_synthesis.json + .md
 ```
 
 You get one canonical row per cell across the corpus, which papers it appears in, and

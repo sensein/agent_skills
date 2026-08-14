@@ -153,7 +153,62 @@ non-zero passage offset and then every annotation is document-relative.
 Whichever direction you convert, re-verify `text[start:end] == surface_form` before
 trusting it (the skill's rule 2). `scripts/span_validator.py` does this.
 
-## 7. Validation checklist
+## 7. Recall failure modes, measured
+
+From an actual evaluation against this gold standard. Precision came out high (~0.94:
+almost everything predicted inside an annotated passage was a real gold mention) while
+recall sat around 0.36 — and most of that gap was **not** missed cells. Two structural
+mismatches and four vocabulary classes account for it, in descending order of size.
+
+**Scope was the largest single cause, and it was self-inflicted.** 142 of 736 gold
+annotations were cells the old rule 9 told the extractor to skip: pituitary endocrine
+cells, immune cells other than microglia, and vascular / epithelial / mesenchymal
+cells. Recall on that slice was 0.12 — as instructed. Dropping the exclusion moved
+overall recall from 0.359 to 0.416 on its own. This is why §5 says to emit them.
+
+**Nesting was the second.** 21.6% of gold annotations overlap another gold annotation
+(§2). The gold is multi-granularity; an extractor that emits one span per region
+structurally cannot match both layers. Giving a prediction credit for the spans it
+genuinely contains moved recall to 0.470 — meaning **~11% of the apparent miss rate
+was a scoring artefact, not a model failure.**
+
+Then the vocabulary classes, which are real gaps worth fixing:
+
+| Class | What it looks like | Why it is missed |
+|---|---|---|
+| **Adjectival / attributive forms** | `neuronal`, `glial`, `astrocytic` used where the noun never appears | the largest single vocabulary gap by count. Lexicons hold nouns; a model asked for "cell types" tends to skip the adjective even though the gold annotates it |
+| **Per-paper abbreviations** | a type introduced once as `Full Name (ABBR)` and then used only as `ABBR` for the rest of the paper | the abbreviation is not in any general vocabulary — it exists only in that document |
+| **Coordinated / compound mentions** | `A and B <TYPE>s` | weakest recall of the three specificity types (~0.12 for `cell_hetero`). A matcher splits the conjunction into its parts and never emits the whole span, which is the one the gold marks |
+| **Bare heads inside a longer match** | the plain noun inside a span that was already matched at a coarser granularity | same root cause as nesting: one span per region means the inner head is unavailable |
+
+Three rules follow, and they are in the prompt as 9f–9h:
+
+- **Emit adjectival and attributive forms.** If the text says `neuronal` where it means
+  neurons, that is a cell mention. Do not require the canonical noun.
+- **Build a per-paper abbreviation map before extracting.** Scan for
+  `Full Name (ABBR)` / `ABBR (Full Name)` definitions, then treat every later
+  occurrence of `ABBR` as a mention of that type. An acronym used 20 times after one
+  definition is 20 mentions.
+- **For a conjunction, emit the whole span AND each element.** Not one or the other —
+  §2 nesting and §3 slot mapping both depend on the whole span existing.
+
+**One practical trap that is not an extraction problem at all.** 19 passages could not
+be located in the PDF text layer: figure captions and table cells, whose text a PDF
+extractor reorders or drops. §5 says captions are in scope and dense — but that is
+unachievable if the text you extracted never contained them. Before blaming recall,
+confirm the captions are actually present:
+
+```bash
+python -m scripts.input_loader paper.pdf --out paper.txt
+grep -ciE '^\s*(figure|fig\.?|table)\s*[0-9]' paper.txt   # 0 on a caption-heavy paper = the text layer dropped them
+```
+
+If they are missing, re-extract with GROBID (`--grobid-url`, which parses structure
+rather than reading the text layer) rather than tuning the extractor. Passages you
+cannot locate should be **excluded from the denominator**, not counted as misses —
+otherwise a PDF-parsing limitation shows up as a model deficiency forever.
+
+## 8. Validation checklist
 
 When scoring an extraction against this gold standard, check these before concluding
 the extractor is bad — most apparent errors are convention mismatches:
@@ -167,12 +222,28 @@ the extractor is bad — most apparent errors are convention mismatches:
 | Did you exclude immune/vascular cells? | recall collapses specifically on injury and neuroinflammation papers |
 | Did you include local cluster ids? | precision drops on scRNA-seq results sections |
 | Are offsets converted from (offset, length)? | every span short by its own length, or shifted |
+| Did you emit adjectival forms? | the largest single vocabulary gap; `neuronal` alone was the top miss |
+| Did you expand per-paper abbreviations? | a type defined once and used 20 times costs 20 mentions |
+| Did you emit whole coordinated spans? | `cell_hetero` recall collapses to ~0.12 |
+| Are unlocatable passages excluded from the denominator? | a PDF text-layer limitation is scored as a model failure |
+| Is nested credit given? | ~11 points of apparent miss rate that is a scoring artefact |
+
+Report **in-scope and out-of-scope recall separately**, and say which exclusions are in
+force. A single recall number over a gold standard whose scope differs from the
+extractor's is not interpretable — the first evaluation's 0.359 was really 0.470 once
+scope and nesting were accounted for, and neither adjustment involved changing the
+extractor.
+
+Also expect **precision to be understated**. Spurious predictions in that run were few
+and mostly legitimate cell mentions the annotators simply had not marked in that
+passage. Before tuning anything down, read a sample of the false positives: a
+gold standard is a record of what one annotator marked, not an exhaustive census.
 
 Score `cell_phenotype` mapping accuracy **separately** from span recall. They fail for
 different reasons — spans fail on the conventions above, mappings fail on the rule-15
 cascade — and a single blended number tells you which almost never.
 
-## 8. Formal schemas, and the corpus view
+## 9. Formal schemas, and the corpus view
 
 - `schemas/cell-ner-output.schema.json` — the per-paper shape. It enforces what this
   file describes where a schema can: the `specificity` enum, `coordinated_elements ≥ 1`,
@@ -180,7 +251,7 @@ cascade — and a single blended number tells you which almost never.
   `cell_vague` item must carry a **null** `ontology_id` (a vague mention names no type,
   so any id there is a fabrication). `ner-output.schema.json` stays task-agnostic.
 - `schemas/cell-ner-corpus.schema.json` — the roll-up from
-  `python -m scripts.merge_corpus <out>/*_final.json`, which every multi-paper run
+  `python -m scripts.merge_corpus <out>/*_final.json --out <out>/corpus_synthesis`, which every multi-paper run
   should produce alongside the per-paper files (SKILL.md rule 9b).
 
 Two things the corpus view adds that per-paper scoring cannot see:

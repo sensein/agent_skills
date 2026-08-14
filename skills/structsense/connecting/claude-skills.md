@@ -70,7 +70,7 @@ Once loaded, Claude:
 
 **No LLM API key is required.** Claude is the extractor and the judge, so
 `OPENROUTER_API_KEY` and friends have nothing to authenticate. Claude asking you for
-one is a defect — see `SKILL.md` rule 16.
+one is a defect — see `SKILL.md` rule 17.
 
 Claude Skills inherit env vars from the sandbox / desktop session. The only key worth
 setting is the concept-mapping **tool** credential, and only if the local hybrid mapper

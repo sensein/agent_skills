@@ -218,6 +218,23 @@ RULES
    occurrence, singular and plural, and figure captions are in scope and often
    the densest passages. Cell names embedded in a mechanism or acronym name are
    emitted individually.
+9f. ADJECTIVAL FORMS COUNT. "neuronal", "glial", "astrocytic" are cell mentions
+   even where the noun never appears. In a measured evaluation this was the
+   single largest vocabulary gap — bigger than any missing cell type — because
+   an extractor asked for "cell types" skips the adjective. Do not require the
+   canonical noun. Label as the cell it refers to and set specificity as usual.
+9g. EXPAND PER-PAPER ABBREVIATIONS BEFORE YOU EXTRACT. Scan the text for
+   "Full Name (ABBR)" and "ABBR (Full Name)" definitions and build the map
+   first; then every later bare ABBR is a mention of that type. These are
+   invisible to any general vocabulary — they exist only in this document — and
+   a type defined once and then used twenty times costs twenty mentions.
+   Populate cell_context from the definition, not from the abbreviation.
+9h. FOR A CONJUNCTION, EMIT THE WHOLE SPAN AND EACH ELEMENT. "A and B <TYPE>s"
+   yields the full span (coordinated_elements: 2) PLUS "A …" and "B …"
+   individually. Not one or the other: rule 9c's nesting and the per-element
+   ontology slots both need the whole span to exist. Splitting a conjunction
+   into parts only is why heterogeneous mentions score worst of the three
+   specificity types.
 10. If input has no CNS-cell content, return {"entities": [], "key_terms": []}.
 
 If you cannot comply, output exactly: {"error": "<one-line reason>"}
@@ -308,7 +325,11 @@ assume:
 |---|---|
 | Atlas cluster names (e.g. "L2/3 IT MET-type") emitted as CellType, not CellSubtype | Strengthen CellSubtype with two cluster-name examples; add: "Atlas cluster names ALWAYS go to CellSubtype." |
 | Markers ("Pvalb", "Sst") mis-tagged as CellType | Add: "A bare gene/protein symbol is a LineageMarker. A phrase like 'X interneuron' or 'X+ neuron' is a CellType." |
-| Immune / vascular / epithelial cells omitted from an injury or neuroinflammation paper | The old rule 9 excluded them. It no longer does — emit them. This is the single biggest recall loss against a human gold standard. |
+| Immune / vascular / epithelial cells omitted from an injury or neuroinflammation paper | The old rule 9 excluded them. It no longer does — emit them. Measured: 142 of 736 gold annotations, recall 0.12 on that slice, and removing the exclusion lifted overall recall 0.359 → 0.416. |
+| Adjectival forms (`neuronal`, `glial`) missing | Rule 9f. The largest single vocabulary gap in a real evaluation. |
+| A type defined once as an acronym then missed everywhere after | Rule 9g — build the per-paper abbreviation map before extracting. |
+| Conjunctions emitted only as parts, never as the whole span | Rule 9h. This is why heterogeneous mentions score worst (~0.12). |
+| Figure-caption cells missing entirely | Often not an extraction failure: the PDF text layer reordered or dropped the captions. Check with `grep -ciE '^\s*(figure\|fig\.?\|table)\s*[0-9]' paper.txt` and re-extract via GROBID (`--grobid-url`) if it is 0. |
 | `<MARKER>+ cells` emitted as CellType with a fabricated CL id | A marker names no type. Set `specificity: cell_vague` and leave the id null (rules 9b, 15). |
 | Only the outer hedge, or only the inner term, survives | A de-overlap step collapsed a legal nested pair. See rule 9c and the mask-recall caveat in `references/cell-annotation-conventions.md` §2. |
 | Dataset-local cluster ids (`cluster <N> cells`, `<CellPrefix> <N>`) emitted as cells | Rule 9d — this paper's numbering is not a cell mention. |
