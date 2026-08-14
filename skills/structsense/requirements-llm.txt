@@ -1,0 +1,24 @@
+# structsense — provider SDKs. ONLY needed when a framework calls an API for you
+# (Pi, a batch runner, cron; i.e. you pass --llm-model).
+#
+# In Claude Code / Codex the calling agent IS the model: use --prepare then
+# --payload and install none of this.
+#
+#     pip install -r requirements-llm.txt        # all providers
+#     pip install openai                          # or just the one you use
+#
+# scripts/llm_client.py imports these lazily, so an absent SDK only fails if you
+# actually select that provider.
+
+# OpenAI, and any OpenAI-compatible endpoint (OpenRouter, vLLM, LM Studio, Ollama's
+# /v1 shim) — the widest coverage per install.
+openai>=1.40,<2
+
+# Anthropic (claude-*)
+anthropic>=0.34,<1
+
+# Google Gemini. Note the package name differs from the import (google.generativeai).
+google-generativeai>=0.7,<1
+
+# Ollama and vLLM need no SDK — they are reached over HTTP via `requests`, which is
+# already in requirements.txt.

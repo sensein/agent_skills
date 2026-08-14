@@ -206,5 +206,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .DS_Store
-/.idea
+# Unanchored so it matches at any depth. `/.idea` only covered the repo root, which
+# let skills/structsense/.idea/ get committed.
+.idea/
 skills/*.zip

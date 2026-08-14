@@ -23,6 +23,119 @@ The three variants share the same output schema (`entities[]`, `key_terms[]` wit
 
 When in doubt, run the **general** variant for a coarse first pass, then re-run with the more specific variant on chunks that contain domain-specific content.
 
+## Running CNS cell extraction as the host model (no API key)
+
+The CNS-cell variant is the one most often reached for, and the one where the
+API-key confusion bites hardest — the `cns_cells` **NER profile** and an **LLM API
+key** are unrelated things that both look like "setup". Neither is a prerequisite for
+extracting. Concretely, in a Claude Code / Codex / Pi session:
+
+**Step 1 — text in.** `input_loader.py` is the only script here with a plain CLI:
+
+```bash
+python -m scripts.input_loader paper.pdf --out paper.txt    # PDF/CSV/TXT/MD; no LLM
+```
+
+**Step 2 — pass 1 is you.** Read `prompts/extractor-ner-cns-cells.md`, follow it
+against `paper.txt`, and write the JSON yourself. No `--extractor`, no key.
+
+**Step 3 — mask-recall.** `mask_pass.py` is a **library, not a CLI** (its `__main__` is
+a demo). Drive it from a short script:
+
+```python
+import json, pathlib
+from scripts.mask_pass import mask_for_recall, map_masked_offsets_to_original
+
+text = pathlib.Path("paper.txt").read_text()
+pass1 = json.loads(pathlib.Path("paper.pass1.json").read_text())
+
+masked, pmap = mask_for_recall(text, pass1["entities"])
+pathlib.Path("paper.masked.txt").write_text(masked)
+# …you now extract from paper.masked.txt using prompts/mask-recall-pass.md
+# and write paper.pass2.json…
+
+pass2 = json.loads(pathlib.Path("paper.pass2.json").read_text())
+recovered = map_masked_offsets_to_original(masked, pass2["entities"], pmap, text)
+pass1["entities"] += recovered
+pathlib.Path("paper.merged.json").write_text(json.dumps(pass1))
+```
+
+Use `span_keys=("term", "start", "end")` for `key_terms`, whose surface field is
+`term`, not `entity`.
+
+**Step 4 — alignment is a TOOL call, not a model call** (rule 15): local hybrid at
+`:8000`, else `BIOPORTAL_API_KEY`, else ask the user. Never invent CL IRIs.
+
+**Step 5 — canonical shape + stats.** Pure Python, modifies in place:
+
+```bash
+python -m scripts.normalize_result paper.merged.json --input paper.txt \
+       --out paper_final.json --llm-model claude-opus-5      # ← your own model id
+```
+
+**Step 6 — more than one paper? Merge them.** Per-paper files stay authoritative; the
+corpus view is a separate deliverable, not a replacement (rule 9b). Point it at the
+output directory — no glob needed:
+
+```bash
+python -m scripts.merge_corpus out/ --out out/corpus_synthesis   # -> .json + .md
+```
+
+Safe to re-run: a directory expands to its `*_final.json` and anything that looks like
+a previous roll-up is skipped, so the merge cannot fold its own output back in and
+double every count.
+
+In **framework mode this step is automatic** — `pipeline.py --input <dir>` runs each
+paper and merges at the end, deciding from the input count (`--no-synthesize` to
+suppress). In host-model mode you are the loop, so you run it.
+
+You get one canonical row per cell across the corpus, which papers it appears in, and
+an explicit list of forms that different papers mapped to **different** CL ids. That
+last table is the one worth reading before ingesting anything — exactness is
+context-dependent, so a conflict is a curation decision rather than automatically a
+bug, and the merge deliberately does not pick a winner.
+
+**Do pass `--llm-model` here, with your own model identity.** It is a *provenance
+label*, not a provider call — `normalize_result` never contacts anything; it writes
+`source_model: "llm_ner:<value>"` on items that lack one. Omit it and every item you
+extracted is tagged `llm_ner:unknown`, which violates rule 11 and makes the run
+unauditable. The flag being named after a model is what makes it look like framework
+plumbing; it isn't.
+
+That is the sharpest instance of the general trap: a flag or variable whose name
+mentions a model or a key is not automatically evidence that an API call is coming.
+Check what the script does with it.
+
+**What each optional piece actually costs you:**
+
+| Piece | Needs | If you skip it |
+|---|---|---|
+| `prompts/extractor-ner-cns-cells.md` | nothing — you read it | you fall back to the broad neuroscience taxonomy and lose CellSubtype / LineageMarker / EphysProperty granularity |
+| mask-recall pass | nothing — you re-extract | **–30–80% recall**, concentrated exactly in markers and ephys phrases. Do not skip this one on cell-typing text |
+| `--ner-profile cns_cells` | `pip install transformers torch` (**no API key**) | you lose HF consensus (`source_model`, `consensus_count`); LLM-only extraction still works and is still exhaustive |
+| concept mapping | local mapper at `:8000`, or `BIOPORTAL_API_KEY` | items stay `unmapped` — which is honest and allowed. Fabricated CL IRIs are not (rule 15) |
+| judge | nothing — you score | no `judge_score`; the heuristic scorer still works offline |
+
+**Scoring against a human gold standard?** Read
+[cell-annotation-conventions.md](cell-annotation-conventions.md) first. Cell mentions
+carry a specificity type (`cell_phenotype` / `cell_vague` / `cell_hetero`) that the
+label taxonomy alone does not express, hedged spans nest around groundable ones, and a
+conjunction takes one ontology id per element. Most apparent misses are these
+conventions rather than missed cells — and one of them, the old rule 9 excluding
+immune and vascular cells, was costing recall on exactly the injury and
+neuroinflammation papers where cell diversity is the point.
+
+**Cell-specific yield check.** Cell-typing text is dense, so the rule-8 sanity numbers
+are higher here than for general NER. A single cell-atlas paper should land in the
+**500–2000+** mention range with `mentions_per_unique > 1`. Two failure signatures
+worth recognising in `stats`:
+
+- `mentions_per_unique ≈ 1` on a cell paper → surface-form dedup crept in. "Pvalb"
+  appears dozens of times in one paper; one row means something collapsed it.
+- `CellType` heavily outnumbering `LineageMarker` + `EphysProperty` combined → pass-1
+  captured the cell names and dropped their co-mentioned attributes. That is precisely
+  what mask-recall recovers.
+
 ## Output schema
 
 See `schemas/ner-output.schema.json` for the formal schema. Minimum required:

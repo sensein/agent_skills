@@ -135,9 +135,15 @@ Schema:
     {
       "entity": "<surface form, EXACTLY as in text>",
       "label":  "<one of the labels above>",
-      "sentence": "<full sentence containing the entity>",
+      "sentence": "<context window: EVERY sentence the span touches, verbatim — one sentence usually, all of them when the span crosses a boundary. See rule 3.>",
       "start":  <int char offset in input>,
       "end":    <int char offset (exclusive)>,
+
+      "specificity": "<cell_phenotype | cell_vague | cell_hetero — cell items only,
+                       omit for non-cell labels like BrainRegion. See rule 9b.>",
+      "coordinated_elements": <int — number of cells named in this span; 1 unless the
+                       span is a conjunction ("A and B cells" -> 2). Alignment emits
+                       one ontology_id slot per element. See rule 9c/9e.>,
 
       "cell_context": {
         "lineage_markers": ["<gene/protein name>", ...],
@@ -153,7 +159,7 @@ Schema:
   "key_terms": [
     {
       "term": "<surface form>",
-      "sentence": "<containing sentence>",
+      "sentence": "<context window, as above>",
       "start": <int>,
       "end":   <int>,
       "paper_location": "<section/page if inferable, else null>"
@@ -164,7 +170,13 @@ Schema:
 RULES
 1. start/end are character offsets into the INPUT text — NOT the sentence.
 2. text[start:end] MUST equal entity (or term). Verify before emitting.
-3. Sentence MUST be a substring of the input text.
+3. `sentence` is a CONTEXT WINDOW, not necessarily one sentence. It MUST be
+   a verbatim substring of the input text, and it MUST cover the whole span:
+   when a mention crosses a sentence boundary, include every sentence it
+   touches. Roughly a fifth of gold cell annotations are genuinely
+   multi-sentence, so this is not an edge case. Never truncate the window to
+   one sentence and leave the span hanging outside it — start/end stay
+   offsets into the whole input either way.
 4. The same (entity, start, end) triple must not appear twice. Different
    start/end values for the same surface form ARE different mentions —
    emit them all (see "Exhaustiveness" above).
@@ -184,8 +196,58 @@ RULES
 8. EPHYS PHRASES: phrases like "fast-spiking parvalbumin interneuron" emit:
      - "fast-spiking"                as EphysProperty
      - "parvalbumin interneuron"     as CellType  (lineage_markers: ["parvalbumin"])
-9. NON-CNS CELLS: cells from PNS, immune system outside microglia, or
-   non-neural tissue are OUT OF SCOPE — do NOT emit them.
+9. NON-CNS CELLS: emit them when the text is about CNS tissue. Injury,
+   neuroinflammation and glial-scar papers legitimately discuss immune,
+   haematopoietic, epithelial and vascular cells, and a human gold standard
+   annotates all of them. Excluding them is a false-negative generator on
+   exactly the papers where cell diversity is the subject. Only skip cells
+   belonging to a clearly different preparation (a peripheral-tissue control,
+   an unrelated organ) — and when in doubt, emit.
+9b. SPECIFICITY: every cell item also carries `specificity`, one of:
+     - "cell_phenotype" — identity stated well enough to ground
+     - "cell_vague"     — a hedged set: "<TYPE> subtypes", "types of <TYPE>",
+                          "subsets of …", or "<MARKER>+ cells" naming no type
+     - "cell_hetero"    — a deliberate mixture, or a negatively-defined set
+                          ("non-<MARKER>+ cells", "immune cells")
+   A marker does NOT make a cell type. Vague and hetero items are correct
+   output, not failures — they simply carry no ontology id.
+9c. NESTED SPANS: when a hedged wrapper contains a groundable term, emit BOTH,
+   sharing the start offset and differing in end:
+     - "<TYPE> subtypes"  -> specificity cell_vague,      no id
+     - "<TYPE>"           -> specificity cell_phenotype
+   Same for "subsets of A, B and C": the whole span plus each of A, B, C.
+9d. CLUSTER IDS: dataset-local numbering ("cluster <N> cells", "<CellPrefix> <N>")
+   is NOT a cell mention — it names a row in this paper's analysis. Published
+   taxonomy cluster names remain CellSubtype (see Exhaustiveness above). The
+   line is published taxonomy vs. this paper's numbering.
+9e. ACRONYMS AND CAPTIONS: an introduced acronym is a cell mention at every
+   occurrence, singular and plural, and figure captions are in scope and often
+   the densest passages. Cell names embedded in a mechanism or acronym name are
+   emitted individually.
+9f. ADJECTIVAL FORMS COUNT. "neuronal", "glial", "astrocytic" are cell mentions
+   even where the noun never appears. In a measured evaluation this was the
+   single largest vocabulary gap — bigger than any missing cell type — because
+   an extractor asked for "cell types" skips the adjective. Do not require the
+   canonical noun. Label as the cell it refers to and set specificity as usual.
+9g. EXPAND PER-PAPER ABBREVIATIONS BEFORE YOU EXTRACT. Scan the text for
+   "Full Name (ABBR)" and "ABBR (Full Name)" definitions and build the map
+   first; then every later bare ABBR is a mention of that type. These are
+   invisible to any general vocabulary — they exist only in this document — and
+   a type defined once and then used twenty times costs twenty mentions.
+   Populate cell_context from the definition, not from the abbreviation.
+9h. FOR A CONJUNCTION, EMIT THE WHOLE SPAN AND EACH ELEMENT. "A and B <TYPE>s"
+   yields the full span (coordinated_elements: 2) PLUS "A …" and "B …"
+   individually. Not one or the other: rule 9c's nesting and the per-element
+   ontology slots both need the whole span to exist. Splitting a conjunction
+   into parts only is why heterogeneous mentions score worst of the three
+   specificity types.
+9i. SPANS MAY CROSS SENTENCE BOUNDARIES — do not clip them. A conjunction split
+   across a clause boundary, an appositive continuing into the next sentence, or a
+   list interrupted by "(n = 12)." is one mention, not two. Extract over the whole
+   passage rather than sentence by sentence: a per-sentence loop cannot express
+   these spans at all, and about a fifth of gold cell annotations are genuinely
+   multi-sentence. Set `sentence` to every sentence the span touches (rule 3) and
+   keep start/end as offsets into the whole input.
 10. If input has no CNS-cell content, return {"entities": [], "key_terms": []}.
 
 If you cannot comply, output exactly: {"error": "<one-line reason>"}
@@ -215,7 +277,37 @@ This prompt is **pass-1**. CNS cell-typing papers describe each cell with many c
 
 Use `scripts/mask_pass.py` to build the masked text and translate offsets back to the original. Pass the SAME `LABEL TAXONOMY` block above into the mask-mode prompts so labels stay consistent — in particular, the mask-mode prompts should know about `CellClass / CellType / CellSubtype / LineageMarker / MorphologyClass / EphysProperty / FiringPattern` because those are the categories pass-1 most often confuses.
 
+## Formal schema
+
+Validate against **`schemas/cell-ner-output.schema.json`**, not the generic
+`ner-output.schema.json`. It closes the label taxonomy above for LLM-extracted items,
+declares `specificity` / `coordinated_elements` / `cell_context`, and rejects a
+`cell_vague` item that carries an ontology id. For a multi-document run also emit the
+corpus roll-up (`scripts/merge_corpus.py`, SKILL.md rule 9b).
+
+## Annotation conventions (read before scoring against a gold standard)
+
+`references/cell-annotation-conventions.md` documents the contract a human annotator
+follows: the `cell_phenotype` / `cell_vague` / `cell_hetero` specificity axis, nested
+hedge-plus-head spans, one ontology-id slot per coordinated element, `skos:exact` vs
+`skos:related` match qualifiers, and what is deliberately *not* a cell mention. Most
+apparent extractor errors against a gold standard are convention mismatches rather
+than missed cells — check there first.
+
 ## Suggested ontology routing for alignment
+
+Two conventions from the gold standard that the generic alignment stage does not
+assume:
+
+- **A coordinated span gets one id per element, `;`-separated and positional**, with
+  `-` holding a slot that has no CL term. Slot count must equal
+  `coordinated_elements`; a missing `-` shifts every later mapping by one.
+- **Qualify the match**: `(skos:exact)` when the mention *is* the class,
+  `(skos:related)` when it is near — a derived or reporter-line population, a
+  marker-narrowed subset, or a tissue term standing in for its cells. Exactness
+  depends on the paper, not the string. Multiple candidates for **one** mention are
+  `,`-separated, which is a different thing from `;`.
+
 
 | Label | Primary ontology | Secondary |
 |---|---|---|
@@ -246,7 +338,15 @@ Use `scripts/mask_pass.py` to build the masked text and translate offsets back t
 |---|---|
 | Atlas cluster names (e.g. "L2/3 IT MET-type") emitted as CellType, not CellSubtype | Strengthen CellSubtype with two cluster-name examples; add: "Atlas cluster names ALWAYS go to CellSubtype." |
 | Markers ("Pvalb", "Sst") mis-tagged as CellType | Add: "A bare gene/protein symbol is a LineageMarker. A phrase like 'X interneuron' or 'X+ neuron' is a CellType." |
-| Cells outside CNS (e.g. retinal cells in the eye) wrongly included | Strengthen rule 9; reject hits whose `cell_context.region` is non-CNS in the parser. |
+| Immune / vascular / epithelial cells omitted from an injury or neuroinflammation paper | The old rule 9 excluded them. It no longer does — emit them. Measured: 142 of 736 gold annotations, recall 0.12 on that slice, and removing the exclusion lifted overall recall 0.359 → 0.416. |
+| Adjectival forms (`neuronal`, `glial`) missing | Rule 9f. The largest single vocabulary gap in a real evaluation. |
+| A type defined once as an acronym then missed everywhere after | Rule 9g — build the per-paper abbreviation map before extracting. |
+| Conjunctions emitted only as parts, never as the whole span | Rule 9h. This is why heterogeneous mentions score worst (~0.12). |
+| Figure-caption cells missing entirely | Often not an extraction failure: the PDF text layer reordered or dropped the captions. Check with `grep -ciE '^\s*(figure\|fig\.?\|table)\s*[0-9]' paper.txt` and re-extract via GROBID (`--grobid-url`) if it is 0. |
+| `<MARKER>+ cells` emitted as CellType with a fabricated CL id | A marker names no type. Set `specificity: cell_vague` and leave the id null (rules 9b, 15). |
+| Only the outer hedge, or only the inner term, survives | A de-overlap step collapsed a legal nested pair. See rule 9c and the mask-recall caveat in `references/cell-annotation-conventions.md` §2. |
+| Dataset-local cluster ids (`cluster <N> cells`, `<CellPrefix> <N>`) emitted as cells | Rule 9d — this paper's numbering is not a cell mention. |
+| Coordinated span ("A and B cells") mapped to one id | One id slot per element, `-` where none exists. See conventions §3. |
 | Subcellular structures missed | Lower confidence threshold for `CellularStructure`; many are short tokens (spine, soma, AIS). |
 | Layer references emitted without their region ("L5" without "mPFC") | Add: "When a layer appears with a region in the surrounding context, populate `cell_context.region` and `cell_context.layer` together." |
 | Profiling methods conflated with cell types ("patch-seq cells") | Add: "Methods name how cells were measured, not what they are. Emit 'patch-seq' as ProfilingMethod and the cells separately as CellType/CellSubtype." |

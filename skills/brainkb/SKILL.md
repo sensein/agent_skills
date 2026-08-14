@@ -5,12 +5,21 @@ description: >-
   credentials, ingest RDF into their workspace (space), check the status of
   ingest jobs, read/search the knowledge graphs, and query W3C PROV-O
   provenance (including triple-level deltas). Use whenever the user asks to
-  ingest/upload triples or RDF to BrainKB, create or share a workspace/space  (private/public), search or read BrainKB graphs, check an ingest job's status, or ask "who/when/what changed" (provenance) about a graph.
+  ingest/upload triples or RDF to BrainKB, create or share a workspace/space  (private/public), search or read BrainKB graphs, check an ingest job's status, ingest a completed SynthScholar/PRISMA literature review into a space, or ask "who/when/what changed" (provenance) about a graph.
   
 ---
 
 # BrainKB Skills
-This skill provides tools for ingesting, querying, and exploring **BrainKB (Brain Knowledgebase)**. It preferentially uses the **`brainkb_mcp`** server (`brainkb_mcp/`) when available, enabling direct MCP-based interaction. If the MCP server is unavailable, equivalent operations are performed through the BrainKB REST API using `curl` (see below).
+This skill provides tools for ingesting, querying, and exploring **BrainKB (Brain Knowledgebase)**.
+
+**Every BrainKB operation goes through the `brainkb_*` MCP tools. There is no
+fallback.** If a tool errors, read the error and fix the cause — do not reach for
+`curl`, a shell script, a different MCP server, or a direct HTTP call to
+`queryservice`/`usermanagement`. Those paths bypass the identity the MCP holds, so
+they either fail differently or succeed under the wrong attribution, and a mutation
+attributed to the wrong caller cannot be undone. The only `curl` in this document is
+the **operator's** deployment health check at the end, run on the deploy host by a
+human, and it is not an agent fallback.
 
 ## Connectivity — READ FIRST
 
@@ -40,8 +49,8 @@ Two notes on diagnosing failures:
   text/event-stream"**. That is the endpoint working, not an outage; `/` serves a
   plain landing page and `/healthz` returns `ok`.
 
-Do not fall back to curl from a non-local session — use the hosted remote's MCP
-tools.
+Do not fall back to curl, a local script, or another MCP server from any session —
+use the hosted remote's MCP tools, or stop and report what is blocking.
 
 **Rate limits apply on the hosted remote** (per caller IP): roughly 8 logins, 40
 writes/ingests, 120 reads and 30 admin calls per minute. A limited call returns
@@ -73,18 +82,13 @@ window. Never retry-loop, and never split one job into many calls to get around 
 - **Base URL**: on the hosted remote it is fixed by the operator — omit `base_url`
   entirely. For a local stdio MCP the default is `http://localhost:8010`; ask only
   if it isn't already set and the user hasn't said where the deployment is.
-- **Never print, echo, or store the password or the JWT token.** Pass them
-  straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat. (The one exception is the PAT returned by
-  `brainkb_create_token`, which is shown to the user **once** so they can copy it
+- **Never print, echo, or store the password or the JWT token.** Pass them straight
+  to the login step, and keep them out of chat — in the operator's shell snippets
+  read them from an environment variable, never inline. (The one exception is the PAT
+  returned by `brainkb_create_token`, shown to the user **once** so they can copy it
   into their config — never re-display it afterward.)
 - A PAT is **revocable instantly** (`brainkb_revoke_token`) and its roles are
   re-checked live on every use, so a ban/demotion takes effect at once.
-- **Never print, echo, or store the password or the JWT token.** Pass them
-  straight to the login step. When using curl, read the token into a shell
-  variable — do not paste it into chat. (The one exception is the PAT returned by
-  `brainkb_create_token`, which is shown to the user **once** so they can copy it
-  into their config — never re-display it afterward.)
 - **Identity must be verified, never assumed — this is the #1 correctness rule.**
   Mutations (create space, ingest, add member, grant) are **attributed to the
   authenticated identity permanently** (provenance records who did what). A login
@@ -122,6 +126,12 @@ window. Never retry-loop, and never split one job into many calls to get around 
   background. Always poll job status rather than assuming it finished.
 - **Provenance** lives natively in the graph DB (PROV-O). Every ingest is an
   activity; each job's added triples are a queryable **delta**.
+- **A SynthScholar review reaches BrainKB by being ingested, like any other RDF.**
+  The `synthscholar` skill runs the review and writes `review.ttl`; a user with
+  write access ingests it here, into the graph
+  `https://brainkb.org/synthscholar/reviews/<review_id>/` bound to a space. Going
+  through the ingest pipeline is what gives the review a job, PROV-O provenance and
+  a search index. See "Ingest a SynthScholar review".
 
 ## Authorization (roles & capabilities)
 
@@ -326,15 +336,222 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
   no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
   (owner/editor). Then ingest into that `graph_iri`.
+- **A file, on the hosted remote: upload it, then ingest by id.** Run this (or have
+  the user run it) — the HTTP library reads the file off disk, so not one byte enters
+  your context:
+  ```python
+  import requests, hashlib, pathlib
+  f = pathlib.Path("review.ttl")
+  r = requests.post(
+      "https://mcp.brainkb.org/upload",
+      params={"filename": f.name,
+              "sha256": hashlib.sha256(f.read_bytes()).hexdigest(),
+              "graph": "https://brainkb.org/graph/my-lab/"},   # omit to stage only
+      headers={"Authorization": f"Bearer {TOKEN}"},
+      data=f.open("rb"),          # streamed — never buffered, never in context
+  )
+  print(r.json())
+  ```
+  With `graph` set the server submits the ingest itself and answers `202` at once —
+  upload and forget; poll `brainkb_upload_status(upload_id)` until it reports a
+  `job_id`. Without it you get a staged `upload_id` for
+  `brainkb_ingest_upload(graph_iri, upload_id)`. **5 GB per file**, and it needs
+  nothing but the PAT the user already has — no operator change.
 - Raw text: `brainkb_ingest_text(graph_iri, data)` (Turtle/N-Triples/JSON-LD).
-- Files: `brainkb_ingest_files(graph_iri, [paths])`. **Paths resolve on the MCP
-  SERVER's filesystem, not the user's machine.** On the hosted remote, file ingest
-  is **disabled unless the operator set `MCP_INGEST_ROOT`**, and paths must sit
-  inside that directory (anything outside is refused). So for remote/large data,
-  either place files under `MCP_INGEST_ROOT` on the server, or use
-  `brainkb_ingest_text` for content you already have in hand. Locally (stdio) the
-  paths are just your own filesystem.
+- Files: `brainkb_ingest_files(graph_iri, [paths])`. The tool **opens the file and
+  uploads the bytes**, so the file must exist on the machine running the MCP
+  *process* — on the hosted remote that is the server, not the user's laptop. Remote
+  file ingest is therefore **disabled unless the operator set `MCP_INGEST_ROOT`**,
+  and paths must sit inside that directory.
 - Both return a `job_id`. Tell the user ingestion is running in the background.
+
+**Never re-emit a file's RDF through `brainkb_ingest_text`.** This is the rule that
+matters most in this whole section, because breaking it is unrecoverable:
+
+- `ingest_text` takes the RDF as a *string*, which means the bytes pass through the
+  model. Turtle is dense and full of exactly what gets silently altered in
+  transcription — ligatures (`speciﬁc`), Greek (α, β), embedded newlines, escaped
+  quotes, long IRIs. Byte-exact reproduction of a real file is not something to
+  gamble on.
+- Ingest is **append-only**. There is no delete for triples and no unregister for a
+  graph. One mangled literal is in that graph permanently, and the provenance record
+  records it as yours.
+- So `ingest_text` is for RDF **you authored in this session** — a handful of triples
+  you just constructed and can see in full. It is not a transport for a file.
+
+**Never split one RDF document across several ingest calls.** Not "carefully", not
+"at subject boundaries" — the reason is not size, it is identity. Blank-node labels
+(`_:b10`) are scoped to a single document, and each `ingest_text` call is a separate
+parse. A blank node referenced in call A and call B becomes **two different nodes**,
+so the triples hanging off it detach from the subject they describe. The result is a
+graph that ingests cleanly, reports success, and is quietly wrong — in an
+append-only store. A real review export hits this immediately: its `content_text`
+literals hang off shared blank nodes, and the only unit that is safe to send alone
+is a whole subject closure, which for that file was 409 KB.
+
+**Never split RDF as text.** If a payload genuinely exceeds the raw-text cap
+(`MCP_MAX_INGEST_BYTES`, 10 MB by default), splitting on blank lines or statement
+boundaries cuts inside multi-line `"""` literals and produces chunks that still
+parse individually while losing triples. Split with a real parser (rdflib, at
+subject boundaries), and reconcile the triple count of the parts against the whole
+before ingesting anything. A file under 10 MB needs no splitting at all — the cap is
+not the reason a large file fails on the remote; the filesystem boundary is.
+
+**Deciding what to do with a file the user hands you:**
+
+| Situation | Do this |
+|---|---|
+| Hosted remote, file on the user's machine | **`POST /upload` then `brainkb_ingest_upload`** — the normal answer. A few lines of `requests` with their PAT; the library moves the bytes, you never see them. Pass `graph=` to make it fire-and-forget |
+| File is on the machine running the MCP process (local stdio) | `brainkb_ingest_files` — bytes stream from disk, nothing passes through the model |
+| Hosted remote, `MCP_INGEST_ROOT` set, file already inside it | `brainkb_ingest_files` with a path under that root |
+| Hosted remote, uploads disabled (`MCP_UPLOAD_ENABLED=false`) | **Stop and hand it to the operator**: they re-enable uploads, or set `MCP_INGEST_ROOT` plus a bind mount for data already on the server. Do not chunk it, do not retype it, do not offer a "test with one chunk" compromise — a partial ingest of mangled data is worse than no ingest |
+| RDF you generated in this session, small enough to see whole | `brainkb_ingest_text`, with `sha256=` |
+
+`brainkb_ingest_text` accepts `sha256=` and `expected_bytes=`. Use them every time
+the RDF has a canonical form you can hash (`shasum -a 256 file.ttl`, `wc -c`): the
+server compares them against what actually arrived and **refuses the write on any
+mismatch**, which is the difference between a clean rejection and permanent
+corruption. A digest mismatch is the guard working — do not retry by re-typing the
+RDF, because the second attempt is no more faithful than the first.
+
+**Verify every ingest against a count you knew in advance.** After the job reaches a
+terminal state, `brainkb_delta(job_id)` reports the exact triples it added. Compare
+that number to the source's triple count. A silent shortfall is the characteristic
+failure of any path that moves RDF through text, and it looks like success until
+someone counts.
+
+### 3a. Ingest a SynthScholar review (PRISMA literature review)
+
+This is the handoff from the **`synthscholar` skill**: it runs the review and writes
+`review.ttl`; this skill puts that file into a space, through the normal ingest
+pipeline, so the review gets a job, PROV-O provenance and a search index like any
+other data. Nothing about the ingest itself is special-cased; what this section adds
+is the IRI convention and the mistakes that are unrecoverable in an append-only
+store.
+
+**Where the TTL comes from.** Either source, same procedure from step 2 on:
+
+- **A local run** (the usual case) — the `synthscholar` skill's
+  `scripts/export_review.py … --formats md ttl` leaves `out/review.ttl` on disk.
+- **A hosted review** on mlservice — export it:
+  `GET https://mlservice.brainkb.org/api/synth-scholar/public/reviews/<id>/export?format=ttl`
+  (published reviews need no credential; `/api/synth-scholar/public/reviews` lists
+  them). An unpublished one needs an ml_service token, which these MCP tools do not
+  hold — have the user export it from the SynthScholar UI and give you the path.
+
+**Steps.**
+
+1. `brainkb_whoami()` — confirm the email. This is the whole point of ingesting
+   through the pipeline: the job, `prov:wasAssociatedWith` and the delta are
+   attributed to this identity, permanently. If it is a stale fallback account, the
+   review's provenance names the wrong person and cannot be reassigned.
+2. Count the triples **before** sending, and keep the number:
+   ```bash
+   python -c "import rdflib;g=rdflib.Graph();g.parse('out/review.ttl');print(len(g))"
+   ```
+   This is step 7's baseline. The `synthscholar` skill runs the same check after
+   export, so the number may already be in hand.
+3. Pick the space and confirm it with the user. `brainkb_list_spaces()` shows
+   `can_write` and `visibility` — see the visibility note below before choosing.
+4. **Derive the graph IRI from the review id — don't invent one.** It is always:
+   ```
+   https://brainkb.org/synthscholar/reviews/<review_id>/
+   ```
+   `<review_id>` is the review's own id, verbatim: `review_0001_20260505234027`
+   from mlservice, `review_local_<timestamp>` from a local run. It is
+   `protocol.review_id` in the TTL and the `review_id` field in the API — read it,
+   don't compose one. One review, one graph, one IRI, wherever it ran; that is what
+   makes a review addressable across spaces and re-findable later. (The registry
+   normalises to a trailing slash, so include it.)
+
+   Then register it (owner/editor):
+   `brainkb_add_space_graph(slug, graph_iri, "PRISMA review — <research question>")`.
+   Give the description the research question, not the review id. A registry entry
+   reading `review_0001_20260505234027` tells the next person nothing, and graph
+   bindings are permanent — there is no rename. A 409 means this review is already
+   bound to a space: that is the answer, not an error to work around. Stop and check
+   whether it was already ingested rather than registering a variant IRI.
+5. Upload, then ingest. **A review export is megabytes** (one subject closure alone
+   measured 409 KB), so this is the upload path, not `brainkb_ingest_text` — the
+   "never re-emit a file's RDF" rule above was written about this exact file:
+
+   ```python
+   import requests, hashlib, pathlib
+
+   f = pathlib.Path("out/review.ttl")
+   GRAPH = "https://brainkb.org/synthscholar/reviews/review_0001_20260505234027/"
+
+   print(requests.post(
+       "https://mcp.brainkb.org/upload",
+       params={"filename": f.name,
+               "sha256": hashlib.sha256(f.read_bytes()).hexdigest(),
+               "graph": GRAPH},
+       headers={"Authorization": f"Bearer {TOKEN}"},
+       data=f.open("rb"),          # streamed off disk — never enters context
+       timeout=600,
+   ).json())
+   ```
+
+   On a local stdio MCP with the file on the same machine,
+   `brainkb_ingest_files(GRAPH, ["out/review.ttl"])` does the same thing directly.
+6. Poll `brainkb_upload_status(upload_id)` for the `job_id`, then
+   `brainkb_job_status(job_id)` to a terminal state.
+7. Reconcile `brainkb_delta(job_id)` against step 2's count, and report both numbers.
+   A shortfall is the characteristic failure of anything that moves RDF, and "job
+   done" will not show it.
+
+Then the review answers `brainkb_search`, `brainkb_read_space`,
+`brainkb_provenance_graph` and `brainkb_delta`. Note the `synthscholar` skill's Mode 2
+SPARQL recipes still run against the **exported `.ttl`**, not the graph — arbitrary
+SPARQL on BrainKB needs an Admin role. Keep the file; ingesting doesn't replace it as
+the analysis surface.
+
+**Ingest each review exactly once.** Review ids are unique, so distinct reviews never
+collide — the hazard is re-ingesting the *same* review into the *same* graph. Ingest
+is append-only with no replace, and a review export hangs its `content_text` literals
+off **blank nodes**, whose identity is per-parse: the second pass does not
+de-duplicate, it creates a disconnected copy of every abstract, permanently. So a
+409 from `brainkb_add_space_graph` is the guard doing its job — it means this review
+already has a graph. Check whether it was ingested before you send anything.
+
+A re-run is a different review with a different id (mlservice mints a fresh
+`review_<counter>_<ts>` per session, and a local run mints a fresh
+`review_local_<ts>`), so it gets its own IRI without any special handling. The one
+case to watch is a hand-edited `protocol.json` that pins `review_id` across runs —
+then two different result sets claim one IRI.
+
+**Visibility follows the space, not the review.** `is_public` on a hosted review
+governs the SynthScholar API only. Once ingested, the triples are readable by
+whoever can read the space — so ingesting an unpublished review into a public space
+publishes it. Name the target space and its visibility when you ask the user to
+confirm.
+
+**Pass the exact IRI you registered, trailing slash included.** The registry check
+normalises (`check_named_graph_exists` appends a `/` before looking), but the ingest
+writes to the IRI **as given** — `create_job(graph=named_graph_iri)`, verbatim. So
+registering `…/<review_id>/` and then ingesting into `…/<review_id>` passes every
+check and silently lands the data in a *second, unregistered* graph one character
+away from the right one. Nothing reports this; the job succeeds.
+
+**Operator note: one writer per review.** ml_service can also push a completed
+review's RDF straight into Oxigraph (`SYNTH_SCHOLAR_GRAPHDB_NAMED_GRAPH_PREFIX`, HTTP
+PUT with `replace=true`), bypassing query_service — no job, no PROV-O, no search
+index, and no space, so only an Admin SPARQL query can see the result. Its IRI is
+`prefix + review_id` with **no** trailing slash, i.e. the near-miss above: with both
+paths running you get two graphs per review, a governed one and an invisible shadow
+copy, rather than one correct graph.
+
+The direct push is therefore **off by default**
+(`SYNTH_SCHOLAR_PUSH_TO_GRAPHDB=false`), leaving this ingest as the only writer. On an
+unfamiliar deployment, a shadow graph is one holding triples under a review IRI that
+does **not** appear in `brainkb_list_registered_graphs`.
+
+For a deployment that ran with the push enabled, those graphs are also a latent
+exposure: having no space, an index row for one would carry a NULL `space_id`, and
+the search filter treats a NULL space as visible to **every signed-in user**. Nothing
+indexes them today, but an admin running `POST /api/search/reindex` would make every
+completed review, published or not, searchable by any authenticated account. Bind
+review graphs to spaces before backfilling, not after.
 
 ### 4. Check ingest status
 - `brainkb_job_status(job_id)` → status (`pending`/`running`/`done`/`partial`/
@@ -342,12 +559,32 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
 - Poll every few seconds until terminal; report success/failure counts. Use
   `brainkb_list_jobs()` to show recent jobs. If a job is stuck/errored, offer
   `brainkb_recover_job(job_id)`.
+- For an upload staged via `POST /upload`, the job only exists once the server has
+  submitted it: `brainkb_upload_status(upload_id)` reports `staged` → `submitting` →
+  `submitted` (with the `job_id` to poll) or `failed`. A `failed` submission **keeps
+  the staged bytes**, so retry with `brainkb_ingest_upload` — never re-upload, and
+  never fall back to retyping the RDF.
+- **Always finish by reconciling the count.** `brainkb_delta(job_id)` reports the
+  triples the job actually added; compare it to the source's own count (`rapper -c
+  file.ttl`, or rdflib). "Job done" plus a short count means data was lost, and it is
+  the only way that failure ever becomes visible.
 
 ### 5. Read / search
 - Search (access-filtered): `brainkb_search(q, space?, limit?)`. Omit `space` for
   a full search across everything the user may read.
 - Read a whole space's RDF: `brainkb_read_space(slug)`.
 - List registered graphs: `brainkb_list_registered_graphs()`.
+- **"All named graphs in the store" is answerable without SPARQL.** The registry at
+  `https://brainkb.org/metadata/named-graph` is not a partial view of the data
+  graphs — it is all of them, for every space: both insert endpoints run an `ASK`
+  against it (`check_named_graph_exists`) and refuse to ingest into a graph that is
+  not registered, so no data graph can exist outside it. The rest of the store is
+  fixed infrastructure, enumerated in the backend's own skip-list:
+  `metadata/named-graph`, `metadata/spaces/`, `provenance/`, plus one
+  `provenance/delta/{job_id}` per ingest job (from `brainkb_list_jobs()`). So the
+  complete answer is `brainkb_list_registered_graphs()` + those four, and saying "I
+  can't enumerate the store without SPARQL" is wrong. What SPARQL *is* needed for is
+  **triple counts per graph** — there is no counting endpoint.
 - Arbitrary SPARQL: `brainkb_sparql(query)` — **last resort.** It needs an
   Admin/SuperAdmin role (the `sparql_admin` capability), so for most users it 403s.
   Reach for the purpose-built tool first: "what graphs exist" is
@@ -355,6 +592,13 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   this space" is `brainkb_read_space(slug)`; "find X" is `brainkb_search(q)`;
   "what changed" is the delta tools below. Hand-writing SPARQL for a question one
   of those answers is how a 403 gets mistaken for a broken deployment.
+
+**Telling "the tool is missing" from "the tool is disabled".** These look the same
+from a failed call and are not: a tool absent from the server's `tools/list` means the
+deployment predates it (the operator has not rebuilt), while a tool that answers 403
+with a message naming an env var is present and switched off. Never report a feature
+as "hidden because unconfigured" without checking which case it is — if the tool does
+not appear in your available tools at all, the fix is a redeploy, not configuration.
 
 **An empty result is not proof of absence.** `brainkb_list_spaces()` serves
 anonymous callers a public-only view, so `{"spaces": []}` can mean *either* "you
@@ -694,6 +938,10 @@ with real values.
 | Provenance | `https://brainkb.org/provenance/` |
 | Per-job delta | `https://brainkb.org/provenance/delta/{job_id}` |
 | A data graph | e.g. `https://brainkb.org/graph/my-lab/` |
+
+Only data graphs appear in the registry; the four above are infrastructure the
+backend maintains itself (`_SKIP_GRAPHS` in `indexing.py`, `PROVENANCE_DELTA_BASE`
+in `provenance.py`). Registry + those four = the whole store.
 
 **Common prefixes**
 

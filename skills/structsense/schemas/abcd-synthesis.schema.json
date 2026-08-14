@@ -1,0 +1,830 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/abcd-synthesis.schema.json",
+  "title": "ABCD/HBCD cross-paper synthesis",
+  "description": "Consensus, divergence, claim-level evidence and variable-role consistency computed across verified per-paper extractions (abcd-paper.schema.json). Counting is by PAPER, never by finding, so one verbose paper cannot outvote several others; only what each paper did itself is included, since the per-paper verifier rejects variables and results attributed to cited work. Every aggregate carries provenance: which papers, which wording, which dictionary release, which verbatim quote.",
+  "type": "object",
+  "required": [
+    "papers",
+    "claims",
+    "constructs",
+    "variables",
+    "totals",
+    "method",
+    "provenance"
+  ],
+  "properties": {
+    "synthesis_id": {
+      "type": "string"
+    },
+    "papers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "paper_id"
+        ],
+        "properties": {
+          "paper_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "doi": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "study": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data_release": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "variable_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "finding_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rejected_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "dataset": {
+            "type": "object",
+            "description": "What this paper analysed \u2014 release, sample, waves, cohort, source. Three papers agreeing on the same release with the same sample size are probably the same children, and that has to be visible.",
+            "additionalProperties": true
+          },
+          "dictionary": {
+            "type": "object",
+            "description": "Which dictionary release the mapping was checked against, which releases the resolved variables exist in, and which tables/domains the paper touched.",
+            "additionalProperties": true
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "constructs": {
+      "type": "array",
+      "description": "One row per construct, tallying the direction each paper reports.",
+      "items": {
+        "type": "object",
+        "required": [
+          "construct_label",
+          "paper_count",
+          "directions",
+          "verdict"
+        ],
+        "properties": {
+          "construct_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cognitive Atlas id, or null when the construct never mapped."
+          },
+          "construct_label": {
+            "type": "string"
+          },
+          "construct_mapped": {
+            "type": "boolean"
+          },
+          "paper_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "papers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "directions": {
+            "type": "object",
+            "description": "direction -> number of DISTINCT papers reporting it.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "majority_direction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "agreement": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "The majority direction's share of the paper-direction claims. Papers were the denominator before, which let a row report 1.00 agreement and a 'divergent' verdict at the same time."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "consensus",
+              "divergent",
+              "mixed",
+              "insufficient_papers",
+              "no_directional_finding"
+            ],
+            "description": "divergent = positive AND negative both reported (opposing signs), which is stronger than merely differing magnitudes."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/EvidencePointer"
+            }
+          },
+          "papers_by_direction": {
+            "type": "object",
+            "description": "direction -> the paper ids reporting it. The count alone hides who said what.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "papers_with_a_directional_finding": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Subset of `papers`: a paper can study a construct without reporting a signed effect for it."
+          },
+          "direction_claims": {
+            "type": "integer",
+            "description": "Denominator of `agreement`: paper-direction claims, not papers."
+          },
+          "measured_by": {
+            "type": "array",
+            "description": "Variables the papers declared as operationalising this construct, with table, domain, dd release and which papers.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "measured_by_source": {
+            "type": "string"
+          },
+          "variables_in_findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "measure_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tables": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "variables": {
+      "type": "array",
+      "description": "One row per variable, tallying the roles it plays across papers \u2014 the mediator/moderator consistency question.",
+      "items": {
+        "type": "object",
+        "required": [
+          "variable",
+          "paper_count",
+          "roles",
+          "verdict"
+        ],
+        "properties": {
+          "variable": {
+            "type": "string"
+          },
+          "paper_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "papers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "type": "object",
+            "description": "role -> number of DISTINCT papers assigning it.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "dominant_role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "'unspecified' can never be dominant \u2014 it is not a role claim."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "consistent_role",
+              "contested_role",
+              "mixed",
+              "insufficient_papers",
+              "unspecified_role"
+            ],
+            "description": "contested_role is reported as such rather than resolved by majority vote."
+          },
+          "dictionary_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dictionary_match": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/EvidencePointer"
+            }
+          },
+          "key": {
+            "type": "string",
+            "description": "Identity used for grouping: `var:<dictionary variable>` when the wording resolved, else the normalised mention."
+          },
+          "surface_forms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every wording the papers used for this variable."
+          },
+          "dictionary_variable": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mapping_disagreement": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Set when papers' wordings resolved to different variables or tables \u2014 the same words meaning two measures, or a wrong mapping. A real signal, not noise.",
+            "additionalProperties": true
+          },
+          "nda_or_nbdc_table": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nbdc_domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dd_releases": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Dictionary releases the resolved variable exists in \u2014 per row, so releases are comparable at a glance."
+          },
+          "mapping_statuses": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "papers_declaring": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "papers_referencing_without_declaring": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Papers that used the variable in a model or finding but never declared it in variables[] \u2014 so it carries no quote of its own."
+          },
+          "roles_by_paper": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "dominant_role_share": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "role_exclusivity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Share of papers in which the dominant role is the ONLY substantive role. Share alone called a variable a consistent mediator while it was also an outcome in every paper."
+          },
+          "paper_evidence": {
+            "type": "array",
+            "description": "Per paper: the wording used, instrument, respondent, metric, roles, timepoints, what it resolved to, the release, and the quotes.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "variable_construct_links": {
+      "type": "array",
+      "description": "Which papers pair a given variable with a given construct \u2014 the bridge for 'different measures, same construct'.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "variable": {
+            "type": "string"
+          },
+          "construct_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "construct_label": {
+            "type": "string"
+          },
+          "paper_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "papers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "variable_key": {
+            "type": "string"
+          },
+          "nda_or_nbdc_table": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "papers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variable_uses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "findings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distinct_variables": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distinct_constructs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consensus_constructs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "divergent_constructs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consistent_mediators": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "consistent_moderators": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contested_roles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claims": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_with_table": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variables_mapping_disagreement": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data_releases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "method": {
+      "type": "object",
+      "description": "The decision rules, emitted with the result so a reader need not read the code to know how a verdict was reached.",
+      "properties": {
+        "counting_unit": {
+          "const": "paper"
+        },
+        "min_papers_for_verdict": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "agreement_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "divergence_rule": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "agreement_denominator": {
+          "type": "string"
+        },
+        "role_consistency_rule": {
+          "type": "string"
+        },
+        "variable_identity_rule": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "strength_rating": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "run_at": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "papers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "description": "One claim per construct: what the corpus supports, the evidence paper by paper with a strength rating derived from what the papers reported, and \u2014 separately \u2014 whatever contradicts it. A claim supported by two papers and contradicted by one is not the same as a claim supported by three, and collapsing them into an agreement score hides that.",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "verdict",
+          "paper_count"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          },
+          "claim": {
+            "type": "string"
+          },
+          "construct_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "construct_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "paper_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "papers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "agreement": {
+            "type": "number"
+          },
+          "measured_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Variables the papers DECLARED as measuring the construct."
+          },
+          "variables_in_findings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fallback when no paper declared its measures: variables its findings mention. Not the same thing, and labelled as such."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ClaimEvidence"
+            }
+          },
+          "contradictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ClaimEvidence"
+            }
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Why the claim may be weaker than it looks: single paper, different releases, or the same sample size across papers (agreement that is not independent)."
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "EvidencePointer": {
+      "type": "object",
+      "description": "A synthesis claim traced back to one paper's verified quote \u2014 checkable without re-reading the corpus.",
+      "required": [
+        "paper_id"
+      ],
+      "properties": {
+        "paper_id": {
+          "type": "string"
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "quote": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "used_context": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "char_start": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "char_end": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "direction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "statement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "from_model": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "from_finding": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "dictionary_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ClaimEvidence": {
+      "type": "object",
+      "required": [
+        "paper_id"
+      ],
+      "properties": {
+        "paper_id": {
+          "type": "string"
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_release": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "direction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "statement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "effect_size": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "statistic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "analytic_n": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "subgroup": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "section": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quote": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "strength": {
+          "type": "object",
+          "description": "Derived only from reported facts: sample band, design, whether an effect size was printed, whether it is subgroup-only. `reasons` lists every input so a reader can argue with the label rather than the number.",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": [
+                "strong",
+                "moderate",
+                "weak"
+              ]
+            },
+            "band": {
+              "type": "string",
+              "enum": [
+                "large",
+                "moderate",
+                "small"
+              ]
+            },
+            "sample_n": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "longitudinal": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
