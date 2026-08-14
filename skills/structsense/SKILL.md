@@ -1,7 +1,7 @@
 ---
 name: structsense
 version: 0.6.1
-description: Extract structured information (named entities, key terms, resources like tools/datasets/models/benchmarks, or any target JSON schema) from unstructured text and PDFs using a model-agnostic multi-stage pipeline (extract → align to ontologies → judge → optional human feedback). Use this skill when the user asks to do NER, pull resources out of papers, convert documents to a target JSON schema (e.g. ReproSchema), or map terms to ontologies (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, etc.). Also extracts ABCD/HBCD study content from publications — which variables a study used (mapped to the NBDC data dictionary — nda_or_nbdc_table, nbdc_domain), the constructs behind them (Cognitive Atlas), the models specified, and the findings reported — with strict quote-level verification and full provenance, for single or bulk PDFs, plus cross-paper synthesis of consensus, divergence and whether variables are consistently mediators/moderators. Works with any LLM (Claude, GPT, Gemini, Pi, local Ollama/vLLM) — no library dependency.
+description: Extract structured information (named entities, key terms, resources like tools/datasets/models/benchmarks, or any target JSON schema) from unstructured text and PDFs using a model-agnostic multi-stage pipeline (extract → align to ontologies → judge → optional human feedback). Use this skill when the user asks to do NER, pull resources out of papers, convert documents to a target JSON schema (e.g. ReproSchema), or map terms to ontologies (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, etc.). Also extracts ABCD/HBCD study content from publications — which variables a study used (mapped to the NBDC data dictionary — nda_or_nbdc_table, nbdc_domain), the constructs behind them (Cognitive Atlas), the models and findings reported — with quote-level verification and provenance, for single or bulk PDFs, plus cross-paper synthesis of consensus, divergence and whether variables are consistently mediators/moderators. Works with any LLM (Claude, GPT, Gemini, Pi, local Ollama/vLLM) — no library dependency.
 license: Apache-2.0
 ---
 
@@ -47,13 +47,48 @@ Four cooperating roles, run sequentially. Each role's output is the next role's 
 
 You can run any subset — see `references/pipeline-pattern.md`.
 
+## Who runs the LLM stages — read this before asking for an API key
+
+The four roles above say *what* runs, not *who* runs it. There are two modes, and
+picking the wrong one is the most common way a run stalls before it starts.
+
+| | **Host-model mode** (the default when an agent is reading this) | **Framework mode** |
+|---|---|---|
+| Who is the extractor / judge | **you**, the model reading this file | `scripts/pipeline.py`, calling out over HTTP |
+| Where it applies | Claude Code, Codex CLI, Claude Desktop, Pi, any agent session | batch jobs, cron, CI, an MCP server, a script |
+| LLM API key | **none — there is no API to call** | required (`OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`) |
+| `--extractor` / `--judge` (pipeline.py) | **do not pass them** — nothing to point at | required |
+| `--llm-model` (normalize_result.py) | **do pass it**, set to your own model id — it is a provenance label, not a call | pass the extractor model |
+| How the prompt is used | read `prompts/<variant>.md` and follow it yourself | passed to the provider by `llm_client.py` |
+
+**If you are an agent reading this, you are in host-model mode.** Read the extractor
+prompt and produce the JSON yourself, then use the scripts for the deterministic work
+— `mask_pass.py`, `group_by_entity.py`, `normalize_result.py`, `stats.py`,
+`iri_validation.py`. None of those call an LLM. So the whole pipeline runs with **no
+LLM API key at all**, and asking the user for one is a bug, not diligence.
+
+Switch to framework mode only when the user explicitly wants it: a headless/scheduled
+run, or a *different* model than the host (cheaper extraction, a local Ollama, a
+model you can't be). Then `--extractor` and a key are genuinely required.
+
+**Two keys that are not LLM keys, and are needed in either mode:**
+
+- `BIOPORTAL_API_KEY` — the concept-mapping **tool** (rule 15's cascade). Free, and
+  the only key that ever matters for a host-model run. If mapping falls through to
+  BioPortal and this is unset, ask for *this* by name — never as "an API key".
+- `SEMANTIC_SCHOLAR_API_KEY`, and similar service keys — optional rate-limit lifts.
+
+When you do need to ask, name the exact variable and what breaks without it. "This
+needs an API key" is the ambiguous phrasing that sends users hunting for an
+OpenRouter account they don't need.
+
 ## Quick decision flow
 
 1. **What kind of extraction?**
    - Entities + key terms (NER) → load `references/ner-extraction.md`, then pick the extractor prompt by domain:
      - General-domain text (news, finance, biographies, generic web pages, mixed text) → `prompts/extractor-ner-general.md`.
      - Neuroscience text — broad (behavior + systems + cellular + molecular + computational) → `prompts/extractor-ner-neuroscience.md`.
-     - CNS-cell-focused text (cell atlases, patch-seq, scRNA-seq cell typing, BICCN-style cell census — anything where cell types + markers + morphology + ephys are the subject) → `prompts/extractor-ner-cns-cells.md`.
+     - CNS-cell-focused text (cell atlases, patch-seq, scRNA-seq cell typing, BICCN-style cell census — anything where cell types + markers + morphology + ephys are the subject) → `prompts/extractor-ner-cns-cells.md`, **plus `references/cell-annotation-conventions.md`** if the output will be scored against a human gold standard (specificity types, nested spans, coordinated ids — the conventions that make the difference between a real error and a format mismatch).
    - Tools / datasets / models / benchmarks → load `references/resource-extraction.md` and `prompts/extractor-resource.md`.
    - User has a target JSON schema → load `references/structured-extraction.md` and `prompts/extractor-structured.md`.
    - **ABCD / HBCD variables, models, findings, or cross-paper synthesis** → load `references/abcd-extraction.md` and `prompts/extractor-abcd.md`. This mode has its own verifier and its own hard rules (see rule 16); it is not a variant of NER. Single PDF or a directory in bulk; every run emits JSON + Markdown + Turtle.
@@ -77,6 +112,7 @@ These prevent the most common failures.
 7. **Validate before returning.** Parse the JSON; if parsing fails, repair-then-retry (see `references/json-output-discipline.md`). Validate against the task's JSON schema in `schemas/`.
 8. **Always emit a `stats` block.** Every final result must embed a `stats` block at the top level (totals, label histogram, alignment provenance, judge score buckets, per-stage elapsed times) and print a human-readable summary to stderr. Use `scripts/stats.py`. This is the answer to "did the run do what it was supposed to?" — a healthy NER run on a paper has hundreds-to-thousands of entity mentions and `mentions_per_unique > 1`. A summary with 230 mentions and `mentions_per_unique ≈ 1` is the symptom of surface-form deduplication; re-run with the mask-recall pass and double-check no upstream step is collapsing duplicates.
 9. **Final-result filename convention.** When writing the result to disk, name it **`<input_stem>_final.json`** (e.g. `paper.pdf` → `paper_final.json`, `note.txt` → `note_final.json`). Honor an explicit `--out` only when the user provides one. The reference helper is `scripts/pipeline.py::default_output_path`.
+9b. **More than one document? Deliver the corpus view too, not just N per-paper files.** In framework mode this is **automatic**: `pipeline.py --input <dir>` (or a repeated `--input`) runs each paper, writes each `<stem>_final.json`, and then merges them into `corpus_synthesis.{json,md}` — auto-detected from the input count, exactly as `abcd_extract` decides on its synthesis, with `--no-synthesize` / `--synthesize` to override. In **host-model mode you are the loop**, so nothing runs it for you: after the last paper, run `python -m scripts.merge_corpus <out-dir> --out <out-dir>/corpus_synthesis` yourself — a directory works, no glob needed, and it skips anything that looks like a previous roll-up so a re-run cannot fold its own output back in. Per-paper `<stem>_final.json` stays the authoritative record of raw mentions; the roll-up adds one canonical row per entity across every paper, which documents it appears in, and where papers disagree about its ontology id. Handing back a directory of per-paper JSON and leaving the user to reconcile it is an unfinished deliverable: the questions a corpus is *for* ("which cell types does this collection talk about", "which mappings conflict") cannot be answered from any single file. The index is grouped, not concatenated — pass `--include-mentions` only if the raw union is genuinely wanted.
 10. **Concept-mapping cascade — and you MUST probe before declaring unavailable.**
     Default mapper is the local hybrid service at **`http://localhost:8000`**. Before saying "no mapper available" you MUST run at least one probe in your current runtime:
     ```bash
@@ -124,6 +160,7 @@ These prevent the most common failures.
     - **Two papers are the same variable only when they resolve to the same dictionary variable, share a paper-declared alias, or share a normalised mention.** Never on similarity: parent-report and youth-report versions of a scale stay separate rows, and when two wordings do resolve differently the row carries `mapping_disagreement` rather than silently picking one.
     - **The synthesis must say where every number came from.** Each variable row carries `paper_evidence` (per paper: wording used, instrument, respondent, metric, roles, timepoints, resolved variable, table, dd release, quotes); each construct row carries the variables that measured it — declared measures kept separate from variables that merely appear in its findings; each paper row carries its dataset (release, sample, analytic sample, waves, cohort, source). `claims[]` states what the corpus supports, the evidence paper by paper with a strength rating derived only from reported facts, and — separately — the contradictions and caveats, including "these papers report the same sample size, so their agreement is not independent".
     - **Bulk is first-class**: `--bulk` over a directory keeps going when one paper fails, writes one output set per paper, and `--synthesize` adds the cross-paper pass. Per-paper evidence stays inspectable; the synthesis never becomes the only record.
+17. **Never ask for an LLM API key in host-model mode.** If you are an agent reading this file, you *are* the extractor and the judge — there is no API to call, so `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` are irrelevant and `pipeline.py`'s `--extractor` / `--judge` have nothing to point at. (`--llm-model` on `normalize_result.py` is the exception that proves the rule: it is a provenance *label*, makes no call, and you SHOULD pass your own model id or every item lands as `llm_ner:unknown`.) Read the prompt, produce the JSON, and use the scripts for the deterministic stages (`mask_pass.py`, `group_by_entity.py`, `normalize_result.py`, `stats.py`, `iri_validation.py` — none of them call an LLM). A key is required only when the *user* asks for a headless run or a different model than you. The one key a host-model run can legitimately need is `BIOPORTAL_API_KEY`, which is a concept-mapping **tool** credential, not an LLM one — ask for it by name, and only after the local mapper has actually failed (rule 15). Blocking a run on "please provide an API key" when none is needed is a defect. See "Who runs the LLM stages".
 
 ## Install
 
@@ -152,6 +189,7 @@ The files below are intentionally separated so you only load what the current ta
 - `ontology-mapping.md` — BioPortal REST API, OLS REST API, embedding-based hybrid retrieval, LLM-only fallback. Picking and combining backends.
 - `chunking-strategy.md` — sentence-aligned chunking, parallel extraction, merge by stable key, context window math.
 - `json-output-discipline.md` — schema-locked prompting, JSON repair, validation.
+- `cell-annotation-conventions.md` — how a human annotator marks up cell mentions: the `cell_phenotype` / `cell_vague` / `cell_hetero` specificity axis, nested hedge-plus-head spans, one ontology id per coordinated element (`;` positional, `-` for a gap), `skos:exact` vs `skos:related`, BioC `(offset, length)` conversion, and a validation checklist. Load this whenever cell extraction will be **scored**, and note it overrides the older non-CNS exclusion in the cns-cells prompt.
 - `model-selection.md` — picking models per stage; OpenRouter / Ollama / vLLM / Claude / GPT / Gemini configuration.
 - `human-feedback.md` — designing the human-in-the-loop review step.
 - `abcd-extraction.md` — **ABCD/HBCD mode**: extracting variables/constructs/models/findings from publications, the three hard rules (strict verification, complete provenance, single-or-bulk), building dictionary snapshots from NBDCtools, Cognitive Atlas construct mapping, and how to read the cross-paper synthesis verdicts.
@@ -171,7 +209,9 @@ The files below are intentionally separated so you only load what the current ta
 - `extractor-abcd.md` — ABCD/HBCD extractor: variables (as mentioned), constructs, models, findings with roles/directions, each with a verbatim quote + section/page.
 
 ### `schemas/`
-- `ner-output.schema.json` — JSON Schema for NER output.
+- `ner-output.schema.json` — JSON Schema for NER output. **Task-agnostic — keep it that way**; cell-specific constraints live in the two files below.
+- `cell-ner-output.schema.json` — per-paper CNS cell NER output. Superset of the generic NER schema: the closed cns-cells label taxonomy (enforced for LLM-extracted items only, since the HF ensemble legitimately emits `Anatomy`/`Gene`/`CellLine`), the `cell_context` block, `specificity`, `coordinated_elements`, and a rule that a `cell_vague` item **must** carry a null `ontology_id`.
+- `cell-ner-corpus.schema.json` — the corpus roll-up written by `scripts/merge_corpus.py`.
 - `resource-output.schema.json` — JSON Schema for resource output.
 - `aligned-item.schema.json` — fragment schema for any aligned item (adds ontology + provenance fields).
 - `judged-item.schema.json` — fragment schema for any judged item (adds judge_score + remarks).
@@ -189,13 +229,16 @@ The files below are intentionally separated so you only load what the current ta
 - `normalize_result.py` — **idempotent post-processor**. Lifts per-entity `paper_title`/`doi` into top-level `source_metadata`, strips the per-entity dupes, tags missing `source_model` + `alignment_method`, infers `task_type`, runs **strict IRI validation** (demotes `llm_knowledge` and malformed IRIs), attaches `entities_grouped[]`, and computes `stats` (with prominent `totals` block at the top). **Runs automatically** in `pipeline.py` before saving. Also exposed as a CLI: `python -m scripts.normalize_result legacy.json --input paper.txt --llm-model …`. This is the safety net that guarantees the canonical shape even when the LLM ignores the prompt.
 - `iri_validation.py` — **strict IRI validator**. Per-ontology regex patterns + permissive structural fallback. Rejects `concept_mapping_provenance: "llm_knowledge"` outright (zero hallucination policy), demotes malformed IRIs to `unmapped`, accepts legitimate cross-ontology mappings (e.g. CIDO results that reuse HP IRIs). Adds `result["validation"]` with `passed` / `demoted` counts and `demoted_by_reason` breakdown.
 - `input_loader.py` — **PDF / CSV / TXT / MD** ingestion. PDF backends in order: GROBID (if reachable) → PyMuPDF (`fitz`) → pdfminer.six. Graceful fallback so it works with whichever library is installed. Also writes a sibling `<stem>.txt` so subsequent NER stages have stable character offsets. CLI: `python -m scripts.input_loader paper.pdf [--no-grobid] [--grobid-url …]`.
+  Captions and tables are the thing to watch: the GROBID path used to drop them entirely, and `caption_coverage()` / `warn_if_captions_missing()` now report it on every backend. Cascade is GROBID → pymupdf4llm → PyMuPDF → pdfminer.
 - `task_detection.py` — **auto-detect task type** from a free-text task description: heuristic regex first (fast, no LLM), then LLM fallback via `llm_client`. Returns a `TaskDetection` with `task_type` (`ner`/`resource`/`structured_extraction`/`relation_extraction`/`keyphrase_extraction`/…), `confidence`, `labels`, `rationale`.
 - `model_context.py` — **model context-window registry** (~50 model families, longest-match wins) + token-aware `compute_downstream_chunk_size(...)` for sizing alignment/judge/humanfeedback chunks. CLI: `python -m scripts.model_context openrouter/anthropic/claude-sonnet-4-6 --items 2000 --workers 8`.
 - `bioportal_map.py` — throttled + LRU-cached BioPortal client.
+- `merge_corpus.py` — **corpus roll-up (rule 9b)**. Merges per-paper `*_final.json` into `<stem>.json` + `<stem>.md` (`--out`, default `corpus_synthesis`, mirroring `abcd_synthesize.py`): one canonical row per entity across all papers, per-document counts, cross-paper ontology conflicts, and specificity totals. Groups with the same `_canonical_key` as per-paper `entities_grouped`, so corpus counts reconcile against per-paper counts. Recomputes totals from the items rather than summing each file's `stats`, so one stale block can't corrupt the total. No LLM call. `--include-mentions` embeds the raw union, `--no-index` gives roll-up only.
+- `fetch_fulltext.py` — **structured full text without a PDF or GROBID**. PMCID/PMID → publisher XML (NCBI BioC → Europe PMC JATS → NCBI efetch), keeping figure captions and table cells as first-class content. Open-access only, and it says so rather than falling back to a caption-less parse. Via the BioC source the passage segmentation matches a BioC gold standard exactly. No key, no server; `NCBI_API_KEY` only raises a rate limit.
 - `ols_map.py` — EBI OLS client (no API key).
 - `local_hybrid_map.py` — client for a self-hosted BM25+dense mapping service (one POST, many terms).
 - `llm_client.py` — provider-agnostic LLM call (OpenAI / OpenRouter / Anthropic / Ollama / Gemini).
-- `pipeline.py` — reference end-to-end pipeline (extract → align → judge) wiring the helpers together.
+- `pipeline.py` — reference end-to-end pipeline (extract → align → judge) wiring the helpers together. `--input` takes a file **or a directory** and is repeatable; several inputs run in turn, one failure does not abort the batch (exit 2 = partial, 1 = none succeeded), and the corpus roll-up runs at the end (rule 9b).
 - `abcd_context.py` — **context-aware mapping from a paper's wording to a dictionary variable**. `Dictionary.resolve()` answers "is this string a variable name?", which most papers never satisfy; this answers "which variable did this sentence mean?" by matching against dictionary *labels* with the instrument, respondent, metric and release the paper stated. Returns one variable, a family, a domain or an instrument table — never a guess — with the candidate list and thresholds attached. CLI: `match` / `instrument` / `stats`.
 
 - `abcd_nda_api.py` — **NDA data-element API**: confirm a printed element name (with its structures and aliases), or full-text search element descriptions. Hits are intersected with the loaded dictionary's tables, and search results are suggestions rather than mappings. Cached under `~/.cache/structsense/nda_api`. CLI: `element` / `search`.
@@ -214,7 +257,13 @@ The files below are intentionally separated so you only load what the current ta
 - `reproschema-example.md` — end-to-end PDF → ReproSchema worked example.
 
 ### `connecting/` (how to wire the skill into different LLM platforms)
-- `claude-code.md` — install as a Claude Code skill (`~/.claude/skills/` or `.claude/skills/`). Auto-discovery via the `SKILL.md` frontmatter.
+
+All of these are **host-model mode** (see "Who runs the LLM stages") except the MCP
+server and a deliberately headless `pipeline.py` run: the agent is the extractor, so
+no LLM API key is involved. Codex CLI needs no guide of its own — it reads `SKILL.md`
+and behaves like Claude Code here.
+
+- `claude-code.md` — install as a Claude Code skill (`~/.claude/skills/` or `.claude/skills/`). Auto-discovery via the `SKILL.md` frontmatter. Also the reference for "why no API key is needed".
 - `pi-dev.md` — install as a [Pi](https://pi.dev) skill (`~/.pi/agent/skills/`, `~/.agents/skills/`, or `.pi/skills/`). Pi is a CLI coding agent with native Agent Skills support and a built-in `bash` tool, so it runs the pipeline directly — same story as Claude Code.
 - `claude-desktop.md` — **Claude Desktop has a split execution model**: chat UI on your machine, code interpreter in Anthropic's cloud sandbox (so it cannot reach your `localhost:8000` directly). Use the MCP server config in this guide to bridge.
 - `claude-skills.md` — upload as a hosted Anthropic Skill on claude.ai or use with the Claude Agent SDK.

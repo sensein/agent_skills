@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -78,6 +79,52 @@ def process_file(
     raise ValueError(f"unsupported extension {ext!r} (supported: .pdf, .csv, .txt, .md)")
 
 
+# Caption / table markers, covering every producer: BioC and JATS emit "[FIG]" /
+# "[TABLE]" section tags (scripts/fetch_fulltext.py), GROBID TEI yields a "Figure N" /
+# "Table N" head, and a raw PDF text layer usually keeps the printed label.
+_CAPTION_RE = re.compile(
+    r"^\s*(\[(?:FIG|TABLE)\]|(?:Figure|Fig\.?|Table|Supplementary\s+(?:Figure|Table))"
+    r"\s*(?:S?\d+|[IVX]+)\b)",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def caption_coverage(text: str) -> dict:
+    """Report how much figure/table text survived extraction.
+
+    This exists because caption loss is silent and expensive. Measured against a gold
+    standard: 19 of 101 passages could not be located in PDF-derived text, costing 155
+    annotations, and **7 papers had no figure-caption text at all** — captions are in
+    scope and among the densest passages, so it is a large recall ceiling that looks
+    exactly like an extractor failure.
+
+    A count of 0 on a research paper is the signal worth acting on. It almost never
+    means the paper has no figures; it means this extraction path dropped them.
+    """
+    blocks = _CAPTION_RE.findall(text or "")
+    return {
+        "caption_blocks": len(blocks),
+        "chars": len(text or ""),
+        "looks_empty": len(blocks) == 0,
+    }
+
+
+def warn_if_captions_missing(text: str, label: str = "input") -> dict:
+    """`caption_coverage`, but it says something when the answer is bad."""
+    cov = caption_coverage(text)
+    if cov["looks_empty"] and cov["chars"] > 2000:
+        logger.warning(
+            "%s: no figure/table captions found in %d chars of extracted text. "
+            "Captions are in scope and dense, so this is probably an extraction "
+            "ceiling rather than a paper without figures. Options, best first: "
+            "(1) open access? `python -m scripts.fetch_fulltext <PMCID>` needs no PDF "
+            "and no GROBID; (2) run GROBID and pass --grobid-url; "
+            "(3) pip install pymupdf4llm (layout-aware, no server) and re-extract.",
+            label, cov["chars"],
+        )
+    return cov
+
+
 def process_file_to_text_file(
     source_path: Union[str, Path],
     out_path: Optional[Union[str, Path]] = None,
@@ -107,19 +154,51 @@ def _read_pdf(path: Path, *, grobid_url: Optional[str],
     if prefer_grobid:
         text = _try_grobid(path, grobid_url=grobid_url, errors=errors)
         if text and text.strip():
+            warn_if_captions_missing(text, f"{path.name} (grobid)")
             return text
+
+    # pymupdf4llm before plain PyMuPDF: it is layout-aware and keeps figure captions
+    # and table structure, which is the whole difference that matters here, and unlike
+    # GROBID it is a pip install with no server. This is the best option for anyone who
+    # cannot run GROBID.
+    text = _try_pymupdf4llm(path, errors=errors)
+    if text and text.strip():
+        warn_if_captions_missing(text, f"{path.name} (pymupdf4llm)")
+        return text
 
     text = _try_pymupdf(path, errors=errors)
     if text and text.strip():
+        warn_if_captions_missing(text, f"{path.name} (pymupdf)")
         return text
 
     text = _try_pdfminer(path, errors=errors)
     if text and text.strip():
+        warn_if_captions_missing(text, f"{path.name} (pdfminer)")
         return text
 
     raise ValueError(
         f"all PDF extractors failed for {path.name}: " + " | ".join(errors)
     )
+
+
+def _try_pymupdf4llm(path: Path, *, errors: list[str]) -> Optional[str]:
+    """Layout-aware Markdown via pymupdf4llm — captions and tables preserved.
+
+    Markdown rather than plain text is fine and slightly better here: a table becomes
+    a pipe table on contiguous lines instead of a column of stray cells, so a caption
+    or a row stays locatable as one passage. The `#`/`|` characters are inert for span
+    offsets, which are computed against whatever text is written to disk.
+    """
+    try:
+        import pymupdf4llm
+    except ImportError as e:
+        errors.append(f"pymupdf4llm: not installed ({e}); pip install pymupdf4llm")
+        return None
+    try:
+        return pymupdf4llm.to_markdown(str(path))
+    except Exception as e:  # noqa: BLE001 - any failure just falls through
+        errors.append(f"pymupdf4llm: {e}")
+        return None
 
 
 def _try_grobid(path: Path, *, grobid_url: Optional[str],
@@ -162,8 +241,33 @@ def _try_grobid(path: Path, *, grobid_url: Optional[str],
     return _tei_to_text(xml_text, errors=errors)
 
 
+_TEI_NS = "http://www.tei-c.org/ns/1.0"
+
+
+def _tei_text(el) -> str:
+    """All descendant text of a TEI element, whitespace-collapsed.
+
+    `el.text` alone is only the text BEFORE the first child, so a paragraph like
+    ``<p>Astrocytes <ref>[12]</ref> were labelled in mPFC.</p>`` yielded just
+    "Astrocytes" — the rest lives in the ``tail`` of the inline element. TEI from
+    GROBID is dense with inline <ref>/<hi>/<formula>, so reading only `.text`
+    truncated nearly every paragraph at its first citation. itertext() walks the
+    whole subtree.
+    """
+    return re.sub(r"\s+", " ", "".join(el.itertext())).strip()
+
+
 def _tei_to_text(xml_text: str, *, errors: list[str]) -> Optional[str]:
-    """Convert TEI XML from GROBID into plain text with section headings."""
+    """Convert TEI XML from GROBID into plain text with section headings.
+
+    Includes figure captions and table content. They were previously dropped
+    outright: GROBID puts them in <figure>/<figDesc>/<table>, which this function
+    never visited, so a caption-dense paper came out with no caption text at all.
+    Captions are in scope for cell extraction and among the densest passages in a
+    paper, so losing them is a recall ceiling that looks like an extractor failure
+    (measured on a gold corpus: 19 of 101 passages unlocatable, 155 annotations,
+    7 papers with zero caption text).
+    """
     try:
         from xml.etree import ElementTree as ET
     except ImportError as e:
@@ -171,39 +275,79 @@ def _tei_to_text(xml_text: str, *, errors: list[str]) -> Optional[str]:
         return None
 
     try:
-        ns = {"tei": "http://www.tei-c.org/ns/1.0"}
         root = ET.fromstring(xml_text)
     except ET.ParseError as e:
         errors.append(f"grobid TEI parse error: {e}")
         return None
 
+    def q(tag: str) -> str:
+        return f"{{{_TEI_NS}}}{tag}"
+
     parts: list[str] = []
 
-    # Title
-    for t in root.iter("{http://www.tei-c.org/ns/1.0}title"):
-        if t.text and t.text.strip():
-            parts.append(t.text.strip())
+    for t in root.iter(q("title")):
+        text = _tei_text(t)
+        if text:
+            parts.append(text)
             break
 
-    # Abstract
-    for ab in root.iter("{http://www.tei-c.org/ns/1.0}abstract"):
-        ab_text = " ".join((p.text or "") for p in ab.iter("{http://www.tei-c.org/ns/1.0}p") if (p.text or "").strip())
-        if ab_text.strip():
-            parts.append("Abstract\n" + ab_text.strip())
+    for ab in root.iter(q("abstract")):
+        ab_text = " ".join(
+            filter(None, (_tei_text(p) for p in ab.iter(q("p"))))
+        )
+        if ab_text:
+            parts.append("Abstract\n" + ab_text)
         break
 
-    # Body sections
-    for div in root.iter("{http://www.tei-c.org/ns/1.0}div"):
-        head = div.find("tei:head", ns)
-        head_text = (head.text.strip() if head is not None and head.text else "")
-        paras = []
-        for p in div.findall("tei:p", ns):
-            if p.text and p.text.strip():
-                paras.append(p.text.strip())
-        if head_text and paras:
-            parts.append(f"{head_text}\n" + "\n".join(paras))
-        elif paras:
-            parts.append("\n".join(paras))
+    # Walk the body in DOCUMENT order so a caption stays near the section that
+    # refers to it. Emitting all divs and then all figures would put every caption
+    # at the end, which breaks nothing mechanically but makes paper_location and any
+    # section-aware chunking wrong.
+    body = root.find(f".//{q('body')}")
+    scope = body if body is not None else root
+    seen_div: set[int] = set()
+
+    for el in scope.iter():
+        if el.tag == q("div"):
+            if id(el) in seen_div:
+                continue
+            seen_div.add(id(el))
+            head = el.find(q("head"))
+            head_text = _tei_text(head) if head is not None else ""
+            paras = [t for t in (_tei_text(p) for p in el.findall(q("p"))) if t]
+            if not paras:
+                continue
+            parts.append(f"{head_text}\n" + "\n".join(paras) if head_text
+                         else "\n".join(paras))
+
+        elif el.tag == q("figure"):
+            # type="table" marks a table; everything else is a figure.
+            is_table = (el.get("type") or "").lower() == "table"
+            head = el.find(q("head"))
+            label = _tei_text(head) if head is not None else ""
+            desc_el = el.find(q("figDesc"))
+            desc = _tei_text(desc_el) if desc_el is not None else ""
+            # GROBID often repeats the label at the head of figDesc ("Figure 3" +
+            # "Figure 3Pvalb basket cells…"). Emitting both duplicates the label and,
+            # worse, glues it to the first word of the caption.
+            if label and desc.startswith(label):
+                desc = desc[len(label):].lstrip(" .:—-")
+
+            # Table cells row by row, so a cell's row-mates stay adjacent and a
+            # sentence splitter does not turn each cell into its own "sentence".
+            rows: list[str] = []
+            for row in el.iter(q("row")):
+                cells = [t for t in (_tei_text(c) for c in row.findall(q("cell"))) if t]
+                if cells:
+                    rows.append(" | ".join(cells))
+
+            chunk = "\n".join(filter(None, [
+                label or ("Table" if is_table else "Figure"),
+                desc,
+                "\n".join(rows),
+            ]))
+            if chunk.strip():
+                parts.append(chunk)
 
     if not parts:
         return None
@@ -213,7 +357,13 @@ def _tei_to_text(xml_text: str, *, errors: list[str]) -> Optional[str]:
 
 def _try_pymupdf(path: Path, *, errors: list[str]) -> Optional[str]:
     try:
-        import fitz   # PyMuPDF
+        # PyMuPDF 1.28 deprecated the `fitz` alias ("will be removed in future") and
+        # emits a warning on import. Prefer the real module name, keep `fitz` for
+        # older installs.
+        try:
+            import pymupdf as fitz
+        except ImportError:
+            import fitz   # PyMuPDF < 1.24-ish
     except ImportError as e:
         errors.append(f"pymupdf: not installed ({e}); pip install pymupdf")
         return None
@@ -225,12 +375,33 @@ def _try_pymupdf(path: Path, *, errors: list[str]) -> Optional[str]:
     try:
         pages = []
         for page in doc:
-            t = page.get_text()
+            t = _pymupdf_page_text(page)
             if t and t.strip():
                 pages.append(t)
         return "\n\n".join(pages).strip()
     finally:
         doc.close()
+
+
+def _pymupdf_page_text(page) -> str:
+    """Page text in reading order, keeping caption and table blocks.
+
+    `page.get_text()` with default flags returns blocks in the PDF's internal
+    order, which on a two-column paper interleaves the columns and scatters a
+    figure caption into the middle of unrelated body text. That is the mechanism
+    behind "the caption is in the PDF but I cannot locate the passage": the words
+    are all present, just not contiguous, so a passage-level match fails.
+
+    `sort=True` orders blocks top-to-bottom / left-to-right, which keeps a caption
+    together as one block. It is not column-aware — GROBID still does that better —
+    but it turns scrambled text into merely mis-sequenced text, and a caption that
+    survives as one contiguous block is locatable.
+    """
+    try:
+        return page.get_text("text", sort=True)
+    except TypeError:
+        # Older PyMuPDF without the sort kwarg.
+        return page.get_text()
 
 
 def _try_pdfminer(path: Path, *, errors: list[str]) -> Optional[str]:

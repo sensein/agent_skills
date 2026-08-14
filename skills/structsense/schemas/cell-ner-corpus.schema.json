@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/cell-ner-corpus.schema.json",
+  "title": "Corpus-level extraction roll-up",
+  "description": "Output of scripts/merge_corpus.py: one file covering every paper in a run. The per-paper <stem>_final.json files remain the authoritative record of raw mentions (SKILL.md rule 9); this is the cross-document view — one canonical row per entity, which documents it appears in, and where papers disagree about its ontology id. The index is grouped rather than concatenated, because concatenating raw mentions duplicates data the per-paper files already hold; pass --include-mentions to embed them anyway. Task-agnostic in shape (entities / key_terms / resources), with the cell-specific fields optional, so the same file works for a non-cell corpus.",
+  "type": "object",
+  "required": ["corpus_metadata", "documents", "stats"],
+  "properties": {
+    "corpus_metadata": {
+      "type": "object",
+      "required": ["document_count"],
+      "properties": {
+        "document_count": { "type": "integer", "minimum": 0 },
+        "task_type":      { "type": "string" },
+        "merged_from": {
+          "type": "array",
+          "description": "Input paths, in the order merged. Files that were unreadable are absent — the merge reports them on stderr rather than failing the run, so this list is the record of what actually contributed.",
+          "items": { "type": "string" }
+        },
+        "index_includes_mentions": {
+          "type": "boolean",
+          "description": "True when --include-mentions embedded every raw mention in the index. False means the index carries counts only and the per-paper files hold the spans."
+        }
+      },
+      "additionalProperties": true
+    },
+    "documents": {
+      "type": "array",
+      "description": "One row per contributing paper: identity, counts, and that paper's own stats block.",
+      "items": {
+        "type": "object",
+        "required": ["document_id", "entity_count"],
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Identity used to attribute mentions. Resolved from source_metadata in order doi -> paper_title -> source_path, falling back to the filename. Collisions get a ' #N' suffix so two files cannot silently merge into one column."
+          },
+          "document_id_source": {
+            "type": "string",
+            "enum": ["doi", "paper_title", "source_path", "filename"],
+            "description": "Which field the id came from. 'filename' means the result had no source_metadata — worth knowing before trusting cross-document counts."
+          },
+          "source_path":     { "type": "string" },
+          "source_metadata": { "type": "object", "additionalProperties": true },
+          "entity_count":        { "type": "integer", "minimum": 0 },
+          "unique_entity_count": { "type": "integer", "minimum": 0 },
+          "key_term_count":      { "type": "integer", "minimum": 0 },
+          "stats":               { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": true
+      }
+    },
+    "entities_index":  { "$ref": "#/$defs/IndexRows" },
+    "key_terms_index": { "$ref": "#/$defs/IndexRows" },
+    "resources_index": { "$ref": "#/$defs/IndexRows" },
+    "stats": {
+      "type": "object",
+      "required": ["totals"],
+      "description": "Recomputed from the items themselves, never summed from each file's own stats block — a stale per-paper stats block must not be able to corrupt the corpus total.",
+      "properties": {
+        "totals": {
+          "type": "object",
+          "required": ["document_count"],
+          "properties": {
+            "document_count":  { "type": "integer", "minimum": 0 },
+            "total_entities":  { "type": "integer", "minimum": 0 },
+            "unique_entities": { "type": "integer", "minimum": 0 },
+            "total_key_terms": { "type": "integer", "minimum": 0 },
+            "unique_key_terms":{ "type": "integer", "minimum": 0 },
+            "total_resources": { "type": "integer", "minimum": 0 },
+            "unique_resources":{ "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": true
+        },
+        "mentions_per_unique": {
+          "type": ["number", "null"],
+          "description": "total_entities / unique_entities. On cell-typing text a value near 1 means surface-form deduplication crept in — a cell name repeated through a paper should not collapse to a single row (SKILL.md rule 8)."
+        },
+        "by_label":       { "type": "object", "additionalProperties": { "type": "integer" } },
+        "by_specificity": {
+          "type": "object",
+          "description": "Cell corpora only: mention counts per cell_phenotype / cell_vague / cell_hetero. Vague and hetero counts are expected to be non-zero — they are complete answers that carry no ontology id, not extraction misses.",
+          "additionalProperties": { "type": "integer" }
+        },
+        "alignment": {
+          "type": "object",
+          "properties": {
+            "mapped":   { "type": "integer", "minimum": 0 },
+            "unmapped": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": true
+        },
+        "ontology_conflicts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Canonical forms mapped to more than one ontology id across papers. Non-zero is a curation signal, not necessarily an error: exactness is context-dependent, so the same cell name can be skos:exact in one paper and skos:related in another."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "IndexRows": {
+      "type": "array",
+      "description": "Cross-document index, sorted by mention_count then document_count. Grouped by the SAME canonical key as per-paper entities_grouped (group_by_entity._canonical_key: case-insensitive surface + label), so corpus counts reconcile against per-paper counts.",
+      "items": {
+        "type": "object",
+        "required": ["mention_count", "document_count"],
+        "properties": {
+          "entity": { "type": ["string", "null"] },
+          "term":   { "type": ["string", "null"] },
+          "name":   { "type": ["string", "null"] },
+          "label":  { "type": ["string", "null"] },
+          "mention_count":  { "type": "integer", "minimum": 1 },
+          "document_count": { "type": "integer", "minimum": 1 },
+          "documents": {
+            "type": "object",
+            "description": "document_id -> mention count in that document.",
+            "additionalProperties": { "type": "integer", "minimum": 1 }
+          },
+          "ontology_ids": {
+            "type": "array",
+            "description": "Every distinct id seen for this canonical form, sorted. Ids on items marked llm_knowledge or validation_failed are excluded — a fabricated mapping demoted by iri_validation.py must not reappear here as corpus consensus.",
+            "items": { "type": "string" }
+          },
+          "ontology_conflict": {
+            "type": "boolean",
+            "description": "More than one distinct ontology id across papers. Surfaced rather than resolved: the merge does not pick a winner."
+          },
+          "specificity": {
+            "type": ["string", "null"],
+            "enum": ["cell_phenotype", "cell_vague", "cell_hetero", null],
+            "description": "Set only when every mention of this form agrees. Null on disagreement — the same surface form can be a grounded phenotype in one paper and part of a hedged set in another, and flattening that would hide it."
+          },
+          "specificities": {
+            "type": "array",
+            "description": "All specificity values observed, sorted. Length > 1 is why `specificity` is null.",
+            "items": { "type": "string" }
+          },
+          "source_models": { "type": "array", "items": { "type": "string" } },
+          "mentions": {
+            "type": "array",
+            "description": "Present only with --include-mentions: every raw item, each stamped with its document_id.",
+            "items": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

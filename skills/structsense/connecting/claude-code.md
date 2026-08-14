@@ -61,24 +61,45 @@ When invoked, Claude reads `SKILL.md`, then loads only the reference / prompt fi
 - `references/ontology-mapping.md`
 - `references/ner-models.md`
 
-For the Python pipeline driver, Claude will call `scripts/pipeline.py` via Bash. Make sure your project's working directory has Python + dependencies available (`pip install requests openai anthropic json-repair jsonschema` — install the providers you actually use).
+Claude does the extraction and judging **itself** — it is the model, so those stages
+need no external call. It shells out only for the deterministic helpers
+(`mask_pass.py`, `group_by_entity.py`, `normalize_result.py`, `stats.py`,
+`iri_validation.py`), none of which call an LLM. For those, make sure the working
+directory has Python available: `pip install requests json-repair jsonschema`.
 
-## 5. API keys
+Install the provider SDKs (`openai`, `anthropic`) only if you also want the headless
+path in §6.
 
-Set keys in your shell environment **before** launching Claude Code, or in a `.env` file in your project root:
+## 5. API keys — you almost certainly need none
+
+**Running the skill in Claude Code does not require an LLM API key.** Claude *is* the
+extractor and the judge. There is no OpenRouter/OpenAI/Anthropic call in the loop, so
+`OPENROUTER_API_KEY` and friends do nothing. If Claude asks you for one, that is a bug
+in the run, not a missing prerequisite — point it at rule 17 in `SKILL.md`.
+
+Two keys can matter, and neither is an LLM key:
+
+| Variable | What actually needs it | Required? |
+|---|---|---|
+| `BIOPORTAL_API_KEY` | concept mapping, **only** if the local hybrid mapper at `http://localhost:8000` is unreachable (the rule-15 cascade). Free from [bioportal.bioontology.org](https://bioportal.bioontology.org/account) | only as a fallback |
+| `SEMANTIC_SCHOLAR_API_KEY` | lifts Semantic Scholar's 1 req/s public limit | no |
+
+LLM keys are needed **only** for the headless path in §6 — a scheduled or batch run
+where no agent is present, or when you deliberately want a different model than
+Claude. If that is what you want:
 
 ```bash
-export OPENROUTER_API_KEY=sk-or-v1-...
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-...
-export BIOPORTAL_API_KEY=...
+export OPENROUTER_API_KEY=sk-or-v1-...     # only for §6
 ```
 
-Claude Code inherits the env from the shell that launched it. **Do not paste API keys into chat** — Claude will warn you.
+Claude Code inherits the env from the shell that launched it. **Do not paste keys into
+chat** — Claude will warn you.
 
-## 6. Picking models inside Claude Code
+## 6. Using a different model instead of Claude
 
-When Claude calls `scripts/pipeline.py`, it can pass model strings:
+Skip this section unless you specifically want it. The reason to reach for it is cost
+(a small open model for a 200-page corpus), a local model for data that can't leave
+the machine, or reproducibility of a scheduled run — not capability.
 
 ```bash
 python -m scripts.pipeline \
@@ -86,10 +107,17 @@ python -m scripts.pipeline \
     --extractor openrouter/anthropic/claude-sonnet-4-6 \
     --judge openrouter/openai/gpt-4o-mini \
     --mapper local --mapper-url http://localhost:8000 \
-    --ner-profile biomedical_broad
+    --ner-profile cns_cells
 ```
 
-You can tell Claude in plain English: *"use claude-sonnet-4-6 for extraction and gpt-4o-mini for the judge, with the cns_cells NER profile"*. Claude will translate that into the right CLI flags.
+`--extractor` is **required** by `pipeline.py`, which is exactly why this path needs a
+key and the default path doesn't. Tell Claude in plain English — *"run it headless with
+claude-sonnet-4-6 for extraction and gpt-4o-mini for the judge"* — and it will
+translate that into the flags.
+
+Note `--ner-profile` is orthogonal to all of this: it runs local HuggingFace NER
+models alongside the extractor and needs `pip install transformers torch`, **not** an
+API key. It works the same in host-model mode.
 
 ## 7. Working with the local concept-mapping service
 
@@ -130,6 +158,9 @@ to bring it up to the current canonical shape (idempotent).
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| **Claude asks you for an OpenRouter / OpenAI / Anthropic key** | It picked framework mode when it should be the extractor itself | None needed — say "you are the model, no API key". See §5 and `SKILL.md` rule 17. Report it; the skill is meant to prevent this. |
+| Claude asks for `BIOPORTAL_API_KEY` | Different thing: the local mapper at `:8000` is unreachable and the cascade fell through to BioPortal | Either start `search_hybrid` (§7) or get a free BioPortal key. This ask is legitimate. |
+| `pipeline.py: error: argument --extractor is required` | `pipeline.py` was invoked for a stage the host model should have run | Don't drive the LLM stages through `pipeline.py` in a Claude Code session; use it only for the non-LLM helpers. |
 | `/skills` doesn't list the skill | Wrong folder name or missing frontmatter | Check `name:` + `description:` in `SKILL.md`. |
 | Claude ignores the skill in a conversation | Claude didn't see a trigger for it | Mention the task explicitly ("extract entities", "map to ontologies") or invoke by name. |
 | Output still has `paper_title` on every entity | LLM ignored the prompt; or you're calling prompts directly without the pipeline | Run `python -m scripts.normalize_result <file>` — it's idempotent and lifts the legacy fields to the canonical shape. |

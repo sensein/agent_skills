@@ -3,11 +3,24 @@
 Standalone, model-agnostic. Wires together the other scripts in this folder.
 
 Usage:
+    # one paper
     python -m scripts.pipeline --task ner --input paper.txt \
         --extractor openrouter/anthropic/claude-sonnet-4-6 \
         --judge openrouter/openai/gpt-4o-mini \
         --mapper ols \
         --out result.json
+
+    # a corpus: every .txt in a directory, each to <stem>_final.json, then merged
+    # into corpus_synthesis.{json,md}. --no-synthesize skips the merge.
+    python -m scripts.pipeline --task ner --input ./papers \
+        --extractor openrouter/anthropic/claude-sonnet-4-6 \
+        --ner-profile cns_cells
+
+Several inputs are processed in turn and one failure does not abort the batch: the
+exit code is 2 when some succeeded and 1 when none did, matching abcd_extract. The
+corpus roll-up is decided by the input count unless --synthesize/--no-synthesize
+says otherwise, and per-paper results stay the authoritative record (SKILL.md
+rules 9 and 9b).
 
 This is a *reference* implementation, not a framework. Copy and adapt.
 """
@@ -23,8 +36,15 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-# Sibling imports — assume `scripts/` is on PYTHONPATH or run with -m.
-from chunking import chunk_by_sentences, reanchor_items, dedupe
+# Sibling imports are bare, so `scripts/` itself must be importable. Running the
+# documented `python -m scripts.pipeline` puts the *parent* on sys.path, not this
+# directory, so every one of these failed with ModuleNotFoundError: no module named
+# 'chunking' — the command in the docs did not work. Add this directory explicitly.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from chunking import chunk_by_sentences, reanchor_items, dedupe  # noqa: E402
 from json_repair import parse_or_repair
 from span_validator import validate_all
 from llm_client import call as llm_call
@@ -555,7 +575,19 @@ def default_output_path(input_path: Optional[str], explicit_out: Optional[str]) 
 def _main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["ner", "resource", "structured"], default="ner")
-    ap.add_argument("--input", required=True, help="path to .txt input")
+    ap.add_argument("--input", required=True, action="append",
+                    help="path to a .txt input, or a directory of them. Repeatable. "
+                         "More than one input runs each in turn and then merges the "
+                         "per-paper results into one corpus roll-up (rule 9b).")
+    ap.add_argument("--input-glob", default="*.txt",
+                    help="pattern used when --input is a directory (default *.txt)")
+    ap.add_argument("--synthesize", dest="synthesize", action="store_true",
+                    default=None,
+                    help="force the corpus roll-up even for a single input")
+    ap.add_argument("--no-synthesize", dest="synthesize", action="store_false",
+                    help="skip the corpus roll-up even with several inputs")
+    ap.add_argument("--corpus-out", default=None,
+                    help="output stem for the roll-up (default: <out dir>/corpus_synthesis)")
     ap.add_argument("--extractor", required=True, help="extractor model string")
     ap.add_argument("--judge", default=None, help="judge model string (omit to auto-approve)")
     ap.add_argument("--mapper", choices=["ols", "bioportal", "local", "none"], default="local",
@@ -597,7 +629,6 @@ def _main():
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    text = Path(args.input).read_text()
     mapper = None if args.mapper == "none" else args.mapper
 
     ner_models = (
@@ -605,28 +636,90 @@ def _main():
         if args.ner_models else None
     )
 
-    result = run(
-        text, task=args.task,
-        extractor_model=args.extractor,
-        mapper_backend=mapper,
-        judge_model=args.judge,
-        chunk_size=args.chunk_size,
-        max_workers=args.max_workers,
-        skip_judge=args.judge is None,
-        local_mapping_url=args.mapper_url,
-        ask_user=None if args.non_interactive else _stdin_ask,
-        input_path=args.input,
-        ner_ensemble_profile=args.ner_profile,
-        ner_ensemble_models=ner_models,
-        ner_ensemble_device=args.ner_device,
-        allow_ols_fallback=args.allow_ols_fallback,
-    )
+    # Resolve inputs: files as given, directories expanded by --input-glob.
+    inputs: list[Path] = []
+    for raw in args.input:
+        p = Path(raw)
+        if p.is_dir():
+            found = sorted(f for f in p.glob(args.input_glob) if f.is_file())
+            if not found:
+                raise SystemExit(f"{p}: nothing matching {args.input_glob!r}")
+            inputs.extend(found)
+        else:
+            inputs.append(p)
+    if len(inputs) > 1 and args.out:
+        # --out names one file; with several inputs each would overwrite the last and
+        # only the final paper would survive, silently.
+        raise SystemExit("--out names a single file; with several inputs let each "
+                         "result use the <stem>_final.json convention and set "
+                         "--corpus-out for the roll-up")
 
-    out_path = default_output_path(args.input, args.out)
-    Path(out_path).write_text(json.dumps(result, indent=2, default=str))
-    print(format_summary(result["stats"]), file=sys.stderr)
-    print(f"wrote {out_path}", file=sys.stderr)
+    written: list[Path] = []
+    failed: list[tuple[Path, str]] = []
+    for i, in_path in enumerate(inputs, 1):
+        if len(inputs) > 1:
+            print(f"[{i}/{len(inputs)}] {in_path}", file=sys.stderr)
+        try:
+            result = run(
+                in_path.read_text(), task=args.task,
+                extractor_model=args.extractor,
+                mapper_backend=mapper,
+                judge_model=args.judge,
+                chunk_size=args.chunk_size,
+                max_workers=args.max_workers,
+                skip_judge=args.judge is None,
+                local_mapping_url=args.mapper_url,
+                ask_user=None if args.non_interactive else _stdin_ask,
+                input_path=str(in_path),
+                ner_ensemble_profile=args.ner_profile,
+                ner_ensemble_models=ner_models,
+                ner_ensemble_device=args.ner_device,
+                allow_ols_fallback=args.allow_ols_fallback,
+            )
+        except Exception as exc:
+            # One bad paper must not lose the rest of a long batch. Mirrors
+            # abcd_extract's bulk behaviour, including the partial-failure exit code.
+            if len(inputs) == 1:
+                raise
+            failed.append((in_path, f"{type(exc).__name__}: {exc}"))
+            print(f"  FAILED {in_path.name}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            continue
+
+        out_path = Path(default_output_path(str(in_path), args.out))
+        out_path.write_text(json.dumps(result, indent=2, default=str))
+        written.append(out_path)
+        print(format_summary(result["stats"]), file=sys.stderr)
+        print(f"wrote {out_path}", file=sys.stderr)
+
+    # Corpus roll-up. Auto-detected from the input count, the same way
+    # abcd_extract decides on its cross-paper synthesis; --synthesize /
+    # --no-synthesize override. Per-paper files stay the authoritative record.
+    do_synth = args.synthesize if args.synthesize is not None else len(written) > 1
+    if do_synth and written:
+        from merge_corpus import build_corpus, render_markdown
+
+        stem = Path(args.corpus_out) if args.corpus_out else \
+            written[0].parent / "corpus_synthesis"
+        stem.parent.mkdir(parents=True, exist_ok=True)
+        corpus = build_corpus(written, include_mentions=False, with_index=True)
+        stem.with_suffix(".json").write_text(
+            json.dumps(corpus, indent=2, ensure_ascii=False) + "\n")
+        stem.with_suffix(".md").write_text(render_markdown(corpus, top_n=50) + "\n")
+        print(f"wrote {stem.with_suffix('.json')}", file=sys.stderr)
+        print(f"wrote {stem.with_suffix('.md')}", file=sys.stderr)
+    elif len(written) > 1:
+        print("corpus roll-up skipped (--no-synthesize); per-paper files only",
+              file=sys.stderr)
+
+    if failed:
+        print(f"{len(failed)} of {len(inputs)} input(s) failed", file=sys.stderr)
+        # 2 = partial success, 1 = nothing succeeded (abcd_extract's convention).
+        return 2 if written else 1
+    return 0
 
 
 if __name__ == "__main__":
-    _main()
+    # _main returns 2 on partial batch failure and 1 when nothing succeeded, so the
+    # exit code has to be propagated — a bare _main() would always exit 0 and a CI
+    # step wrapping a bulk run could not tell a clean run from a half-failed one.
+    raise SystemExit(_main())
