@@ -192,21 +192,41 @@ Three rules follow, and they are in the prompt as 9f–9h:
 - **For a conjunction, emit the whole span AND each element.** Not one or the other —
   §2 nesting and §3 slot mapping both depend on the whole span existing.
 
-**One practical trap that is not an extraction problem at all.** 19 passages could not
-be located in the PDF text layer: figure captions and table cells, whose text a PDF
-extractor reorders or drops. §5 says captions are in scope and dense — but that is
-unachievable if the text you extracted never contained them. Before blaming recall,
-confirm the captions are actually present:
+**The caption ceiling — and it was partly a bug in this skill.** 19 of 101 gold
+passages could not be located in PDF-derived text, costing **155 annotations**, and 7
+papers had **no figure-caption text at all**. §5 says captions are in scope and dense,
+which is unachievable if the extracted text never contained them.
 
-```bash
-python -m scripts.input_loader paper.pdf --out paper.txt
-grep -ciE '^\s*(figure|fig\.?|table)\s*[0-9]' paper.txt   # 0 on a caption-heavy paper = the text layer dropped them
+Some of that was `input_loader` itself, now fixed. Its GROBID path built text from
+`title`, `abstract` and body `<div><p>` only — it never visited `<figure>`,
+`<figDesc>` or `<table>`, so **every caption and table was dropped**. It also read
+`p.text`, which stops at the first inline child, so paragraphs were truncated at their
+first `<ref>`. Measured on a real GROBID response for a paper with one figure and one
+table: the old converter produced **0 caption blocks** and lost `Figure 3`,
+`Table 1` and the caption text; the fixed one recovers all of them and loses no body
+text (it also recovered `3a-b)` where the old code stopped at `(Fig.`).
+
+Check coverage rather than assuming, on whatever backend you used:
+
+```python
+from scripts.input_loader import caption_coverage
+caption_coverage(text)   # {'caption_blocks': 0, ...} on a research paper = a red flag
 ```
 
-If they are missing, re-extract with GROBID (`--grobid-url`, which parses structure
-rather than reading the text layer) rather than tuning the extractor. Passages you
-cannot locate should be **excluded from the denominator**, not counted as misses —
-otherwise a PDF-parsing limitation shows up as a model deficiency forever.
+`process_file` now calls this itself and logs a warning naming the remedy. **0 blocks
+almost never means the paper has no figures.**
+
+Fixing it, best option first:
+
+| Situation | Do this |
+|---|---|
+| Paper is **open access** | `python -m scripts.fetch_fulltext <PMCID>` — publisher XML where captions and tables are first-class elements. No PDF, no server, no key. The only path with no caption ceiling at all, and via the NCBI BioC source the passage segmentation matches a BioC gold standard exactly, so "passage not found" stops being possible |
+| GROBID available | run it and pass `--grobid-url`; the TEI path now keeps captions and tables |
+| **No GROBID, no open access** | `pip install pymupdf4llm` — layout-aware, keeps captions and table structure, no server. This is the best local option and is now tried before plain PyMuPDF |
+| PyMuPDF only | still works; `input_loader` passes `sort=True` so a caption survives as one contiguous block instead of being interleaved across columns |
+
+Whatever remains unlocatable should be **excluded from the denominator**, not counted
+as misses — otherwise a PDF-parsing limitation reads as a model deficiency forever.
 
 ## 8. Sentence boundaries: the gold is per-passage, extraction is often per-sentence
 
