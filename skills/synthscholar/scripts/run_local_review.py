@@ -53,6 +53,10 @@ from export_review import ALL_FORMATS, write_exports  # noqa: E402
 # Corpus keys that are skill bookkeeping, not Article fields.
 _INTERNAL_PREFIX = "_"
 
+# Every review_id minted here carries this, so a review's origin is readable from
+# its BrainKB graph IRI alone. See build_protocol.
+_LOCAL_PREFIX = "review_local_"
+
 PROVENANCE_TEMPLATE = {
     "searches": [
         {
@@ -127,9 +131,20 @@ def build_protocol(path: str, provenance: dict):
     data = _load_json(path)
     proto = ReviewProtocol(**data)
 
+    # The review_id becomes the BrainKB named-graph IRI on ingest
+    # (https://brainkb.org/synthscholar/reviews/<review_id>/), so it has to say
+    # where the review ran. A hosted run is review_<counter>_<ts>; anything from
+    # here carries `local`. The marker is enforced even when the protocol supplies
+    # its own id, because otherwise a hand-written protocol.json can name a graph
+    # that is indistinguishable from a hosted review's — and graph bindings are
+    # permanent, so there is no rename after the fact.
     if not proto.review_id:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         proto.review_id = f"review_local_{ts}"
+    elif not proto.review_id.startswith(_LOCAL_PREFIX):
+        original = proto.review_id
+        proto.review_id = f"{_LOCAL_PREFIX}{original}"
+        print(f"review_id '{original}' -> '{proto.review_id}' (marking local origin)")
 
     # The searched databases are the user's, not the app's provider list.
     searched = [
