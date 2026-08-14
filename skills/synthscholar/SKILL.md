@@ -195,6 +195,12 @@ python scripts/export_review.py review.json --outdir out/ --formats md ttl json
 - **Report the reading basis when you summarise.** "23 of 25 read in full text,
   2 included on abstract alone" is different evidence from "25 included".
 - **Always offer both exports.** `.md` to read, `.ttl` to ingest.
+- **Ingesting into BrainKB is the `brainkb` skill's job — hand off, don't
+  improvise.** Its *"Ingest a SynthScholar review"* section owns the graph IRI
+  (`https://brainkb.org/synthscholar/reviews/<review_id>/`, registered to a
+  space), the upload path, and the once-per-review rule. Print the export's
+  triple count when you hand the file over; that number is what the ingest is
+  reconciled against.
 
 ## Mode 2 — Provenance queries
 

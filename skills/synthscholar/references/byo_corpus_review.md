@@ -399,9 +399,26 @@ pyoxigraph. Verify then ingest:
 python -c "import rdflib; g=rdflib.Graph(); g.parse('out/review.ttl'); print(len(g), 'triples')"
 ```
 
-For BrainKB, hand the file to the `brainkb` skill's ingest tools (log in,
-choose a space, ingest, poll the job). What lands in the graph for a BYO
-review:
+**Keep that triple count.** It is the only baseline for checking the ingest
+didn't quietly lose anything.
+
+For BrainKB, hand the file to the **`brainkb` skill** → *"Ingest a SynthScholar
+review"*, which has the full procedure. The four things that section decides,
+so this one doesn't have to guess:
+
+- The graph IRI is derived from the review, not invented:
+  `https://brainkb.org/synthscholar/reviews/<review_id>/` — `<review_id>` being
+  `protocol.review_id` (`review_local_<timestamp>` for a run from this skill).
+  It is registered to a space with `brainkb_add_space_graph` before ingesting.
+- Ingest goes through the **upload endpoint**, never `brainkb_ingest_text` — a
+  review export is megabytes, and RDF routed through a model gets mangled.
+- **Once per review.** Ingest is append-only, and this file's `content_text`
+  literals hang off blank nodes, whose identity is per-parse. A second ingest of
+  the same file duplicates every abstract rather than de-duplicating.
+- Whoever ingests is who the provenance names, permanently — that is the point
+  of going through the pipeline rather than writing to the triplestore directly.
+
+What lands in the graph for a BYO review:
 
 | Triple | Source |
 | --- | --- |
