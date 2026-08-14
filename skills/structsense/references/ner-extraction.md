@@ -73,6 +73,20 @@ python -m scripts.normalize_result paper.merged.json --input paper.txt \
        --out paper_final.json --llm-model claude-opus-5      # ← your own model id
 ```
 
+**Step 6 — more than one paper? Merge them.** Per-paper files stay authoritative; the
+corpus view is a separate deliverable, not a replacement (rule 9b):
+
+```bash
+python -m scripts.merge_corpus out/*_final.json \
+       --out-json out/corpus_final.json --out-md out/corpus_final.md
+```
+
+You get one canonical row per cell across the corpus, which papers it appears in, and
+an explicit list of forms that different papers mapped to **different** CL ids. That
+last table is the one worth reading before ingesting anything — exactness is
+context-dependent, so a conflict is a curation decision rather than automatically a
+bug, and the merge deliberately does not pick a winner.
+
 **Do pass `--llm-model` here, with your own model identity.** It is a *provenance
 label*, not a provider call — `normalize_result` never contacts anything; it writes
 `source_model: "llm_ner:<value>"` on items that lack one. Omit it and every item you
@@ -93,6 +107,15 @@ Check what the script does with it.
 | `--ner-profile cns_cells` | `pip install transformers torch` (**no API key**) | you lose HF consensus (`source_model`, `consensus_count`); LLM-only extraction still works and is still exhaustive |
 | concept mapping | local mapper at `:8000`, or `BIOPORTAL_API_KEY` | items stay `unmapped` — which is honest and allowed. Fabricated CL IRIs are not (rule 15) |
 | judge | nothing — you score | no `judge_score`; the heuristic scorer still works offline |
+
+**Scoring against a human gold standard?** Read
+[cell-annotation-conventions.md](cell-annotation-conventions.md) first. Cell mentions
+carry a specificity type (`cell_phenotype` / `cell_vague` / `cell_hetero`) that the
+label taxonomy alone does not express, hedged spans nest around groundable ones, and a
+conjunction takes one ontology id per element. Most apparent misses are these
+conventions rather than missed cells — and one of them, the old rule 9 excluding
+immune and vascular cells, was costing recall on exactly the injury and
+neuroinflammation papers where cell diversity is the point.
 
 **Cell-specific yield check.** Cell-typing text is dense, so the rule-8 sanity numbers
 are higher here than for general NER. A single cell-atlas paper should land in the

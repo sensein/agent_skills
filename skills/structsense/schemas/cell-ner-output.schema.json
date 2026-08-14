@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/cell-ner-output.schema.json",
+  "title": "CNS cell NER extractor output",
+  "description": "Output shape for prompts/extractor-ner-cns-cells.md. A cell-specific superset of ner-output.schema.json: same source_metadata / entities / key_terms / entities_grouped / stats contract, plus the cell label taxonomy, the cell_context block, and the annotation conventions a human gold standard follows (specificity, coordinated mention slots, SKOS-qualified ontology_id). Kept as its own file so ner-output.schema.json stays task-agnostic. Standalone by design — the sibling schemas do not cross-$ref either, so any validator works without a resolver. See references/cell-annotation-conventions.md.",
+  "type": "object",
+  "required": ["entities", "key_terms"],
+  "properties": {
+    "source_metadata": {
+      "type": "object",
+      "description": "Document-level metadata. Populated ONCE per run, not per item.",
+      "properties": {
+        "paper_title": { "type": ["string", "null"] },
+        "doi":         { "type": ["string", "null"] },
+        "source_path": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "entities": {
+      "type": "array",
+      "description": "Raw mentions — one item per occurrence (exhaustive). Nested spans are LEGAL and expected here: a hedged wrapper and the groundable term inside it usually share a start offset and differ only in end. Do not de-overlap them.",
+      "items": { "$ref": "#/$defs/CellEntity" }
+    },
+    "key_terms": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/KeyTerm" }
+    },
+    "entities_grouped": {
+      "type": "array",
+      "description": "Per-entity index — mentions collapsed by canonical (entity.lower(), label). Attached by scripts/group_by_entity.py.",
+      "items": { "$ref": "#/$defs/EntityGroup" }
+    },
+    "key_terms_grouped": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/EntityGroup" }
+    },
+    "ensemble_models": {
+      "type": "array",
+      "description": "Per-model summary from the NER ensemble run (--ner-profile cns_cells). Records which models contributed and which were skipped.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_model":   { "type": "string" },
+          "count":          { "type": "integer", "minimum": 0 },
+          "skipped_reason": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "task_type": { "type": "string", "enum": ["ner"] },
+    "elapsed_time": { "type": "number" },
+    "errors": { "type": "array", "items": { "type": "string" } },
+    "stats": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "CellEntity": {
+      "type": "object",
+      "required": ["entity", "label", "sentence", "start", "end"],
+      "properties": {
+        "entity": { "type": "string", "minLength": 1 },
+        "label": {
+          "type": "string",
+          "description": "For LLM-extracted items this is closed to the cns-cells taxonomy (see the allOf rule below) because the prompt says do not invent labels. It stays open for HF-ensemble items: scripts/ner_models.py normalises what it can and passes unrecognised model labels through verbatim, and the cns_cells profile legitimately emits Anatomy / Gene / CellLine / Disease, which are not in the cns-cells taxonomy at all."
+        },
+        "sentence": { "type": "string", "minLength": 1 },
+        "start": { "type": "integer", "minimum": 0 },
+        "end":   { "type": "integer", "minimum": 0 },
+        "paper_location": { "type": ["string", "null"] },
+
+        "specificity": {
+          "type": ["string", "null"],
+          "enum": ["cell_phenotype", "cell_vague", "cell_hetero", null],
+          "description": "Cell items only (CellClass / CellType / CellSubtype / CellOntologyTerm); omit or null for BrainRegion, LineageMarker and the rest. cell_phenotype = identity stated well enough to ground. cell_vague = a hedged set ('<TYPE> subtypes', 'subsets of …', or '<MARKER>+ cells' naming no type) — a marker does NOT make a cell type. cell_hetero = a deliberate mixture, or a negatively-defined set ('non-<MARKER>+ cells'). vague and hetero items are correct output, not failures."
+        },
+        "coordinated_elements": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "How many distinct cells this span names; 1 unless the span is a conjunction ('A and B cells' → 2). ontology_id then carries exactly this many ';'-separated slots, in text order, with '-' for a slot that has no ontology term. A missing '-' shifts every later mapping by one."
+        },
+
+        "cell_context": {
+          "type": ["object", "null"],
+          "description": "Attributes co-mentioned with this cell. Populated on cell items; the co-mentioned attributes are ALSO emitted as their own entities (see the prompt's ephys/marker rules) — this block is the tie-back, not a substitute.",
+          "properties": {
+            "lineage_markers": { "type": "array", "items": { "type": "string" } },
+            "region":        { "type": ["string", "null"] },
+            "layer":         { "type": ["string", "null"] },
+            "species":       { "type": ["string", "null"] },
+            "ephys_summary": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+
+        "source_model": {
+          "type": ["string", "null"],
+          "description": "Which model surfaced this mention. HF model id (e.g. 'pruas/BENT-PubMedBERT-NER-Cell-Type'), or 'llm_ner:<llm_model>'. In host-model mode this is your own model id — see SKILL.md rule 16."
+        },
+        "source_score": {
+          "type": ["number", "null"],
+          "minimum": 0, "maximum": 1,
+          "description": "The source model's own confidence (0–1) if it emits one (HF NER models do; LLM extractors usually don't)."
+        },
+
+        "ontology_id": {
+          "type": ["string", "null"],
+          "description": "Ontology IRI/CURIE, optionally SKOS-qualified: '(skos:exact)' when the mention IS the class, '(skos:related)' when it is near — a derived or reporter-line population, a marker-narrowed subset, or a tissue term standing in for its cells. Exactness depends on the paper, not the string. Two separators, NOT interchangeable: ';' separates coordinated mentions (one slot per coordinated_elements, '-' for a gap), ',' separates multiple candidate IRIs for a SINGLE mention."
+        },
+        "ontology_label": { "type": ["string", "null"] },
+        "ontology":       { "type": ["string", "null"] },
+        "concept_mapping_provenance": {
+          "type": ["string", "null"],
+          "enum": ["tool", "llm_knowledge", "unmapped", "skipped", null],
+          "description": "'llm_knowledge' is forbidden in canonical output and is demoted to 'unmapped' by scripts/iri_validation.py (rule 15). Fabricated CL terms are worse than an honest 'unmapped'."
+        },
+        "alignment_method": {
+          "type": ["string", "null"],
+          "enum": ["direct_tool_call", "llm_agent", "skipped", "validation_failed", null]
+        },
+
+        "judge_score":  { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "remarks":      { "type": ["string", "null"] },
+        "judge_method": {
+          "type": ["string", "null"],
+          "enum": ["llm", "auto_approved", null]
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "specificity": { "const": "cell_vague" } },
+            "required": ["specificity"]
+          },
+          "then": {
+            "description": "A vague mention names no cell type, so there is nothing to ground. Any ontology_id here is a fabrication.",
+            "properties": { "ontology_id": { "type": "null" } }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              { "properties": { "source_model": { "type": "string", "pattern": "^llm_ner:" } }, "required": ["source_model"] },
+              { "properties": { "source_model": { "type": "null" } }, "required": ["source_model"] },
+              { "not": { "required": ["source_model"] } }
+            ]
+          },
+          "then": {
+            "description": "LLM-extracted (or not-yet-tagged) items must use the cns-cells taxonomy — the prompt forbids inventing labels. HF-ensemble items are exempt: ner_models.py passes unrecognised model labels through verbatim, and the cns_cells profile emits Anatomy / Gene / CellLine / Disease by design.",
+            "properties": {
+              "label": {
+                "enum": [
+                  "CellClass", "CellType", "CellSubtype", "LineageMarker",
+                  "MorphologyClass", "CellularStructure", "Synapse",
+                  "EphysProperty", "FiringPattern",
+                  "BrainRegion", "CorticalLayer", "Projection", "ConnectivityMotif",
+                  "CellOntologyTerm", "AtlasReference", "ProfilingMethod",
+                  "Species", "DevelopmentalStage", "Other"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "KeyTerm": {
+      "type": "object",
+      "required": ["term", "sentence", "start", "end"],
+      "properties": {
+        "term":     { "type": "string", "minLength": 1 },
+        "sentence": { "type": "string", "minLength": 1 },
+        "start":    { "type": "integer", "minimum": 0 },
+        "end":      { "type": "integer", "minimum": 0 },
+        "paper_location": { "type": ["string", "null"] },
+        "source_model":   { "type": ["string", "null"] },
+        "source_score":   { "type": ["number", "null"] },
+        "ontology_id":    { "type": ["string", "null"] },
+        "ontology_label": { "type": ["string", "null"] },
+        "ontology":       { "type": ["string", "null"] },
+        "concept_mapping_provenance": { "type": ["string", "null"] },
+        "judge_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "remarks":     { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "EntityGroup": {
+      "type": "object",
+      "description": "An entity index entry: one canonical (entity, label) with all mentions collapsed.",
+      "required": ["mention_count"],
+      "properties": {
+        "entity":        { "type": ["string", "null"] },
+        "term":          { "type": ["string", "null"] },
+        "label":         { "type": ["string", "null"] },
+        "mention_count": { "type": "integer", "minimum": 1 },
+        "source_models": { "type": "array", "items": { "type": "string" } },
+        "source_model_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        },
+        "consensus_count": {
+          "type": "integer", "minimum": 1,
+          "description": "Distinct source_models that surfaced this entity. Useful as a confidence proxy."
+        },
+        "specificity": {
+          "type": ["string", "null"],
+          "enum": ["cell_phenotype", "cell_vague", "cell_hetero", null],
+          "description": "Carried up when every mention in the group agrees. Leave null when they disagree — the same surface form can be phenotype in one sentence and part of a hedged set in another, and that disagreement is signal, not noise."
+        },
+        "ontology_id":    { "type": ["string", "null"] },
+        "ontology_label": { "type": ["string", "null"] },
+        "ontology":       { "type": ["string", "null"] },
+        "concept_mapping_provenance": { "type": ["string", "null"] },
+        "alignment_method":           { "type": ["string", "null"] },
+        "judge_score_max": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "judge_score_avg": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "judge_score_min": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "sentences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text":            { "type": "string" },
+              "paper_locations": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "mentions": {
+          "type": "array",
+          "description": "Slim per-occurrence views (offsets, sentence, source_model, judge_score).",
+          "items": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

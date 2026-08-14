@@ -139,6 +139,12 @@ Schema:
       "start":  <int char offset in input>,
       "end":    <int char offset (exclusive)>,
 
+      "specificity": "<cell_phenotype | cell_vague | cell_hetero — cell items only,
+                       omit for non-cell labels like BrainRegion. See rule 9b.>",
+      "coordinated_elements": <int — number of cells named in this span; 1 unless the
+                       span is a conjunction ("A and B cells" -> 2). Alignment emits
+                       one ontology_id slot per element. See rule 9c/9e.>,
+
       "cell_context": {
         "lineage_markers": ["<gene/protein name>", ...],
         "region":          "<BrainRegion if explicit, else null>",
@@ -184,8 +190,34 @@ RULES
 8. EPHYS PHRASES: phrases like "fast-spiking parvalbumin interneuron" emit:
      - "fast-spiking"                as EphysProperty
      - "parvalbumin interneuron"     as CellType  (lineage_markers: ["parvalbumin"])
-9. NON-CNS CELLS: cells from PNS, immune system outside microglia, or
-   non-neural tissue are OUT OF SCOPE — do NOT emit them.
+9. NON-CNS CELLS: emit them when the text is about CNS tissue. Injury,
+   neuroinflammation and glial-scar papers legitimately discuss immune,
+   haematopoietic, epithelial and vascular cells, and a human gold standard
+   annotates all of them. Excluding them is a false-negative generator on
+   exactly the papers where cell diversity is the subject. Only skip cells
+   belonging to a clearly different preparation (a peripheral-tissue control,
+   an unrelated organ) — and when in doubt, emit.
+9b. SPECIFICITY: every cell item also carries `specificity`, one of:
+     - "cell_phenotype" — identity stated well enough to ground
+     - "cell_vague"     — a hedged set: "<TYPE> subtypes", "types of <TYPE>",
+                          "subsets of …", or "<MARKER>+ cells" naming no type
+     - "cell_hetero"    — a deliberate mixture, or a negatively-defined set
+                          ("non-<MARKER>+ cells", "immune cells")
+   A marker does NOT make a cell type. Vague and hetero items are correct
+   output, not failures — they simply carry no ontology id.
+9c. NESTED SPANS: when a hedged wrapper contains a groundable term, emit BOTH,
+   sharing the start offset and differing in end:
+     - "<TYPE> subtypes"  -> specificity cell_vague,      no id
+     - "<TYPE>"           -> specificity cell_phenotype
+   Same for "subsets of A, B and C": the whole span plus each of A, B, C.
+9d. CLUSTER IDS: dataset-local numbering ("cluster <N> cells", "<CellPrefix> <N>")
+   is NOT a cell mention — it names a row in this paper's analysis. Published
+   taxonomy cluster names remain CellSubtype (see Exhaustiveness above). The
+   line is published taxonomy vs. this paper's numbering.
+9e. ACRONYMS AND CAPTIONS: an introduced acronym is a cell mention at every
+   occurrence, singular and plural, and figure captions are in scope and often
+   the densest passages. Cell names embedded in a mechanism or acronym name are
+   emitted individually.
 10. If input has no CNS-cell content, return {"entities": [], "key_terms": []}.
 
 If you cannot comply, output exactly: {"error": "<one-line reason>"}
@@ -215,7 +247,37 @@ This prompt is **pass-1**. CNS cell-typing papers describe each cell with many c
 
 Use `scripts/mask_pass.py` to build the masked text and translate offsets back to the original. Pass the SAME `LABEL TAXONOMY` block above into the mask-mode prompts so labels stay consistent — in particular, the mask-mode prompts should know about `CellClass / CellType / CellSubtype / LineageMarker / MorphologyClass / EphysProperty / FiringPattern` because those are the categories pass-1 most often confuses.
 
+## Formal schema
+
+Validate against **`schemas/cell-ner-output.schema.json`**, not the generic
+`ner-output.schema.json`. It closes the label taxonomy above for LLM-extracted items,
+declares `specificity` / `coordinated_elements` / `cell_context`, and rejects a
+`cell_vague` item that carries an ontology id. For a multi-document run also emit the
+corpus roll-up (`scripts/merge_corpus.py`, SKILL.md rule 9b).
+
+## Annotation conventions (read before scoring against a gold standard)
+
+`references/cell-annotation-conventions.md` documents the contract a human annotator
+follows: the `cell_phenotype` / `cell_vague` / `cell_hetero` specificity axis, nested
+hedge-plus-head spans, one ontology-id slot per coordinated element, `skos:exact` vs
+`skos:related` match qualifiers, and what is deliberately *not* a cell mention. Most
+apparent extractor errors against a gold standard are convention mismatches rather
+than missed cells — check there first.
+
 ## Suggested ontology routing for alignment
+
+Two conventions from the gold standard that the generic alignment stage does not
+assume:
+
+- **A coordinated span gets one id per element, `;`-separated and positional**, with
+  `-` holding a slot that has no CL term. Slot count must equal
+  `coordinated_elements`; a missing `-` shifts every later mapping by one.
+- **Qualify the match**: `(skos:exact)` when the mention *is* the class,
+  `(skos:related)` when it is near — a derived or reporter-line population, a
+  marker-narrowed subset, or a tissue term standing in for its cells. Exactness
+  depends on the paper, not the string. Multiple candidates for **one** mention are
+  `,`-separated, which is a different thing from `;`.
+
 
 | Label | Primary ontology | Secondary |
 |---|---|---|
@@ -246,7 +308,11 @@ Use `scripts/mask_pass.py` to build the masked text and translate offsets back t
 |---|---|
 | Atlas cluster names (e.g. "L2/3 IT MET-type") emitted as CellType, not CellSubtype | Strengthen CellSubtype with two cluster-name examples; add: "Atlas cluster names ALWAYS go to CellSubtype." |
 | Markers ("Pvalb", "Sst") mis-tagged as CellType | Add: "A bare gene/protein symbol is a LineageMarker. A phrase like 'X interneuron' or 'X+ neuron' is a CellType." |
-| Cells outside CNS (e.g. retinal cells in the eye) wrongly included | Strengthen rule 9; reject hits whose `cell_context.region` is non-CNS in the parser. |
+| Immune / vascular / epithelial cells omitted from an injury or neuroinflammation paper | The old rule 9 excluded them. It no longer does — emit them. This is the single biggest recall loss against a human gold standard. |
+| `<MARKER>+ cells` emitted as CellType with a fabricated CL id | A marker names no type. Set `specificity: cell_vague` and leave the id null (rules 9b, 15). |
+| Only the outer hedge, or only the inner term, survives | A de-overlap step collapsed a legal nested pair. See rule 9c and the mask-recall caveat in `references/cell-annotation-conventions.md` §2. |
+| Dataset-local cluster ids (`cluster <N> cells`, `<CellPrefix> <N>`) emitted as cells | Rule 9d — this paper's numbering is not a cell mention. |
+| Coordinated span ("A and B cells") mapped to one id | One id slot per element, `-` where none exists. See conventions §3. |
 | Subcellular structures missed | Lower confidence threshold for `CellularStructure`; many are short tokens (spine, soma, AIS). |
 | Layer references emitted without their region ("L5" without "mPFC") | Add: "When a layer appears with a region in the surrounding context, populate `cell_context.region` and `cell_context.layer` together." |
 | Profiling methods conflated with cell types ("patch-seq cells") | Add: "Methods name how cells were measured, not what they are. Emit 'patch-seq' as ProfilingMethod and the cells separately as CellType/CellSubtype." |
