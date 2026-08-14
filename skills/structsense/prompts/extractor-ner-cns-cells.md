@@ -135,7 +135,7 @@ Schema:
     {
       "entity": "<surface form, EXACTLY as in text>",
       "label":  "<one of the labels above>",
-      "sentence": "<full sentence containing the entity>",
+      "sentence": "<context window: EVERY sentence the span touches, verbatim — one sentence usually, all of them when the span crosses a boundary. See rule 3.>",
       "start":  <int char offset in input>,
       "end":    <int char offset (exclusive)>,
 
@@ -159,7 +159,7 @@ Schema:
   "key_terms": [
     {
       "term": "<surface form>",
-      "sentence": "<containing sentence>",
+      "sentence": "<context window, as above>",
       "start": <int>,
       "end":   <int>,
       "paper_location": "<section/page if inferable, else null>"
@@ -170,7 +170,13 @@ Schema:
 RULES
 1. start/end are character offsets into the INPUT text — NOT the sentence.
 2. text[start:end] MUST equal entity (or term). Verify before emitting.
-3. Sentence MUST be a substring of the input text.
+3. `sentence` is a CONTEXT WINDOW, not necessarily one sentence. It MUST be
+   a verbatim substring of the input text, and it MUST cover the whole span:
+   when a mention crosses a sentence boundary, include every sentence it
+   touches. Roughly a fifth of gold cell annotations are genuinely
+   multi-sentence, so this is not an edge case. Never truncate the window to
+   one sentence and leave the span hanging outside it — start/end stay
+   offsets into the whole input either way.
 4. The same (entity, start, end) triple must not appear twice. Different
    start/end values for the same surface form ARE different mentions —
    emit them all (see "Exhaustiveness" above).
@@ -235,6 +241,13 @@ RULES
    ontology slots both need the whole span to exist. Splitting a conjunction
    into parts only is why heterogeneous mentions score worst of the three
    specificity types.
+9i. SPANS MAY CROSS SENTENCE BOUNDARIES — do not clip them. A conjunction split
+   across a clause boundary, an appositive continuing into the next sentence, or a
+   list interrupted by "(n = 12)." is one mention, not two. Extract over the whole
+   passage rather than sentence by sentence: a per-sentence loop cannot express
+   these spans at all, and about a fifth of gold cell annotations are genuinely
+   multi-sentence. Set `sentence` to every sentence the span touches (rule 3) and
+   keep start/end as offsets into the whole input.
 10. If input has no CNS-cell content, return {"entities": [], "key_terms": []}.
 
 If you cannot comply, output exactly: {"error": "<one-line reason>"}

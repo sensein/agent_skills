@@ -208,7 +208,39 @@ rather than reading the text layer) rather than tuning the extractor. Passages y
 cannot locate should be **excluded from the denominator**, not counted as misses —
 otherwise a PDF-parsing limitation shows up as a model deficiency forever.
 
-## 8. Validation checklist
+## 8. Sentence boundaries: the gold is per-passage, extraction is often per-sentence
+
+The gold standard annotates **passages**. Nothing in it respects sentence boundaries, and
+a span may run across them. Two separate things go wrong if extraction is organised by
+sentence, and only one of them is a real gap.
+
+**The artifact.** A naive sentence splitter over-segments scientific prose — `et al.`,
+`e.g.`, `i.p.`, `vs.`, initials — and every false split turns a span that sits inside one
+real sentence into an apparently cross-sentence one. Measured on this corpus, the
+"multi-sentence" share of gold spans was **31.2% with a naive splitter and 23.0% with a
+corrected one**: a third of the apparent problem was segmentation, not the gold.
+`scripts/chunking.py` now protects those abbreviations and single-letter initials.
+
+**The real gap.** The remaining ~23% genuinely cross sentence boundaries — a conjunction
+split by a clause, an appositive continuing into the next sentence, a list interrupted by
+a parenthetical `(n = 12).` A per-sentence extraction loop **cannot represent these spans
+at all**, so they are a recall ceiling rather than a scoring artifact. Extract over the
+passage; keep `start`/`end` as offsets into the whole text.
+
+Three places this used to break, all silent:
+
+| Where | What happened |
+|---|---|
+| `chunk_by_sentences` | chunks were disjoint, so a span crossing a **chunk** boundary appeared in no chunk and was never offered to the extractor. Now overlaps by one sentence (`overlap_sentences`, default 1); `dedupe()` removes the duplicate items afterwards |
+| `span_validator.validate` | rejected any item whose surface was not a substring of its `sentence` — which is precisely every multi-sentence span. The extractor did its job and the item vanished with no diagnostic. Now the window is checked **by offset** and only a genuine contradiction fails |
+| `repair_span` | re-anchored to the **first** occurrence of the surface form, which for a cell name used thirty times is almost never right, and collapsed distinct mentions onto one span where `dedupe` then discarded them. Now picks the occurrence nearest the item's own claim |
+
+So `sentence` is a **context window**, not a grammatical sentence: it holds every sentence
+the span touches. Repaired items now carry `span_repaired: true` and dropped ones carry
+`drop_reason`, because "N items dropped" with no reason is how this class of bug stayed
+invisible in the first place.
+
+## 9. Validation checklist
 
 When scoring an extraction against this gold standard, check these before concluding
 the extractor is bad — most apparent errors are convention mismatches:
@@ -227,6 +259,9 @@ the extractor is bad — most apparent errors are convention mismatches:
 | Did you emit whole coordinated spans? | `cell_hetero` recall collapses to ~0.12 |
 | Are unlocatable passages excluded from the denominator? | a PDF text-layer limitation is scored as a model failure |
 | Is nested credit given? | ~11 points of apparent miss rate that is a scoring artefact |
+| Did extraction run per-passage, not per-sentence? | ~23% of gold spans cross sentence boundaries and a per-sentence loop cannot emit them |
+| Is the sentence splitter abbreviation-aware? | inflates the multi-sentence share from 23% to 31% and misattributes it to the extractor |
+| Do chunks overlap? | spans crossing a chunk boundary are never offered to the extractor at all |
 
 Report **in-scope and out-of-scope recall separately**, and say which exclusions are in
 force. A single recall number over a gold standard whose scope differs from the
@@ -243,7 +278,7 @@ Score `cell_phenotype` mapping accuracy **separately** from span recall. They fa
 different reasons — spans fail on the conventions above, mappings fail on the rule-15
 cascade — and a single blended number tells you which almost never.
 
-## 9. Formal schemas, and the corpus view
+## 10. Formal schemas, and the corpus view
 
 - `schemas/cell-ner-output.schema.json` — the per-paper shape. It enforces what this
   file describes where a schema can: the `specificity` enum, `coordinated_elements ≥ 1`,

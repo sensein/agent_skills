@@ -62,7 +62,10 @@
           "type": "string",
           "description": "For LLM-extracted items this is closed to the cns-cells taxonomy (see the allOf rule below) because the prompt says do not invent labels. It stays open for HF-ensemble items: scripts/ner_models.py normalises what it can and passes unrecognised model labels through verbatim, and the cns_cells profile legitimately emits Anatomy / Gene / CellLine / Disease, which are not in the cns-cells taxonomy at all."
         },
-        "sentence": { "type": "string", "minLength": 1 },
+        "sentence": {
+          "type": "string", "minLength": 1,
+          "description": "Context WINDOW, not necessarily a single sentence: every sentence the span touches, verbatim from the source. About a fifth of gold cell annotations are genuinely multi-sentence, so a span running past the end of its window is expected and is NOT an error. scripts/span_validator.py checks the window by offset (it must not contradict start/end) rather than requiring the surface form to be a substring of it — the substring test silently deleted every multi-sentence item."
+        },
         "start": { "type": "integer", "minimum": 0 },
         "end":   { "type": "integer", "minimum": 0 },
         "paper_location": { "type": ["string", "null"] },
