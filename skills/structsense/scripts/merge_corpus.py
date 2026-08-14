@@ -39,11 +39,19 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+# Importable both ways: `python -m scripts.merge_corpus` from the skill root, and as a
+# bare sibling (how pipeline.py imports it, with scripts/ on sys.path). Adding both
+# directories and trying both spellings keeps either entry point working — the two
+# scripts disagreed about this and the mismatch is invisible until one of them runs.
 _SCRIPTS = Path(__file__).resolve().parent
-if str(_SCRIPTS.parent) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS.parent))
+for _p in (str(_SCRIPTS), str(_SCRIPTS.parent)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from scripts.group_by_entity import _canonical_key, _pick_canonical_surface  # noqa: E402
+try:
+    from group_by_entity import _canonical_key, _pick_canonical_surface  # noqa: E402
+except ImportError:  # pragma: no cover - depends on entry point
+    from scripts.group_by_entity import _canonical_key, _pick_canonical_surface  # noqa: E402
 
 # Item lists a result may carry, and the surface field each uses.
 _ITEM_LISTS = (("entities", "entity"), ("key_terms", "term"), ("resources", "name"))
@@ -60,6 +68,52 @@ def _document_id(result: dict, path: Path) -> tuple[str, str]:
         if val:
             return val, key
     return path.stem, "filename"
+
+
+# Corpus outputs must never be read back in as if they were per-paper results — a
+# second run over the same directory would otherwise fold the previous synthesis into
+# the new one and double every count. Same class of bug as abcd's results-directory
+# exclusion, and equally invisible once it happens.
+_CORPUS_SUFFIXES = ("_synthesis.json", "_corpus.json", "corpus_final.json")
+
+
+def expand_inputs(inputs: Iterable[Path]) -> list[Path]:
+    """Resolve files and directories to a sorted list of per-paper result files.
+
+    A directory expands to its ``*_final.json`` (rule 9's per-paper convention),
+    non-recursively — nested directories in an output tree are usually extracted text
+    or payloads, not results.
+    """
+    out: list[Path] = []
+    for item in inputs:
+        if item.is_dir():
+            found = sorted(p for p in item.glob("*_final.json") if p.is_file())
+            if not found:
+                print(f"  NOTE {item}: no *_final.json inside (per-paper results are "
+                      f"named <stem>_final.json — see SKILL.md rule 9)", file=sys.stderr)
+            out.extend(found)
+        else:
+            out.append(item)
+
+    kept, skipped = [], []
+    for p in out:
+        (skipped if any(p.name.endswith(s) for s in _CORPUS_SUFFIXES) else kept).append(p)
+    for p in skipped:
+        print(f"  SKIP {p.name}: looks like a corpus roll-up, not a per-paper result",
+              file=sys.stderr)
+
+    # Deduplicate by resolved path: `merge_corpus out/ out/a_final.json` must not
+    # count that paper twice, which would inflate its weight in every count.
+    seen: set[Path] = set()
+    unique = []
+    for p in kept:
+        rp = p.resolve()
+        if rp in seen:
+            print(f"  SKIP {p.name}: already included", file=sys.stderr)
+            continue
+        seen.add(rp)
+        unique.append(p)
+    return unique
 
 
 def _load(paths: Iterable[Path]) -> list[tuple[Path, dict]]:
@@ -326,7 +380,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         description="Merge per-paper extraction results into one corpus JSON + Markdown.",
     )
     ap.add_argument("inputs", nargs="+", type=Path,
-                    help="per-paper result JSON files (e.g. out/*_final.json)")
+                    help="per-paper result JSON files, and/or a directory containing "
+                         "them (expands to its *_final.json)")
     # Output stem, matching scripts/abcd_synthesize.py's `--out abcd_synthesis` →
     # abcd_synthesis.{json,md,ttl}. Same convention so the two cross-paper passes in
     # this skill do not each invent their own interface.
@@ -344,9 +399,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                     help="rows in the Markdown top-entities table (default 50)")
     args = ap.parse_args(argv)
 
-    missing = [p for p in args.inputs if not p.is_file()]
-    if missing:
-        raise SystemExit("not a file: " + ", ".join(str(p) for p in missing))
+    bad = [p for p in args.inputs if not p.exists()]
+    if bad:
+        raise SystemExit("does not exist: " + ", ".join(str(p) for p in bad))
+    inputs = expand_inputs(args.inputs)
+    if not inputs:
+        raise SystemExit("no per-paper result files to merge")
 
     formats = {f.strip().lower() for f in args.formats.split(",") if f.strip()}
     unknown = formats - {"json", "md"}
@@ -356,7 +414,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not formats:
         raise SystemExit("--formats selected nothing; pass json, md, or json,md")
 
-    corpus = build_corpus(args.inputs, include_mentions=args.include_mentions,
+    corpus = build_corpus(inputs, include_mentions=args.include_mentions,
                           with_index=not args.no_index)
 
     stem = args.out

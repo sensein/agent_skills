@@ -74,12 +74,20 @@ python -m scripts.normalize_result paper.merged.json --input paper.txt \
 ```
 
 **Step 6 — more than one paper? Merge them.** Per-paper files stay authoritative; the
-corpus view is a separate deliverable, not a replacement (rule 9b):
+corpus view is a separate deliverable, not a replacement (rule 9b). Point it at the
+output directory — no glob needed:
 
 ```bash
-python -m scripts.merge_corpus out/*_final.json \
-       --out out/corpus_synthesis            # -> corpus_synthesis.json + .md
+python -m scripts.merge_corpus out/ --out out/corpus_synthesis   # -> .json + .md
 ```
+
+Safe to re-run: a directory expands to its `*_final.json` and anything that looks like
+a previous roll-up is skipped, so the merge cannot fold its own output back in and
+double every count.
+
+In **framework mode this step is automatic** — `pipeline.py --input <dir>` runs each
+paper and merges at the end, deciding from the input count (`--no-synthesize` to
+suppress). In host-model mode you are the loop, so you run it.
 
 You get one canonical row per cell across the corpus, which papers it appears in, and
 an explicit list of forms that different papers mapped to **different** CL ids. That
