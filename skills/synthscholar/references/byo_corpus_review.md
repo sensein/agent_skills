@@ -408,8 +408,11 @@ so this one doesn't have to guess:
 
 - The graph IRI is derived from the review, not invented:
   `https://brainkb.org/synthscholar/reviews/<review_id>/` — `<review_id>` being
-  `protocol.review_id` (`review_local_<timestamp>` for a run from this skill).
-  It is registered to a space with `brainkb_add_space_graph` before ingesting.
+  `protocol.review_id`, registered to a space with `brainkb_add_space_graph`
+  before ingesting. Anything run from here carries the `review_local_` prefix,
+  enforced by `run_local_review.py` even when the protocol supplies its own id,
+  so a review's origin is readable from its graph IRI and a local run can never
+  claim a hosted review's address.
 - Ingest goes through the **upload endpoint**, never `brainkb_ingest_text` — a
   review export is megabytes, and RDF routed through a model gets mangled.
 - **Once per review.** Ingest is append-only, and this file's `content_text`

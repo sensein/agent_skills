@@ -506,12 +506,19 @@ SPARQL recipes still run against the **exported `.ttl`**, not the graph — arbi
 SPARQL on BrainKB needs an Admin role. Keep the file; ingesting doesn't replace it as
 the analysis surface.
 
-**Ingest each review exactly once.** Ingest is append-only and has no replace. A
-review export hangs its `content_text` literals off **blank nodes**, whose identity
-is per-parse, so a second ingest of the same file does not de-duplicate — it creates
-a second disconnected copy of every abstract, permanently. If a review is re-run and
-you need the new version in BrainKB, register a **new** graph IRI (add the run date)
-rather than re-ingesting over the old one.
+**Ingest each review exactly once.** Review ids are unique, so distinct reviews never
+collide — the hazard is re-ingesting the *same* review into the *same* graph. Ingest
+is append-only with no replace, and a review export hangs its `content_text` literals
+off **blank nodes**, whose identity is per-parse: the second pass does not
+de-duplicate, it creates a disconnected copy of every abstract, permanently. So a
+409 from `brainkb_add_space_graph` is the guard doing its job — it means this review
+already has a graph. Check whether it was ingested before you send anything.
+
+A re-run is a different review with a different id (mlservice mints a fresh
+`review_<counter>_<ts>` per session, and a local run mints a fresh
+`review_local_<ts>`), so it gets its own IRI without any special handling. The one
+case to watch is a hand-edited `protocol.json` that pins `review_id` across runs —
+then two different result sets claim one IRI.
 
 **Visibility follows the space, not the review.** `is_public` on a hosted review
 governs the SynthScholar API only. Once ingested, the triples are readable by
@@ -519,18 +526,24 @@ whoever can read the space — so ingesting an unpublished review into a public 
 publishes it. Name the target space and its visibility when you ask the user to
 confirm.
 
-**Operator note: there must be exactly one writer to that IRI.** ml_service can also
-push a completed review's RDF straight into Oxigraph at the *same* address
-(`SYNTH_SCHOLAR_GRAPHDB_NAMED_GRAPH_PREFIX`, HTTP PUT with `replace=true`). That path
-bypasses query_service entirely, so it produces no job, no PROV-O and no search index
-— the graph holds data that only an Admin SPARQL query can see. Worse, if both paths
-run, the ingest appends the same triples on top of the pushed ones and the blank-node
-duplication above happens on every review.
+**Pass the exact IRI you registered, trailing slash included.** The registry check
+normalises (`check_named_graph_exists` appends a `/` before looking), but the ingest
+writes to the IRI **as given** — `create_job(graph=named_graph_iri)`, verbatim. So
+registering `…/<review_id>/` and then ingesting into `…/<review_id>` passes every
+check and silently lands the data in a *second, unregistered* graph one character
+away from the right one. Nothing reports this; the job succeeds.
 
-So the direct push is **off by default** (`SYNTH_SCHOLAR_PUSH_TO_GRAPHDB=false`) and
-this ingest is the single writer. If a deployment has it switched on, ingesting is
-unsafe until it is switched off. Check before a first ingest on an unfamiliar
-deployment: an auto-pushed graph is one that holds triples under a review IRI but
+**Operator note: one writer per review.** ml_service can also push a completed
+review's RDF straight into Oxigraph (`SYNTH_SCHOLAR_GRAPHDB_NAMED_GRAPH_PREFIX`, HTTP
+PUT with `replace=true`), bypassing query_service — no job, no PROV-O, no search
+index, and no space, so only an Admin SPARQL query can see the result. Its IRI is
+`prefix + review_id` with **no** trailing slash, i.e. the near-miss above: with both
+paths running you get two graphs per review, a governed one and an invisible shadow
+copy, rather than one correct graph.
+
+The direct push is therefore **off by default**
+(`SYNTH_SCHOLAR_PUSH_TO_GRAPHDB=false`), leaving this ingest as the only writer. On an
+unfamiliar deployment, a shadow graph is one holding triples under a review IRI that
 does **not** appear in `brainkb_list_registered_graphs`.
 
 For a deployment that ran with the push enabled, those graphs are also a latent
