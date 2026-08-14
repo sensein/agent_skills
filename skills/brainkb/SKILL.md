@@ -5,7 +5,7 @@ description: >-
   credentials, ingest RDF into their workspace (space), check the status of
   ingest jobs, read/search the knowledge graphs, and query W3C PROV-O
   provenance (including triple-level deltas). Use whenever the user asks to
-  ingest/upload triples or RDF to BrainKB, create or share a workspace/space  (private/public), search or read BrainKB graphs, check an ingest job's status, or ask "who/when/what changed" (provenance) about a graph.
+  ingest/upload triples or RDF to BrainKB, create or share a workspace/space  (private/public), search or read BrainKB graphs, check an ingest job's status, ingest a completed SynthScholar/PRISMA literature review into a space, or ask "who/when/what changed" (provenance) about a graph.
   
 ---
 
@@ -126,6 +126,11 @@ window. Never retry-loop, and never split one job into many calls to get around 
   background. Always poll job status rather than assuming it finished.
 - **Provenance** lives natively in the graph DB (PROV-O). Every ingest is an
   activity; each job's added triples are a queryable **delta**.
+- **A SynthScholar review is not automatically a BrainKB citizen.** Completed
+  reviews are pushed straight into the triplestore under
+  `https://brainkb.org/synthscholar/reviews/<review_id>`, bypassing the space
+  registry — so they are invisible to search, spaces and provenance until someone
+  with write access ingests them properly. See "Ingest a SynthScholar review".
 
 ## Authorization (roles & capabilities)
 
@@ -413,6 +418,118 @@ terminal state, `brainkb_delta(job_id)` reports the exact triples it added. Comp
 that number to the source's triple count. A silent shortfall is the characteristic
 failure of any path that moves RDF through text, and it looks like success until
 someone counts.
+
+### 3a. Ingest a SynthScholar review (PRISMA literature review)
+
+**Where a review's triples already are.** When a review completes, ml_service pushes
+its RDF straight into Oxigraph as **one named graph per review**:
+
+```
+https://brainkb.org/synthscholar/reviews/<review_id>
+```
+
+(The prefix is `SYNTH_SCHOLAR_GRAPHDB_NAMED_GRAPH_PREFIX`; the push is an HTTP PUT
+with `replace=true`, so re-running a review overwrites its graph rather than
+doubling it. It fires for **every** completed review, whether or not the review is
+public.)
+
+**That push goes to the triplestore directly and skips the space registry, which is
+why this workflow exists.** The graph holds data but has no space, so none of the
+governed tools can reach it:
+
+| Tool | On an auto-pushed review graph |
+|---|---|
+| `brainkb_list_registered_graphs` | not listed — never registered |
+| `brainkb_list_spaces` / `brainkb_read_space` | unreachable — no space owns it |
+| `brainkb_search` | no hits — indexing happens in the ingest pipeline, which never ran |
+| `brainkb_provenance_graph` / `brainkb_delta` | empty — no ingest job, so no PROV-O |
+| `brainkb_sparql` | **the only way to see it**, and that needs Admin/SuperAdmin |
+
+So "the review is in BrainKB" and "the review is usable through BrainKB" are two
+different states. Ingesting is what moves it from the first to the second, and it
+needs a write-capable role plus owner/editor on the target space — the same
+permission as any other ingest.
+
+**Target a NEW graph IRI, never the auto-push one.** Ingesting into
+`https://brainkb.org/synthscholar/reviews/<id>` appends to a graph that already
+holds those triples. Named triples would de-duplicate, but a review export hangs its
+`content_text` literals off **blank nodes**, and blank-node identity is per-parse —
+so every one of them is created a second time. The result is a graph with two
+disconnected copies of every abstract, in an append-only store. Use a graph in a
+space the user controls, e.g.:
+
+```
+https://brainkb.org/graph/<space-slug>/reviews/<review_id>/
+```
+
+**Steps.**
+
+1. `brainkb_whoami()` — confirm the email. The ingest is attributed permanently.
+2. Find the review. Public ones are listed unauthenticated:
+   `GET https://mlservice.brainkb.org/api/synth-scholar/public/reviews`
+3. Get the Turtle. **Download it to a file — do not read it into the conversation.**
+   A real review export runs to megabytes and a single subject closure was 409 KB;
+   the "never re-emit a file's RDF" rule in the section above was written about
+   exactly this file.
+   - Public review: no credential needed.
+   - The user's own unpublished review: needs an ml_service token, which these MCP
+     tools do not hold. Have the user export it from the SynthScholar UI, or call
+     `/api/synth-scholar/reviews/<id>/export?format=ttl` with their own token, and
+     hand you the path.
+4. Register the target graph on the space (owner/editor):
+   `brainkb_add_space_graph(slug, graph_iri, "PRISMA review <review_id> — <topic>")`.
+   A non-empty description matters more here than usual: the IRI alone doesn't say
+   what the review asked. A 409 means that IRI is already bound somewhere — pick
+   another, don't retry.
+5. Upload and ingest. One script, and the bytes never pass through a model:
+
+   ```python
+   import requests, hashlib, pathlib
+
+   REVIEW = "review_0001_20260505234027"
+   GRAPH  = "https://brainkb.org/graph/my-lab/reviews/" + REVIEW + "/"
+   f = pathlib.Path(f"{REVIEW}.ttl")
+
+   # public export -> disk (streamed; nothing buffered into context)
+   with requests.get(
+       f"https://mlservice.brainkb.org/api/synth-scholar/public/reviews/{REVIEW}/export",
+       params={"format": "ttl"}, stream=True, timeout=600,
+   ) as r:
+       r.raise_for_status()
+       with f.open("wb") as out:
+           for chunk in r.iter_content(1 << 20):
+               out.write(chunk)
+
+   # disk -> BrainKB, ingest submitted server-side
+   print(requests.post(
+       "https://mcp.brainkb.org/upload",
+       params={"filename": f.name,
+               "sha256": hashlib.sha256(f.read_bytes()).hexdigest(),
+               "graph": GRAPH},
+       headers={"Authorization": f"Bearer {TOKEN}"},
+       data=f.open("rb"),
+       timeout=600,
+   ).json())
+   ```
+
+6. Poll `brainkb_upload_status(upload_id)` for the `job_id`, then
+   `brainkb_job_status(job_id)` to a terminal state.
+7. Reconcile: `brainkb_delta(job_id)` against the file's own triple count
+   (`rapper -c <file>.ttl`). A short count means triples were lost — the shortfall
+   is the only signal, and "job done" will not show it.
+
+**Visibility follows the space, not the review.** `is_public` on the review governs
+the SynthScholar API only. Once ingested, the triples are readable by whoever can
+read the space — so ingesting a private review into a public space publishes it.
+Check `brainkb_list_spaces()` for the target's `visibility` before ingesting, and
+say which one you are writing into when you ask the user to confirm.
+
+**One caveat for operators.** Because an auto-pushed graph has no space,
+`space_id` on any index row for it is NULL — and the search filter treats a NULL
+space as visible to **every signed-in user**. Nothing indexes those graphs today, so
+it is latent. But an admin running the backfill (`POST /api/search/reindex`) would
+make every completed review, published or not, searchable by any authenticated
+account. Bind the review graphs to spaces before backfilling, not after.
 
 ### 4. Check ingest status
 - `brainkb_job_status(job_id)` → status (`pending`/`running`/`done`/`partial`/
