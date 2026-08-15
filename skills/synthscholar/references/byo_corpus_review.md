@@ -75,6 +75,12 @@ Two BYO-specific notes:
   provider list — that warning is expected here and can be ignored.
 - `max_hops` is forced to 0 (no citation chasing happens without discovery).
 
+`research_questions` matters more here than anywhere: a BYO corpus usually
+arrives *because* the user has a specific set of questions about it. Transcribe
+their numbering and grouping verbatim into
+`[{question_id, question, theme, short_title}]` — every included study is then
+charted against each question and the report is organised by them (§ 5).
+
 ## 2. Corpus
 
 ```bash
@@ -345,8 +351,11 @@ Do the stages in order, reading each PDF's text from the corpus:
 3. **Risk of bias** per included article, using the protocol's `rob_tool`
    domains (`Article.risk_of_bias`).
 4. **Data charting** — one `DataChartingRubric` per included article: sections
-   A–G plus one `custom_fields` entry per `protocol.charting_questions`. Use
-   `""` for anything the paper doesn't report; never fill a field by inference.
+   A–G plus one `custom_fields` entry per `protocol.research_questions` (keyed
+   by `question_id`) and per `protocol.charting_questions` (keyed by the
+   question text). Use `""` for anything the paper doesn't report; never fill a
+   field by inference. The export pivots these into a question-first view
+   (§ 5, *Research questions*), and the ids are what group and address it.
 5. **Critical appraisal** — one `CriticalAppraisalRubric` (and, ideally, one
    `CriticalAppraisalResult`) per included article, over the protocol's
    `appraisal_domains`.
@@ -390,6 +399,65 @@ Linkage rules that keep the exports coherent:
 
 Keep `review.json`: it is what `update_provenance.py` and any re-export read.
 
+### Research questions
+
+`protocol.research_questions` — declared alongside PICO and the eligibility
+criteria — is asked of every included study, and the charting stage writes each
+answer into that article's `DataChartingRubric.custom_fields`, keyed by
+`question_id`. Correct storage, unreadable on its own: in the Markdown all of a
+study's answers sit in one narrative-table cell, in the JSON they are an
+unlabelled dict, and in the RDF they aren't there at all.
+
+So the exporters pivot them question-first
+(`synthscholar.research_questions`), into all three documents at once:
+
+| Export | What it gains |
+| --- | --- |
+| `review.md` | an appendix — one section per question, every study's answer under it, themed by question group; the oversized `Review Q&A` cells become a link to it |
+| `review.json` | a top-level `research_questions` block: question id, text, theme, and each answer with its `source_id` / `pmid` / title / year |
+| `review.ttl`, `review.jsonld` | one `slr:ResearchQuestion` per question under a stable IRI (`<review-iri>/question/RQ1.1`), `slr:research_question` from the review, and `slr:has_answer` ↔ `slr:answers_question` ↔ `slr:about_source` per answer |
+
+This lives in the exporters, not in this mode's scripts, so it holds for every
+review — a corpus you supplied and the hosted pipeline's own searches alike.
+
+Per-study `custom_fields` are left exactly as charted — this is a second view of
+the same data, not a move. Two consequences worth knowing:
+
+- `research_questions` is **not** a `PRISMAReviewResult` field. Pydantic drops
+  it on re-validation, so a re-export regenerates it from the rubrics; the
+  rubrics stay the single source of truth. Don't hand-edit the block.
+- The merge is idempotent — re-exporting replaces the appendix and the question
+  nodes rather than stacking a second copy.
+
+```sparql
+# every study's answer to one question, without string-matching an id in a literal
+PREFIX slr: <https://w3id.org/slr-ontology/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+SELECT ?pmid ?answer WHERE {
+  ?q slr:question_id "RQ4.5" ; slr:has_answer ?a .
+  ?a slr:answer_text ?answer ; slr:about_source ?s .
+  ?s bibo:pmid ?pmid .
+}
+```
+
+Give each question a `question_id` and a `theme` in the protocol: the id drives
+section grouping, the `slr:question_id` literal and the question IRI; the theme
+names the heading its questions are reported under (falling back to the major id,
+`RQ1`). Unnumbered `charting_questions` still work — keyed by a slug of their
+text and collected under *Other charted questions*.
+
+To relabel the sections of a review whose protocol didn't set themes, or to
+retrofit a review exported before this existed:
+
+```bash
+python scripts/research_questions.py out/review.json --outdir out/
+python scripts/research_questions.py out/review.json --outdir out/ --themes themes.json
+```
+
+`export_review.py --rq-themes` does the same for a one-off re-export. There is
+no switch to turn the view off: a review that declares no research questions
+gets no appendix, no block and no question nodes.
+
 ### Ingestion
 
 `review.ttl` is ready to load as-is — it parses under both rdflib and
@@ -431,6 +499,7 @@ What lands in the graph for a BYO review:
 | `slr:IncludedSource` per article, IRI from PMID → DOI → hash URN | `included_articles` |
 | `slr:StoredArtifact` (`slr:content_text`, `slr:content_hash`, `slr:full_text_source "user_supplied_pdf"`) + a `slr:ToolInvocation` retrieval activity | the PDFs |
 | `slr:ChartingRecord`, `slr:RiskOfBiasAssessment`, appraisal nodes | charting / RoB / appraisal |
+| `slr:ResearchQuestion` per protocol question + `slr:ChartingQuestionAnswer` per study answer | `charting_questions` × `custom_fields` |
 | `oa:Annotation` per evidence span | `evidence_spans` |
 | `slr:RunConfiguration` with `corpus_provenance: user_supplied_pdfs` | run configuration |
 

@@ -48,6 +48,41 @@ legitimately be N/A for single-arm scoping reviews.
 Guide the user to make these **decidable at screening** — each criterion should
 map to a yes/no test a screener (human or LLM) can apply.
 
+## 3b. Research questions — what the review answers
+
+| Field | Tier | Question | Example |
+| --- | --- | --- | --- |
+| `research_questions` ★ | [R] | "What questions should the review answer about every included study?" | see below |
+
+```json
+"research_questions": [
+  {"question_id": "RQ1.1", "question": "Which participant groups are compared, and is each group's size reported?",
+   "theme": "Participants", "short_title": "Groups and sizes"},
+  {"question_id": "RQ4.5", "question": "How are robustness and generalisability evaluated?",
+   "theme": "Computational techniques", "short_title": "Validation strategy"}
+]
+```
+
+Each question is asked of **every** included study during charting (answered
+into that article's `custom_fields`, keyed by `question_id`) and reported
+question-first in all three exports: an appendix in the Markdown, the
+`research_questions` block in the JSON, and `slr:ResearchQuestion` nodes in the
+RDF. Rules that matter:
+
+- **Number them.** `question_id` groups the report by its major number (`RQ1`),
+  keys each article's answers, and becomes the question's IRI. Reuse the user's
+  own numbering when they have one; never renumber it.
+- **`theme` groups the report** — questions sharing a theme are reported
+  together, in protocol order. Defaults to the major id when empty.
+- **`short_title`** is the section label; derived from the question text when
+  empty, which is usually worse than writing one.
+- **Make each answerable from one paper.** "How has the field evolved?" is a
+  synthesis question, not a charting question — it produces 170 shrugs.
+- Ids must be unique; `validate_protocol.py` fails the protocol otherwise.
+
+Use `charting_questions` (§ 5) instead for a one-off extraction detail that
+isn't a question the review is answering.
+
 ## 4. Search settings
 
 | Field | Tier | Question | Default | Validation |
@@ -77,8 +112,15 @@ needed, but tell the user this is captured so they can add to it):
 
 | Field | Tier | Question | Example | Validation |
 | --- | --- | --- | --- | --- |
-| `charting_questions` | [A] | "Any domain-specific questions to answer for every article?" | ["What sequencing method was used?", "Which diversity index was reported?"] | list of strings; become `custom_fields` |
+| `charting_questions` | [A] | "Any domain-specific questions to answer for every article?" | ["RQ1.1 Which participant groups are compared?", "RQ2.3 What sequencing method was used?"] | list of strings; become `custom_fields` |
 | `charting_template` | [A] | "Field-level extraction constraints?" | (advanced object) | optional; pipeline default if omitted |
+
+`charting_questions` is for extraction details that aren't research questions.
+**Anything the review is actually answering belongs in `research_questions`
+(§ 3b)**, which carries an id, a theme and a title and drives the reporting.
+Plain strings here are charted and reported the same way, just without those —
+a leading id (`"RQ2.3 What sequencing method was used?"`) is honoured if you
+have one.
 
 ## 6. Per-group / cohort analysis
 

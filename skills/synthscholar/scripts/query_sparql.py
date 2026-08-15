@@ -164,6 +164,23 @@ QUERIES: dict[str, str] = {
           OPTIONAL { ?rec slr:decision_rationale ?reason }
         } ORDER BY ?pmid
     """,
+    "research-questions": """
+        SELECT ?qid ?title (COUNT(?a) AS ?answers) WHERE {
+          ?q a slr:ResearchQuestion ; slr:has_answer ?a .
+          OPTIONAL { ?q slr:question_id ?qid }
+          OPTIONAL { ?q dcterms:title ?title }
+        } GROUP BY ?qid ?title ORDER BY ?qid
+    """,
+    # Every study's answer to one question. Edit the id, or pass your own file
+    # with --sparql for a different one.
+    "question-answers": """
+        SELECT ?pmid ?source_id ?answer WHERE {
+          ?q slr:question_id "RQ1.1" ; slr:has_answer ?a .
+          ?a slr:answer_text ?answer .
+          OPTIONAL { ?a slr:source_id ?source_id }
+          OPTIONAL { ?a slr:about_source/bibo:pmid ?pmid }
+        } ORDER BY ?source_id
+    """,
 }
 
 _FORMAT_BY_EXT = {

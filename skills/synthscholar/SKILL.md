@@ -36,11 +36,20 @@ to collect 40 answers.
 ### The interaction pattern (do this)
 
 1. **Draft the whole protocol from whatever the user gave you.** Infer objective,
-   full PICO, inclusion/exclusion criteria, databases, and domain features
-   (charting questions, `grouping_dimension`, appraisal domains) with
-   domain-appropriate defaults. Use
+   full PICO, inclusion/exclusion criteria, **the research questions**,
+   databases, and domain features (`grouping_dimension`, appraisal domains)
+   with domain-appropriate defaults. Use
    [references/protocol_intake.md](references/protocol_intake.md) as the field
    catalog — every field's default and validation is there.
+
+   **`research_questions` sits with PICO and eligibility, not with the
+   extraction settings** — it is what the review answers. When the user gives
+   you a numbered set, transcribe it verbatim into
+   `[{question_id, question, theme, short_title}]`, keeping their numbering and
+   grouping; when they don't, draft 4–8 from the objective and show them back.
+   Each one is asked of every included study and reported question-first in the
+   Markdown, JSON and RDF, so a vague question produces 170 vague answers —
+   make each one answerable from a single paper.
 
 2. **Identify the 2–4 *pivotal* decisions** — the ones where a wrong default is
    costly to run on, and ask **only those**, as structured questions with a
@@ -164,6 +173,18 @@ python scripts/export_review.py review.json --check
 python scripts/export_review.py review.json --outdir out/ --formats md ttl json
 ```
 
+The exporters organise `protocol.research_questions` into every export on the
+way out — Markdown appendix, JSON `research_questions`, RDF
+`slr:ResearchQuestion` — from the `custom_fields` the charting stage filled in.
+This is in the exporters themselves, so it holds for **any** review, including
+ones the hosted pipeline ran over papers it found itself; nothing extra to run.
+To retrofit a review exported before that existed, or to relabel its sections:
+
+```bash
+python scripts/research_questions.py out/review.json --outdir out/
+python scripts/research_questions.py out/review.json --outdir out/ --themes themes.json
+```
+
 ### Rules for this mode
 
 - **Complete the corpus metadata yourself** from each entry's `_head_text` —
@@ -194,6 +215,15 @@ python scripts/export_review.py review.json --outdir out/ --formats md ttl json
   time, delayed, capped, and never raise the ceiling on their behalf.
 - **Report the reading basis when you summarise.** "23 of 25 read in full text,
   2 included on abstract alone" is different evidence from "25 included".
+- **The research questions organise themselves — declare them in
+  `protocol.research_questions` and answer them per article.** Every export
+  then carries a question-first view alongside the per-study one: an appendix
+  in the Markdown, a `research_questions` block in the JSON, and
+  `slr:ResearchQuestion` nodes in the RDF. Key each rubric's `custom_fields` by
+  the question's `question_id`; the ids group the appendix and become the
+  question IRIs. Never hand-assemble that view or paste the answers into the
+  synthesis: it is generated, and a hand-made copy goes stale on the next
+  export.
 - **Always offer both exports.** `.md` to read, `.ttl` to ingest.
 - **Ingesting into BrainKB is the `brainkb` skill's job — hand off, don't
   improvise.** Its *"Ingest a SynthScholar review"* section owns the graph IRI
@@ -317,6 +347,7 @@ python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json
     --provenance search_provenance.json --outdir out/
 python scripts/run_local_review.py --protocol protocol.json --corpus corpus.json --dry-run
 python scripts/export_review.py out/review.json --outdir out/ --formats md ttl
+python scripts/research_questions.py out/review.json --outdir out/   # retrofit only
 python scripts/update_provenance.py out/review.json --provenance search_provenance.json
 
 # SPARQL over an RDF export — named recipe or your own query

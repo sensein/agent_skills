@@ -49,6 +49,11 @@ TEMPLATE = {
     "pico_population": "", "pico_intervention": "",
     "pico_comparison": "", "pico_outcome": "",
     "inclusion_criteria": "", "exclusion_criteria": "",
+    # The review's own questions, asked of every included study and reported
+    # question-first in every export. Number and theme them.
+    "research_questions": [
+        {"question_id": "RQ1.1", "question": "", "theme": "", "short_title": ""},
+    ],
     "databases": sorted(KNOWN_PROVIDERS),
     "date_range_start": "", "date_range_end": "",
     "max_hops": 10, "rob_tool": "RoB 2",
@@ -132,6 +137,38 @@ def validate(p: dict) -> tuple[list[str], list[str]]:
             warnings.append(f"database '{d}' is not one of the app's discovery "
                             f"providers {sorted(KNOWN_PROVIDERS)} — fine for a "
                             f"user-supplied corpus, otherwise it won't be searched")
+
+    # Research questions — the review's own questions, charted per article and
+    # reported question-first. Malformed entries would be silently dropped by
+    # Pydantic, so they're errors here rather than surprises at export.
+    rqs = p.get("research_questions") or []
+    if not isinstance(rqs, list):
+        errors.append("research_questions must be a list of "
+                      "{question_id, question, theme, short_title} objects")
+        rqs = []
+    seen_ids: set[str] = set()
+    for i, rq in enumerate(rqs):
+        where = f"research_questions[{i}]"
+        if not isinstance(rq, dict):
+            errors.append(f"{where} must be an object, not {type(rq).__name__}")
+            continue
+        if empty(rq.get("question")):
+            errors.append(f"{where}.question is missing/empty")
+        qid = (rq.get("question_id") or "").strip()
+        if not qid:
+            warnings.append(f"{where} has no question_id — number them (RQ1.1, "
+                            "RQ1.2 …) so the report groups and addresses them")
+        elif qid in seen_ids:
+            errors.append(f"{where}.question_id '{qid}' is used twice — ids key "
+                          "each article's charted answers and must be unique")
+        else:
+            seen_ids.add(qid)
+        if empty(rq.get("theme")):
+            warnings.append(f"{where} has no theme — questions sharing a theme "
+                            "are reported together")
+    if not rqs:
+        warnings.append("no research_questions — the review will have no "
+                        "question-first reporting; add them alongside PICO")
 
     dom = p.get("appraisal_domains") or []
     if dom and not (1 <= len(dom) <= 4):

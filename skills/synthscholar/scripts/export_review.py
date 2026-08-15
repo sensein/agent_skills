@@ -24,7 +24,7 @@ Usage:
     python export_review.py --print-template > review.json
 
 Formats:
-    md         PRISMA 2020 review document (to_markdown)
+    md         PRISMA 2020 review document (to_markdown) + research-question appendix
     ttl        SLR-ontology RDF, ready for triple-store ingestion (to_turtle)
     jsonld     same graph as JSON-LD
     json       the validated PRISMAReviewResult itself
@@ -33,6 +33,12 @@ Formats:
     appraisal  critical-appraisal tables
     per-group  per-group synthesis + Q&A
     narrative  condensed narrative summary (md + json)
+
+``protocol.research_questions`` and every study's charted answer are organised
+question-first into md / json / ttl / jsonld — an appendix, a
+``research_questions`` block, and ``slr:ResearchQuestion`` nodes. The exporters
+do that themselves, so it holds for any review; ``--rq-themes`` relabels the
+sections when the protocol's questions carry no theme of their own.
 
 Requires the ``synthscholar`` package importable (``pip install synthscholar``
 or run from a checkout).
@@ -61,6 +67,21 @@ REQUIRED_FLOW_FIELDS = ("full_text_retrieved", "full_text_sources",
 REQUIRED_LOG_FIELDS = ("assessed_on", "full_text_source")
 
 
+def _import_rq():
+    """Import the sibling ``research_questions`` module.
+
+    However this file was reached — run as a script, or imported by
+    ``run_local_review.py`` from another working directory — its own directory
+    has to be importable for the sibling to resolve.
+    """
+    here = str(Path(__file__).resolve().parent)
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import research_questions
+
+    return research_questions
+
+
 def _require_synthscholar():
     try:
         import synthscholar.export  # noqa: F401
@@ -80,6 +101,10 @@ def _require_synthscholar():
                if f not in PRISMAFlowCounts.model_fields]
     missing += [f"ScreeningLogEntry.{f}" for f in REQUIRED_LOG_FIELDS
                 if f not in ScreeningLogEntry.model_fields]
+    from synthscholar.models import ReviewProtocol
+
+    if "research_questions" not in ReviewProtocol.model_fields:
+        missing.append("ReviewProtocol.research_questions")
     if missing:
         import synthscholar
         print(
@@ -115,8 +140,15 @@ def load_result(path: str):
         raise SystemExit(1)
 
 
-def write_exports(result, outdir: str | Path, formats: list[str], base: str = "review") -> list[str]:
-    """Write *result* in every requested format under *outdir*; return paths."""
+def write_exports(result, outdir: str | Path, formats: list[str], base: str = "review",
+                  rq_themes: dict[str, str] | None = None) -> list[str]:
+    """Write *result* in every requested format under *outdir*; return paths.
+
+    The exporters organise ``protocol.research_questions`` question-first into
+    the Markdown, JSON and RDF on their own. *rq_themes* relabels those
+    sections (``{"RQ1": "Participants", …}``) for a protocol whose questions
+    carry no theme — the only reason this function touches them at all.
+    """
     import synthscholar.export as ex
 
     out = Path(outdir)
@@ -149,14 +181,29 @@ def write_exports(result, outdir: str | Path, formats: list[str], base: str = "r
     if "narrative" in formats:
         _w(".narrative.md", ex.to_narrative_summary_markdown(result))
         _w(".narrative.json", ex.to_narrative_summary_json(result))
+
+    # The exporters have already organised the research questions into these
+    # documents. Re-merge only to apply caller-supplied theme labels, which they
+    # can't know about; the merge is idempotent, so this replaces that view
+    # rather than adding a second one.
+    if rq_themes:
+        rq = _import_rq()
+        index = rq.build_index(result, rq_themes)
+        if index:
+            rq.merge_into_files(written, index, base=base)
     return written
 
 
 def check(result) -> int:
     """Print a completeness report. Exit 1 only when the result is unusable."""
+    rq = _import_rq()
+
     flow = result.flow
     n_inc = len(result.included_articles)
     ft = sum(1 for a in result.included_articles if (a.full_text or "").strip())
+    rq_index = rq.build_index(result) if rq.PACKAGE_MERGES_EXPORTS else {}
+    n_q = rq_index.get("n_questions", 0)
+    n_ans = sum(q["n_studies_charted"] for q in rq_index.get("questions", []))
 
     print("✓ Valid PRISMAReviewResult\n")
     print(f"  research_question   {result.research_question[:70] or '(empty)'}")
@@ -165,6 +212,8 @@ def check(result) -> int:
     print(f"  screening log       {len(result.screening_log)} decisions")
     print(f"  evidence spans      {len(result.evidence_spans)}")
     print(f"  charting rubrics    {len(result.data_charting_rubrics)}")
+    print(f"  research questions  {n_q} asked, {n_ans} study answers charted"
+          + ("" if n_q else " — no protocol.charting_questions were answered"))
     print(f"  appraisals          {len(result.critical_appraisals)} rubric / "
           f"{len(result.structured_appraisal_results)} structured")
     print(f"  narrative rows      {len(result.narrative_rows)}")
@@ -473,6 +522,9 @@ def main() -> int:
                     help="validate + report completeness, write nothing")
     ap.add_argument("--print-template", action="store_true",
                     help="print a schema-valid example review JSON and exit")
+    ap.add_argument("--rq-themes", metavar="PATH",
+                    help='JSON map {"RQ1": "Participants", …} relabelling the '
+                         "research-question sections, by id or major group")
     args = ap.parse_args()
 
     _require_synthscholar()
@@ -491,7 +543,13 @@ def main() -> int:
     if args.check:
         return check(result)
 
-    written = write_exports(result, args.outdir, args.formats, base=args.base)
+    themes = None
+    if args.rq_themes:
+        import json as _json
+        themes = _json.loads(Path(args.rq_themes).read_text(encoding="utf-8"))
+
+    written = write_exports(result, args.outdir, args.formats, base=args.base,
+                            rq_themes=themes)
     print("Wrote:")
     for p in written:
         print(f"  {p}")
