@@ -266,6 +266,26 @@ with an unhelpful error.
 `ThreadsPerCore=2` on most nodes, so `-c 1` yields two visible CPUs. Inside a
 job, size thread pools from `$SLURM_CPUS_PER_TASK` rather than `nproc`.
 
+## Login nodes are for orchestration, not work
+
+Login nodes are shared by everyone; anything that computes, compiles, resolves
+a Python environment, unpacks a dataset, or checksums a tree belongs in a job.
+Editing, `git`, scheduler queries, quota checks and short probes are fine.
+
+This matters doubly for this skill: every `ssh orcd '<command>'` runs on the
+login node, so the default for real work driven remotely is a one-shot `srun`
+on the short partition, not a bare command:
+
+```bash
+ssh orcd 'srun -p mit_quicktest -t 15 -c 4 --mem=8G <command>'     # ≤15 min
+ssh orcd 'srun -p ou_bcs_high -t 2:00:00 -c 8 --mem=32G <command>'  # longer
+ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'  # interactive
+```
+
+`mit_quicktest` (15-minute cap, very high tier) starts near-instantly; when the
+work will not fit, escalate to `ou_*_high` or `mit_normal` with a short `-t`.
+Large copies go to `mit_data_transfer` ([storage.md](storage.md)).
+
 ## Submission recipes
 
 Smoke test, near-instant:
@@ -274,7 +294,10 @@ Smoke test, near-instant:
 sbatch -p mit_quicktest -t 10 -n 1 --mem=4G --wrap='hostname; echo ok'
 ```
 
-Single-GPU training with explicit resources:
+Single-GPU training with explicit resources. Use an absolute `-o`/`-D`: sbatch
+resolves relative paths against the *submission* cwd -- `$HOME` when submitting
+through this skill -- and the directory must already exist or the job fails at
+start with "Could not open stdout file":
 
 ```bash
 #!/bin/bash
@@ -284,17 +307,19 @@ Single-GPU training with explicit resources:
 #SBATCH -c 8
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:h100:1
-#SBATCH -o logs/%x-%j.out
+#SBATCH -D /orcd/scratch/bcs/<NNN>/<user>/runs      # or orcd_submit.py --chdir
+#SBATCH -o %x-%j.out                                 # relative to -D
 
 module load cuda/12.9.1
 srun python train.py
 ```
 
-Array job. `MaxArraySize=25000`, and `%N` throttles concurrency so one user does
-not consume a partition:
+Array job. Each task counts as a submitted job, so the array must fit the
+partition's `MaxSubmitPU + 1` (see above; `orcd_snapshot.py` prints it) --
+`%K` throttles *concurrency* and does not raise that cap:
 
 ```bash
-sbatch -p mit_preemptable -a 0-999%50 -t 2:00:00 -c 4 --mem=16G job.sh
+sbatch -p mit_preemptable -a 0-447%50 -t 2:00:00 -c 4 --mem=16G job.sh   # cap 448 here
 ```
 
 Preemptable work must be able to resume. Trap the signal and checkpoint:
@@ -306,10 +331,9 @@ Preemptable work must be able to resume. Trap the signal and checkpoint:
 trap 'python save_checkpoint.py; exit 1' USR1
 ```
 
-Interactive shell on a compute node -- do not compute on the login node:
+Interactive GPU shell (see the login-node section for the short-partition form):
 
 ```bash
-ssh orcd -t 'srun -p mit_quicktest -t 15 -n 1 --mem=8G --pty bash'
 ssh orcd -t 'srun -p ou_bcs_high -t 2:00:00 -c 8 --mem=32G --gres=gpu:h100:1 --pty bash'
 ```
 

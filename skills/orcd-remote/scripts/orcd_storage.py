@@ -244,15 +244,18 @@ def print_conventions(cfg: dict) -> None:
         "datasets": "shared datasets",
         "projects": "project trees",
         "user_dirs": "personal lab space",
+        "envs": "python envs + UV_CACHE_DIR (personal flash)",
+        "runs": "job runs (group flash, o-rwx)",
         "personal_scratch": "personal flash scratch (1 TB)",
         "personal_pool": "personal capacity space (1 TB)",
     }
     for key, label in labels.items():
         if key in conv:
             print(f"  {conv[key]:<44} {label}")
-    if "hf_revision_policy" in conv:
-        print(textwrap.fill("HF models: " + conv["hf_revision_policy"], width=78,
-                            initial_indent="  ", subsequent_indent="    "))
+    for key, label in (("hf_revision_policy", "HF models: "), ("group_scratch_mode", "Group scratch: ")):
+        if key in conv:
+            print(textwrap.fill(label + conv[key], width=78,
+                                initial_indent="  ", subsequent_indent="    "))
     print("  Use symlink forms (~/orcd/...) in anything shared -- resolved shard")
     print("  paths are only correct for the person who resolved them.")
 
