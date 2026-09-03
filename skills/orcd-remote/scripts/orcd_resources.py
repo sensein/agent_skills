@@ -314,11 +314,8 @@ def main() -> int:
     )
 
     print(
-        "\nBoth limits come from the partition's own QOS and apply whether or not you\n"
-        "ask for them. LIMIT: YOU is yours alone. LIMIT: GROUP is a single pool shared\n"
-        "with everyone else in the group, so a colleague's running job can block yours.\n"
-        "MAXSUBMIT caps queued plus running jobs. WOULD START is this moment's estimate\n"
-        "from the backfill scheduler -- a far-future value means a long queue."
+        "\nLIMIT: YOU = MaxTRESPU (yours); LIMIT: GROUP = GrpTRES (one pool for the whole\n"
+        "group); MAXSUBMIT = queued+running; WOULD START = backfill estimate right now."
     )
 
     if denied:

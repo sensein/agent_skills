@@ -394,13 +394,10 @@ def print_summary(snap: dict) -> None:
     oc.table(limit_rows, ["PARTITION", "MAXSUBMIT (queued+running)", "MAX ARRAY TASKS"])
     print(
         f"\nAssociation MaxSubmit: {assoc_cap if assoc_cap is not None else 'unset'} "
-        "(a single ceiling across every partition)\n"
-        f"Cluster MaxArraySize:  {snap['config'].get('MaxArraySize', '?')} "
-        f"   MaxJobCount: {snap['config'].get('MaxJobCount', '?')}\n"
-        "\nThe binding limit is the smallest that applies. Array tasks each count as\n"
-        "a submitted job, so `-a 0-999` is refused with QOSMaxSubmitJobPerUserLimit\n"
-        "wherever MaxSubmitPU is below 1000 -- and adding `%50` does not help. Split\n"
-        "large sweeps into consecutive arrays instead."
+        "(one ceiling across all partitions)   "
+        f"MaxArraySize: {snap['config'].get('MaxArraySize', '?')}   "
+        f"MaxJobCount: {snap['config'].get('MaxJobCount', '?')}\n"
+        "Smallest applicable limit binds; array tasks count as submitted jobs; %K does not raise the cap."
     )
 
 

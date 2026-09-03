@@ -222,18 +222,10 @@ def main() -> int:
         oc.heading("Where this request would land")
         oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "NOTE"])
         if any(r[4].startswith("EXCEEDS") for r in rows):
-            print(
-                "\nEXCEEDS rows: sbatch --test-only validates scheduling, not QOS TRES\n"
-                "ceilings, so it reports a start time for requests the partition's QOS\n"
-                "can never admit. Those partitions are excluded from auto-selection."
-            )
+            print("\nEXCEEDS: --test-only ignores QOS TRES ceilings; those rows would queue forever and are excluded.")
 
         if not viable:
-            print(
-                "\nNo partition would accept this request. The reasons above are the\n"
-                "scheduler's own; the usual causes are asking for more than the\n"
-                "partition's QOS allows you, or a walltime above its MaxTime."
-            )
+            print("\nNo partition accepts this request (usual causes: over the QOS limit, or -t above MaxTime).")
             return 1
 
         viable.sort(key=lambda r: r[2])

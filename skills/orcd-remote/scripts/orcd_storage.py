@@ -457,20 +457,12 @@ def main() -> int:
               f"{q['files']} / {q['file_limit']}", q["pct_files"] + "%"] for q in quota],
             ["SPACE", "GB USED / LIMIT", "%", "FILES USED / LIMIT", "%"],
         )
-        print(
-            "\nThe file columns bind independently of the space columns. A 1M inode\n"
-            "limit is reached by an unpacked image dataset or a conda env long before\n"
-            "the gigabytes run out, and the failure looks like a disk-full error."
-        )
+        print("\nFile counts bind independently of gigabytes; the 1M cap presents as 'disk full'.")
 
     if homelinks:
         oc.heading("Your personal spaces (~/orcd symlinks)")
         oc.table([[f"~/orcd/{n}", t] for n, _l, t in homelinks], ["SYMLINK", "RESOLVES TO"])
-        print(
-            "\nThese are root-managed links to your own storage. The per-user scratch\n"
-            "tier is sharded across /orcd/scratch/orcd/<NNN> and your shard is not\n"
-            "predictable, so always resolve ~/orcd/scratch rather than assuming a path."
-        )
+        print("\nShards differ per user: always resolve ~/orcd/<name> at runtime, never hardcode the target.")
 
     oc.heading(f"Storage you can reach as {user}")
     order = {"flash": 0, "capacity": 1, "home": 2, "archive": 3, "unknown": 4, "other": 5}
@@ -494,19 +486,15 @@ def main() -> int:
             "NO BACKUP" if e["no_backup_marker"] else "unmarked",
         ])
     oc.table(rows_out, ["PATH", "TIER", "SERVER", "WRITE", "SIZE", "AVAIL", "USED", "BACKUP"])
-    print("\nPersonal rows (~/orcd/...) show quota-based size/avail, not the shard's df.")
     print(
-        "\nBACKUP reads NO BACKUP where ORCD has flagged the tree as unprotected.\n"
-        "'unmarked' means only that no such flag is present -- confirm with ORCD\n"
-        "before trusting anything here to be backed up."
+        "\n~/orcd rows use quota-based size/avail. BACKUP 'unmarked' means no flag was\n"
+        "found, not that a backup exists -- assume only $HOME is backed up."
     )
+    if stale:
+        print("\nUnresponsive (skipped): " + ", ".join(stale))
 
-    oc.heading("Your storage group memberships")
+    oc.heading("Your storage group memberships (orcd_rg_<server>_<owner>)")
     print("\n".join(f"  {g}" for g in groups) or "  (none)")
-    print(
-        "\nThese follow the pattern orcd_rg_<server>_<owner>. The server prefix is the\n"
-        "tier: fstor = flash, hstor = capacity disk, core = archive."
-    )
 
     if group_cfg:
         report_group_access(group_cfg, groups)
@@ -547,14 +535,9 @@ def main() -> int:
                 shown, avail = path, e["avail"]
             print(f"  {shown:<44} {avail:>18} free")
     print(
-        f"\nCode and small config:\n"
-        f"  {home:<44} backed up, but the slowest metadata of\n"
-        "  any tier. Clone repos here; write job output elsewhere.\n"
-        "\nNode-local, fastest of all, wiped when the job ends:\n"
-        "  $TMPDIR (/tmp) always exists. /scratch is large but present on some nodes\n"
-        "  only, so probe it before use. /dev/shm is RAM and counts against the memory\n"
-        "  you requested.\n"
-        "\nSee references/storage.md for measured throughput and the staging pattern."
+        f"\nCode and config only: {home} (backed up; slowest metadata).\n"
+        "Node-local (wiped at job end): $TMPDIR always; /scratch on some nodes; /dev/shm is RAM\n"
+        "counted against --mem. Details: references/storage.md."
     )
     if group_cfg:
         print_conventions(group_cfg)

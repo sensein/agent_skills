@@ -130,56 +130,31 @@ def print_key_instructions(identity: Path | None, user: str, hostname: str) -> N
         pub = f"{identity}.pub"
 
     print(
-        f"ORCD does not accept a password over SSH, so the key has to be installed\n"
-        f"through the web portal, which does support Duo two-factor:\n\n"
-        f"  1. Copy your public key to the clipboard:\n\n"
-        f"         pbcopy < {pub}          # macOS\n"
-        f"         xclip -sel clip < {pub} # Linux\n\n"
-        f"  2. Open {oc.OOD_URL} and sign in with your MIT\n"
-        f"     credentials plus Duo.\n\n"
-        f"  3. In the top menu choose  Clusters -> Shell Access.  You now have a\n"
-        f"     shell on a login node, already authenticated.\n\n"
-        f"  4. In that shell, paste your key into authorized_keys:\n\n"
-        f"         mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
-        f"         cat >> ~/.ssh/authorized_keys    # paste, then press Ctrl-D\n"
-        f"         chmod 600 ~/.ssh/authorized_keys\n\n"
-        f"  5. Back on your laptop, verify:\n\n"
-        f"         ssh {user}@{hostname} hostname\n\n"
-        f"Leave the browser session signed in for that first SSH. The Duo device\n"
-        f"trust it establishes is what lets SSH finish without prompting you.\n"
-    )
-    print(
-        "NOTE if this session runs in a cloud or remote agent environment (Claude\n"
-        "Code on the web, a CI runner, a devcontainer) rather than on your own\n"
-        "machine: the key pair above lives in that environment, and installing its\n"
-        "public key gives that environment SSH access to your ORCD account. Get the\n"
-        "account owner's explicit OK first, use a dedicated key with an identifying\n"
-        "comment (e.g. ssh-keygen -C \"agent-cloud-$(date +%Y%m%d)\") so it is easy\n"
-        "to spot, and remove that line from ~/.ssh/authorized_keys on ORCD when the\n"
-        "environment is retired. Cloud containers are usually ephemeral: the private\n"
-        "key may vanish when the session ends. That is normal -- generate and install\n"
-        "a fresh key next time instead of copying private keys out of the container.\n"
-        "If this environment has SSH egress, `python3 orcd_doctor.py --sandbox-setup`\n"
-        "does the client side: it mints a dedicated key and prints the exact command\n"
-        "for the account owner to authorize it.\n"
+        f"No passwords over ssh: install the key through the portal (Duo works there).\n\n"
+        f"  1. Copy {pub}  (pbcopy / xclip -sel clip)\n"
+        f"  2. Sign in at {oc.OOD_URL} -> Clusters -> Shell Access\n"
+        f"  3. In that shell:  mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
+        f"                     cat >> ~/.ssh/authorized_keys   # paste, Ctrl-D\n"
+        f"                     chmod 600 ~/.ssh/authorized_keys\n"
+        f"  4. Here:           ssh {user}@{hostname} hostname\n\n"
+        f"Keep the browser signed in for that first ssh; its Duo trust makes ssh silent.\n\n"
+        "Cloud/sandbox session (Claude Code on the web, CI)? This key lives in an\n"
+        "ephemeral container and authorizing it grants the container account access:\n"
+        "owner's OK first, dedicated identifiable key, revoke when retired, never copy\n"
+        "the private key out. With ssh egress, `orcd_doctor.py --sandbox-setup` mints\n"
+        "the key and prints the exact authorize command for the owner.\n"
     )
 
 
 def egress_blocked_message(hostname: str) -> None:
     oc.heading("SSH egress is blocked")
     print(
-        f"`{hostname}` resolves, but nothing answers on port 22 -- the\n"
-        "network between this machine and ORCD is dropping SSH. Keys and Duo\n"
-        "are not the problem, and installing a key will not help from here.\n"
-        "Common causes:\n\n"
-        "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
-        "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
-        "    environment's network policy, or drive ORCD from a machine with\n"
-        "    direct SSH access instead. Tunneling through the environment's\n"
-        "    HTTPS proxy usually fails the same way: the proxy may answer 200\n"
-        "    to CONNECT host:22 yet never deliver an SSH banner, because the\n"
-        "    policy is enforced on the proxy's upstream connection.\n"
-        "  - A restrictive campus or corporate network; try the MIT VPN.\n"
+        f"`{hostname}` resolves but nothing answers on port 22: the network drops ssh.\n"
+        "Keys and Duo are not the problem; installing a key will not help from here.\n"
+        "Causes: a cloud sandbox whose policy allows only HTTPS egress (an HTTPS proxy\n"
+        "may even answer 200 to CONNECT :22 yet never deliver an SSH banner) -- loosen\n"
+        "the policy or run from a machine with ssh access; or a campus/corporate\n"
+        "firewall -- try the MIT VPN.\n"
     )
 
 
@@ -241,33 +216,23 @@ def sandbox_setup(user: str, hostname: str) -> int:
         return 1
 
     oc.heading("Authorize this sandbox on ORCD")
-    origin = "newly generated for this sandbox, no passphrase (headless environment)" \
-        if created else "already present in this environment"
+    origin = "newly generated, no passphrase (headless)" if created else "already present"
     print(
-        f"Port 22 to {hostname} is reachable from here, so this sandbox can\n"
-        "connect once its key is authorized. The key pair lives in this sandbox\n"
-        f"and is {origin}.\n\n"
-        "ACCOUNT OWNER: if you approve this environment having access to your\n"
-        "ORCD account, run this in an ORCD shell (portal: "
-        f"{oc.OOD_URL}\n"
-        "-> Clusters -> Shell Access, or any existing SSH session):\n\n"
+        f"Port 22 to {hostname} is reachable; this sandbox connects once its key is\n"
+        f"authorized. Key: {identity} ({origin}).\n\n"
+        "ACCOUNT OWNER -- if you approve this environment's access, run in an ORCD\n"
+        f"shell ({oc.OOD_URL} -> Clusters -> Shell Access, or any ssh session):\n\n"
         f"    mkdir -p ~/.ssh && chmod 700 ~/.ssh && printf '%s\\n' '{pubkey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\n"
     )
     parts = pubkey.split()
     tag = parts[2] if len(parts) >= 3 else ""
     if re.fullmatch(r"[A-Za-z0-9@._-]+", tag or ""):
-        print(
-            "When this sandbox is retired, revoke its access with:\n\n"
-            f"    sed -i '/{tag}/d' ~/.ssh/authorized_keys\n"
-        )
+        print(f"Revoke later with:  sed -i '/{tag}/d' ~/.ssh/authorized_keys\n")
     else:
-        print("When this sandbox is retired, delete this key's line from ~/.ssh/authorized_keys.\n")
+        print("Revoke later by deleting this key's line from ~/.ssh/authorized_keys.\n")
     print(
-        "After the key is added, verify and write the ssh config from here:\n\n"
-        f"    python3 orcd_doctor.py --fix --user {user or '<username>'}\n\n"
-        "Sandbox containers are usually ephemeral: the private key vanishes with\n"
-        "the container. That is fine -- mint and authorize a fresh key next time,\n"
-        "and never copy a private key out of the sandbox."
+        f"Then, from here:  python3 orcd_doctor.py --fix --user {user or '<username>'}\n"
+        "The private key dies with the container; mint a fresh one next time, never copy it out."
     )
     return 0
 
@@ -464,16 +429,11 @@ def main() -> int:
             else:
                 oc.heading("Connected, but authentication failed")
                 print(
-                    "Your key was offered and refused, or the second factor did not\n"
-                    "pass. In order of likelihood:\n\n"
-                    f"  1. The key is not installed on the cluster yet -- see below.\n"
-                    f"  2. Duo device trust has lapsed. Sign in at {oc.OOD_URL}\n"
-                    "     and then retry.\n"
-                    "  3. `BatchMode yes` is set for this host somewhere in your SSH\n"
-                    "     config. It disables keyboard-interactive and auth always fails.\n\n"
-                    "To see which stage failed, look for `partial success` in:\n\n"
-                    f"    ssh -vv {args.host} true\n\n"
-                    "If it appears, your key is fine and the problem is Duo.\n"
+                    "Likeliest first: (1) key not installed on the cluster -- see below;\n"
+                    f"(2) Duo trust lapsed -- sign in at {oc.OOD_URL} and retry;\n"
+                    "(3) `BatchMode yes` somewhere in ssh config -- it always breaks Duo.\n"
+                    f"`ssh -vv {args.host} true` showing `partial success` means the key is\n"
+                    "fine and the problem is Duo.\n"
                 )
                 print_key_instructions(identity, user, args.hostname)
         return 1
