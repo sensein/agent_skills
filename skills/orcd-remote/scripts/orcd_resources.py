@@ -150,15 +150,32 @@ def parse_qos(lines: list[str]) -> dict[str, dict[str, str]]:
     return out
 
 
+def gpu_counts(gres: str) -> dict[str, int]:
+    """Parse a sinfo Gres/GresUsed string into {type: count}.
+
+    Tokens look like ``gpu:h100:4(S:0-1)``, ``gpu:h100:2(IDX:0-1)`` or, on
+    partitions that declare no model, ``gpu:4``; the last is keyed ``untyped``
+    to match ``gputypes_from_tres``.
+    """
+    out: dict[str, int] = {}
+    for tok in gres.split(","):
+        m = re.match(r"gpu:(?:([a-z0-9_]+):)?(\d+)", tok.strip())
+        if m:
+            out[m.group(1) or "untyped"] = out.get(m.group(1) or "untyped", 0) + int(m.group(2))
+    return out
+
+
 def parse_idle(lines: list[str]) -> dict[str, dict[str, int]]:
     """Free GPUs per partition/type = configured minus in use, on healthy nodes."""
     free: dict[str, dict[str, int]] = {}
-    gres_re = re.compile(r"gpu:([a-z0-9_]+):(\d+)")
     for line in lines:
         f = line.split("|")
         if len(f) < 5:
             continue
         part, _node, state, gres, used = (x.strip() for x in f[:5])
+        # sinfo marks the default partition with a trailing `*`; scontrol does
+        # not, and the two must key identically.
+        part = part.rstrip("*")
         if not part:
             continue
         # Only nodes that can actually accept work. The suffix flags matter as
@@ -171,8 +188,8 @@ def parse_idle(lines: list[str]) -> dict[str, dict[str, int]]:
             continue
         if any(c in state for c in "*~#%-$@"):
             continue
-        conf = {m.group(1): int(m.group(2)) for m in gres_re.finditer(gres)}
-        inuse = {m.group(1): int(m.group(2)) for m in gres_re.finditer(used)}
+        conf = gpu_counts(gres)
+        inuse = gpu_counts(used)
         for gtype, n in conf.items():
             avail = max(0, n - inuse.get(gtype, 0))
             if avail:
@@ -204,23 +221,6 @@ def probe_gpu_access(usable: list[str], gputypes: dict[str, dict[str, int]], hos
         if len(f) == 3 and f[2].strip() == "OK":
             ok.setdefault(f[0], []).append(f[1])
     return ok
-
-
-def tres_summary(tres: str) -> str:
-    """Condense a partition TRES string to cpu/mem/gpu totals."""
-    cpu = re.search(r"cpu=(\d+)", tres)
-    mem = re.search(r"mem=([\d.]+)([MGT])", tres)
-    gpu = re.search(r"gres/gpu=(\d+)", tres)
-    bits = []
-    if cpu:
-        bits.append(f"{cpu.group(1)} cpu")
-    if mem:
-        val, unit = float(mem.group(1)), mem.group(2)
-        tb = val / (1024 * 1024) if unit == "M" else val / 1024 if unit == "G" else val
-        bits.append(f"{tb:.1f} TB" if tb >= 1 else f"{val:.0f}{unit}")
-    if gpu:
-        bits.append(f"{gpu.group(1)} gpu")
-    return ", ".join(bits) if bits else "-"
 
 
 def main() -> int:

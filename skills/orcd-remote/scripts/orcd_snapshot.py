@@ -176,9 +176,12 @@ def build_snapshot(host: str) -> dict:
     personal = {f[0]: f[1] for f in rows(b.get("HOMELINKS", []), 2)}
 
     shapes = {}
-    for f in rows(b.get("NODESHAPES", []), 2):
-        cpu_mem_gres = f[0]
-        shapes[cpu_mem_gres] = int(f[1]) if f[1].isdigit() else f[1]
+    for line in b.get("NODESHAPES", []):
+        # `cpu|mem|gres|count` -- the shape itself contains `|`, so split
+        # off only the trailing count.
+        shape, sep, count = line.strip().rpartition("|")
+        if sep and shape:
+            shapes[shape] = int(count) if count.strip().isdigit() else count.strip()
 
     return {
         "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -245,6 +248,11 @@ def _size_to_float(text: str) -> float | None:
 def _same_value(before: str, after: str) -> bool:
     if before == after:
         return True
+    # The tolerance exists for *rendered* sizes ("81.7B" vs "81.6B"). Plain
+    # integers -- node counts, submit caps, GPU totals, tiers -- carry no
+    # rounding, so any difference is a real change.
+    if before.strip().isdigit() and after.strip().isdigit():
+        return False
     a, b = _size_to_float(before), _size_to_float(after)
     if a is None or b is None:
         return False

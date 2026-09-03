@@ -63,37 +63,47 @@ class Report:
         oc.table([list(r) for r in self.rows], ["", "CHECK", "DETAIL"])
 
 
-def find_identity() -> tuple[Path | None, list[Path]]:
+def find_identity(explicit: str | None = None) -> tuple[Path | None, list[Path]]:
     """Pick the key to offer, preferring modern algorithms.
 
     Returns ``(chosen, all_found)``. ed25519 comes first because ORCD's sshd
     advertises it and it avoids the SHA-1 signature pitfalls of ancient RSA keys.
+    ``explicit`` (``--identity``) overrides the search for users whose ORCD key
+    is not the first one found.
     """
+    if explicit:
+        p = Path(explicit).expanduser()
+        return (p if p.is_file() else None), ([p] if p.is_file() else [])
     candidates = ["id_ed25519", "id_ecdsa", "id_rsa"]
     found = [SSH_DIR / c for c in candidates if (SSH_DIR / c).is_file()]
     return (found[0] if found else None), found
 
 
-def config_has_host(alias: str) -> bool:
-    if not SSH_CONFIG.is_file():
-        return False
-    pattern = re.compile(rf"^\s*Host\s+.*\b{re.escape(alias)}\b", re.MULTILINE)
-    return bool(pattern.search(SSH_CONFIG.read_text()))
+def ssh_effective(alias: str, config: Path | None = None) -> dict[str, str]:
+    """Effective client options for ``alias`` from ``ssh -G``.
+
+    ``-G`` merges Include files, Match blocks and ``Host *`` wildcards, all of
+    which a regex over one file misses. ``config`` pins a file (for tests);
+    None uses ssh's normal search.
+    """
+    cmd = ["ssh", "-G", *(["-F", str(config)] if config else []), alias]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    out: dict[str, str] = {}
+    for line in proc.stdout.splitlines():
+        k, _, v = line.partition(" ")
+        out[k.lower()] = v.strip()
+    return out
 
 
-def config_has_batchmode(alias: str) -> bool:
-    """Detect the single most common misconfiguration for this cluster."""
-    if not SSH_CONFIG.is_file():
-        return False
-    text = SSH_CONFIG.read_text()
-    match = re.search(
-        rf"^\s*Host\s+.*\b{re.escape(alias)}\b(.*?)(?=^\s*Host\s|\Z)",
-        text,
-        re.MULTILINE | re.DOTALL,
-    )
-    if not match:
-        return False
-    return re.search(r"^\s*BatchMode\s+yes", match.group(1), re.MULTILINE | re.IGNORECASE) is not None
+def config_has_host(alias: str, config: Path | None = None) -> bool:
+    """``alias`` is configured when ssh resolves it to a different HostName."""
+    hn = ssh_effective(alias, config).get("hostname", "")
+    return bool(hn) and hn.lower() != alias.lower()
+
+
+def config_has_batchmode(alias: str, config: Path | None = None) -> bool:
+    """The single most common misconfiguration for this cluster, wherever it hides."""
+    return ssh_effective(alias, config).get("batchmode") == "yes"
 
 
 def write_config(alias: str, hostname: str, user: str, identity: Path) -> str:
@@ -268,6 +278,7 @@ def main() -> int:
     ap.add_argument("--hostname", default=oc.DEFAULT_HOSTNAME, help="real login hostname")
     ap.add_argument("--user", default=os.environ.get("ORCD_USER") or os.environ.get("USER", ""),
                     help="your MIT/ORCD username (default: local $USER)")
+    ap.add_argument("--identity", help="private key to use (default: first of id_ed25519/id_ecdsa/id_rsa)")
     ap.add_argument("--fix", action="store_true", help="write ~/.ssh/config and open the master connection")
     ap.add_argument("--sandbox-setup", action="store_true",
                     help="sandbox with internet access: verify egress, mint a dedicated key "
@@ -277,6 +288,10 @@ def main() -> int:
 
     if args.sandbox_setup:
         return sandbox_setup(args.user, args.hostname)
+    if args.fix and not args.user:
+        # An empty `User` line makes ssh reject its config for every host.
+        print("error: --fix needs a username (--user or $ORCD_USER)", file=sys.stderr)
+        return 1
 
     rep = Report()
     failure_detail = ""
@@ -289,29 +304,33 @@ def main() -> int:
     rep.add(OK, "ssh client", "found")
 
     # 2. A key to offer.
-    identity, all_keys = find_identity()
+    identity, all_keys = find_identity(args.identity)
     if identity is None:
-        rep.add(BAD, "ssh key", f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
+        rep.add(BAD, "ssh key", f"{args.identity} not found" if args.identity
+                else f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
     else:
         others = [k.name for k in all_keys[1:]]
         extra = f" (also present: {', '.join(others)})" if others else ""
         rep.add(OK, "ssh key", f"{identity.name}{extra}")
 
-    # 3. ~/.ssh/config entry, and the BatchMode trap.
-    if config_has_host(args.host):
+    # 3. ~/.ssh/config entry, and the BatchMode trap (via `ssh -G`, so a
+    # `Host *` block or an Include'd file is seen too).
+    configured = config_has_host(args.host)
+    if configured:
         if config_has_batchmode(args.host):
             rep.add(
-                BAD, f"~/.ssh/config [{args.host}]",
-                "has `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive",
+                BAD, f"ssh config [{args.host}]",
+                "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive",
             )
         else:
-            rep.add(OK, f"~/.ssh/config [{args.host}]", "present")
+            rep.add(OK, f"ssh config [{args.host}]", "present")
     elif args.fix and identity is not None:
         block = write_config(args.host, args.hostname, args.user, identity)
-        rep.add(OK, f"~/.ssh/config [{args.host}]", "written by --fix")
+        configured = True
+        rep.add(OK, f"ssh config [{args.host}]", "written by --fix")
         print("Appended to ~/.ssh/config:" + block)
     else:
-        rep.add(WARN, f"~/.ssh/config [{args.host}]", "missing; re-run with --fix to write it")
+        rep.add(WARN, f"ssh config [{args.host}]", "missing; re-run with --fix to write it")
 
     # 4. Name resolution, checked here rather than inferred from ssh's stderr:
     # open_master() inherits the terminal so Duo prompts stay visible, which
@@ -349,7 +368,7 @@ def main() -> int:
         rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
         failure_detail = "port 22 blocked"
     else:
-        target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
+        target = args.host if configured else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
             rep.add(OK, "connection multiplexing", "master socket already live")
             reachable = True
@@ -364,7 +383,7 @@ def main() -> int:
 
     # 6. Only if we got in: confirm the cluster side looks sane.
     if reachable:
-        target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
+        target = args.host if configured else f"{args.user}@{args.hostname}"
         try:
             out = oc.run_remote(
                 'echo "@@WHO"; hostname -s; whoami\n'
@@ -459,6 +478,14 @@ def main() -> int:
                 print_key_instructions(identity, user, args.hostname)
         return 1
 
+    if not configured:
+        # Reachable as user@host, but every other script defaults to the alias.
+        print(
+            f"\nAccess works, but the `{args.host}` alias is not configured, and the other\n"
+            f"scripts default to it. Run `python3 orcd_doctor.py --fix --user {args.user}`\n"
+            f"once, or pass --host {args.user}@{args.hostname} to each of them.\n"
+        )
+        return 0
     print(
         "\nAccess is working. Next:\n"
         "  python3 orcd_resources.py     # what you can actually run on\n"
