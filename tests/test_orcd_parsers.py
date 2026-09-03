@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import shutil
 import subprocess
 import sys
@@ -285,10 +286,20 @@ class DoctorConfigTests(unittest.TestCase):
 
     def test_fix_refuses_an_empty_username(self) -> None:
         err = io.StringIO()
-        with mock.patch.object(sys, "argv", ["orcd_doctor.py", "--fix", "--user", ""]), \
+        # Hermetic: the doctor falls back to $ORCD_USER then $USER, which CI sets.
+        with mock.patch.dict(os.environ, {"ORCD_USER": "", "USER": ""}), \
+                mock.patch.object(sys, "argv", ["orcd_doctor.py", "--fix"]), \
                 mock.patch("sys.stderr", err):
             self.assertEqual(doctor.main(), 1)
         self.assertIn("needs a username", err.getvalue())
+
+    def test_sandbox_setup_refuses_a_guessed_username(self) -> None:
+        err = io.StringIO()
+        with mock.patch.dict(os.environ, {"ORCD_USER": "", "USER": "runner"}), \
+                mock.patch.object(sys, "argv", ["orcd_doctor.py", "--sandbox-setup"]), \
+                mock.patch("sys.stderr", err):
+            self.assertEqual(doctor.main(), 1)
+        self.assertIn("pass --user", err.getvalue())
 
     def test_explicit_identity_overrides_the_search(self) -> None:
         key = Path(tempfile.mkdtemp()) / "id_rsa_orcd"
