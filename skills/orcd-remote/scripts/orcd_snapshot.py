@@ -89,7 +89,9 @@ id -Gn | tr ' ' '\n' | grep '^orcd_rg_' | sort
 
 echo "@@NODESHAPES"
 # Distinct hardware configurations, so a fleet change shows up as a diff.
-sinfo -h -N -o "%c|%m|%G" 2>/dev/null | sort | uniq -c | awk '{print $2"|"$1}'
+# sinfo -N prints one line per node-partition pair, so dedupe on node name
+# first or every multi-partition node is counted several times.
+sinfo -h -N -o "%N|%c|%m|%G" 2>/dev/null | sort -u | cut -d'|' -f2- | sort | uniq -c | awk '{print $2"|"$1}'
 
 echo "@@QUOTA"
 # ORCD's per-user quota report, regenerated roughly every 30 minutes. The only place the per-user scratch and
@@ -111,6 +113,17 @@ echo "@@STORAGE"
 awk '$3 ~ /^(nfs|nfs4|lustre|gpfs|beegfs)$/ && $2 ~ /^\/(orcd|home)/ {print $2"|"$1}' \
   /proc/mounts | sort -u
 '''
+
+
+def partition_gpus(tres: str) -> dict[str, int]:
+    """Per-model GPU totals from a TRES string; ``untyped`` when a partition
+    declares GPUs without a model (same convention as orcd_resources)."""
+    typed = {m.group(1): int(m.group(2))
+             for m in re.finditer(r"gres/gpu:([A-Za-z0-9_.-]+)=(\d+)", tres)}
+    if typed:
+        return typed
+    bare = re.search(r"gres/gpu=(\d+)", tres)
+    return {"untyped": int(bare.group(1))} if bare and int(bare.group(1)) > 0 else {}
 
 
 def rows(lines: list[str], n: int) -> list[list[str]]:
@@ -139,8 +152,7 @@ def build_snapshot(host: str) -> dict:
             "partition_qos": f[4], "max_time": f[5], "max_nodes": f[6],
             "total_nodes": f[7], "preempt_mode": f[8], "priority_tier": f[9],
             "tres": f[10],
-            "gpus": {m.group(1): int(m.group(2))
-                     for m in re.finditer(r"gres/gpu:([a-z0-9_]+)=(\d+)", f[10])},
+            "gpus": partition_gpus(f[10]),
         }
 
     qos = {}
@@ -216,7 +228,7 @@ IGNORED = {"captured_at", "meta.login_node"}
 #   quota usage     Gigabytes and file counts move every time you write anything.
 #                   The *limits* are configuration and are still diffed.
 IGNORED_PREFIXES = ("storage_mounts.",)
-IGNORED_SUFFIXES = (".used_gb", ".files", ".pct_space", ".pct_files")
+IGNORED_SUFFIXES = (".used_gb", ".files")
 
 # Rendered numbers carry rounding jitter (a group pool's file limit flips between
 # "81.7B" and "81.6B" run to run). Treat a sub-1% numeric move as unchanged; a

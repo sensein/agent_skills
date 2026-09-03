@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import os
 import shutil
 import subprocess
 import sys
@@ -45,6 +46,21 @@ class ResourcesParserTests(unittest.TestCase):
             "pi_x|node4|drained|gpu:4|gpu:0",     # cannot accept work
         ])
         self.assertEqual(idle, {"mit_normal_gpu": {"h100": 3}, "pi_x": {"untyped": 4}})
+
+    def test_parse_idle_skips_reboot_issued_and_pending_power_down(self) -> None:
+        idle = resources.parse_idle([
+            "pi_x|n1|idle^|gpu:h100:4|gpu:h100:0",
+            "pi_x|n2|idle!|gpu:h100:4|gpu:h100:0",
+            "pi_x|n3|idle|gpu:h100:4|gpu:h100:0",
+        ])
+        self.assertEqual(idle, {"pi_x": {"h100": 4}})
+
+    def test_gpu_label_distinguishes_refused_from_unprobed(self) -> None:
+        gtypes = {"h100": 16}
+        self.assertEqual(resources.gpu_label(gtypes, None, probed=False), "h100:16")
+        self.assertEqual(resources.gpu_label(gtypes, None, probed=True), "(none requestable)")
+        self.assertEqual(resources.gpu_label(gtypes, ["h100"], probed=True), "h100:16")
+        self.assertEqual(resources.gpu_label({}, None, probed=True), "-")
 
     def test_gputypes_from_tres_falls_back_to_untyped(self) -> None:
         parts = {
@@ -117,6 +133,19 @@ class SnapshotTests(unittest.TestCase):
                                                     "mit_normal_gpu": False})
         self.assertEqual([q["space"] for q in snap["quota"]], ["HOME", "SCRATCH"])
         self.assertEqual(snap["personal_spaces"]["pool"], "/orcd/pool/007/satra")
+
+    def test_partition_gpus_keeps_untyped_like_resources(self) -> None:
+        self.assertEqual(snapshot.partition_gpus("cpu=64,gres/gpu=4"), {"untyped": 4})
+        self.assertEqual(snapshot.partition_gpus("gres/gpu=8,gres/gpu:h100=8"), {"h100": 8})
+        self.assertEqual(snapshot.partition_gpus("cpu=64"), {})
+
+    @unittest.skipIf(shutil.which("bash") is None, "needs bash")
+    def test_node_shape_pipeline_counts_nodes_not_node_partition_pairs(self) -> None:
+        pipeline = next(l for l in snapshot.REMOTE.splitlines() if l.startswith("sinfo -h -N"))
+        fake = ('sinfo(){ printf "%s\\n" "node1|64|515000|gpu:h100:4" "node1|64|515000|gpu:h100:4" '
+                '"node2|64|515000|gpu:h100:4" "node3|128|1031000|(null)"; }; ')
+        out = subprocess.run(["bash", "-c", fake + pipeline], capture_output=True, text=True).stdout
+        self.assertEqual(sorted(out.split()), ["128|1031000|(null)|1", "64|515000|gpu:h100:4|2"])
 
     def test_integer_changes_are_never_hidden_by_tolerance(self) -> None:
         for before, after in (("100", "101"), ("448", "452"), ("104", "105")):
@@ -242,6 +271,13 @@ class DoctorConfigTests(unittest.TestCase):
         self.assertFalse(doctor.config_has_host("orcd", self.config(
             "Host orcd-old\n    HostName elsewhere\n")))
 
+    def test_fqdn_alias_counts_as_configured_only_with_the_doctor_block(self) -> None:
+        fqdn = "orcd-login.mit.edu"
+        block = doctor.CONFIG_BLOCK_TEMPLATE.format(alias="orcd", hostname=fqdn, user="satra",
+                                                    identity="~/.ssh/id_ed25519")
+        self.assertTrue(doctor.config_has_host(fqdn, self.config(block)))
+        self.assertFalse(doctor.config_has_host(fqdn, self.config("Host other\n    HostName x\n")))
+
     def test_batchmode_is_caught_even_from_a_global_block(self) -> None:
         cfg = self.config("Host *\n    BatchMode yes\nHost orcd\n    HostName orcd-login.mit.edu\n")
         self.assertTrue(doctor.config_has_batchmode("orcd", cfg))
@@ -250,10 +286,20 @@ class DoctorConfigTests(unittest.TestCase):
 
     def test_fix_refuses_an_empty_username(self) -> None:
         err = io.StringIO()
-        with mock.patch.object(sys, "argv", ["orcd_doctor.py", "--fix", "--user", ""]), \
+        # Hermetic: the doctor falls back to $ORCD_USER then $USER, which CI sets.
+        with mock.patch.dict(os.environ, {"ORCD_USER": "", "USER": ""}), \
+                mock.patch.object(sys, "argv", ["orcd_doctor.py", "--fix"]), \
                 mock.patch("sys.stderr", err):
             self.assertEqual(doctor.main(), 1)
         self.assertIn("needs a username", err.getvalue())
+
+    def test_sandbox_setup_refuses_a_guessed_username(self) -> None:
+        err = io.StringIO()
+        with mock.patch.dict(os.environ, {"ORCD_USER": "", "USER": "runner"}), \
+                mock.patch.object(sys, "argv", ["orcd_doctor.py", "--sandbox-setup"]), \
+                mock.patch("sys.stderr", err):
+            self.assertEqual(doctor.main(), 1)
+        self.assertIn("pass --user", err.getvalue())
 
     def test_explicit_identity_overrides_the_search(self) -> None:
         key = Path(tempfile.mkdtemp()) / "id_rsa_orcd"
@@ -299,11 +345,37 @@ class SubmitTests(unittest.TestCase):
         self.assertIn("gpu:h100:2", flags)
         self.assertNotIn("--qos", " ".join(flags))
 
+    def test_literal_tilde_and_dollar_paths_are_refused(self) -> None:
+        self.assertIn("--chdir", submit.literal_path_problem(self.args(chdir="~/runs")))
+        self.assertIn("--output", submit.literal_path_problem(self.args(output="$HOME/o/%j.out")))
+        ns = self.args(chdir="/orcd/scratch/bcs/001/satra", output="%x-%j.out")
+        ns.remote_script = "/home/satra/job.sh"
+        self.assertEqual(submit.literal_path_problem(ns), "")
+
     def test_ceiling_note_multiplies_gpus_by_nodes(self) -> None:
         ceilings = {"user": {"h100": 8}, "group": {"h100": 16}}
         self.assertEqual(submit.gpu_ceiling_note(self.args(gpus=4, nodes=2, gpu_type="h100"), ceilings), "")
         note = submit.gpu_ceiling_note(self.args(gpus=4, nodes=5, gpu_type="h100"), ceilings)
         self.assertTrue(note.startswith("EXCEEDS GROUP pool"))
+
+
+class UvProfileTests(unittest.TestCase):
+    def test_add_to_path_never_creates_a_missing_profile(self) -> None:
+        import orcd_uv as uv
+        sent: list[str] = []
+
+        def fake_run_remote(script, host="orcd", timeout=180, check=True):
+            sent.append(script)
+            if "@@RESULT" in script:
+                return "@@RESULT\nmissing\n"
+            return "@@HOMEBIN\nuv 0.9.0\n@@ONPATH\nNOT_ON_PATH\n@@PROFILES\n"
+
+        buf = io.StringIO()
+        with mock.patch.object(oc, "run_remote", side_effect=fake_run_remote), redirect_stdout(buf):
+            status = uv.add_to_path("orcd", ".bash_profile")
+        self.assertIn('if [ ! -f "$p" ]', sent[0])
+        self.assertIn("refusing to create it", buf.getvalue())
+        self.assertEqual(status["home_bin"], "uv 0.9.0")
 
 
 if __name__ == "__main__":

@@ -160,16 +160,24 @@ def add_to_path(host: str, profile: str) -> dict:
     """Append the PATH line (approval already granted) and return a fresh check()."""
     edit = f'''
 p="$HOME/{profile}"
-if [ -f "$p" ] && grep -qF '.local/bin' "$p"; then
+if [ ! -f "$p" ]; then
+    echo "@@RESULT"; echo missing
+elif grep -qF '.local/bin' "$p"; then
     echo "@@RESULT"; echo already
 else
-    [ -f "$p" ] && cp -p "$p" "$p.orcd-uv.bak"
+    cp -p "$p" "$p.orcd-uv.bak"
     printf '\\n%s\\n%s\\n' '{MARKER}' '{PATH_LINE}' >> "$p"
     echo "@@RESULT"; echo added
 fi
 '''
     blocks = oc.parse_kv_blocks(oc.run_remote(edit, host=host, timeout=60))
     result = next((l for l in blocks.get("RESULT", []) if l.strip()), "?")
+    if result == "missing":
+        # Creating ~/.bash_profile makes bash stop reading ~/.profile at login,
+        # silently dropping whatever lived there. Never create a profile.
+        print(f"~/{profile} does not exist; refusing to create it (a new file changes which\n"
+              "startup files bash reads). Pick an existing one with --profile.")
+        return check(host)
     if result == "already":
         print(f"~/{profile} already references .local/bin; nothing appended.")
     else:

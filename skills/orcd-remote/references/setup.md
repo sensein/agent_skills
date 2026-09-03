@@ -26,8 +26,9 @@ ls ~/.ssh/id_ed25519 2>/dev/null || ssh-keygen -t ed25519 -C "$USER@mit.edu"
 
 Prefer ed25519. ORCD's sshd advertises it, and it avoids the SHA-1 signature
 problems that can make a very old RSA key fail in confusing ways. Set a
-passphrase and load it into `ssh-agent` (`ssh-add`): the scripts close stdin,
-so an un-cached passphrase fails instead of prompting. If your ORCD key is not
+passphrase and load it into `ssh-agent` (`ssh-add`): only the doctor's first
+connection can answer a prompt; every other scripted call closes stdin and
+fails on an un-cached passphrase. If your ORCD key is not
 the first of `id_ed25519`/`id_ecdsa`/`id_rsa`, pass `--identity <path>` to the
 doctor.
 
@@ -76,7 +77,7 @@ key -- and prints two ready-to-paste commands for the account owner:
 
 Hand both to the account owner; the owner running the append command **is**
 the authorization step, and an agent must never add the key itself. Once the
-owner confirms, `python3 scripts/orcd_doctor.py --fix` verifies the connection
+owner confirms, `python3 scripts/orcd_doctor.py --fix --user <mit-username>` verifies the connection
 and writes the ssh config block.
 
 ### 3. Get a shell through the portal
@@ -101,7 +102,7 @@ collaborator or a cluster service depends on.
 ### 5. Configure and test locally
 
 ```bash
-python3 scripts/orcd_doctor.py --fix
+python3 scripts/orcd_doctor.py --fix --user <mit-username>
 ```
 
 That appends a working block to `~/.ssh/config` and opens the connection. The

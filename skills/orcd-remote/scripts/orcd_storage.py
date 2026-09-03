@@ -72,10 +72,6 @@ echo "@@MOUNTS"
 # mountpoint|fstype|source  -- /proc/mounts never blocks, unlike df.
 awk '$3 ~ /^(nfs|nfs4|lustre|gpfs|beegfs|xfs|ext4)$/ && $2 ~ /^\/(orcd|home|nese|pool)/ {print $2"|"$3"|"$1}' /proc/mounts | sort -u
 
-echo "@@AUTOFS"
-# Autofs roots that exist but are not yet mounted; probing these triggers them.
-awk '$3=="autofs" && $2 ~ /^\/orcd/ {print $2}' /proc/mounts | sort
-
 echo "@@PIDIRS"
 # Per-PI and per-project trees are named after the PI/project, not the user, so
 # enumerate the LDAP automount maps rather than guessing directory names.
@@ -432,11 +428,12 @@ def main() -> int:
             out = oc.run_remote(script, host=args.host, timeout=120, check=False)
             oc.table([l.split("|", 2) for l in out.splitlines() if "|" in l],
                      ["RESULT", "PATH", "MODE"])
-            print("\nMode: group access via setgid, none for others (chmod o-rwx). Use umask 027 in jobs.")
+            print("\nMode (new and existing dirs): group via setgid, none for others (o-rwx). Use umask 027 in jobs.")
 
     if args.json:
         payload = {
             "user": user, "groups": groups, "storage": entries,
+            "unresponsive": stale,
             "quota": quota,
             "personal_spaces": [{"name": n, "link": l, "target": t} for n, l, t in homelinks],
         }

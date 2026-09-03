@@ -84,8 +84,9 @@ hardcode a partition. `orcd_resources.py` asks the scheduler; `orcd_submit.py
 --plan` reports where a real request lands and **when it would start**.
 
 - `sbatch --test-only` is the access oracle but ignores QOS TRES ceilings.
-  `--plan` cross-checks `MaxTRESPU` (yours) and `GrpTRES` (one pool shared
-  with the whole group) and marks impossible rows `EXCEEDS`.
+  `--plan` cross-checks the GPU ceilings in `MaxTRESPU` (yours) and `GrpTRES`
+  (one pool shared with the whole group) and marks impossible rows `EXCEEDS`;
+  CPU/memory ceilings are not checked.
 - **Never pass `--qos`** (-> `Invalid qos specification`); the partition
   supplies it.
 - **Request GPUs by model**: `--gres=gpu:h100:2`. Untyped may land on an L4 or
@@ -107,8 +108,8 @@ hardcode a partition. `orcd_resources.py` asks the scheduler; `orcd_submit.py
   hit them at a few percent of the byte quota; it presents as "disk full".
   Keep datasets as archives or shards.
 - **Two flash scratches.** Personal `~/orcd/scratch` (1 TB): Python
-  environments and `UV_CACHE_DIR`. Group `/orcd/scratch/bcs/<NNN>/<user>`:
-  runs. Group dirs are group-readable and closed to others --
+  environments and `UV_CACHE_DIR`. Group `/orcd/scratch/bcs/<NNN>/<user>` (as
+  listed by `orcd_storage.py`): runs. Group dirs are group-readable and closed to others --
   `orcd_storage.py --setup` creates yours with `chmod o-rwx`; job scripts start
   with `umask 027`.
 - **Symlink forms in anything shared**: `~/orcd/scratch`, resolved at runtime
@@ -158,6 +159,8 @@ python3 orcd_submit.py --queue
 python3 orcd_submit.py --status <jobid>
 ```
 
+- Other flags: `--partition` (pin), `--nodes`, `--array`, `--name`,
+  `--wrap '<cmd>'` or `--remote-script <path>` instead of `--script`.
 - `--plan` before any long job: partition choice moves start time from minutes
   to days.
 - **Always set `--mem`.** Default is 1 GB per CPU; jobs die mid-run.
@@ -201,9 +204,9 @@ python3 orcd_submit.py --status <jobid>
 | [`orcd_doctor.py`](scripts/orcd_doctor.py) | Verify access with exact remedies. `--fix` writes ssh config; `--sandbox-setup` for cloud sandboxes |
 | [`orcd_resources.py`](scripts/orcd_resources.py) | Usable partitions, GPU models, QOS ceilings, live free GPUs |
 | [`orcd_storage.py`](scripts/orcd_storage.py) | Writable storage by tier, quotas, group conventions. `--setup` creates locked-down per-user dirs |
-| [`orcd_uv.py`](scripts/orcd_uv.py) | Check/install/upgrade uv in the cluster `$HOME`; profile edits only with approval |
+| [`orcd_uv.py`](scripts/orcd_uv.py) | Check/install/upgrade uv in the cluster `$HOME`; profile edits only with approval (`--profile` picks the file) |
 | [`orcd_submit.py`](scripts/orcd_submit.py) | Plan, submit, track; auto-select partition by start time; `--chdir` |
-| [`orcd_snapshot.py`](scripts/orcd_snapshot.py) | Config snapshot; `--save` baseline, `--diff` drift (exit 2) |
+| [`orcd_snapshot.py`](scripts/orcd_snapshot.py) | Config snapshot; `--save` baseline, `--diff` drift (exit 2), `--baseline <file>` |
 | [`orcd_common.py`](scripts/orcd_common.py) | Shared ssh plumbing |
 
 Stdlib-only Python 3, run locally. All accept `--host`; discovery scripts

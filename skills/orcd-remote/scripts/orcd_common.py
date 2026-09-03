@@ -71,19 +71,21 @@ def master_is_live(host: str = DEFAULT_HOST) -> bool:
     return proc.returncode == 0
 
 
-def open_master(host: str = DEFAULT_HOST, timeout: int = 90) -> tuple[bool, str]:
+def open_master(host: str = DEFAULT_HOST, timeout: int = 90, identity=None) -> tuple[bool, str]:
     """Establish the shared master connection, inheriting the terminal.
 
     The terminal is inherited on purpose: if Duo device trust has lapsed the user
-    gets a real prompt here and can answer it. Returns ``(ok, message)``.
+    gets a real prompt here and can answer it. ``identity`` pins a key file for
+    targets that have no config block yet. Returns ``(ok, message)``.
     """
     if not ssh_available():
         return False, "no `ssh` binary found on PATH"
     if master_is_live(host):
         return True, "master connection already live"
+    key_opts = ["-i", str(identity), "-o", "IdentitiesOnly=yes"] if identity else []
     try:
         proc = subprocess.run(
-            [*_base_cmd(host), "true"],
+            [*_base_cmd(host), *key_opts, "true"],
             timeout=timeout,
         )
     except subprocess.TimeoutExpired:

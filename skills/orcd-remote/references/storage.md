@@ -258,8 +258,9 @@ python3 scripts/orcd_storage.py --setup     # mkdir + chmod o-rwx on each group 
 umask 027                                   # in every job script that writes there
 ```
 
-`--setup` skips the personal `~/orcd/scratch` and `~/orcd/pool`: ORCD provisions
-those, and a missing symlink is a request for orcd-help@mit.edu.
+`--setup` applies `o-rwx` to existing per-user dirs as well as new ones and
+reports each mode. It skips the personal `~/orcd/scratch` and `~/orcd/pool`:
+ORCD provisions those, and a missing symlink is a request for orcd-help@mit.edu.
 
 ## Moving data in and out
 
