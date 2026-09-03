@@ -109,14 +109,14 @@ What actually follows from this:
   small-file handling measured 6x slower than flash scratch here, and 10x in an
   earlier run the same morning -- it moves with load, and always in the same
   direction. This is the most common avoidable cause of a slow job.
-- **bcs flash scratch is the best network tier** for active IO: about 1 GB/s
-  write, ~3 GB/s read, fast metadata.
+- **Flash scratch and capacity disk measured alike in this sample** -- both
+  ~1 GB/s write, 1.5-3 GB/s read, ~0.15 s for 500 files. The write-here tiers
+  to avoid are `$HOME` and the flash *project* tier, not capacity as such;
+  capacity is simply the larger, longer-lived tier for results.
 - **The flash project tier is not interchangeable with flash scratch.** Reads
   are excellent, but metadata was ~25x slower than scratch in this sample -- it
   holds large shared trees under contention. Read datasets from it; do not write
   thousands of small files to it.
-- **Capacity disk is not slow for streaming.** Sequential throughput rivals
-  flash; it is seeks and metadata that differ. Large sequential reads are fine.
 - **`/dev/shm` is RAM.** It counts against the job's `--mem`. Requesting 64 GB
   and writing 40 GB there will get the job killed.
 
@@ -164,19 +164,21 @@ This turns thousands of small network operations into two large sequential ones.
 ```bash
 #!/bin/bash
 #SBATCH -p ou_bcs_high -t 4:00:00 -c 8 --mem=64G --gres=gpu:h100:1
+umask 027                                    # group-readable, nothing for others
 
-SCRATCH=$(readlink -f ~/orcd/scratch)        # your own 1 TB flash scratch
+ENVS=$(readlink -f ~/orcd/scratch)/envs      # personal flash: environments
+RUNS=/orcd/scratch/bcs/<NNN>/$USER/runs      # group flash: runs (orcd_storage.py lists it)
 WORK=${TMPDIR:-/tmp}/$SLURM_JOB_ID
-mkdir -p "$WORK"
+mkdir -p "$WORK" "$RUNS"
 trap 'rm -rf "$WORK"' EXIT                   # node-local is not auto-cleaned
 
 # Stage in: one sequential read, then local access
-tar -C "$WORK" -xf "$SCRATCH/dataset.tar"
+tar -C "$WORK" -xf "$RUNS/../dataset.tar"
 
-python train.py --data "$WORK" --out "$WORK/out"
+"$ENVS/myproj/bin/python" train.py --data "$WORK" --out "$WORK/out"
 
 # Stage out only what is worth keeping
-rsync -a "$WORK/out/" "$SCRATCH/runs/$SLURM_JOB_ID/"
+rsync -a "$WORK/out/" "$RUNS/$SLURM_JOB_ID/"
 ```
 
 What to ask before placing a dataset -- size alone decides nothing. 300 GB as
@@ -196,9 +198,10 @@ Guidance by workload:
   and write flash scratch directly. Staging adds nothing.
 - **Datasets shared across the group**: read from the project tier in place.
   Copying a large shared dataset per user wastes both space and cache.
-- **Python environments**: never resolve one in `$HOME`. Put the environment on
-  flash scratch, or build a container image and read that instead -- one file
-  rather than tens of thousands.
+- **Python environments**: never resolve one in `$HOME`, and never on the login
+  node. Put them on your personal `~/orcd/scratch` (see below), built inside a
+  `mit_quicktest` job, or ship a container image instead -- one file rather
+  than tens of thousands.
 
 ## Two failure modes to code around
 
@@ -235,11 +238,28 @@ Observed layouts, useful as defaults when creating new areas:
 /orcd/scratch/bcs/<NNN>/<username>/       per-person flash scratch
 ```
 
-`orcd_storage.py --setup` creates your per-user directory in each writable group
-flash tier that does not have one yet. Your personal `~/orcd/scratch` and
-`~/orcd/pool` are provisioned by ORCD and need no setup -- if either symlink is
-missing, that is a request for orcd-help@mit.edu, not something to create by
-hand.
+### Two flash scratches, two jobs
+
+| Tier | Path | Put here |
+| --- | --- | --- |
+| personal flash | `~/orcd/scratch` (1 TB, **1 M inodes**) | Python environments, `UV_CACHE_DIR`, private staging |
+| group flash | `/orcd/scratch/bcs/<NNN>/<user>` | runs: checkpoints, outputs, shared intermediates |
+
+Environments are the inode-hungry thing (a torch-sized venv is 50-100 k files),
+so the personal tier holds a handful of them and nobody else needs them there.
+Runs go on the group tier, where the allocation is larger and results are
+readable by the lab.
+
+**Group scratch dirs are group-readable and closed to others.** The tree's
+setgid bit keeps files group-owned but does not set the "other" bits, so:
+
+```bash
+python3 scripts/orcd_storage.py --setup     # mkdir + chmod o-rwx on each group flash tier
+umask 027                                   # in every job script that writes there
+```
+
+`--setup` skips the personal `~/orcd/scratch` and `~/orcd/pool`: ORCD provisions
+those, and a missing symlink is a request for orcd-help@mit.edu.
 
 ## Moving data in and out
 

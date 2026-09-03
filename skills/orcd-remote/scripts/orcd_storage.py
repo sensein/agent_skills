@@ -29,6 +29,7 @@ import json
 import os
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 import orcd_common as oc
@@ -96,11 +97,14 @@ PROBE_TEMPLATE = r'''
 set +e
 probe() {{
   p="$1"
-  if [ ! -e "$p" ]; then printf "%s|MISSING|||\n" "$p"; return; fi
+  # Even test -e blocks in D state on a hung mount, so every touch is bounded.
+  timeout 6 test -e "$p"; rc=$?
+  if [ $rc -eq 124 ]; then printf "%s|STALE|||\n" "$p"; return; fi
+  if [ $rc -ne 0 ]; then printf "%s|MISSING|||\n" "$p"; return; fi
   line=$(timeout 6 df -h --output=size,avail,pcent "$p" 2>/dev/null | tail -1)
   size=$(echo "$line" | awk '{{print $1}}'); avail=$(echo "$line" | awk '{{print $2}}')
   pct=$(echo "$line" | awk '{{print $3}}')
-  w=$([ -w "$p" ] && echo yes || echo no)
+  w=$(timeout 6 test -w "$p" && echo yes || echo no)
   nb=$(timeout 6 test -e "$p/__STORAGE_WITHOUT_BACKUP__" && echo NO_BACKUP || echo -)
   printf "%s|%s|%s|%s|%s|%s\n" "$p" "$w" "${{size:-?}}" "${{avail:-?}}" "${{pct:-?}}" "$nb"
 }}
@@ -114,6 +118,7 @@ TIER_OF_PATH = [
     (re.compile(r"^/orcd/scratch/"), "flash", "scratch tier; fast, purged, not backed up"),
     (re.compile(r"^/orcd/compute/"), "flash", "flash project tier"),
     (re.compile(r"^/orcd/(data|nese)/"), "capacity", "capacity disk tier"),
+    (re.compile(r"^/orcd/pool/"), "capacity", "personal/group capacity pool"),
     (re.compile(r"^/orcd/datasets/"), "flash", "shared read-only datasets"),
     (re.compile(r"^/home"), "home", "shared home; small quota, slow metadata"),
 ]
@@ -239,14 +244,18 @@ def print_conventions(cfg: dict) -> None:
         "datasets": "shared datasets",
         "projects": "project trees",
         "user_dirs": "personal lab space",
+        "envs": "python envs + UV_CACHE_DIR (personal flash)",
+        "runs": "job runs (group flash, o-rwx)",
         "personal_scratch": "personal flash scratch (1 TB)",
         "personal_pool": "personal capacity space (1 TB)",
     }
     for key, label in labels.items():
         if key in conv:
             print(f"  {conv[key]:<44} {label}")
-    if "hf_revision_policy" in conv:
-        print(f"  HF models: {conv['hf_revision_policy']}")
+    for key, label in (("hf_revision_policy", "HF models: "), ("group_scratch_mode", "Group scratch: ")):
+        if key in conv:
+            print(textwrap.fill(label + conv[key], width=78,
+                                initial_indent="  ", subsequent_indent="    "))
     print("  Use symlink forms (~/orcd/...) in anything shared -- resolved shard")
     print("  paths are only correct for the person who resolved them.")
 
@@ -344,9 +353,13 @@ def main() -> int:
 
     source_of = {m[0]: m[2] for m in mounts}
     entries = []
+    stale = []
     for f in parse_pipe(praw.splitlines(), 2):
         path = f[0]
         if f[1] == "MISSING":
+            continue
+        if f[1] == "STALE":
+            stale.append(path)
             continue
         # A PI tree discovered via autofs has no /proc/mounts entry until touched,
         # so fall back to matching the longest known mount prefix.
@@ -383,11 +396,12 @@ def main() -> int:
         except ValueError:
             continue
         avail = f"{free_gb / 1024:.1f}T" if free_gb >= 1024 else f"{free_gb:.0f}G"
+        size = f"{limit_gb / 1024:.0f}T" if limit_gb >= 1024 else f"{limit_gb:.0f}G"
         quota_by_name[q["space"].lower()] = {
-            "size": f"{limit_gb / 1024:.0f}T" if limit_gb >= 1024 else f"{limit_gb:.0f}G",
+            "size": size,
             "avail": avail,
             "used_pct": q["pct_space"] + "%",
-            "free_label": f"{avail} of {limit_gb / 1024:.0f}T quota",
+            "free_label": f"{avail} of {size} quota",
         }
 
     if args.setup:
@@ -397,20 +411,28 @@ def main() -> int:
             if e["tier"] == "flash"
             and e["writable"]
             and any(seg in e["path"] for seg in ("/scratch/", "/compute/"))
+            # ~/orcd/* targets are ORCD-provisioned and already per-user;
+            # appending the username again would create <user>/<user>.
+            and e["path"] not in symlink_of
+            and not e["path"].rstrip("/").endswith(f"/{user}")
         ]
         if not targets:
-            print("No writable flash tier found to set up.")
+            print("No writable group flash tier found to set up.")
         else:
+            # Group convention: the tree's setgid bit keeps files group-owned,
+            # but "others" must be locked out explicitly (o-rwx) -- a default
+            # umask leaves a freshly created directory world-readable.
             script = "set +e\n" + "\n".join(
-                f'd="{t}/{user}"; if [ -d "$d" ]; then echo "exists|$d"; '
-                f'elif mkdir -p "$d" 2>/dev/null; then echo "created|$d"; '
-                f'else echo "failed|$d"; fi'
+                f'd="{t}/{user}"; if [ -d "$d" ]; then r=exists; '
+                f'elif mkdir -p "$d" 2>/dev/null; then r=created; else r=failed; fi; '
+                f'[ "$r" != failed ] && chmod o-rwx "$d" 2>/dev/null; '
+                f'echo "$r|$d|$(stat -c %A "$d" 2>/dev/null)"'
                 for t in targets
             )
             out = oc.run_remote(script, host=args.host, timeout=120, check=False)
-            oc.table([[a, b] for a, b in (l.split("|", 1) for l in out.splitlines() if "|" in l)],
-                     ["RESULT", "PATH"])
-            print("\nThese directories are setgid, so files you create there stay group-readable.")
+            oc.table([l.split("|", 2) for l in out.splitlines() if "|" in l],
+                     ["RESULT", "PATH", "MODE"])
+            print("\nMode: group access via setgid, none for others (chmod o-rwx). Use umask 027 in jobs.")
 
     if args.json:
         payload = {
@@ -435,20 +457,12 @@ def main() -> int:
               f"{q['files']} / {q['file_limit']}", q["pct_files"] + "%"] for q in quota],
             ["SPACE", "GB USED / LIMIT", "%", "FILES USED / LIMIT", "%"],
         )
-        print(
-            "\nThe file columns bind independently of the space columns. A 1M inode\n"
-            "limit is reached by an unpacked image dataset or a conda env long before\n"
-            "the gigabytes run out, and the failure looks like a disk-full error."
-        )
+        print("\nFile counts bind independently of gigabytes; the 1M cap presents as 'disk full'.")
 
     if homelinks:
         oc.heading("Your personal spaces (~/orcd symlinks)")
         oc.table([[f"~/orcd/{n}", t] for n, _l, t in homelinks], ["SYMLINK", "RESOLVES TO"])
-        print(
-            "\nThese are root-managed links to your own storage. The per-user scratch\n"
-            "tier is sharded across /orcd/scratch/orcd/<NNN> and your shard is not\n"
-            "predictable, so always resolve ~/orcd/scratch rather than assuming a path."
-        )
+        print("\nShards differ per user: always resolve ~/orcd/<name> at runtime, never hardcode the target.")
 
     oc.heading(f"Storage you can reach as {user}")
     order = {"flash": 0, "capacity": 1, "home": 2, "archive": 3, "unknown": 4, "other": 5}
@@ -472,19 +486,15 @@ def main() -> int:
             "NO BACKUP" if e["no_backup_marker"] else "unmarked",
         ])
     oc.table(rows_out, ["PATH", "TIER", "SERVER", "WRITE", "SIZE", "AVAIL", "USED", "BACKUP"])
-    print("\nPersonal rows (~/orcd/...) show quota-based size/avail, not the shard's df.")
     print(
-        "\nBACKUP reads NO BACKUP where ORCD has flagged the tree as unprotected.\n"
-        "'unmarked' means only that no such flag is present -- confirm with ORCD\n"
-        "before trusting anything here to be backed up."
+        "\n~/orcd rows use quota-based size/avail. BACKUP 'unmarked' means no flag was\n"
+        "found, not that a backup exists -- assume only $HOME is backed up."
     )
+    if stale:
+        print("\nUnresponsive (skipped): " + ", ".join(stale))
 
-    oc.heading("Your storage group memberships")
+    oc.heading("Your storage group memberships (orcd_rg_<server>_<owner>)")
     print("\n".join(f"  {g}" for g in groups) or "  (none)")
-    print(
-        "\nThese follow the pattern orcd_rg_<server>_<owner>. The server prefix is the\n"
-        "tier: fstor = flash, hstor = capacity disk, core = archive."
-    )
 
     if group_cfg:
         report_group_access(group_cfg, groups)
@@ -525,14 +535,9 @@ def main() -> int:
                 shown, avail = path, e["avail"]
             print(f"  {shown:<44} {avail:>18} free")
     print(
-        f"\nCode and small config:\n"
-        f"  {home:<44} backed up, but the slowest metadata of\n"
-        "  any tier. Clone repos here; write job output elsewhere.\n"
-        "\nNode-local, fastest of all, wiped when the job ends:\n"
-        "  $TMPDIR (/tmp) always exists. /scratch is large but present on some nodes\n"
-        "  only, so probe it before use. /dev/shm is RAM and counts against the memory\n"
-        "  you requested.\n"
-        "\nSee references/storage.md for measured throughput and the staging pattern."
+        f"\nCode and config only: {home} (backed up; slowest metadata).\n"
+        "Node-local (wiped at job end): $TMPDIR always; /scratch on some nodes; /dev/shm is RAM\n"
+        "counted against --mem. Details: references/storage.md."
     )
     if group_cfg:
         print_conventions(group_cfg)

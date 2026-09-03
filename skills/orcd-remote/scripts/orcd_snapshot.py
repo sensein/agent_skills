@@ -176,9 +176,12 @@ def build_snapshot(host: str) -> dict:
     personal = {f[0]: f[1] for f in rows(b.get("HOMELINKS", []), 2)}
 
     shapes = {}
-    for f in rows(b.get("NODESHAPES", []), 2):
-        cpu_mem_gres = f[0]
-        shapes[cpu_mem_gres] = int(f[1]) if f[1].isdigit() else f[1]
+    for line in b.get("NODESHAPES", []):
+        # `cpu|mem|gres|count` -- the shape itself contains `|`, so split
+        # off only the trailing count.
+        shape, sep, count = line.strip().rpartition("|")
+        if sep and shape:
+            shapes[shape] = int(count) if count.strip().isdigit() else count.strip()
 
     return {
         "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -245,6 +248,11 @@ def _size_to_float(text: str) -> float | None:
 def _same_value(before: str, after: str) -> bool:
     if before == after:
         return True
+    # The tolerance exists for *rendered* sizes ("81.7B" vs "81.6B"). Plain
+    # integers -- node counts, submit caps, GPU totals, tiers -- carry no
+    # rounding, so any difference is a real change.
+    if before.strip().isdigit() and after.strip().isdigit():
+        return False
     a, b = _size_to_float(before), _size_to_float(after)
     if a is None or b is None:
         return False
@@ -386,13 +394,10 @@ def print_summary(snap: dict) -> None:
     oc.table(limit_rows, ["PARTITION", "MAXSUBMIT (queued+running)", "MAX ARRAY TASKS"])
     print(
         f"\nAssociation MaxSubmit: {assoc_cap if assoc_cap is not None else 'unset'} "
-        "(a single ceiling across every partition)\n"
-        f"Cluster MaxArraySize:  {snap['config'].get('MaxArraySize', '?')} "
-        f"   MaxJobCount: {snap['config'].get('MaxJobCount', '?')}\n"
-        "\nThe binding limit is the smallest that applies. Array tasks each count as\n"
-        "a submitted job, so `-a 0-999` is refused with QOSMaxSubmitJobPerUserLimit\n"
-        "wherever MaxSubmitPU is below 1000 -- and adding `%50` does not help. Split\n"
-        "large sweeps into consecutive arrays instead."
+        "(one ceiling across all partitions)   "
+        f"MaxArraySize: {snap['config'].get('MaxArraySize', '?')}   "
+        f"MaxJobCount: {snap['config'].get('MaxJobCount', '?')}\n"
+        "Smallest applicable limit binds; array tasks count as submitted jobs; %K does not raise the cap."
     )
 
 

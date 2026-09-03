@@ -63,37 +63,47 @@ class Report:
         oc.table([list(r) for r in self.rows], ["", "CHECK", "DETAIL"])
 
 
-def find_identity() -> tuple[Path | None, list[Path]]:
+def find_identity(explicit: str | None = None) -> tuple[Path | None, list[Path]]:
     """Pick the key to offer, preferring modern algorithms.
 
     Returns ``(chosen, all_found)``. ed25519 comes first because ORCD's sshd
     advertises it and it avoids the SHA-1 signature pitfalls of ancient RSA keys.
+    ``explicit`` (``--identity``) overrides the search for users whose ORCD key
+    is not the first one found.
     """
+    if explicit:
+        p = Path(explicit).expanduser()
+        return (p if p.is_file() else None), ([p] if p.is_file() else [])
     candidates = ["id_ed25519", "id_ecdsa", "id_rsa"]
     found = [SSH_DIR / c for c in candidates if (SSH_DIR / c).is_file()]
     return (found[0] if found else None), found
 
 
-def config_has_host(alias: str) -> bool:
-    if not SSH_CONFIG.is_file():
-        return False
-    pattern = re.compile(rf"^\s*Host\s+.*\b{re.escape(alias)}\b", re.MULTILINE)
-    return bool(pattern.search(SSH_CONFIG.read_text()))
+def ssh_effective(alias: str, config: Path | None = None) -> dict[str, str]:
+    """Effective client options for ``alias`` from ``ssh -G``.
+
+    ``-G`` merges Include files, Match blocks and ``Host *`` wildcards, all of
+    which a regex over one file misses. ``config`` pins a file (for tests);
+    None uses ssh's normal search.
+    """
+    cmd = ["ssh", "-G", *(["-F", str(config)] if config else []), alias]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    out: dict[str, str] = {}
+    for line in proc.stdout.splitlines():
+        k, _, v = line.partition(" ")
+        out[k.lower()] = v.strip()
+    return out
 
 
-def config_has_batchmode(alias: str) -> bool:
-    """Detect the single most common misconfiguration for this cluster."""
-    if not SSH_CONFIG.is_file():
-        return False
-    text = SSH_CONFIG.read_text()
-    match = re.search(
-        rf"^\s*Host\s+.*\b{re.escape(alias)}\b(.*?)(?=^\s*Host\s|\Z)",
-        text,
-        re.MULTILINE | re.DOTALL,
-    )
-    if not match:
-        return False
-    return re.search(r"^\s*BatchMode\s+yes", match.group(1), re.MULTILINE | re.IGNORECASE) is not None
+def config_has_host(alias: str, config: Path | None = None) -> bool:
+    """``alias`` is configured when ssh resolves it to a different HostName."""
+    hn = ssh_effective(alias, config).get("hostname", "")
+    return bool(hn) and hn.lower() != alias.lower()
+
+
+def config_has_batchmode(alias: str, config: Path | None = None) -> bool:
+    """The single most common misconfiguration for this cluster, wherever it hides."""
+    return ssh_effective(alias, config).get("batchmode") == "yes"
 
 
 def write_config(alias: str, hostname: str, user: str, identity: Path) -> str:
@@ -120,56 +130,31 @@ def print_key_instructions(identity: Path | None, user: str, hostname: str) -> N
         pub = f"{identity}.pub"
 
     print(
-        f"ORCD does not accept a password over SSH, so the key has to be installed\n"
-        f"through the web portal, which does support Duo two-factor:\n\n"
-        f"  1. Copy your public key to the clipboard:\n\n"
-        f"         pbcopy < {pub}          # macOS\n"
-        f"         xclip -sel clip < {pub} # Linux\n\n"
-        f"  2. Open {oc.OOD_URL} and sign in with your MIT\n"
-        f"     credentials plus Duo.\n\n"
-        f"  3. In the top menu choose  Clusters -> Shell Access.  You now have a\n"
-        f"     shell on a login node, already authenticated.\n\n"
-        f"  4. In that shell, paste your key into authorized_keys:\n\n"
-        f"         mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
-        f"         cat >> ~/.ssh/authorized_keys    # paste, then press Ctrl-D\n"
-        f"         chmod 600 ~/.ssh/authorized_keys\n\n"
-        f"  5. Back on your laptop, verify:\n\n"
-        f"         ssh {user}@{hostname} hostname\n\n"
-        f"Leave the browser session signed in for that first SSH. The Duo device\n"
-        f"trust it establishes is what lets SSH finish without prompting you.\n"
-    )
-    print(
-        "NOTE if this session runs in a cloud or remote agent environment (Claude\n"
-        "Code on the web, a CI runner, a devcontainer) rather than on your own\n"
-        "machine: the key pair above lives in that environment, and installing its\n"
-        "public key gives that environment SSH access to your ORCD account. Get the\n"
-        "account owner's explicit OK first, use a dedicated key with an identifying\n"
-        "comment (e.g. ssh-keygen -C \"agent-cloud-$(date +%Y%m%d)\") so it is easy\n"
-        "to spot, and remove that line from ~/.ssh/authorized_keys on ORCD when the\n"
-        "environment is retired. Cloud containers are usually ephemeral: the private\n"
-        "key may vanish when the session ends. That is normal -- generate and install\n"
-        "a fresh key next time instead of copying private keys out of the container.\n"
-        "If this environment has SSH egress, `python3 orcd_doctor.py --sandbox-setup`\n"
-        "does the client side: it mints a dedicated key and prints the exact command\n"
-        "for the account owner to authorize it.\n"
+        f"No passwords over ssh: install the key through the portal (Duo works there).\n\n"
+        f"  1. Copy {pub}  (pbcopy / xclip -sel clip)\n"
+        f"  2. Sign in at {oc.OOD_URL} -> Clusters -> Shell Access\n"
+        f"  3. In that shell:  mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
+        f"                     cat >> ~/.ssh/authorized_keys   # paste, Ctrl-D\n"
+        f"                     chmod 600 ~/.ssh/authorized_keys\n"
+        f"  4. Here:           ssh {user}@{hostname} hostname\n\n"
+        f"Keep the browser signed in for that first ssh; its Duo trust makes ssh silent.\n\n"
+        "Cloud/sandbox session (Claude Code on the web, CI)? This key lives in an\n"
+        "ephemeral container and authorizing it grants the container account access:\n"
+        "owner's OK first, dedicated identifiable key, revoke when retired, never copy\n"
+        "the private key out. With ssh egress, `orcd_doctor.py --sandbox-setup` mints\n"
+        "the key and prints the exact authorize command for the owner.\n"
     )
 
 
 def egress_blocked_message(hostname: str) -> None:
     oc.heading("SSH egress is blocked")
     print(
-        f"`{hostname}` resolves, but nothing answers on port 22 -- the\n"
-        "network between this machine and ORCD is dropping SSH. Keys and Duo\n"
-        "are not the problem, and installing a key will not help from here.\n"
-        "Common causes:\n\n"
-        "  - A cloud agent environment (Claude Code on the web, a CI runner)\n"
-        "    whose network policy allows only HTTP/HTTPS egress. Loosen the\n"
-        "    environment's network policy, or drive ORCD from a machine with\n"
-        "    direct SSH access instead. Tunneling through the environment's\n"
-        "    HTTPS proxy usually fails the same way: the proxy may answer 200\n"
-        "    to CONNECT host:22 yet never deliver an SSH banner, because the\n"
-        "    policy is enforced on the proxy's upstream connection.\n"
-        "  - A restrictive campus or corporate network; try the MIT VPN.\n"
+        f"`{hostname}` resolves but nothing answers on port 22: the network drops ssh.\n"
+        "Keys and Duo are not the problem; installing a key will not help from here.\n"
+        "Causes: a cloud sandbox whose policy allows only HTTPS egress (an HTTPS proxy\n"
+        "may even answer 200 to CONNECT :22 yet never deliver an SSH banner) -- loosen\n"
+        "the policy or run from a machine with ssh access; or a campus/corporate\n"
+        "firewall -- try the MIT VPN.\n"
     )
 
 
@@ -231,33 +216,23 @@ def sandbox_setup(user: str, hostname: str) -> int:
         return 1
 
     oc.heading("Authorize this sandbox on ORCD")
-    origin = "newly generated for this sandbox, no passphrase (headless environment)" \
-        if created else "already present in this environment"
+    origin = "newly generated, no passphrase (headless)" if created else "already present"
     print(
-        f"Port 22 to {hostname} is reachable from here, so this sandbox can\n"
-        "connect once its key is authorized. The key pair lives in this sandbox\n"
-        f"and is {origin}.\n\n"
-        "ACCOUNT OWNER: if you approve this environment having access to your\n"
-        "ORCD account, run this in an ORCD shell (portal: "
-        f"{oc.OOD_URL}\n"
-        "-> Clusters -> Shell Access, or any existing SSH session):\n\n"
+        f"Port 22 to {hostname} is reachable; this sandbox connects once its key is\n"
+        f"authorized. Key: {identity} ({origin}).\n\n"
+        "ACCOUNT OWNER -- if you approve this environment's access, run in an ORCD\n"
+        f"shell ({oc.OOD_URL} -> Clusters -> Shell Access, or any ssh session):\n\n"
         f"    mkdir -p ~/.ssh && chmod 700 ~/.ssh && printf '%s\\n' '{pubkey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\n"
     )
     parts = pubkey.split()
     tag = parts[2] if len(parts) >= 3 else ""
     if re.fullmatch(r"[A-Za-z0-9@._-]+", tag or ""):
-        print(
-            "When this sandbox is retired, revoke its access with:\n\n"
-            f"    sed -i '/{tag}/d' ~/.ssh/authorized_keys\n"
-        )
+        print(f"Revoke later with:  sed -i '/{tag}/d' ~/.ssh/authorized_keys\n")
     else:
-        print("When this sandbox is retired, delete this key's line from ~/.ssh/authorized_keys.\n")
+        print("Revoke later by deleting this key's line from ~/.ssh/authorized_keys.\n")
     print(
-        "After the key is added, verify and write the ssh config from here:\n\n"
-        f"    python3 orcd_doctor.py --fix --user {user or '<username>'}\n\n"
-        "Sandbox containers are usually ephemeral: the private key vanishes with\n"
-        "the container. That is fine -- mint and authorize a fresh key next time,\n"
-        "and never copy a private key out of the sandbox."
+        f"Then, from here:  python3 orcd_doctor.py --fix --user {user or '<username>'}\n"
+        "The private key dies with the container; mint a fresh one next time, never copy it out."
     )
     return 0
 
@@ -268,6 +243,7 @@ def main() -> int:
     ap.add_argument("--hostname", default=oc.DEFAULT_HOSTNAME, help="real login hostname")
     ap.add_argument("--user", default=os.environ.get("ORCD_USER") or os.environ.get("USER", ""),
                     help="your MIT/ORCD username (default: local $USER)")
+    ap.add_argument("--identity", help="private key to use (default: first of id_ed25519/id_ecdsa/id_rsa)")
     ap.add_argument("--fix", action="store_true", help="write ~/.ssh/config and open the master connection")
     ap.add_argument("--sandbox-setup", action="store_true",
                     help="sandbox with internet access: verify egress, mint a dedicated key "
@@ -277,6 +253,10 @@ def main() -> int:
 
     if args.sandbox_setup:
         return sandbox_setup(args.user, args.hostname)
+    if args.fix and not args.user:
+        # An empty `User` line makes ssh reject its config for every host.
+        print("error: --fix needs a username (--user or $ORCD_USER)", file=sys.stderr)
+        return 1
 
     rep = Report()
     failure_detail = ""
@@ -289,29 +269,33 @@ def main() -> int:
     rep.add(OK, "ssh client", "found")
 
     # 2. A key to offer.
-    identity, all_keys = find_identity()
+    identity, all_keys = find_identity(args.identity)
     if identity is None:
-        rep.add(BAD, "ssh key", f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
+        rep.add(BAD, "ssh key", f"{args.identity} not found" if args.identity
+                else f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
     else:
         others = [k.name for k in all_keys[1:]]
         extra = f" (also present: {', '.join(others)})" if others else ""
         rep.add(OK, "ssh key", f"{identity.name}{extra}")
 
-    # 3. ~/.ssh/config entry, and the BatchMode trap.
-    if config_has_host(args.host):
+    # 3. ~/.ssh/config entry, and the BatchMode trap (via `ssh -G`, so a
+    # `Host *` block or an Include'd file is seen too).
+    configured = config_has_host(args.host)
+    if configured:
         if config_has_batchmode(args.host):
             rep.add(
-                BAD, f"~/.ssh/config [{args.host}]",
-                "has `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive",
+                BAD, f"ssh config [{args.host}]",
+                "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive",
             )
         else:
-            rep.add(OK, f"~/.ssh/config [{args.host}]", "present")
+            rep.add(OK, f"ssh config [{args.host}]", "present")
     elif args.fix and identity is not None:
         block = write_config(args.host, args.hostname, args.user, identity)
-        rep.add(OK, f"~/.ssh/config [{args.host}]", "written by --fix")
+        configured = True
+        rep.add(OK, f"ssh config [{args.host}]", "written by --fix")
         print("Appended to ~/.ssh/config:" + block)
     else:
-        rep.add(WARN, f"~/.ssh/config [{args.host}]", "missing; re-run with --fix to write it")
+        rep.add(WARN, f"ssh config [{args.host}]", "missing; re-run with --fix to write it")
 
     # 4. Name resolution, checked here rather than inferred from ssh's stderr:
     # open_master() inherits the terminal so Duo prompts stay visible, which
@@ -349,7 +333,7 @@ def main() -> int:
         rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
         failure_detail = "port 22 blocked"
     else:
-        target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
+        target = args.host if configured else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
             rep.add(OK, "connection multiplexing", "master socket already live")
             reachable = True
@@ -364,7 +348,7 @@ def main() -> int:
 
     # 6. Only if we got in: confirm the cluster side looks sane.
     if reachable:
-        target = args.host if config_has_host(args.host) else f"{args.user}@{args.hostname}"
+        target = args.host if configured else f"{args.user}@{args.hostname}"
         try:
             out = oc.run_remote(
                 'echo "@@WHO"; hostname -s; whoami\n'
@@ -445,20 +429,23 @@ def main() -> int:
             else:
                 oc.heading("Connected, but authentication failed")
                 print(
-                    "Your key was offered and refused, or the second factor did not\n"
-                    "pass. In order of likelihood:\n\n"
-                    f"  1. The key is not installed on the cluster yet -- see below.\n"
-                    f"  2. Duo device trust has lapsed. Sign in at {oc.OOD_URL}\n"
-                    "     and then retry.\n"
-                    "  3. `BatchMode yes` is set for this host somewhere in your SSH\n"
-                    "     config. It disables keyboard-interactive and auth always fails.\n\n"
-                    "To see which stage failed, look for `partial success` in:\n\n"
-                    f"    ssh -vv {args.host} true\n\n"
-                    "If it appears, your key is fine and the problem is Duo.\n"
+                    "Likeliest first: (1) key not installed on the cluster -- see below;\n"
+                    f"(2) Duo trust lapsed -- sign in at {oc.OOD_URL} and retry;\n"
+                    "(3) `BatchMode yes` somewhere in ssh config -- it always breaks Duo.\n"
+                    f"`ssh -vv {args.host} true` showing `partial success` means the key is\n"
+                    "fine and the problem is Duo.\n"
                 )
                 print_key_instructions(identity, user, args.hostname)
         return 1
 
+    if not configured:
+        # Reachable as user@host, but every other script defaults to the alias.
+        print(
+            f"\nAccess works, but the `{args.host}` alias is not configured, and the other\n"
+            f"scripts default to it. Run `python3 orcd_doctor.py --fix --user {args.user}`\n"
+            f"once, or pass --host {args.user}@{args.hostname} to each of them.\n"
+        )
+        return 0
     print(
         "\nAccess is working. Next:\n"
         "  python3 orcd_resources.py     # what you can actually run on\n"

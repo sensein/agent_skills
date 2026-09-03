@@ -26,7 +26,10 @@ ls ~/.ssh/id_ed25519 2>/dev/null || ssh-keygen -t ed25519 -C "$USER@mit.edu"
 
 Prefer ed25519. ORCD's sshd advertises it, and it avoids the SHA-1 signature
 problems that can make a very old RSA key fail in confusing ways. Set a
-passphrase; the OS agent will cache it.
+passphrase and load it into `ssh-agent` (`ssh-add`): the scripts close stdin,
+so an un-cached passphrase fails instead of prompting. If your ORCD key is not
+the first of `id_ed25519`/`id_ecdsa`/`id_rsa`, pass `--identity <path>` to the
+doctor.
 
 ### 2. Copy the public key
 

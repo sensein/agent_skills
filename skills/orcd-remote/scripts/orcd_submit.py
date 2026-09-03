@@ -62,6 +62,8 @@ def build_flags(args: argparse.Namespace, partition: str) -> list[str]:
         flags += ["-a", args.array]
     if args.output:
         flags += ["-o", args.output]
+    if args.chdir:
+        flags += ["-D", args.chdir]
     return flags
 
 
@@ -165,6 +167,7 @@ def main() -> int:
     ap.add_argument("--name", help="job name")
     ap.add_argument("--array", help="array spec, e.g. 0-99")
     ap.add_argument("--output", help="stdout path pattern, e.g. logs/%%x-%%j.out")
+    ap.add_argument("--chdir", help="job working directory (sbatch -D); default is $HOME, the slowest tier")
     ap.add_argument("--plan", action="store_true", help="only show where this would land, submit nothing")
     ap.add_argument("--queue", action="store_true", help="show your queue")
     ap.add_argument("--status", help="show details for a job id")
@@ -219,18 +222,10 @@ def main() -> int:
         oc.heading("Where this request would land")
         oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "NOTE"])
         if any(r[4].startswith("EXCEEDS") for r in rows):
-            print(
-                "\nEXCEEDS rows: sbatch --test-only validates scheduling, not QOS TRES\n"
-                "ceilings, so it reports a start time for requests the partition's QOS\n"
-                "can never admit. Those partitions are excluded from auto-selection."
-            )
+            print("\nEXCEEDS: --test-only ignores QOS TRES ceilings; those rows would queue forever and are excluded.")
 
         if not viable:
-            print(
-                "\nNo partition would accept this request. The reasons above are the\n"
-                "scheduler's own; the usual causes are asking for more than the\n"
-                "partition's QOS allows you, or a walltime above its MaxTime."
-            )
+            print("\nNo partition accepts this request (usual causes: over the QOS limit, or -t above MaxTime).")
             return 1
 
         viable.sort(key=lambda r: r[2])
@@ -282,11 +277,10 @@ def main() -> int:
             f"  python3 orcd_submit.py --status {job.group(1)}\n"
             f"  python3 orcd_submit.py --queue"
         )
-        if not args.output:
+        if not (args.output or args.chdir):
             print(
-                f"\nNote: job stdout will land in $HOME (slurm-{job.group(1)}.out) --\n"
-                "sbatch's default cwd. For jobs that write real output, pass\n"
-                "--output '<flash-scratch-path>/%x-%j.out' to keep IO off home."
+                f"\nNote: cwd and stdout (slurm-{job.group(1)}.out) are in $HOME, the slowest\n"
+                "tier. For real output pass --chdir <flash-scratch-path> and/or --output."
             )
         return 0
 

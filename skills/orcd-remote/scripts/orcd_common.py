@@ -126,8 +126,11 @@ def run_remote(
             f"remote command timed out after {timeout}s on {host}"
         ) from exc
 
-    if proc.returncode != 0 and check:
-        stderr = (proc.stderr or "").strip()
+    stderr = (proc.stderr or "").strip()
+    if proc.returncode == 255:
+        # 255 is ssh's own status, never the remote script's: auth failed or
+        # the connection died. Fatal even for check=False callers, otherwise a
+        # dropped master socket is indistinguishable from "no output".
         if "keyboard-interactive" in stderr or "Permission denied" in stderr:
             raise OrcdError(
                 "SSH authentication failed. Your key was offered but the second "
@@ -135,8 +138,12 @@ def run_remote(
                 f"  Fix: sign in at {OOD_URL} (Duo), then retry.\n"
                 "  Details: " + stderr
             )
+        raise OrcdError(f"ssh to {host} failed (exit 255): {stderr or 'connection lost'}")
+    if proc.returncode != 0 and check:
+        # Commands that redirect 2>&1 put their real error on stdout.
+        detail = stderr or "\n".join((proc.stdout or "").strip().splitlines()[-3:])
         raise OrcdError(
-            f"remote command failed (exit {proc.returncode}) on {host}: {stderr}"
+            f"remote command failed (exit {proc.returncode}) on {host}: {detail}"
         )
     return proc.stdout
 

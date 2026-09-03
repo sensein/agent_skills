@@ -156,7 +156,8 @@ def confirm_profile_edit(profile: str, user_approved: bool) -> bool:
     return False
 
 
-def add_to_path(host: str, profile: str) -> bool:
+def add_to_path(host: str, profile: str) -> dict:
+    """Append the PATH line (approval already granted) and return a fresh check()."""
     edit = f'''
 p="$HOME/{profile}"
 if [ -f "$p" ] && grep -qF '.local/bin' "$p"; then
@@ -177,16 +178,13 @@ fi
     status = check(host)
     if status["on_path"]:
         print(f"Verified: a fresh ssh command now resolves uv at {status['on_path']}.")
-        return True
-    print(
-        f"\nThe line is in ~/{profile}, but a fresh non-interactive ssh still does\n"
-        "not see uv on PATH. The usual cause is an interactivity guard near the\n"
-        f"top of ~/{profile} that returns before the new line runs, or a login\n"
-        "shell that does not read this file non-interactively. Interactive\n"
-        "logins will still pick it up; scripts should use the absolute path\n"
-        "$HOME/.local/bin/uv, which works everywhere."
-    )
-    return True
+    else:
+        print(
+            f"\nLine added, but a fresh non-interactive ssh still lacks uv on PATH --\n"
+            f"usually an interactivity guard near the top of ~/{profile} returns first.\n"
+            "Interactive logins get it; scripts should use $HOME/.local/bin/uv."
+        )
+    return status
 
 
 def main() -> int:
@@ -217,9 +215,7 @@ def main() -> int:
                 return 1
             if not confirm_profile_edit(args.profile, args.user_approved):
                 return 1
-            if not add_to_path(args.host, args.profile):
-                return 1
-            status = check(args.host)
+            status = add_to_path(args.host, args.profile)
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
         print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)

@@ -126,6 +126,15 @@ when one exists.
 create yours on first use. This is for work worth keeping; active job IO still
 belongs on flash scratch (see [storage.md](storage.md)).
 
+**Runs and environments are split across the two flash scratches.** Python
+environments and `UV_CACHE_DIR` go on your personal `~/orcd/scratch` (private,
+1 M inodes -- enough for a few envs); runs go on the group flash scratch under
+`/orcd/scratch/bcs/<NNN>/<username>`. Group scratch directories are
+**group-readable and closed to everyone outside the group**: `orcd_storage.py
+--setup` creates yours with `chmod o-rwx`, and job scripts that write there
+start with `umask 027`. Build environments inside a `mit_quicktest` job, never
+on a login node.
+
 **Datasets.** Shared datasets go under `/orcd/data/satra/002/datasets`, packed
 as archives or tar/WebDataset shards rather than loose files.
 
