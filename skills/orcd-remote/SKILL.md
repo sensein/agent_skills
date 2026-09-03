@@ -84,8 +84,9 @@ hardcode a partition. `orcd_resources.py` asks the scheduler; `orcd_submit.py
 --plan` reports where a real request lands and **when it would start**.
 
 - `sbatch --test-only` is the access oracle but ignores QOS TRES ceilings.
-  `--plan` cross-checks `MaxTRESPU` (yours) and `GrpTRES` (one pool shared
-  with the whole group) and marks impossible rows `EXCEEDS`.
+  `--plan` cross-checks the GPU ceilings in `MaxTRESPU` (yours) and `GrpTRES`
+  (one pool shared with the whole group) and marks impossible rows `EXCEEDS`;
+  CPU/memory ceilings are not checked.
 - **Never pass `--qos`** (-> `Invalid qos specification`); the partition
   supplies it.
 - **Request GPUs by model**: `--gres=gpu:h100:2`. Untyped may land on an L4 or

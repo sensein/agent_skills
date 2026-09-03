@@ -31,6 +31,21 @@ from pathlib import Path
 import orcd_common as oc
 
 
+def literal_path_problem(args: argparse.Namespace) -> str:
+    """sbatch receives --chdir/--output/--remote-script exactly as typed.
+
+    They are shlex-quoted on the way in, so `~` and `$VAR` arrive literally and
+    fail at job start ("Unable to change directory", "Could not open stdout
+    file") -- the same trap scp_to already refuses for. Absolute paths only.
+    """
+    for flag in ("chdir", "output", "remote_script"):
+        val = getattr(args, flag, None)
+        if val and (val.startswith("~") or "$" in val):
+            return (f"--{flag.replace('_', '-')} {val!r}: sbatch gets this literally; "
+                    "use an absolute path (no ~ or $VAR)")
+    return ""
+
+
 def usable_partitions(host: str) -> list[str]:
     """Partitions this user may submit to, per the scheduler itself."""
     script = r'''
@@ -96,7 +111,7 @@ sacctmgr -nP show qos format=Name,MaxTRESPU,GrpTRES 2>/dev/null
 
     def gpus_in(tres: str) -> dict[str, int]:
         found = {m.group(1): int(m.group(2))
-                 for m in re.finditer(r"gres/gpu:([a-z0-9_]+)=(\d+)", tres)}
+                 for m in re.finditer(r"gres/gpu:([A-Za-z0-9_.-]+)=(\d+)", tres)}
         bare = re.search(r"gres/gpu=(\d+)", tres)
         if bare:
             found["_any"] = int(bare.group(1))
@@ -172,6 +187,11 @@ def main() -> int:
     ap.add_argument("--queue", action="store_true", help="show your queue")
     ap.add_argument("--status", help="show details for a job id")
     args = ap.parse_args()
+
+    problem = literal_path_problem(args)
+    if problem:
+        print(f"error: {problem}", file=sys.stderr)
+        return 1
 
     try:
         if args.queue:

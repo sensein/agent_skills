@@ -96,9 +96,18 @@ def ssh_effective(alias: str, config: Path | None = None) -> dict[str, str]:
 
 
 def config_has_host(alias: str, config: Path | None = None) -> bool:
-    """``alias`` is configured when ssh resolves it to a different HostName."""
-    hn = ssh_effective(alias, config).get("hostname", "")
-    return bool(hn) and hn.lower() != alias.lower()
+    """``alias`` has a config block.
+
+    A configured alias normally resolves to a different HostName. When the
+    alias *is* the FQDN (the doctor's block registers both), fall back to the
+    marker that block always sets, ``ControlMaster auto`` -- otherwise every
+    --fix run would append another copy.
+    """
+    eff = ssh_effective(alias, config)
+    hn = eff.get("hostname", "")
+    if not hn:
+        return False
+    return hn.lower() != alias.lower() or eff.get("controlmaster") == "auto"
 
 
 def config_has_batchmode(alias: str, config: Path | None = None) -> bool:
@@ -158,7 +167,7 @@ def egress_blocked_message(hostname: str) -> None:
     )
 
 
-def sandbox_setup(user: str, hostname: str) -> int:
+def sandbox_setup(user: str, hostname: str, identity_path: str | None = None) -> int:
     """Prepare a sandbox that has internet access to reach ORCD.
 
     Verifies SSH egress first (no point minting a key the network can never
@@ -190,7 +199,7 @@ def sandbox_setup(user: str, hostname: str) -> int:
             )
         return 1
 
-    identity, _ = find_identity()
+    identity, _ = find_identity(identity_path)
     created = False
     if identity is None:
         SSH_DIR.mkdir(mode=0o700, exist_ok=True)
@@ -241,8 +250,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default=oc.DEFAULT_HOST, help="ssh alias to use (default: %(default)s)")
     ap.add_argument("--hostname", default=oc.DEFAULT_HOSTNAME, help="real login hostname")
-    ap.add_argument("--user", default=os.environ.get("ORCD_USER") or os.environ.get("USER", ""),
-                    help="your MIT/ORCD username (default: local $USER)")
+    ap.add_argument("--user", default=None,
+                    help="your MIT/ORCD username (default: $ORCD_USER, then local $USER)")
     ap.add_argument("--identity", help="private key to use (default: first of id_ed25519/id_ecdsa/id_rsa)")
     ap.add_argument("--fix", action="store_true", help="write ~/.ssh/config and open the master connection")
     ap.add_argument("--sandbox-setup", action="store_true",
@@ -251,12 +260,27 @@ def main() -> int:
                          "ORCD to authorize this environment")
     args = ap.parse_args()
 
+    # The local login name is a guess at the ORCD username -- wrong in most
+    # sandboxes (root, runner) -- so say when it is being used.
+    user_guessed = False
+    if not args.user:
+        args.user = os.environ.get("ORCD_USER", "")
+        if not args.user:
+            args.user = os.environ.get("USER", "")
+            user_guessed = bool(args.user)
+
     if args.sandbox_setup:
-        return sandbox_setup(args.user, args.hostname)
+        if not args.user or user_guessed:
+            print("error: --sandbox-setup needs the ORCD username: pass --user <mit-username>",
+                  file=sys.stderr)
+            return 1
+        return sandbox_setup(args.user, args.hostname, args.identity)
     if args.fix and not args.user:
         # An empty `User` line makes ssh reject its config for every host.
         print("error: --fix needs a username (--user or $ORCD_USER)", file=sys.stderr)
         return 1
+    if user_guessed:
+        print(f"note: using local login '{args.user}' as the ORCD username; pass --user if it differs.")
 
     rep = Report()
     failure_detail = ""
@@ -282,13 +306,7 @@ def main() -> int:
     # `Host *` block or an Include'd file is seen too).
     configured = config_has_host(args.host)
     if configured:
-        if config_has_batchmode(args.host):
-            rep.add(
-                BAD, f"ssh config [{args.host}]",
-                "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive",
-            )
-        else:
-            rep.add(OK, f"ssh config [{args.host}]", "present")
+        rep.add(OK, f"ssh config [{args.host}]", "present")
     elif args.fix and identity is not None:
         block = write_config(args.host, args.hostname, args.user, identity)
         configured = True
@@ -296,6 +314,11 @@ def main() -> int:
         print("Appended to ~/.ssh/config:" + block)
     else:
         rep.add(WARN, f"ssh config [{args.host}]", "missing; re-run with --fix to write it")
+    # Regardless of the alias: a `Host *` block or an Include'd file can set
+    # it, and `ssh -G` reports the effective value either way.
+    if config_has_batchmode(args.host):
+        rep.add(BAD, "ssh BatchMode",
+                "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive")
 
     # 4. Name resolution, checked here rather than inferred from ssh's stderr:
     # open_master() inherits the terminal so Duo prompts stay visible, which
@@ -332,13 +355,19 @@ def main() -> int:
     elif port_blocked:
         rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
         failure_detail = "port 22 blocked"
+    elif not configured and not args.user:
+        rep.add(BAD, "login node reachable", "skipped: no username (pass --user or set ORCD_USER)")
+        failure_detail = "no username"
     else:
         target = args.host if configured else f"{args.user}@{args.hostname}"
         if oc.master_is_live(target):
             rep.add(OK, "connection multiplexing", "master socket already live")
             reachable = True
         else:
-            ok, msg = oc.open_master(target)
+            # Without a config block the key must be named explicitly, or ssh
+            # offers only the default files and an --identity key never gets used.
+            key = identity if (args.identity or not configured) else None
+            ok, msg = oc.open_master(target, identity=key)
             if ok:
                 rep.add(OK, "login node reachable", msg)
                 reachable = True
@@ -413,7 +442,10 @@ def main() -> int:
             # rather than dumping the whole walkthrough at someone whose only
             # problem is DNS or VPN.
             low = failure_detail.lower()
-            if "resolve" in low:
+            if "no username" in low:
+                oc.heading("No username")
+                print(f"Pass --user <mit-username> (or set ORCD_USER); then --fix writes the alias.\n")
+            elif "resolve" in low:
                 oc.heading("Cannot resolve the login node")
                 print(
                     f"`{args.hostname}` did not resolve. Check the spelling, and check\n"

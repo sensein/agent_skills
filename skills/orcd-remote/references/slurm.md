@@ -36,8 +36,9 @@ One blind spot, found the hard way: `--test-only` validates *scheduling*, not
 QOS TRES ceilings. It happily reports an immediate start for 4x H100 in a
 partition whose `GrpTRES` caps the whole group at 2 -- a request that would sit
 in the queue forever. `--plan` therefore cross-checks each viable partition's
-QOS ceilings (both `MaxTRESPU` and `GrpTRES`) and marks impossible rows
-`EXCEEDS`, excluding them from auto-selection. When reading raw `--test-only`
+QOS **GPU** ceilings (`gres/gpu` in both `MaxTRESPU` and `GrpTRES`; CPU and
+memory ceilings are not checked) and marks impossible rows `EXCEEDS`,
+excluding them from auto-selection. When reading raw `--test-only`
 output yourself, apply the same skepticism.
 
 ## Never pass `--qos`
@@ -225,8 +226,8 @@ latency, and cross-node work additionally needs a distributed launcher
 ```
 
 `--gres` counts GPUs **per node**, so the same `--gres` with a different `-N`
-is a different total. Nodes here carry 4 or 8 GPUs (see the node shapes in
-`orcd_resources.py`), which bounds what `-N 1` can ever provide.
+is a different total. Nodes here carry 4 or 8 GPUs (`node_shapes` in
+`orcd_snapshot.py --json`), which bounds what `-N 1` can ever provide.
 
 Availability runs the other way: one node with 4 simultaneously-free GPUs is
 much scarcer than 4 free GPUs scattered across a partition, so the tightly
@@ -247,6 +248,8 @@ wrong conclusions about capacity (a `mixed-` node is not draining):
 | `%` | powering down |
 | `$` | maintenance reservation |
 | `@` | reboot pending |
+| `^` | reboot issued |
+| `!` | pending power-down |
 
 A planned (`-`) node's idle GPUs are spoken for: counting them as available
 overstates capacity, which is why `orcd_resources.py --idle` skips flagged

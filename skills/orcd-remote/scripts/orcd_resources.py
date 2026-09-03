@@ -119,7 +119,7 @@ def gputypes_from_tres(parts: dict[str, dict]) -> dict[str, dict[str, int]]:
     nodes with identical configurations onto one line.
     """
     out: dict[str, dict[str, int]] = {}
-    typed = re.compile(r"gres/gpu:([a-z0-9_]+)=(\d+)")
+    typed = re.compile(r"gres/gpu:([A-Za-z0-9_.-]+)=(\d+)")
     untyped = re.compile(r"gres/gpu=(\d+)")
     for name, meta in parts.items():
         tres = meta.get("tres", "")
@@ -159,7 +159,7 @@ def gpu_counts(gres: str) -> dict[str, int]:
     """
     out: dict[str, int] = {}
     for tok in gres.split(","):
-        m = re.match(r"gpu:(?:([a-z0-9_]+):)?(\d+)", tok.strip())
+        m = re.match(r"gpu:(?:([A-Za-z0-9_.-]+):)?(\d+)", tok.strip())
         if m:
             out[m.group(1) or "untyped"] = out.get(m.group(1) or "untyped", 0) + int(m.group(2))
     return out
@@ -186,7 +186,8 @@ def parse_idle(lines: list[str]) -> dict[str, dict[str, int]]:
         # % powering down, $ maintenance, @ reboot pending.
         if not any(s in state for s in ("idle", "mixed", "allocated")):
             continue
-        if any(c in state for c in "*~#%-$@"):
+        # ^ reboot issued and ! pending power-down are as unusable as the rest.
+        if any(c in state for c in "*~#%-$@^!"):
             continue
         conf = gpu_counts(gres)
         inuse = gpu_counts(used)
@@ -221,6 +222,21 @@ def probe_gpu_access(usable: list[str], gputypes: dict[str, dict[str, int]], hos
         if len(f) == 3 and f[2].strip() == "OK":
             ok.setdefault(f[0], []).append(f[1])
     return ok
+
+
+def gpu_label(gtypes: dict[str, int], confirmed: list[str] | None, probed: bool) -> str:
+    """GPU column: configured types, narrowed to the requestable ones after --gpus.
+
+    A partition whose every type probe was refused must read differently from
+    one that was never probed, or CPU-only access looks like GPU access.
+    """
+    if not gtypes:
+        return "-"
+    if probed:
+        if not confirmed:
+            return "(none requestable)"
+        return ", ".join(f"{t}:{gtypes.get(t, '?')}" for t in sorted(confirmed))
+    return ", ".join(f"{t}:{n}" for t, n in sorted(gtypes.items()))
 
 
 def main() -> int:
@@ -287,12 +303,7 @@ def main() -> int:
     for p in usable:
         meta = parts.get(p, {})
         gtypes = gputypes.get(p, {})
-        if args.gpus and p in gpu_ok:
-            gstr = ", ".join(f"{t}:{gtypes.get(t, '?')}" for t in sorted(gpu_ok[p]))
-        elif gtypes:
-            gstr = ", ".join(f"{t}:{n}" for t, n in sorted(gtypes.items()))
-        else:
-            gstr = "-"
+        gstr = gpu_label(gtypes, gpu_ok.get(p), probed=args.gpus)
         pqos = meta.get("partition_qos", "")
         lim = qos.get(pqos, {})
         per_user = lim.get("max_tres_pu", "") or "-"
