@@ -151,11 +151,36 @@ needs the user's explicit yes first**; then `orcd_uv.py --add-to-path
 
 ## Getting code onto the cluster
 
-**Login nodes carry no GitHub credentials.** No agent forwarding, and the host key is
-unverified, so `git clone` and `git fetch` against GitHub both fail. This is not a
-misconfiguration to debug.
+**Check first, because git may already work.** A key in the cluster's own `~/.ssh`, registered
+with GitHub, is all it needs -- there is no agent forwarding, so a local key does not help.
+`orcd_doctor.py` reports this as `git over ssh (cluster)`; by hand:
 
-Move the commits as a bundle: one file, no credentials, exactly the range you name.
+```bash
+ssh orcd 'ssh -o BatchMode=yes -T git@github.com'    # "Hi <user>! You've successfully authenticated"
+```
+
+To enable it, generate a key **on the cluster** and add the public half to GitHub:
+
+```bash
+ssh orcd 'ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 -C "orcd"; cat ~/.ssh/id_ed25519.pub'
+# paste that at https://github.com/settings/keys, then accept the host key once:
+ssh orcd 'ssh -o StrictHostKeyChecking=accept-new -T git@github.com'
+```
+
+**A stale `known_hosts` entry breaks this in a way that is easy to misread.** GitHub retired an
+RSA host key and serves several IPs; a `known_hosts` holding the old key *for an IP* makes ssh
+fail the strict check. Interactive git still works -- you see a warning and continue -- while
+every `BatchMode` caller (an agent, cron, a batch job) gets `Host key verification failed`. It is
+also **intermittent**, since it depends which IP DNS returns. Purge the IP-keyed lines rather
+than the hostname one:
+
+```bash
+ssh orcd 'for ip in $(grep -oE "^140\.82\.[0-9]+\.[0-9]+" ~/.ssh/known_hosts | sort -u); do
+    ssh-keygen -R "$ip"; done'
+```
+
+**When git is not available, or you do not want a key on the cluster**, move the commits as a
+bundle: one file, no credentials, exactly the range you name.
 
 ```bash
 git bundle create /tmp/work.bundle <base>..<head>          # locally; usually tens of KB
@@ -217,7 +242,8 @@ python3 orcd_submit.py --status <jobid>
 | Disk full but quota looks fine | 1 M inode limit | File columns in `orcd_storage.py` |
 | `uv: command not found` on the cluster | not installed / not on PATH | `orcd_uv.py --install`; absolute path, or approved profile edit |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
-| `git clone`/`git fetch` from GitHub fails on a login node | no GitHub credentials, no agent forwarding, host key unverified | Not a misconfiguration. Move commits as a bundle -- see [Getting code onto the cluster](#getting-code-onto-the-cluster) |
+| `git` fails on a login node under `BatchMode`, but works when you run it by hand | a `known_hosts` line holding GitHub's retired RSA key **for an IP**; strict checking fails, interactive prompts and continues | Intermittent -- it depends which IP DNS returns. Purge the IP-keyed lines: see [Getting code onto the cluster](#getting-code-onto-the-cluster) |
+| `git` on a login node says `Permission denied (publickey)` | no cluster-side key registered with GitHub; local keys do not reach it, there is no agent forwarding | Generate a key **on the cluster** and add it to GitHub, or move commits with `git bundle` |
 | An array runs N at a time though `%K` allows more | `QOSGrpGRES` caps the account's *concurrent GPUs*, under your `%K` | Expected; it finishes in waves. Budget wall clock for the waves, not the tasks |
 | `sacct` says `COMPLETED` but no output was produced | the real step failed and the wrapper still exited 0 | `COMPLETED` is not evidence of work. Check elapsed against what the work should cost, and grep the job output for the step you cared about |
 | A model load fails on a missing weight file | an incomplete snapshot in a *shared* HF cache | A partial snapshot is indistinguishable from a complete one until load time. Point `HF_HOME` at a cache you have verified |
