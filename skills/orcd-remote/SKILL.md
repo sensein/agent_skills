@@ -149,6 +149,27 @@ needs the user's explicit yes first**; then `orcd_uv.py --add-to-path
 --user-approved`. Build environments inside a `mit_quicktest` job on
 `~/orcd/scratch/envs` with `UV_CACHE_DIR=$(readlink -f ~/orcd/scratch)/uv-cache`.
 
+## Getting code onto the cluster
+
+**Login nodes carry no GitHub credentials.** No agent forwarding, and the host key is
+unverified, so `git clone` and `git fetch` against GitHub both fail. This is not a
+misconfiguration to debug.
+
+Move the commits as a bundle: one file, no credentials, exactly the range you name.
+
+```bash
+git bundle create /tmp/work.bundle <base>..<head>          # locally; usually tens of KB
+scp /tmp/work.bundle orcd:$SCRATCH/
+ssh orcd "cd $SCRATCH/<checkout> && git fetch /path/work.bundle && git reset --hard <head>"
+```
+
+Echo the resolved commit in the job's own output. An artifact whose code cannot be
+identified afterwards is worth much less than one that names its commit.
+
+**Reuse an existing checkout and venv when you can.** A fresh `uv sync --all-extras` costs
+tens of thousands of inodes, and the inode ceiling bites long before the byte quota does --
+see [storage](references/storage.md).
+
 ## Submitting and tracking
 
 ```bash
@@ -196,6 +217,13 @@ python3 orcd_submit.py --status <jobid>
 | Disk full but quota looks fine | 1 M inode limit | File columns in `orcd_storage.py` |
 | `uv: command not found` on the cluster | not installed / not on PATH | `orcd_uv.py --install`; absolute path, or approved profile edit |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
+| `git clone`/`git fetch` from GitHub fails on a login node | no GitHub credentials, no agent forwarding, host key unverified | Not a misconfiguration. Move commits as a bundle -- see [Getting code onto the cluster](#getting-code-onto-the-cluster) |
+| An array runs N at a time though `%K` allows more | `QOSGrpGRES` caps the account's *concurrent GPUs*, under your `%K` | Expected; it finishes in waves. Budget wall clock for the waves, not the tasks |
+| `sacct` says `COMPLETED` but no output was produced | the real step failed and the wrapper still exited 0 | `COMPLETED` is not evidence of work. Check elapsed against what the work should cost, and grep the job output for the step you cared about |
+| A model load fails on a missing weight file | an incomplete snapshot in a *shared* HF cache | A partial snapshot is indistinguishable from a complete one until load time. Point `HF_HOME` at a cache you have verified |
+| Your agent is killed while the job keeps running | you blocked on a long foreground wait and hit a stall watchdog | Poll: `until <check>; do sleep 60; done`, never a foreground `sleep`. The job survives -- reattach by job id |
+| A task finishes its work, then sits ~18 min before exiting | Python 3.12.0: `multiprocess`'s `ResourceTracker.__del__` raises, so its child is never reaped | Pin an interpreter after 3.12.0 (`_thread.RLock._recursion_count` is missing on 3.12.0). `os._exit` masks it; do not copy that forward |
+| `rsync` fails on a remote path containing `(` or `)` | the remote shell expands it; macOS rsync has no `--protect-args` | `ssh host "cd 'parent' && tar cf - 'name'" \| tar xf -` |
 
 ## Scripts
 
