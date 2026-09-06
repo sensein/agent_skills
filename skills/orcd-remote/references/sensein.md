@@ -55,6 +55,17 @@ eat your 200 GB home quota and its 1 M inode cap:
 export HF_HOME=/orcd/data/satra/002/huggingface
 ```
 
+**A shared cache can hold an incomplete snapshot, and nothing says so until the
+load fails.** A partial download leaves the model directory present with its
+`refs/` and most blobs in place, so every check short of loading it passes.
+Observed: a `google/hear` snapshot missing `event_detector/.../saved_model.pb`
+in one scratch cache while a complete copy sat in another; a cluster array
+pointed at the first died on every recording. Before pointing a long array at a
+cache you did not populate, load one model from it in a two-minute interactive
+job. Failing in a `mit_quicktest` slot costs minutes; failing in task 7 of 10
+costs the whole array.
+
+
 Non-HF model weights go under `/orcd/data/satra/002/models/<name>`. Before
 downloading anything large, check whether it is already there.
 

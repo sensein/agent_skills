@@ -149,6 +149,52 @@ needs the user's explicit yes first**; then `orcd_uv.py --add-to-path
 --user-approved`. Build environments inside a `mit_quicktest` job on
 `~/orcd/scratch/envs` with `UV_CACHE_DIR=$(readlink -f ~/orcd/scratch)/uv-cache`.
 
+## Getting code onto the cluster
+
+**Check first, because git may already work.** A key in the cluster's own `~/.ssh`, registered
+with GitHub, is all it needs -- there is no agent forwarding, so a local key does not help.
+`orcd_doctor.py` reports this as `git over ssh (cluster)`; by hand:
+
+```bash
+ssh orcd 'ssh -o BatchMode=yes -T git@github.com'    # "Hi <user>! You've successfully authenticated"
+```
+
+To enable it, generate a key **on the cluster** and add the public half to GitHub:
+
+```bash
+ssh orcd 'ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 -C "orcd"; cat ~/.ssh/id_ed25519.pub'
+# paste that at https://github.com/settings/keys, then accept the host key once:
+ssh orcd 'ssh -o StrictHostKeyChecking=accept-new -T git@github.com'
+```
+
+**A stale `known_hosts` entry breaks this in a way that is easy to misread.** GitHub retired an
+RSA host key and serves several IPs; a `known_hosts` holding the old key *for an IP* makes ssh
+fail the strict check. Interactive git still works -- you see a warning and continue -- while
+every `BatchMode` caller (an agent, cron, a batch job) gets `Host key verification failed`. It is
+also **intermittent**, since it depends which IP DNS returns. Purge the IP-keyed lines rather
+than the hostname one:
+
+```bash
+ssh orcd 'for ip in $(grep -oE "^140\.82\.[0-9]+\.[0-9]+" ~/.ssh/known_hosts | sort -u); do
+    ssh-keygen -R "$ip"; done'
+```
+
+**When git is not available, or you do not want a key on the cluster**, move the commits as a
+bundle: one file, no credentials, exactly the range you name.
+
+```bash
+git bundle create /tmp/work.bundle <base>..<head>          # locally; usually tens of KB
+scp /tmp/work.bundle orcd:$SCRATCH/
+ssh orcd "cd $SCRATCH/<checkout> && git fetch /path/work.bundle && git reset --hard <head>"
+```
+
+Echo the resolved commit in the job's own output. An artifact whose code cannot be
+identified afterwards is worth much less than one that names its commit.
+
+**Reuse an existing checkout and venv when you can.** A fresh `uv sync --all-extras` costs
+tens of thousands of inodes, and the inode ceiling bites long before the byte quota does --
+see [storage](references/storage.md).
+
 ## Submitting and tracking
 
 ```bash
@@ -196,6 +242,14 @@ python3 orcd_submit.py --status <jobid>
 | Disk full but quota looks fine | 1 M inode limit | File columns in `orcd_storage.py` |
 | `uv: command not found` on the cluster | not installed / not on PATH | `orcd_uv.py --install`; absolute path, or approved profile edit |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
+| `git` fails on a login node under `BatchMode`, but works when you run it by hand | a `known_hosts` line holding GitHub's retired RSA key **for an IP**; strict checking fails, interactive prompts and continues | Intermittent -- it depends which IP DNS returns. Purge the IP-keyed lines: see [Getting code onto the cluster](#getting-code-onto-the-cluster) |
+| `git` on a login node says `Permission denied (publickey)` | no cluster-side key registered with GitHub; local keys do not reach it, there is no agent forwarding | Generate a key **on the cluster** and add it to GitHub, or move commits with `git bundle` |
+| An array runs N at a time though `%K` allows more | `QOSGrpGRES` caps the account's *concurrent GPUs*, under your `%K` | Expected; it finishes in waves. Budget wall clock for the waves, not the tasks |
+| `sacct` says `COMPLETED` but no output was produced | the real step failed and the wrapper still exited 0 | `COMPLETED` is not evidence of work. Check elapsed against what the work should cost, and grep the job output for the step you cared about |
+| A model load fails on a missing weight file | an incomplete snapshot in a *shared* HF cache | A partial snapshot is indistinguishable from a complete one until load time. Point `HF_HOME` at a cache you have verified |
+| Your agent is killed while the job keeps running | you blocked on a long foreground wait and hit a stall watchdog | Poll: `until <check>; do sleep 60; done`, never a foreground `sleep`. The job survives -- reattach by job id |
+| A task finishes its work, then sits ~18 min before exiting | Python 3.12.0: `multiprocess`'s `ResourceTracker.__del__` raises, so its child is never reaped | Pin an interpreter after 3.12.0 (`_thread.RLock._recursion_count` is missing on 3.12.0). `os._exit` masks it; do not copy that forward |
+| `rsync` fails on a remote path containing `(` or `)` | the remote shell expands it; macOS rsync has no `--protect-args` | `ssh host "cd 'parent' && tar cf - 'name'" \| tar xf -` |
 
 ## Scripts
 

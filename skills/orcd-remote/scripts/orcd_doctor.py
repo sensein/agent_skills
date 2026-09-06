@@ -385,7 +385,11 @@ def main() -> int:
                 'echo "@@ASSOC"; sacctmgr -nP show assoc user=$USER format=Account,QOS 2>/dev/null | head -5\n'
                 'echo "@@GROUPS"; id -Gn | tr " " "\\n" | grep -c "^orcd_rg_" || true\n'
                 'echo "@@UV"; if [ -x "$HOME/.local/bin/uv" ]; then "$HOME/.local/bin/uv" --version 2>/dev/null; '
-                'elif command -v uv >/dev/null 2>&1; then uv --version 2>/dev/null; else echo MISSING; fi\n',
+                'elif command -v uv >/dev/null 2>&1; then uv --version 2>/dev/null; else echo MISSING; fi\n'
+                'echo "@@GIT"; ssh -o BatchMode=yes -o ConnectTimeout=10 -T git@github.com 2>&1 | head -1; '
+                'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 '
+                '-T git@github.com 2>&1 | grep -iE "offending key|differs from the key|successfully authenticated" '
+                '| head -2 || true\n',
                 host=target,
                 timeout=60,
             )
@@ -415,6 +419,39 @@ def main() -> int:
                 rep.add(OK, "storage groups", f"{ngroups[0]} orcd_rg_* group memberships")
             else:
                 rep.add(WARN, "storage groups", "no orcd_rg_* groups; only $HOME will be writable")
+            git = [l for l in blocks.get("GIT", []) if l.strip()]
+            joined = " | ".join(git)
+            line = git[0] if git else ""
+            offending = next((l for l in git if "ffending key" in l), "")
+            if "successfully authenticated" in line:
+                rep.add(OK, "git over ssh (cluster)", line.split(",")[0].strip())
+            elif "differs from the key for the IP" in joined or offending:
+                # Auth itself is fine; a stale IP-keyed known_hosts line fails the strict check,
+                # so interactive git works while every BatchMode (agent, cron, sbatch) call does not.
+                where = offending.split(" in ", 1)[-1] if offending else "~/.ssh/known_hosts"
+                rep.add(
+                    WARN, "git over ssh (cluster)",
+                    f"stale IP host key ({where}); works interactively, fails under BatchMode -- "
+                    "on the cluster: `ssh-keygen -R 140.82.114.3` (the IP that line names)",
+                )
+            elif "Host key verification failed" in line or "authenticity of host" in line:
+                rep.add(
+                    WARN, "git over ssh (cluster)",
+                    "github.com host key not accepted yet -- "
+                    "`ssh orcd \'ssh -o StrictHostKeyChecking=accept-new -T git@github.com\'`",
+                )
+            elif "Permission denied" in line or "publickey" in line:
+                rep.add(
+                    WARN, "git over ssh (cluster)",
+                    "no cluster key registered with GitHub -- see \"Getting code onto the cluster\" "
+                    "in SKILL.md; `git bundle` works without one",
+                )
+            else:
+                rep.add(
+                    WARN, "git over ssh (cluster)",
+                    f"unverified ({line[:60]}) -- `git bundle` works regardless" if line
+                    else "no answer from github.com -- `git bundle` works regardless",
+                )
             uv = [l for l in blocks.get("UV", []) if l.strip()]
             if uv and uv[0] != "MISSING":
                 rep.add(OK, "uv (cluster $HOME)", uv[0])
