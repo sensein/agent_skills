@@ -359,6 +359,34 @@ class SubmitTests(unittest.TestCase):
         self.assertTrue(note.startswith("EXCEEDS GROUP pool"))
 
 
+class DoctorGitClassifyTests(unittest.TestCase):
+    def test_success_names_the_user(self) -> None:
+        status, detail = doctor.classify_git(
+            ["Hi satra! You've successfully authenticated, but GitHub does not provide shell access."])
+        self.assertEqual((status, detail), (doctor.OK, "authenticated as satra"))
+
+    def test_stale_ip_key_names_ip_and_file(self) -> None:
+        status, detail = doctor.classify_git([
+            "Warning: the ECDSA host key for 'github.com' differs from the key for the IP address '140.82.114.3'",
+            "Offending key for IP in /home/satra/.ssh/known_hosts:12",
+            "Matching host key in /home/satra/.ssh/known_hosts:30",
+            "Host key verification failed.",
+        ])
+        self.assertEqual(status, doctor.WARN)
+        self.assertIn("ssh-keygen -R 140.82.114.3", detail)
+        self.assertIn("known_hosts:12", detail)
+
+    def test_unknown_host_key_and_no_key_and_silence(self) -> None:
+        unknown = doctor.classify_git([
+            "No ED25519 host key is known for github.com and you have requested strict checking.",
+            "Host key verification failed."])
+        self.assertEqual(unknown[0], doctor.WARN)
+        self.assertIn("not accepted", unknown[1])
+        denied = doctor.classify_git(["git@github.com: Permission denied (publickey)."])
+        self.assertIn("deploy key", denied[1])
+        self.assertIn("no answer", doctor.classify_git([])[1])
+
+
 class UvProfileTests(unittest.TestCase):
     def test_add_to_path_never_creates_a_missing_profile(self) -> None:
         import orcd_uv as uv
