@@ -1,269 +1,132 @@
 # First-time ORCD setup
 
-The goal is key-based SSH from a laptop to `orcd-login.mit.edu` that works
-without a prompt, so agents can run commands non-interactively.
+Goal: key-based, prompt-free ssh from your machine to `orcd-login.mit.edu`.
+`orcd_doctor.py` checks every step and prints the remedy; this file is the
+long form.
 
-`python3 scripts/orcd_doctor.py` checks every step below and prints what is
-missing. Read this document when a step needs explaining or when the doctor's
-remedy did not work.
-
-## Why the key has to go through a browser
-
-ORCD's login nodes accept no password over SSH. The only ways in are a key that
-is already installed, or the OnDemand web portal, which authenticates with MIT
-credentials plus Duo. So the bootstrap is: use the portal once to install the
-key, then use the key from then on.
-
-The portal is at <https://orcd-ood.mit.edu/>.
+Login nodes accept no password over ssh. The only ways in are an installed key
+or the OnDemand portal (<https://orcd-ood.mit.edu/>, MIT credentials + Duo), so
+the portal installs the key once.
 
 ## Steps
 
-### 1. Have a key
+1. **Key.** `ls ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -C "$USER@mit.edu"`.
+   ed25519 (advertised by ORCD's sshd; avoids old-RSA SHA-1 failures). Set a
+   passphrase and `ssh-add` it: only the doctor's first connection can answer a
+   prompt; every other scripted call closes stdin. If the ORCD key is not the
+   first of `id_ed25519`/`id_ecdsa`/`id_rsa`, pass `--identity <path>`.
+2. **Copy the public key**: `pbcopy < ~/.ssh/id_ed25519.pub` (macOS) or
+   `xclip -sel clip < ~/.ssh/id_ed25519.pub`. Only the `.pub`; a private key
+   that leaves the machine is replaced.
+3. **Portal shell**: sign in, **Clusters -> Shell Access** (a login-node shell,
+   same `$HOME` ssh lands in).
+4. **Install** there -- `>>`, never `>` (that deletes existing keys):
 
-```bash
-ls ~/.ssh/id_ed25519 2>/dev/null || ssh-keygen -t ed25519 -C "$USER@mit.edu"
-```
+   ```bash
+   mkdir -p ~/.ssh && chmod 700 ~/.ssh
+   cat >> ~/.ssh/authorized_keys      # paste, Ctrl-D
+   chmod 600 ~/.ssh/authorized_keys
+   ```
 
-Prefer ed25519. ORCD's sshd advertises it, and it avoids the SHA-1 signature
-problems that can make a very old RSA key fail in confusing ways. Set a
-passphrase and load it into `ssh-agent` (`ssh-add`): only the doctor's first
-connection can answer a prompt; every other scripted call closes stdin and
-fails on an un-cached passphrase. If your ORCD key is not
-the first of `id_ed25519`/`id_ecdsa`/`id_rsa`, pass `--identity <path>` to the
-doctor.
+5. **Configure and test locally**: `python3 scripts/orcd_doctor.py --fix --user <mit-username>`
+   appends this block to `~/.ssh/config` and connects; then `ssh orcd hostname`
+   prints a login node. Keep the browser signed in for that first ssh.
 
-### 2. Copy the public key
+   ```
+   Host orcd orcd-login.mit.edu
+       HostName orcd-login.mit.edu
+       User <your-username>
+       IdentityFile ~/.ssh/id_ed25519
+       IdentitiesOnly yes
+       PreferredAuthentications publickey,keyboard-interactive
+       ControlMaster auto
+       ControlPath ~/.ssh/cm-%r@%h:%p
+       ControlPersist 12h
+       ServerAliveInterval 60
+   ```
 
-```bash
-pbcopy < ~/.ssh/id_ed25519.pub            # macOS
-xclip -sel clip < ~/.ssh/id_ed25519.pub   # Linux
-```
+### Cloud or sandbox environments
 
-Copy the `.pub` file. If a private key ever leaves the machine, replace it.
+The key pair lives in an ephemeral container, and authorizing it grants that
+container access to the account. Say so, get the owner's explicit OK, use a
+dedicated identifiable key, have it revoked when the environment is retired,
+and never copy the private key out. Losing the key with the container is
+normal; mint a fresh one next time.
 
-**If the agent is running in a cloud environment** (Claude Code on the web, a
-CI runner, a devcontainer) rather than on the user's own machine, the key pair
-just generated lives in that environment -- and installing its public key on
-ORCD gives that environment SSH access to the user's cluster account. Before
-asking the user to add the key, say this plainly and:
+When the sandbox has ssh egress (the doctor's `tcp port 22` check passes),
+`python3 scripts/orcd_doctor.py --sandbox-setup --user <mit-username>` verifies
+egress, mints an `orcd-sandbox-<user>-<date>` ed25519 key (no passphrase:
+headless, ephemeral, revocable) if none exists, and prints two commands for the
+**account owner**: the `authorized_keys` append and its revocation. The owner
+running the append is the authorization; an agent never adds the key. Then
+`--fix --user <mit-username>` connects. Blocked egress: no key helps; the
+environment's network policy must change.
 
-- Get the account owner's explicit OK first.
-- Use a dedicated key with an identifying comment, e.g.
-  `ssh-keygen -t ed25519 -C "agent-cloud-$(date +%Y%m%d)"`, so it is easy to
-  spot in `authorized_keys` later.
-- Tell the user to remove that line from `~/.ssh/authorized_keys` on ORCD when
-  the environment is retired or no longer trusted.
-- Expect the container to be ephemeral: the private key may vanish when the
-  session ends. That is normal and fine -- generate and install a fresh key
-  next time. Never copy a private key out of the container to "save" it.
+## Authentication: what `ssh -vv` shows
 
-**Sandbox with SSH egress: let the tooling do the client side.** When the
-environment can actually reach port 22 (the doctor's `tcp port 22` check
-passes), run:
-
-```bash
-python3 scripts/orcd_doctor.py --sandbox-setup
-```
-
-It verifies egress first (no point minting a key the network can never
-present), generates a dedicated `ed25519` key if the sandbox has none -- with
-an identifying `orcd-sandbox-<user>-<date>` comment and an empty passphrase,
-the trade-off the bullets above accept for a headless, ephemeral, revocable
-key -- and prints two ready-to-paste commands for the account owner:
-
-- one that appends the public key to `~/.ssh/authorized_keys` on ORCD (run in
-  the portal shell or any existing SSH session from an authorized machine);
-- one that revokes it later by deleting the key's line.
-
-Hand both to the account owner; the owner running the append command **is**
-the authorization step, and an agent must never add the key itself. Once the
-owner confirms, `python3 scripts/orcd_doctor.py --fix --user <mit-username>` verifies the connection
-and writes the ssh config block.
-
-### 3. Get a shell through the portal
-
-Sign in at <https://orcd-ood.mit.edu/>, then choose **Clusters -> Shell
-Access** from the top menu. That is a shell on a login node, already
-authenticated, with the same `$HOME` that SSH will land in.
-
-### 4. Install the key
-
-In that portal shell:
-
-```bash
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-cat >> ~/.ssh/authorized_keys      # paste the key, then press Ctrl-D
-chmod 600 ~/.ssh/authorized_keys
-```
-
-`>>` appends. Using `>` would delete any key already there, including one a
-collaborator or a cluster service depends on.
-
-### 5. Configure and test locally
-
-```bash
-python3 scripts/orcd_doctor.py --fix --user <mit-username>
-```
-
-That appends a working block to `~/.ssh/config` and opens the connection. The
-block it writes:
+`AuthenticationMethods publickey,keyboard-interactive`. A good connection:
 
 ```
-Host orcd orcd-login.mit.edu
-    HostName orcd-login.mit.edu
-    User <your-username>
-    IdentityFile ~/.ssh/id_ed25519
-    IdentitiesOnly yes
-    PreferredAuthentications publickey,keyboard-interactive
-    ControlMaster auto
-    ControlPath ~/.ssh/cm-%r@%h:%p
-    ControlPersist 12h
-    ServerAliveInterval 60
-```
-
-Then `ssh orcd hostname` should print something like `login009`.
-
-Keep the browser session signed in for that first SSH. The Duo device trust it
-establishes is what lets the second authentication factor pass silently.
-
-## The authentication flow, and the one trap
-
-ORCD sets `AuthenticationMethods publickey,keyboard-interactive`. A successful
-connection looks like this under `ssh -vv`:
-
-```
-debug1: Authentications that can continue: publickey,keyboard-interactive
 Authenticated using "publickey" with partial success.
 debug1: Authentications that can continue: keyboard-interactive
-debug2: input_userauth_info_req: entering
 debug2: input_userauth_info_req: num_prompts 0
 Authenticated to orcd-login.mit.edu using "keyboard-interactive".
 ```
 
-`num_prompts 0` is Duo waving the session through on established device trust.
-Nothing is typed, but it is still a keyboard-interactive exchange.
+`num_prompts 0` is Duo passing on portal-established device trust. When that
+lapses, a real prompt appears and non-interactive calls fail: sign in at the
+portal, not key surgery.
 
-The mental model worth keeping: **web first, then SSH is effectively
-single-factor.** While a sign-in at the OnDemand portal holds, the second stage
-answers itself and SSH feels like plain key auth. When that web authorization
-expires, SSH reverts to true two-factor -- a real prompt appears, and anything
-non-interactive fails until a human answers one. So the first move on any 2FA
-symptom is a browser visit to <https://orcd-ood.mit.edu/>, not key surgery.
+`BatchMode=yes` disables keyboard-interactive on the client, so it always fails
+with `Permission denied (keyboard-interactive)` -- which reads like a bad key.
+Telling them apart after the `partial success` line: BatchMode (or
+`KbdInteractiveAuthentication no`) reports `No more authentication methods to
+try` at once; lapsed Duo starts the exchange and prompts (or hangs to timeout
+non-interactively). `ssh -G orcd-login.mit.edu | grep -iE
+'batchmode|kbdinteractive|preferredauthentications'` shows the effective
+merged config.
 
-**And never set `BatchMode=yes` for this host.** BatchMode disables
-keyboard-interactive on the client, so the second stage cannot happen and the
-connection fails with:
+**Lockout**: ten failed Duo attempts disable the account for 90 minutes, and
+auto-reconnecting software (VS Code Remote-SSH) keeps resetting the timer.
+Close it, sign in at the portal, then retry.
 
-```
-Permission denied (keyboard-interactive).
-```
+**Multiplexing**: one master carries the session (`ControlPersist 12h`; scp
+rides it). `ssh -O check orcd` (is a master live; never authenticates),
+`ssh orcd true` (open one), `ssh -O exit orcd` (close, e.g. after a laptop
+sleep).
 
-That message reads like a rejected key, which sends people off replacing keys
-that were never broken. The tell is `Server accepts key` followed by
-`partial success` earlier in the `-vv` output: the key worked.
+## Reachable is not enabled
 
-Distinguishing the two causes from `-vv` output, after the `partial success`
-line (both print `Authentications that can continue: keyboard-interactive`, so
-that line alone distinguishes nothing):
+A new account can log in yet have no **Slurm association** (`sacctmgr show
+assoc user=$USER` empty; every `sbatch` refused) or no **`orcd_rg_*` groups**
+(only `$HOME` writable, no private partitions). Both are WARNs in the doctor
+and fixed by orcd-help@mit.edu or the PI, not from the client.
 
-- **BatchMode (or `KbdInteractiveAuthentication no`)**: the client immediately
-  reports `No more authentication methods to try` and fails. No prompt is ever
-  attempted -- the client refused the method.
-- **Lapsed Duo trust**: the keyboard-interactive exchange starts and a real
-  prompt appears (or, in a non-interactive context, the session hangs until it
-  times out).
+## uv in the cluster home
 
-Check the effective client config with `ssh -G orcd-login.mit.edu | grep -iE
-'batchmode|kbdinteractive|preferredauthentications'` -- `-G` merges every config
-source, which is exactly what eye-reading a config file misses.
+Login-node `python3` is 3.6; no system uv or conda. `python3 scripts/orcd_uv.py`
+reports `~/.local/bin/uv`, its version and whether it is on PATH;
+`--install` runs the standalone installer with `UV_INSTALL_DIR=$HOME/.local/bin`
+and `UV_NO_MODIFY_PATH=1` (never edits startup files) or `uv self update`.
 
-## Duo lockout
-
-Ten failed Duo attempts disable the account, and the lock clears automatically
-after 90 minutes. The trap is software that retries on its own: a VS Code
-Remote-SSH window left open keeps reconnecting in the background, each attempt
-fails the second factor, and the lockout timer resets forever. If Duo prompts
-have started failing repeatedly: stop, close anything that auto-reconnects,
-sign in at the portal once, and only then try SSH again.
-
-To keep automation non-interactive without BatchMode, open one master connection
-and let everything else reuse it. That is what `orcd_common.py` does.
-
-## Connection multiplexing
-
-```bash
-ssh -O check orcd     # is a master live? cheap, never authenticates
-ssh orcd true         # open one (may prompt if Duo trust lapsed)
-ssh -O exit orcd      # close it
-```
-
-With `ControlPersist 12h`, one authentication covers a working day, and `scp`
-uses the same socket. If the socket goes stale after a laptop sleep or network
-change, `ssh -O exit orcd` and reconnect.
-
-## What "set up" does not include
-
-Reaching a login node is necessary but not sufficient. A new account can log in
-and still be unable to run anything:
-
-- **No Slurm association.** `sacctmgr show assoc user=$USER` prints nothing, and
-  every `sbatch` is refused. Ask orcd-help@mit.edu to add the account.
-- **No `orcd_rg_*` groups.** Only `$HOME` is writable, and no private partition
-  is reachable. Group membership is what grants both storage and partitions, so
-  ask the PI or orcd-help@mit.edu to be added to the lab's groups.
-
-`orcd_doctor.py` reports both as warnings rather than failures, because SSH
-genuinely is working at that point. Neither is fixable from the client side.
-
-## Python tooling: uv in the cluster home
-
-The login nodes' system `python3` is 3.6, and `uv`/`conda` are not installed
-system-wide, so a per-user `uv` at `~/.local/bin/uv` in the **cluster** home
-directory is the supported way to get modern Python. `orcd_doctor.py` reports
-whether it is present; `orcd_uv.py` manages it:
-
-```bash
-python3 scripts/orcd_uv.py             # installed? what version? on PATH?
-python3 scripts/orcd_uv.py --install   # install, or upgrade if already there
-```
-
-`--install` uses the official standalone installer pinned to
-`UV_INSTALL_DIR=$HOME/.local/bin` with `UV_NO_MODIFY_PATH=1`, so no shell
-startup file is ever edited by the installer. Upgrades go through
-`uv self update`.
-
-### PATH, and the profile-approval rule
-
-**No shell profile (`~/.bashrc`, `~/.bash_profile`, `~/.profile`) is modified
-without the user's explicit approval.** `orcd_uv.py` enforces this: the
-`--add-to-path` action shows the exact file and line it would append
-(`export PATH="$HOME/.local/bin:$PATH"`), then proceeds only after a typed
-`yes` on a TTY, or with `--user-approved` -- a flag an agent may pass only
-after actually asking the user and getting a yes. In a non-interactive run
-without that flag, it refuses. It also writes a `.orcd-uv.bak` backup before
-appending.
-
-The edit is optional. Scripts, agents, and sbatch job scripts should call
-`$HOME/.local/bin/uv` by absolute path or export PATH themselves; the profile
-line only exists for the user's interactive convenience. After an approved
-edit the script re-checks over a fresh SSH connection and reports honestly if
-the line is not reaching non-interactive shells (a common cause is an
-interactivity guard near the top of `~/.bashrc` that `return`s before the
-appended line runs).
-
-One storage caveat: keep uv's cache and the environments it creates off
-`$HOME` -- resolving an environment is exactly the many-small-file workload
-that exhausts the 1 M inode quota. Set `UV_CACHE_DIR` and create venvs on
-flash scratch (see [storage.md](storage.md)).
+**No shell profile is modified without the user's explicit approval.**
+`--add-to-path` shows the file and the line (`export PATH="$HOME/.local/bin:$PATH"`),
+proceeds only after a typed `yes` on a TTY or `--user-approved` (pass only after
+asking), backs the file up to `.orcd-uv.bak`, refuses to create a missing
+profile (a new `~/.bash_profile` silences `~/.profile`), and re-checks whether a
+fresh non-interactive ssh sees uv (an interactivity guard atop `~/.bashrc` can
+swallow the line). Scripts and jobs call `$HOME/.local/bin/uv` by absolute path
+regardless. Environments and `UV_CACHE_DIR` go on `~/orcd/scratch`, never
+`$HOME` ([storage.md](storage.md)).
 
 ## Troubleshooting
 
 | Symptom | Likely cause |
 | --- | --- |
-| `Permission denied (keyboard-interactive)` | `BatchMode=yes` set, or Duo trust lapsed. Check `-vv` for `partial success` |
-| `connect to host ... port 22: Connection timed out` | SSH egress is blocked -- cloud agent environments often allow only HTTPS. The doctor's `tcp port 22` check confirms it; keys and Duo are not the problem |
-| `kex_exchange_identification: Connection closed` when tunneling ssh through an HTTP proxy | The proxy accepted `CONNECT host:22` (even returned 200) but its upstream connection was denied by egress policy. Same blocked-egress condition as above -- if no `SSH-2.0-...` banner ever arrives, no key can help |
-| Hangs, then times out | A Duo prompt is waiting. Run `ssh orcd` by hand and answer it |
-| `Too many authentication failures` | The agent is offering many keys. Add `IdentitiesOnly yes` |
-| Host key changed warning | Login nodes are behind round-robin DNS. Verify with ORCD before removing the old key |
-| Works in a terminal, fails from an agent | The agent set `BatchMode`, or has no live master socket |
+| `Permission denied (keyboard-interactive)` | `BatchMode=yes`, or Duo trust lapsed; `-vv` shows `partial success` |
+| `connect to host ... port 22: Connection timed out` | ssh egress blocked (cloud sandboxes allow only HTTPS); the doctor's `tcp port 22` check confirms; not a key problem |
+| `kex_exchange_identification: Connection closed` via an HTTP proxy | the proxy answered `CONNECT :22` with 200 but its upstream was denied; same blocked egress |
+| Hangs, then times out | a Duo prompt is waiting; run `ssh orcd` by hand |
+| `Too many authentication failures` | the agent offers many keys; `IdentitiesOnly yes` |
+| Host key changed warning | login nodes sit behind round-robin DNS; verify with ORCD before removing the old key |
+| Works in a terminal, fails from an agent | the agent set `BatchMode`, or has no live master socket |
