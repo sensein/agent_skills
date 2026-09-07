@@ -149,6 +149,21 @@ needs the user's explicit yes first**; then `orcd_uv.py --add-to-path
 --user-approved`. Build environments inside a `mit_quicktest` job on
 `~/orcd/scratch/envs` with `UV_CACHE_DIR=$(readlink -f ~/orcd/scratch)/uv-cache`.
 
+## Getting code onto the cluster
+
+Login nodes have no GitHub credentials, no agent forwarding, and no accepted
+GitHub host key, so `git fetch` fails there by default. The doctor reports
+`git over ssh (cluster)`; recipes in [references/code.md](references/code.md).
+
+- Test: `ssh orcd 'ssh -o BatchMode=yes -T git@github.com'` (BatchMode is
+  right for GitHub; wrong only for ORCD's Duo).
+- Enable: a read-only **deploy key** generated on the cluster into a dedicated
+  file, with `CheckHostIP no` for `github.com`.
+- No key: `git bundle` -- one credential-free file. Resolve `~/orcd/scratch`
+  locally first; scp never expands `$VARS`.
+- Echo `git rev-parse HEAD` into job output. Reuse checkouts and venvs (a fresh
+  `uv sync` costs tens of thousands of inodes).
+
 ## Submitting and tracking
 
 ```bash
@@ -196,6 +211,14 @@ python3 orcd_submit.py --status <jobid>
 | Disk full but quota looks fine | 1 M inode limit | File columns in `orcd_storage.py` |
 | `uv: command not found` on the cluster | not installed / not on PATH | `orcd_uv.py --install`; absolute path, or approved profile edit |
 | Worked last month, fails now | cluster config changed | `orcd_snapshot.py --diff` |
+| `git` under BatchMode fails on a login node, works by hand | stale IP-keyed GitHub host key in `known_hosts` (intermittent: DNS) | `ssh-keygen -R <ip>` the doctor names; `CheckHostIP no` -- [code.md](references/code.md) |
+| `git` on a login node: `Permission denied (publickey)` | no cluster-side key; local keys do not forward | Deploy key on the cluster, or `git bundle` |
+| Array runs N at a time though `%K` allows more | `QOSGrpGRES`: the group's concurrent-GPU pool (`LIMIT: GROUP` in `orcd_resources.py`) | Expected; budget wall clock for the waves |
+| `sacct` says `COMPLETED`, nothing produced | a step failed; the wrapper exited 0 | `set -eo pipefail` in job scripts; check elapsed vs expected; grep the log |
+| Model load fails on a missing weight file | incomplete snapshot in a shared HF cache | Load one model from that cache in `mit_quicktest` before a long array |
+| Your agent is killed; the job runs on | a long foreground wait tripped a stall watchdog | Poll with short separate `squeue`/`sacct` calls or the harness's background facility; reattach by job id |
+| Task finishes, then idles ~18 min before exiting | Python 3.12.0 only: `multiprocess` `ResourceTracker.__del__` raises (`RLock._recursion_count` missing) | Pin >= 3.12.1; `os._exit` only masks it |
+| `rsync` fails on a remote path with `(` or `)` | remote shell expands it | Quote for the remote shell: `orcd:"'/p/with (x)/'"`, or tar over ssh |
 
 ## Scripts
 
