@@ -45,6 +45,14 @@ would hide the results and discussion sections from the analysis.
 
 Requires: pymupdf (``pip install pymupdf``) for text extraction. Falls back
 to ``pypdf`` and then the ``pdftotext`` CLI when PyMuPDF is unavailable.
+
+``--docling`` swaps in Docling (https://github.com/docling-project/docling) as
+the first backend: layout and table-structure models exported as Markdown, and
+OCR (on by default, engine bundled), so it is the only option here that reads a
+**scanned** PDF. It is opt-in
+rather than default because the default chain mirrors the hosted app's parser,
+and because Docling downloads models on first use and costs seconds per page.
+Which backend produced each entry is recorded in ``_extractor``.
 """
 from __future__ import annotations
 
@@ -88,14 +96,27 @@ _DOI_TRAILING = ".,;:)]}>'\""
 # ── PDF text extraction ────────────────────────────────────────────────
 
 
-def _extract_text(pdf: Path, max_chars: int) -> tuple[str, str]:
+def _extract_text(pdf: Path, max_chars: int, *,
+                  prefer_docling: bool = False) -> tuple[str, str]:
     """Return ``(text, extractor_name)``; text is "" when every backend fails.
 
     ``max_chars=0`` means the whole document — the default, because the review
     pipeline chunks each article's full text and reads every chunk, so a
     truncated corpus would hide exactly the results sections it needs.
+
+    ``prefer_docling`` puts Docling ahead of everything else. Off by default so a
+    local corpus is built by the same parser the hosted app uses and the two runs
+    stay comparable; worth turning on for scanned PDFs, which no other backend
+    here can read at all, and for papers whose tables carry the results.
     """
     max_chars = max_chars if max_chars > 0 else _UNLIMITED
+
+    # 0. Docling, only when asked for (--docling).
+    if prefer_docling:
+        text = _try_docling(pdf)
+        if text:
+            return text[:max_chars], "docling"
+
     # 1. The app's own parser — identical cap + control-char scrubbing.
     try:
         from synthscholar.clients import PyMuPdfParser  # type: ignore
@@ -163,6 +184,30 @@ def _extract_text(pdf: Path, max_chars: int) -> tuple[str, str]:
         pass
 
     return "", ""
+
+
+def _try_docling(pdf: Path) -> str:
+    """Markdown via Docling, or "" with a warning on stderr.
+
+    Unlike the other backends this one is only reached when the user asked for
+    it, so a failure is reported rather than swallowed — silently falling back to
+    a text-layer parser is how a scanned PDF ends up in a corpus as an empty
+    ``full_text`` that reads like a paper with nothing in it.
+    """
+    try:
+        from docling.document_converter import DocumentConverter  # type: ignore
+    except ImportError:
+        print("  WARN  --docling given but docling is not installed "
+              "(pip install docling); falling back to the PyMuPDF chain",
+              file=sys.stderr)
+        return ""
+    try:
+        result = DocumentConverter().convert(str(pdf))
+        return (result.document.export_to_markdown() or "").strip()
+    except Exception as exc:  # noqa: BLE001 - fall through to the other backends
+        print(f"  WARN  docling failed on {pdf.name} ({exc}); "
+              "falling back to the PyMuPDF chain", file=sys.stderr)
+        return ""
 
 
 def _pdf_metadata(pdf: Path) -> dict:
@@ -288,10 +333,11 @@ def build_item(
     max_chars: int,
     default_source: str,
     overrides: dict,
+    prefer_docling: bool = False,
 ) -> dict:
     """Build one corpus entry (an ``Article``-shaped dict + ``_`` bookkeeping)."""
     raw = pdf.read_bytes()
-    text, extractor = _extract_text(pdf, max_chars)
+    text, extractor = _extract_text(pdf, max_chars, prefer_docling=prefer_docling)
     pdf_meta = _pdf_metadata(pdf)
     head = text[:HEAD_CHARS]
 
@@ -423,6 +469,12 @@ def main() -> int:
     ap.add_argument("--source", default="user_supplied",
                     help="Article.source for PRISMA per-database identification counts; "
                          "override per file in the manifest (e.g. PubMed)")
+    ap.add_argument("--docling", action="store_true",
+                    help="extract with Docling first (layout + table models, and "
+                         "OCR, so it is the only backend that reads a scanned PDF). "
+                         "Needs `pip install docling`; downloads models on first "
+                         "use and costs seconds per page. Off by default so the "
+                         "corpus matches what the hosted app's parser produces.")
     ap.add_argument("--check", metavar="CORPUS",
                     help="validate an existing corpus file instead of building one")
     args = ap.parse_args()
@@ -445,6 +497,7 @@ def main() -> int:
             max_chars=args.max_chars,
             default_source=args.source,
             overrides=manifest.get(pdf.name, {}),
+            prefer_docling=args.docling,
         )
         items.append(item)
         status = "ok" if not item["_needs_metadata"] else "needs: " + ",".join(item["_needs_metadata"])

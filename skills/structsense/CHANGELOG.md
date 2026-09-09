@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0 — Docling in the PDF extraction chain
+
+- `input_loader` gains [Docling](https://github.com/docling-project/docling) as a
+  backend, placed after GROBID and ahead of the PyMuPDF family: GROBID is still
+  first because it is a server that is either up or not, and Docling is ahead of
+  the rest because it converts through a layout model and a table-structure model
+  instead of reading the text layer, so a two-column paper comes back in reading
+  order and a table comes back as addressable cells.
+- **This is the first backend that reads a scanned PDF.** Docling's default
+  pipeline OCRs; every other backend needs a text layer and returns nothing for a
+  scan, which is indistinguishable from a corrupt file and — in ABCD mode — used
+  to surface as the unhelpful "produced no text" error. That error now names the
+  fix, and it is a fix rather than a dead end.
+- The cost is real (models downloaded on first use, seconds per page, and it pulls
+  torch), so it is not in `requirements.txt` — it is a commented optional line —
+  and both CLIs take `--no-docling`: `scripts.input_loader` and `abcd_extract.py`.
+  A corpus of clean text-layer PDFs should skip it.
+- Nothing changes for an install without docling: the import fails, the reason is
+  appended to the extractor error list exactly like every other missing backend,
+  and the chain falls through to pymupdf4llm.
+
 ## 0.6.1 — Dictionary coverage, citation detection, duplicate handling
 
 Three of these are other people's fixes, verified before applying and credited as

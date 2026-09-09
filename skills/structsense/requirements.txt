@@ -35,9 +35,9 @@ jsonschema>=4.20,<5
 json-repair>=0.30,<1
 
 # --- PDF text extraction -----------------------------------------------------
-# input_loader tries GROBID -> pymupdf4llm -> PyMuPDF -> pdfminer.six and uses
-# whichever is present. Without at least one, every PDF fails with "all PDF
-# extractors failed".
+# input_loader tries GROBID -> Docling -> pymupdf4llm -> PyMuPDF -> pdfminer.six
+# and uses whichever is present. Without at least one, every PDF fails with "all
+# PDF extractors failed".
 #
 # Figure captions and table cells are the thing that separates these backends, and
 # they matter more than they sound: against a gold standard, 19 of 101 passages could
@@ -47,6 +47,16 @@ json-repair>=0.30,<1
 #
 #   GROBID        best structure, reconstructs captions and tables properly — but it
 #                 is a Java server on :8070 that many people cannot run.
+#   Docling       https://github.com/docling-project/docling — layout model plus
+#                 table-structure model, exported as Markdown, and the ONLY backend
+#                 here that reads a scanned PDF, because its default pipeline OCRs
+#                 (`do_ocr=True`, engine bundled — rapidocr — so no system packages;
+#                 `docling[easyocr]` or, on macOS, `docling[ocrmac]` swap it).
+#                 Everything else needs a text layer and returns nothing, which is
+#                 indistinguishable from a corrupt file. Costs a model download on
+#                 first use (hundreds of MB, and it pulls torch) and seconds per
+#                 page, so it is left commented out below and skippable with
+#                 --no-docling rather than being part of a plain install.
 #   pymupdf4llm   the best option that needs NO server: layout-aware Markdown that
 #                 keeps captions and table structure. Pure pip, wraps PyMuPDF.
 #   PyMuPDF       fast and reliable for body text; captions survive but ordering is
@@ -59,6 +69,7 @@ json-repair>=0.30,<1
 pymupdf>=1.24,<2
 pymupdf4llm>=0.0.17
 pdfminer.six>=20231228
+# docling>=2.0,<3   # uncomment for the best tables, and for scanned PDFs
 
 # --- Excel / spreadsheet inputs ----------------------------------------------
 # Needed for two distinct things:
