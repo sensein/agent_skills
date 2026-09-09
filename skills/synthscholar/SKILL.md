@@ -140,9 +140,10 @@ it before running this mode.
 python scripts/validate_protocol.py protocol.json
 
 # 2. Corpus — PDFs in, full text + hashes + provenance out
+#    (Docling first: best tables, and the only backend that reads a scan)
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json
-#    scanned PDFs, or papers whose tables carry the results: add --docling
-python scripts/build_corpus.py --dir ./pdfs --out corpus.json --docling
+#    large corpus of clean text-layer PDFs, or need the app's exact parser:
+python scripts/build_corpus.py --dir ./pdfs --out corpus.json --no-docling
 #    …then YOU complete each entry's metadata by reading its `_head_text`…
 python scripts/build_corpus.py --check corpus.json          # exit 1 until complete
 
@@ -326,8 +327,9 @@ All live in [scripts/](scripts/). Run them from an environment where the
 project's deps are importable (`rdflib` for SPARQL, `psycopg[binary]>=3.1` for
 SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`). The
 Mode 3 scripts need `synthscholar` importable too — plus `pymupdf` for PDF text
-and `OPENROUTER_API_KEY` for `run_local_review.py`. `docling` is optional and
-only used when `build_corpus.py --docling` is passed.
+and `OPENROUTER_API_KEY` for `run_local_review.py`. `docling` is the first
+extraction backend `build_corpus.py` reaches for; without it the script says so
+and uses the PyMuPDF chain, and `--no-docling` skips it deliberately.
 
 **`export_review.py` and `run_local_review.py` need the development checkout,
 not the released package** — `pip install -e /path/to/prisma-review-agent`. The
@@ -394,12 +396,12 @@ scripts) to see every named recipe.
   was never recorded.
 - Full-text bodies can be large; the SQL `get-content` recipe streams a single
   PMID. Avoid `SELECT content` across the whole table in interactive use.
-- Mode 3 reads a PDF's text layer by default, so a **scanned** PDF yields an
-  empty `full_text`. Rebuild it with `build_corpus.py --docling`
-  ([Docling](https://github.com/docling-project/docling) runs OCR and
-  reconstructs tables), or OCR the PDFs yourself first. Either way check
-  `_extractor` and the char count in the build output before running the
-  review — an empty body screens out as an irrelevant paper. Each paper is
+- **Scanned PDFs** need [Docling](https://github.com/docling-project/docling),
+  which `build_corpus.py` uses first when it is installed — its pipeline OCRs.
+  Without it (or with `--no-docling`) every backend reads the text layer only, so
+  a scan yields an empty `full_text`. Either way check `_extractor` and the char
+  count in the build output before running the review — an empty body screens out
+  as an irrelevant paper rather than as a failed extraction. Each paper is
   read **in full** (evidence extraction processes every chunk), so a long corpus
   costs real tokens; `run_local_review.py` prints the call estimate before
   spending, and `protocol.evidence_max_chars` bounds it. It never deduplicates

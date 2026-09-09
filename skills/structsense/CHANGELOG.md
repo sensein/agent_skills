@@ -1,25 +1,37 @@
 # Changelog
 
-## 0.7.0 — Docling in the PDF extraction chain
+## 0.7.0 — Docling as the general stage-1 extraction backend
 
-- `input_loader` gains [Docling](https://github.com/docling-project/docling) as a
-  backend, placed after GROBID and ahead of the PyMuPDF family: GROBID is still
-  first because it is a server that is either up or not, and Docling is ahead of
-  the rest because it converts through a layout model and a table-structure model
-  instead of reading the text layer, so a two-column paper comes back in reading
-  order and a table comes back as addressable cells.
-- **This is the first backend that reads a scanned PDF.** Docling's default
-  pipeline OCRs; every other backend needs a text layer and returns nothing for a
-  scan, which is indistinguishable from a corrupt file and — in ABCD mode — used
-  to surface as the unhelpful "produced no text" error. That error now names the
-  fix, and it is a fix rather than a dead end.
+- `input_loader` is no longer a PDF reader with extras.
+  [Docling](https://github.com/docling-project/docling) is **stage 1 for every
+  format it handles** — PDF, DOCX, PPTX, XLSX, HTML, AsciiDoc, MD, CSV, images
+  (PNG/JPEG/TIFF/BMP/WEBP) and, with its `asr` extra, audio — because `convert()`
+  dispatches on the format itself. For everything except PDF/CSV/TXT/MD it is the
+  only backend here: nothing else could open a Word manuscript, a slide deck or a
+  page scan at all, so those inputs used to be rejected outright.
+- It also leads for PDFs, ahead of GROBID and the PyMuPDF family, because it
+  converts through a layout model and a table-structure model instead of reading
+  the text layer: a two-column paper comes back in reading order and a table comes
+  back as addressable cells.
+- **It is the only backend that reads a scanned PDF or an image**, since its
+  pipeline OCRs by default (engine bundled — `pip install docling` needs no system
+  packages). Everything else returns nothing for a scan, indistinguishable from a
+  corrupt file, and in ABCD mode that surfaced as the unhelpful "produced no text"
+  error. That error now names the fix.
+- Fallback is unchanged in substance: when Docling is absent or fails on a file,
+  PDFs go GROBID → pymupdf4llm → PyMuPDF → pdfminer as before, and the reason
+  Docling did not run is carried into the final error message so a total failure
+  names every backend tried. TXT/MD/CSV still read straight off disk.
 - The cost is real (models downloaded on first use, seconds per page, and it pulls
-  torch), so it is not in `requirements.txt` — it is a commented optional line —
-  and both CLIs take `--no-docling`: `scripts.input_loader` and `abcd_extract.py`.
-  A corpus of clean text-layer PDFs should skip it.
-- Nothing changes for an install without docling: the import fails, the reason is
-  appended to the extractor error list exactly like every other missing backend,
-  and the chain falls through to pymupdf4llm.
+  torch), so it stays a commented optional line in `requirements.txt` rather than
+  a default install, and `--no-docling` skips it on both `scripts.input_loader`
+  and `abcd_extract.py`. That flag also gives up the non-PDF formats.
+- `abcd_inputs.PAPER_SUFFIXES` widened to match, so a directory of DOCX/PPTX/HTML/
+  images is a corpus now. `.csv`/`.xlsx` deliberately stay out — in this pipeline
+  a spreadsheet is a list of DOIs to fetch, and reclassifying it as a paper would
+  break that detection. The `--prepare` sidecar dedupe generalised from "PDF
+  stems" to any document stem, so a `<stem>.txt` next to `<stem>.docx` is not
+  processed as a second paper.
 
 ## 0.6.1 — Dictionary coverage, citation detection, duplicate handling
 

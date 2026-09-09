@@ -25,7 +25,7 @@ dependencies:
     - "rdflib>=6.0"          # SPARQL over an RDF export (query_sparql.py)
     - "httpx>=0.25"          # open-access + institutional retrieval (fetch_ezproxy.py)
     - "pymupdf>=1.24"        # PDF text extraction (build_corpus.py)
-    - "docling"              # optional: build_corpus.py --docling (tables + OCR)
+    - "docling"              # first extraction backend in build_corpus.py (tables + OCR)
     - "psycopg[binary]>=3.1" # article-store queries (query_postgres.py, backfill)
     - "pydantic>=2.0"        # result validation (export_review.py)
 
@@ -41,7 +41,7 @@ dependencies:
   # Which scripts need which of the above.
   scripts:
     validate_protocol.py: "stdlib only (PyYAML optional, for .yaml protocols)"
-    build_corpus.py: "pymupdf; falls back to pypdf or the pdftotext CLI; optional docling for --docling (tables + OCR, reads scanned PDFs)"
+    build_corpus.py: "docling first (tables + OCR, the only backend that reads a scanned PDF), then pymupdf, pypdf, the pdftotext CLI; --no-docling skips it"
     fetch_ezproxy.py: "httpx; open access needs no credentials, institutional access needs the EZPROXY_* vars"
     oa_client.py: "httpx; vendored Unpaywall/OpenAlex/Semantic Scholar DOI chain, imported by fetch_ezproxy.py"
     ezproxy_client.py: "httpx; vendored EZproxy client, used when synthscholar.ezproxy is absent"

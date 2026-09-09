@@ -52,8 +52,20 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 LIST_DOI_SHARE = 0.60
 LIST_MAX_LINE_CHARS = 300
 
-PAPER_SUFFIXES = (".pdf", ".txt", ".md")
+# Anything input_loader can turn into text — which, since docling became stage 1,
+# is more than PDF: a Word manuscript, a slide deck, a saved HTML page or a page
+# scan is a paper too. `.csv`/`.xlsx` stay out on purpose: docling reads them, but
+# in this pipeline a spreadsheet is a list of DOIs to fetch (TABLE_SUFFIXES), and
+# treating it as a paper would break that detection.
+PAPER_SUFFIXES = (".pdf", ".txt", ".md",
+                  ".docx", ".pptx", ".html", ".htm",
+                  ".png", ".jpg", ".jpeg", ".tif", ".tiff")
 TABLE_SUFFIXES = (".csv", ".tsv", ".tab", ".xlsx")
+
+# The paper formats that are a document rather than already-extracted text.
+# `--prepare` writes a `<stem>.txt` next to each of these, and that sidecar must
+# not count as a paper of its own.
+DOCUMENT_SUFFIXES = tuple(s for s in PAPER_SUFFIXES if s not in (".txt", ".md"))
 DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\"'<>,;)\]]+", re.I)
 
 UNPAYWALL = "https://api.unpaywall.org/v2/{doi}?email={email}"
@@ -321,13 +333,14 @@ def resolve(target: str | Path, *, download_dir: Optional[Path] = None,
         files = sorted(f for f in p.rglob("*")
                        if f.suffix.lower() in PAPER_SUFFIXES and not _ignored(f))
         # Drop extracted-text sidecars. `--prepare` writes <stem>.txt next to each
-        # PDF, and counting both would process the same paper twice — and, because
-        # outputs are named from the stem, have the second run overwrite the first.
-        pdf_stems = {f.with_suffix("").as_posix() for f in files
-                     if f.suffix.lower() == ".pdf"}
+        # document, and counting both would process the same paper twice — and,
+        # because outputs are named from the stem, have the second run overwrite
+        # the first.
+        doc_stems = {f.with_suffix("").as_posix() for f in files
+                     if f.suffix.lower() in DOCUMENT_SUFFIXES}
         files = [f for f in files
-                 if f.suffix.lower() == ".pdf"
-                 or f.with_suffix("").as_posix() not in pdf_stems]
+                 if f.suffix.lower() in DOCUMENT_SUFFIXES
+                 or f.with_suffix("").as_posix() not in doc_stems]
         papers = [Paper(path=f, title=f.stem) for f in files]
 
     elif p.is_file() and p.suffix.lower() in PAPER_SUFFIXES:

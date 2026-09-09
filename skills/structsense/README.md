@@ -73,9 +73,10 @@ structsense/
 │   ├── normalize_result.py  ← idempotent post-processor. Lifts paper_title/doi to
 │   │                          source_metadata, tags source_model, attaches grouped
 │   │                          + stats. Runs automatically in pipeline.py; also CLI.
-│   ├── input_loader.py      ← PDF/CSV/TXT ingestion with GROBID → Docling →
-│   │                          pymupdf4llm → PyMuPDF → pdfminer fallback chain
-│   │                          (Docling also OCRs scans). CLI writes <stem>.txt.
+│   ├── input_loader.py      ← document ingestion for every format Docling
+│   │                          reads (PDF, DOCX, PPTX, XLSX, HTML, images, …).
+│   │                          Docling first, then GROBID → pymupdf4llm →
+│   │                          PyMuPDF → pdfminer for PDFs. Writes <stem>.txt.
 │   ├── task_detection.py    ← auto-detect task type (ner/resource/structured/…)
 │   │                          from a free-text description. Heuristic + LLM.
 │   ├── model_context.py     ← model context-window registry + downstream
@@ -567,13 +568,14 @@ pip install json-repair
 # For repair_to_schema()
 pip install jsonschema
 
-# PDF text extraction — input_loader tries GROBID -> Docling -> pymupdf4llm
-# -> PyMuPDF -> pdfminer.six and uses whichever is present
-pip install pymupdf pymupdf4llm pdfminer.six
-
-# Optional, and the only way to read a SCANNED PDF (its pipeline OCRs); also the
-# best tables. Downloads models on first use; skip it with --no-docling.
+# Text extraction, stage 1 — and the only backend for DOCX/PPTX/XLSX/HTML/images
+# or a SCANNED PDF (its pipeline OCRs). Also the best tables. Downloads models on
+# first use; skip it with --no-docling.
 pip install docling
+
+# PDF-only fallbacks for when docling is absent or fails — input_loader then
+# tries GROBID -> pymupdf4llm -> PyMuPDF -> pdfminer.six, whichever is present
+pip install pymupdf pymupdf4llm pdfminer.six
 
 # Excel: the NBDC variable catalog workbook, and .xlsx DOI lists
 pip install openpyxl
