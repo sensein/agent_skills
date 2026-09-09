@@ -63,6 +63,25 @@ Fields: `name` (exactly as printed), `label` (the paper's descriptive phrase, if
 any), `role` (see roles below), `timepoint` (e.g. "baseline", "2-year follow-up"),
 `evidence`, plus the four mapping fields below.
 
+**One measure, one `name`, however many waves.** A longitudinal paper writes the
+same measure a different way in every place it appears: "internalizing behaviors"
+in the Measures section, "Internalizing Time 2" in a coefficient table,
+"Internalizing problems year 1" in Table 1. Those are ONE measure at THREE waves.
+Emit three entries that share one `name` — the measure's plain name, without any
+wave in it — and differ only in `timepoint`:
+
+```json
+{"name": "internalizing behaviors", "timepoint": "2-year follow-up (Time 3)", "role": "outcome", ...}
+{"name": "internalizing behaviors", "timepoint": "1-year follow-up (Time 2)", "role": "covariate", ...}
+{"name": "internalizing behaviors", "timepoint": "baseline (Time 1)", "role": "covariate", ...}
+```
+
+Never put the wave in `name` ("Internalizing Time 2" is wrong), and never let one
+measure travel under three names. The table wording still gets recorded — put it
+in `aliases` and quote the table row as the evidence. Say the wave the way the
+paper does; if it numbers its waves from one, write both ("baseline (Time 1)") so
+the wave is unambiguous.
+
 **The mapping fields — these decide whether the variable gets a table and a
 domain.** ABCD instruments have parent and youth versions, raw and T-scored
 variants, and dozens of near-identical siblings. The dictionary can only pick the
@@ -122,11 +141,41 @@ phrase verbatim — the surrounding sentence that establishes it is enough.
 
 One entry per distinct model. Fields: `specification` (e.g. "linear mixed model
 with random intercept for site", "mediation model", "moderated regression"),
-`predictors[]`, `outcomes[]`, `mediators[]`, `moderators[]`, `covariates[]`,
-`software` (if stated), `evidence`.
+`kind`, `tests_hypothesis`, `predictors[]`, `outcomes[]`, `mediators[]`,
+`moderators[]`, `covariates[]`, `software` (if stated), `evidence`.
 
 Put variables in the arrays using the **same strings** you used in
-`variables[].name`, so the two sections join.
+`variables[].name`, so the two sections join. When a measure appears at several
+waves and the model uses one of them, say which: `"internalizing behaviors
+(2-year follow-up)"`.
+
+**`models[]` is where roles actually live, so it has to be complete.** A
+downstream pass reads these arrays and gives every variable the role each analysis
+assigned it — that is the only way one variable can be the outcome of Analysis 1
+and a mediator in Analysis 3, which is routine and which a single `role` field
+cannot express. Two consequences:
+
+- **Never leave `covariates[]` out.** "Adjusting for age, sex and site" is three
+  entries. A model whose covariate list is missing makes every one of those
+  variables look unused.
+- **One entry per hypothesis, not per statistical technique.** If the paper tests
+  three hypotheses with the same estimator and different variables, that is three
+  models. Set `tests_hypothesis` to the paper's own label ("Hypothesis 2") — a
+  variable's role changes between hypotheses, and a paper that adds income as a
+  mediator in H2 after using it as a covariate in H1 has done two different things.
+
+`kind` is one of `descriptive` · `correlational` · `regression` · `mixed_model` ·
+`mediation` · `moderation` · `moderated_mediation` · `growth_curve` · `sem` ·
+`survival` · `classification` · `machine_learning` · `other`. Mark a correlation
+matrix or a descriptives table `correlational` / `descriptive` and do **not**
+invent predictors and outcomes for it: everything in a correlation matrix is on
+both axes, and listing it as predictor and outcome reports a directional claim the
+paper never made.
+
+When the model is over latent growth factors, name the factors — "family conflict
+intercept", "family conflict slope" — not the repeated measure they were estimated
+from, and declare those factors in `variables[]` too. They are derived quantities,
+and the pipeline deliberately keeps them separate from the raw measure.
 
 ### `findings[]` — the reported results
 
@@ -160,6 +209,22 @@ path/mechanism (X → M → Y), `moderator` when it describes an effect that var
 by level of the variable (interaction). If the paper is ambiguous, use
 `unspecified` rather than picking one; the cross-paper synthesis reports contested
 roles, and a guess here corrupts that signal.
+
+`variables[].role` holds **one** role, so where a variable plays several it cannot
+be right for all of them. Do not agonise over which to pick: give the role in the
+paper's *primary* analysis and make sure every analysis lists the variable in the
+right array, because the full picture is assembled from `models[]`. Concretely,
+brain metrics that are outcomes of a group difference and then mediators of a
+cognitive effect belong in `outcomes[]` of the first model and `mediators[]` of the
+second; whichever single value `role` carries, nothing is lost.
+
+Two role calls that are routinely got wrong:
+
+- **Prior waves of the outcome are covariates**, not the outcome. A paper
+  modelling Y3 while adjusting for Y1 and Y2 has one outcome and two controls; put
+  Y1 and Y2 in `covariates[]` with their own `timepoint`.
+- **A variable named only in the descriptives table** is `unspecified` — say so.
+  Do not promote it to covariate because it looks like one.
 
 ## `evidence` — required on every item
 
@@ -202,8 +267,8 @@ a Measures-section-only pass misses:
 3. **Every measure in the Measures section**, including screeners and eligibility
    measures if they were analysed.
 4. **Per-wave instances.** If the paper analyses family conflict at year 1 and
-   year 2 as distinct quantities, that is two entries differing in `timepoint` —
-   not one.
+   year 2 as distinct quantities, that is two entries differing in `timepoint`
+   and *only* in `timepoint` — same `name`, not one entry and not two names.
 5. **Derived and composite scores** the paper computed itself (z-scores,
    residualised change, latent factors), with the inputs named in `label`.
 
@@ -223,6 +288,8 @@ Emit once, at the top level, not per item:
   "data_release": "6.1" | "5.1" | "ABCD Release 4.0" | null,
   "sample_size": "n = 9,412" | null,
   "analytic_sample": "n = 8,776 after excluding missing imaging" | null,
+  "participants": "11,814 children and one of their caregivers; 39 excluded for missing K-SADS data" | null,
+  "participant_age": "9 to 10 years old" | null,
   "design": "cross-sectional" | "longitudinal, 3 waves" | null,
   "timepoints": ["baseline", "1-year follow-up", "2-year follow-up"],
   "cohort": "ABCD full cohort" | "twin subsample" | null,
@@ -230,6 +297,13 @@ Emit once, at the top level, not per item:
   "data_source": "NDA release 5.0" | "DEAP" | "NBDC Data Hub" | null
 }
 ```
+
+`timepoints`, `participants` and `participant_age` are as load-bearing as the
+release. `timepoints` is every wave the analyses used, in the paper's own wording
+— it is what tells a reader that "Time 3" in a table means the 2-year follow-up.
+`participants` is who was analysed and who was excluded, quoted from the paper
+("From the original sample (n = 10,123), youth whose guardians identified them as
+solely White (n = 5,454) were excluded"). `participant_age` is the age as printed.
 
 `data_release` matters most: it decides which dictionary release the variables are
 checked against, and ABCD renamed its variables wholesale at 6.0. A 5.0 paper
@@ -247,6 +321,7 @@ at the same waves — or on three different subsamples.
 {
   "paper_title": null, "doi": null, "study": "ABCD", "data_release": "6.1",
   "sample_size": null, "analytic_sample": null, "design": null,
+  "participants": null, "participant_age": null,
   "timepoints": ["baseline"], "cohort": null, "site_count": null,
   "data_source": null,
   "variables": [
@@ -278,6 +353,8 @@ at the same waves — or on three different subsamples.
   "models": [
     {
       "specification": "linear mixed model with random intercepts for site and family",
+      "kind": "mixed_model",
+      "tests_hypothesis": "Hypothesis 1",
       "predictors": ["sleep_duration"],
       "outcomes": ["nihtbx_flanker_uncorrected"],
       "mediators": ["cbcl_scr_syn_internal_r"],

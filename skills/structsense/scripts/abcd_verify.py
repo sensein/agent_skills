@@ -51,6 +51,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from scripts import cognitive_atlas as ca_mod
 from scripts.abcd_dictionary import Dictionary, looks_like_variable_name
+from scripts import abcd_roles
 
 # Minimum quote length. Shorter "quotes" cannot establish that a claim is
 # supported by the paper — a 6-character fragment matches by accident.
@@ -751,6 +752,9 @@ def verify_payload(payload: dict, text: str, *,
                                      "outcome", "mediator", "moderator"),
                           strict_scope=True)
     out["variables"], merged_n = _merge_duplicate_variables(out["variables"])
+    # Roles last: every model has been verified and every duplicate folded in, so
+    # the model arrays and the variable list finally refer to the same entries.
+    abcd_roles.annotate(out)
     out["rejected"] = rejected
     out["coverage"] = _coverage_audit(out)
 
@@ -778,6 +782,12 @@ def verify_payload(payload: dict, text: str, *,
                                    if not c.get("construct_id")),
         "rejected_total": len(rejected),
         "variables_merged_as_duplicates": merged_n,
+        "variables_role_varies_by_analysis": (out.get("role_analysis") or {}).get(
+            "variables_role_varies_by_analysis", 0),
+        "variables_role_from_model_declaration": (out.get("role_analysis") or {}).get(
+            "variables_role_from_model_only", 0),
+        "variables_role_still_unspecified": (out.get("role_analysis") or {}).get(
+            "variables_role_unresolved", 0),
         "variables_with_nda_release_conflict": sum(
             1 for v in out["variables"] if v.get("nda_release_conflict")),
         "rejected_as_cited_work": sum(
@@ -799,21 +809,25 @@ _STATUS_RANK = {s: i for i, s in enumerate(
 
 
 def _merge_duplicate_variables(variables: List[dict]) -> Tuple[List[dict], int]:
-    """One entry per (variable, timepoint) — the extractor's own definition.
+    """One entry per (measure, wave) — the extractor's own definition.
 
     A paper writes "internalizing behaviors" in its Methods and "internalizing
     behavior" in its Results, and the extractor emits both. They are one variable:
     left separate, one of them resolves to a table and the other does not, and the
     synthesis shows a measure that half the paper apparently did not use.
 
-    Timepoint is part of the key on purpose — family conflict at year 1 and at year
-    2 ARE distinct quantities, and the prompt asks for them separately.
+    The wave is part of the key on purpose — family conflict at year 1 and at year
+    2 ARE distinct quantities, and the prompt asks for them separately. But it is
+    the *parsed* wave, not the wording: "baseline" and "baseline (Time 1)" are one
+    wave written twice, and keying on the string left "family income" and "Income
+    Time 1" standing as two variables the study apparently measured separately.
     """
+    abcd_roles.assign_measures(variables)
     groups: Dict[Tuple[str, str], List[dict]] = {}
     order: List[Tuple[str, str]] = []
     for v in variables:
-        key = (_norm_key(v.get("name") or v.get("variable")),
-               _norm_key(v.get("timepoint")))
+        key = (v.get("measure_key") or _norm_key(v.get("name") or v.get("variable")),
+               abcd_roles.wave_key(v))
         if key not in groups:
             groups[key] = []
             order.append(key)

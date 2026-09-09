@@ -114,9 +114,11 @@ the reason; download those yourself and point at the directory. Each fetch recor
 the service that answered, the URL, the license where known, and a sha256, into the
 paper's `provenance.retrieval`.
 
-Every run emits all three formats: **JSON** (machine record, includes rejected
-claims), **Markdown** (tables to read), **Turtle** (triples for a graph store,
-PROV-O provenance). Restrict with `--formats json,md`.
+Every run emits three formats by default: **JSON** (machine record, includes
+rejected claims), **Markdown** (tables to read), **Turtle** (triples for a graph
+store, PROV-O provenance). Restrict with `--formats json,md`. A fourth,
+**codebook**, is opt-in — `--formats json,md,ttl,codebook` — and writes the run in
+the ABCD annotators' own coding scheme for diffing against hand-coded data.
 
 ## Where the output goes
 
@@ -124,6 +126,7 @@ PROV-O provenance). Restrict with `--formats json,md`.
 papers/                                  <- inputs, never written to
 └── abcd_results/                        <- everything this skill produces
     ├── <stem>_abcd.{json,md,ttl}
+    ├── <stem>_abcd.codebook.tsv         --formats ...,codebook
     ├── abcd_synthesis.{json,md,ttl}
     ├── text/<stem>.txt                  extracted text (--prepare)
     └── payloads/<stem>.payload.json     agent payloads (--prepare -> --payload)
@@ -378,6 +381,115 @@ Matching is deliberately narrow: exact name, then normalised name
 No substring, no fuzzy scoring — a partial label match is not evidence that a
 specific variable was used. `search` exists for exploring the dictionary by hand
 and is never used to verify.
+
+## A role belongs to an analysis, not to a variable
+
+This is the single most common way an ABCD extraction reads as wrong to somebody
+who knows the paper. A study runs brain metrics as the **outcomes** of preterm
+birth, then re-uses them as **mediators** of gestational age on cognition. A study
+regresses Y3 on X1 while controlling for Y1 and Y2, so one measure is the outcome
+at one wave and a covariate at two others. `variables[].role` holds one string and
+has to pick, and whichever it picks makes the other analysis vanish.
+
+So the pipeline derives roles from `models[]`, which already record what each
+analysis did, and reports them per analysis:
+
+| Field | Meaning |
+|---|---|
+| `role` | The single headline value. Still there, still one string. |
+| `roles[]` | Every role the variable plays across the models, in precedence order |
+| `role_assignments[]` | `{model_id, role, as_written, section}` — which analysis, in its own words |
+| `role_varies_by_analysis` | True when `roles` has more than one |
+| `role_summary` | `"outcome (M1, M8); mediator (M4, M5)"` — what the Markdown prints |
+| `role_basis` | Where the role came from (below) |
+| `bidirectional_in[]` | Models where it is both predictor and outcome — a cross-lagged design, not a contradiction |
+
+`role_basis` is one of:
+
+- `paper_statement_confirmed_by_model` — the prose and the model arrays agree.
+- `model_declaration` — they disagreed and the arrays won. `role_conflict` keeps
+  both readings; nothing is overwritten silently.
+- `paper_statement` — no analysis names the variable, so the extractor's reading
+  stands alone.
+- `prior_wave_control` — the one inference the pipeline makes, described below.
+- `unresolved` — nothing says what it is. Reported as `unspecified`, not guessed.
+
+The Markdown gets a **Roles by analysis** table: variables down the side,
+analyses across the top, the role in each cell. That is the view that answers
+"what did this paper actually do, and when" without reading the JSON. The Turtle
+emits an `abcd:RoleAssignment` node per assignment, linking the variable to the
+`abcd:StatisticalModel` that gave it the role.
+
+### Analyses that assign no roles
+
+A correlation matrix puts every variable on both axes. Read literally, its
+"predictors" and "outcomes" arrays claim a direction the paper never asserted —
+in one run this made family income a predictor of itself. Models marked
+`kind: descriptive` or `kind: correlational` (or, absent a `kind`, recognised from
+their specification: bivariate correlations, descriptive statistics, measurement
+invariance, attrition checks) are listed but contribute no roles.
+
+### The one inference: `prior_wave_control`
+
+An autoregressive design measures Y at three waves, models the last, and adjusts
+for the earlier ones. The earliest wave often surfaces only in Table 1, so no model
+names it and it lands as `unspecified` — reading as a variable the study never
+used, when in fact it is a control.
+
+The pipeline promotes it to `covariate` only where the paper has already shown its
+hand: **some other wave of the same measure is a declared covariate**, and an
+outcome wave sits later than the entry in question. Without a declared covariate
+wave, nothing is inferred — the alternative is turning every descriptives row into
+a control the paper never mentioned. Where it fires, `role_inference` records the
+rule, the covariate waves and the outcome waves that licensed it.
+
+## One measure, several waves
+
+The extractor sees the same instrument written three ways — "internalizing
+behaviors" in the Measures section, "Internalizing Time 2" in a coefficient table,
+"Internalizing problems year 1" in Table 1 — and emits three entries. They are one
+measure at three waves, and left as three names a reader cannot tell, while the
+synthesis reports three variables where the papers used one.
+
+Two fields fix the identity:
+
+- `timepoint_normalized` / `timepoint_order` — the wave parsed into a comparable
+  integer (0 = baseline). A `baseline` cue beats everything, then an explicit
+  follow-up year, then `Time N` / `wave N` (which count from one, so `Time 2` is
+  wave 1), then a bare `year N` (which follows ABCD's own event naming and counts
+  from baseline). Cues that cannot be reconciled leave `timepoint_order` null —
+  a wrong order rewrites which measurement was the outcome. A wording spanning
+  waves ("baseline through 3-year follow-up") gets `timepoint_span` instead.
+- `measure` / `measure_key` — the instrument shared by every wave of it. Entries
+  are grouped when one entry's *name*, stripped of wave tokens, appears among
+  another's stripped wordings. Keying on a name rather than on any shared alias is
+  what stops a generic alias ("income", "sex") chaining two different measures
+  together, and two entries that resolved to *different* dictionary variables are
+  never grouped however alike they read — `fes_y_ss_fc` and `fes_p_ss_fc` are
+  different respondents.
+
+Derived quantities stay separate. A growth-curve intercept or slope, a change
+score, a residual or a composite is not the measure it was estimated from, so a
+wording that adds one of those words is its own measure even though it repeats the
+parent name.
+
+Duplicate entries are merged on `(measure, wave)` rather than on the wording, so
+"family income" at `"baseline"` and "Income Time 1" at `"baseline (Time 1)"` stop
+standing as two variables the study apparently measured separately.
+
+## Comparing a run against human coding
+
+`--formats codebook` writes `<stem>_abcd.codebook.tsv` in the columns an ABCD
+annotator fills in — *Text Content · Source · Codes* — plus *Role · Timepoint ·
+Analyses · Section*, so a run can be diffed against a hand-coded gold standard
+rather than eyeballed. The codes are the annotators', which are coarser than the
+schema: `predictor` → **Independent Variable**, `outcome` → **Dependent
+Variable**, `covariate`/`confounder`/`control` → **Covariate**, everything else →
+**Additional Variables**. A variable's own quote is emitted beside it as **IV
+Supporting Info** / **DV Supporting Info**, and the document-level fields map to
+**ABCD Release**, **ABCD Time Point**, **Sample Size**, **Participant** and
+**Participant Age**. The `Role` column keeps the finer distinction the human
+scheme has no code for, so nothing is lost in the translation.
 
 ## Each variable carries the mention AND the mapping
 

@@ -56,7 +56,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
-from scripts import abcd_export
+from scripts import abcd_export, abcd_roles
 
 # A construct/variable needs this many distinct papers before we call anything a
 # consensus. Below it, we report the observation without a verdict.
@@ -202,7 +202,10 @@ class VariableIndex:
          they were phrased ("family conflict", "FES-Conflict youth report").
       2. **an alias the paper declared** — "FA" is folded into "fractional
          anisotropy" when the paper says so, instead of becoming a second row.
-      3. **the normalised mention** — case and plural folded.
+      3. **the measure**, wave stripped — "Internalizing Time 2" and "internalizing
+         behaviors" are one measure at two waves, and keying on the wording gave a
+         corpus two variables where the papers used one.
+      4. **the normalised mention** — case and plural folded.
 
     What it will NOT do is merge on similarity. `fes_y_ss_fc` and `fes_p_ss_fc`
     stay separate rows because youth-report and parent-report conflict are
@@ -213,6 +216,7 @@ class VariableIndex:
     def __init__(self) -> None:
         self._alias_to_key: Dict[str, str] = {}
         self._var_to_key: Dict[str, str] = {}
+        self._measure_to_key: Dict[str, str] = {}
 
     def learn(self, docs: Sequence[dict]) -> None:
         for doc in docs:
@@ -224,9 +228,15 @@ class VariableIndex:
                             if v.get("dictionary_status") in
                             ("verified", "verified_via_nda_api", "context_variable")
                             else None)
-                key = f"var:{str(resolved).lower()}" if resolved else mention_key
+                measure = abcd_roles.strip_timepoint(v.get("measure")
+                                                     or v.get("name")
+                                                     or v.get("variable"))
+                key = (f"var:{str(resolved).lower()}" if resolved
+                       else f"measure:{measure}" if measure else mention_key)
                 if resolved:
                     self._var_to_key[str(resolved).lower()] = key
+                if measure:
+                    self._measure_to_key.setdefault(measure, key)
                 self._alias_to_key.setdefault(mention_key, key)
                 for alias in v.get("aliases") or []:
                     ak = _norm_key(alias)
@@ -241,6 +251,9 @@ class VariableIndex:
             return self._alias_to_key[mk]
         if mk in self._var_to_key:
             return self._var_to_key[mk]
+        measure = abcd_roles.strip_timepoint(mention)
+        if measure in self._measure_to_key:
+            return self._measure_to_key[measure]
         return mk
 
 
@@ -313,12 +326,19 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
             key = vindex.key(mention)
             if not key:
                 continue
-            role = str(v.get("role") or "unspecified").lower()
+            # Every role the paper's analyses gave it, not just the headline one:
+            # a variable that is an outcome in one model and a mediator in another
+            # is genuinely both, and counting only one of them made the
+            # cross-paper role-consistency verdict a coin toss.
+            roles = [str(r).lower() for r in (v.get("roles") or [])] or [
+                str(v.get("role") or "unspecified").lower()]
+            role = roles[0]
             match = v.get("dictionary_match") or {}
             v_surface[key][mention] += 1
             v_declared[key].add(pid)
-            v_role[key][role].add(pid)
-            v_paper_roles[key][pid].add(role)
+            for r in roles:
+                v_role[key][r].add(pid)
+                v_paper_roles[key][pid].add(r)
             v_ev[key].append(_ev(pid, v, role=role,
                                  mention_as_written=v.get("mention_as_written"),
                                  dictionary_status=v.get("dictionary_status")))
@@ -345,7 +365,7 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
                 "declared": True,
             })
             use["mentions"].append(mention)
-            use["roles"].add(role)
+            use["roles"].update(roles)
             for field, target in (("timepoint", "timepoints"),
                                   ("instrument", "instruments"),
                                   ("respondent", "respondents"),
@@ -379,7 +399,7 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
                     v_surface[key][str(name).strip()] += 1
                     v_ev[key].append(_ev(pid, m, role=role, from_model=True))
                     use = v_uses[key].setdefault(pid, _bare_use(pid, doc, name))
-                    use["roles"].add(role)
+                    use["roles"].update(roles)
 
         for c in doc.get("constructs") or []:
             cid, label, mapped = construct_key(c)

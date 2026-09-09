@@ -68,7 +68,9 @@ from scripts.abcd_dictionary import Dictionary, DictionaryError
 from scripts.abcd_verify import verify_payload
 from scripts.cognitive_atlas import CognitiveAtlas, CognitiveAtlasError
 
-SKILL_VERSION = "0.6.1"
+# Keep in step with SKILL.md's frontmatter; it is stamped into every
+# result's provenance, and a stale value misdates the run.
+SKILL_VERSION = "0.8.0"
 # Results live here, beside the input rather than inside it. Overridable with
 # --out-dir; excluded from input scanning so a rerun does not read its own output.
 DEFAULT_OUT_DIRNAME = "abcd_results"
@@ -156,7 +158,7 @@ def _merge(payloads: List[dict]) -> dict:
 
 DOC_LEVEL_FIELDS = ("study", "data_release", "paper_title", "doi", "sample_size",
                     "design", "timepoints", "cohort", "site_count", "analytic_sample",
-                    "preregistered", "data_source")
+                    "preregistered", "data_source", "participants", "participant_age")
 
 # Live NDA full-text search is one request per unplaceable mention. Fine for a few
 # papers, thousands of requests for a corpus — so `--nda-api auto` only searches
@@ -252,6 +254,17 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
             "data_release": meta.get("data_release"),
             "sample_size": meta.get("sample_size"),
             "design": meta.get("design"),
+            # Everything DOC_LEVEL_FIELDS collects, not the first seven of it. The
+            # waves a paper analysed and the sample it analysed them on were being
+            # gathered from the payload and then dropped here, so a four-wave
+            # study exported with no timepoints at all.
+            "analytic_sample": meta.get("analytic_sample"),
+            "timepoints": meta.get("timepoints"),
+            "cohort": meta.get("cohort"),
+            "site_count": meta.get("site_count"),
+            "data_source": meta.get("data_source"),
+            "participants": meta.get("participants"),
+            "participant_age": meta.get("participant_age"),
         },
         **verified,
         "provenance": {

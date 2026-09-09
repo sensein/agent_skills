@@ -333,6 +333,7 @@ when there is more than one paper:
 papers/                                  <- your PDFs, untouched
 └── abcd_results/                        <- --out-dir to put it elsewhere
     ├── <stem>_abcd.{json,md,ttl}        one set per paper
+    ├── <stem>_abcd.codebook.tsv         --formats ...,codebook (opt-in)
     ├── abcd_synthesis.{json,md,ttl}     the cross-paper pass
     ├── text/<stem>.txt                  --prepare writes extracted text here
     └── payloads/<stem>.payload.json     ...and expects your payloads here
