@@ -18,9 +18,9 @@ Three capabilities for working with systematic reviews produced by SynthScholar:
    themselves; produce the full review over them and export Markdown + Turtle.
 
 Pick the mode from the request: setting up / scoping a review → intake; the
-user has PDFs → BYO corpus; inspecting a finished review → queries. Modes
-compose — a BYO review starts with the Mode 1 intake and its output is
-queryable with Mode 2.
+user has PDFs that meet the eligibility criteria for the review → BYO
+corpus; inspecting a finished review → queries. Modes compose — a BYO review
+starts with the Mode 1 intake and its output is queryable with Mode 2.
 
 ---
 
