@@ -177,7 +177,8 @@ python3 orcd_submit.py --status <jobid>
 - Other flags: `--partition` (pin), `--nodes`, `--array`, `--name`,
   `--wrap '<cmd>'` or `--remote-script <path>` instead of `--script`.
 - `--plan` before any long job: partition choice moves start time from minutes
-  to days.
+  to days, and it names any reservation the `-t` would cross (a maintenance
+  window holds such a job until it ends, reported only as `PENDING`).
 - **Always set `--mem`.** Default is 1 GB per CPU; jobs die mid-run.
 - **Arrays**: each task is a submitted job. Max array = partition
   `MaxSubmitPU + 1` (`orcd_snapshot.py` prints it); `%K` throttles concurrency
@@ -203,6 +204,7 @@ python3 orcd_submit.py --status <jobid>
 | Job dies mid-run, no clear error | 1 GB/CPU default memory | Set `--mem` |
 | `Could not open stdout file` at job start | relative `-o` resolved against `$HOME` | Absolute `-o`, or `--chdir`; dir must exist |
 | Job waits for days | congested shared partition | `--plan`; private or preemptable partition |
+| `PENDING` forever; reason `ReqNodeNotAvail, Reserved for maintenance` | the `-t` crosses a reservation start, so the job is held until the window *ends* (looks like normal queueing) | `scontrol show reservation`; shorten `-t` to fit before it starts, or submit after `EndTime` |
 | Job vanished and requeued | `PreemptMode=REQUEUE` | Expected; checkpoint, or non-preemptable partition |
 | `QOSMaxSubmitJobPerUserLimit` | array > `MaxSubmitPU`; `%K` does not help | Arrays of `MaxSubmitPU + 1` or fewer |
 | Process killed on the login node / everything slow for everyone | computing on a login node | `srun -p mit_quicktest ...` |

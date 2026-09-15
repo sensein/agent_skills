@@ -93,6 +93,16 @@ echo "@@NODESHAPES"
 # first or every multi-partition node is counted several times.
 sinfo -h -N -o "%N|%c|%m|%G" 2>/dev/null | sort -u | cut -d'|' -f2- | sort | uniq -c | awk '{print $2"|"$1}'
 
+echo "@@RESERVATIONS"
+# A maintenance window is configuration that appears without warning, and a job
+# whose -t crosses one is held rather than refused, so it belongs in the diff.
+scontrol show reservation -o 2>/dev/null | while read -r line; do
+  [ -n "$line" ] || continue
+  get() { echo "$line" | grep -oE "(^| )$1=[^ ]*" | head -1 | cut -d= -f2-; }
+  printf "%s|%s|%s|%s|%s|%s\n" "$(get ReservationName)" "$(get StartTime)" \
+    "$(get EndTime)" "$(get NodeCnt)" "$(get PartitionName)" "$(get Flags)"
+done
+
 echo "@@QUOTA"
 # ORCD's per-user quota report, regenerated roughly every 30 minutes. The only place the per-user scratch and
 # pool limits appear -- df reports the whole filesystem, not the quota.
@@ -187,6 +197,11 @@ def build_snapshot(host: str) -> dict:
 
     personal = {f[0]: f[1] for f in rows(b.get("HOMELINKS", []), 2)}
 
+    reservations = {}
+    for f in rows(b.get("RESERVATIONS", []), 6):
+        reservations[f[0]] = {"start": f[1], "end": f[2], "node_cnt": f[3],
+                              "partition": f[4], "flags": f[5]}
+
     shapes = {}
     for line in b.get("NODESHAPES", []):
         # `cpu|mem|gres|count` -- the shape itself contains `|`, so split
@@ -203,6 +218,7 @@ def build_snapshot(host: str) -> dict:
         "partitions": partitions,
         "qos": qos,
         "partition_access": access,
+        "reservations": reservations,
         "storage_groups": sorted(g for g in b.get("GROUPS", []) if g.strip()),
         "quota": quota,
         "personal_spaces": personal,
@@ -323,6 +339,9 @@ def significance(path: str) -> str | None:
         return "resource ceiling changed"
     if ".max_time" in path:
         return "walltime ceiling changed"
+    if path.startswith("reservations"):
+        return ("a reservation changed -- a job whose -t crosses one is held until the "
+                "window ends, reported only as PENDING/ReqNodeNotAvail")
     if ".preempt_mode" in path:
         return "preemption behaviour changed"
     if path.startswith("storage_groups"):
@@ -375,6 +394,15 @@ def print_summary(snap: dict) -> None:
             q.get("max_submit_pu", "") or "-",
         ])
     oc.table(rowsout, ["PARTITION", "MAXTIME", "NODES", "GPUS", "PREEMPT", "TIER", "MAXSUBMIT"])
+
+    if snap.get("reservations"):
+        oc.heading("Reservations")
+        oc.table(
+            [[n, r["start"], r["end"], r["node_cnt"], r["flags"]]
+             for n, r in sorted(snap["reservations"].items(), key=lambda kv: kv[1]["start"])],
+            ["NAME", "START", "END", "NODES", "FLAGS"],
+        )
+        print("\nA job whose -t crosses a MAINT/ALL_NODES start is held until the window ends.")
 
     if snap.get("quota"):
         oc.heading("Your quotas (~/orcd/.quota, regenerated roughly every 30 min)")

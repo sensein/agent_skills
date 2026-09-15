@@ -221,4 +221,33 @@ sacct -u $USER -S today
 
 Pending `%R` reasons: `Priority` (waiting its turn), `Resources` (waiting for
 hardware), `QOSGrp*Limit` (a ceiling above is binding -- an array then runs in
-waves below its `%K`), `ReqNodeNotAvail` (the partition lacks what was asked).
+waves below its `%K`), `ReqNodeNotAvail` (**either** the partition lacks what
+was asked **or** a reservation covers the nodes -- the suffix says which:
+`Reserved for maintenance` is the reservation case, below).
+
+## Reservations hold jobs silently
+
+A reservation does not refuse a job. If the job's time limit cannot finish
+before the reservation starts, Slurm holds it until the window *ends* --
+state `PENDING`, reason `ReqNodeNotAvail, Reserved for maintenance`. Nothing
+else distinguishes it from ordinary queue time, so an overnight wait looks
+normal while the job was never going to start.
+
+```bash
+scontrol show reservation                      # windows, node counts, flags
+squeue -j <id> -o "%i %T %r"                   # %r is the reason; %R truncates it
+```
+
+`MAINT` or `ALL_NODES` in `Flags` means cluster-wide: every partition. ORCD
+runs a monthly maintenance reservation of this kind (1,400+ nodes, a full day),
+so the arithmetic before any long submission is:
+
+```
+time until the reservation starts  >=  requested -t     ->  runs now
+otherwise                                               ->  held until EndTime
+```
+
+Shorten `-t` to fit the remaining window, or submit after `EndTime`.
+`orcd_submit.py --plan` reports the offending reservation and the largest `-t`
+that still starts now; `orcd_snapshot.py` records reservations, so a newly
+scheduled window shows up in `--diff`.
