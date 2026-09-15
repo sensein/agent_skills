@@ -8,6 +8,7 @@ paths, `*`-suffixed default partitions, regex config detection).
 from __future__ import annotations
 
 import argparse
+import datetime
 import io
 import os
 import shutil
@@ -98,6 +99,9 @@ orcd_rg_hstor006_pi_satra
 64|515000|gpu:h100:4|12
 128|1031000|gpu:h200:8|3
 64|257000|(null)|40
+@@RESERVATIONS
+monthly_maint|2026-09-15T00:00:00|2026-09-15T21:00:00|1411|(null)|MAINT,SPEC_NODES,ALL_NODES
+psfc_testing|2024-11-04T09:05:55|2026-10-20T20:00:00|9|(null)|SPEC_NODES
 @@QUOTA
                                QUOTA REPORT
  Space   | Usage (GB) | Limit (GB) | % Used |  Files | Limit | % Used
@@ -357,6 +361,68 @@ class SubmitTests(unittest.TestCase):
         self.assertEqual(submit.gpu_ceiling_note(self.args(gpus=4, nodes=2, gpu_type="h100"), ceilings), "")
         note = submit.gpu_ceiling_note(self.args(gpus=4, nodes=5, gpu_type="h100"), ceilings)
         self.assertTrue(note.startswith("EXCEEDS GROUP pool"))
+
+
+class ReservationTests(unittest.TestCase):
+    """The trap: a -t that crosses a maintenance window is held, not refused."""
+
+    NOW = datetime.datetime(2026, 9, 14, 22, 22, 51)
+    RES = [
+        {"name": "monthly_maint", "start": "2026-09-15T00:00:00", "end": "2026-09-15T21:00:00",
+         "nodes": "1411", "partition": "(null)", "flags": "MAINT,SPEC_NODES,ALL_NODES"},
+        {"name": "psfc_testing", "start": "2024-11-04T09:05:55", "end": "2026-10-20T20:00:00",
+         "nodes": "9", "partition": "(null)", "flags": "SPEC_NODES"},
+        {"name": "bcs_hold", "start": "2026-09-14T23:30:00", "end": "2026-09-15T02:00:00",
+         "nodes": "4", "partition": "ou_bcs_high", "flags": "SPEC_NODES"},
+    ]
+
+    def test_walltime_forms(self) -> None:
+        for spec, secs in [("15", 900), ("30:00", 1800), ("1:00:00", 3600),
+                           ("6:00:00", 21600), ("2-12", 216000), ("1-02:30", 95400),
+                           ("0-00:00:30", 30)]:
+            self.assertEqual(submit.parse_walltime(spec), secs, spec)
+        for bad in ["", "UNLIMITED", "abc", "1:2:3:4"]:
+            self.assertIsNone(submit.parse_walltime(bad), bad)
+
+    def test_six_hour_request_is_caught_and_offered_a_fitting_walltime(self) -> None:
+        clash = submit.reservation_conflict(self.RES, submit.parse_walltime("6:00:00"), self.NOW)
+        self.assertIsNotNone(clash)
+        self.assertEqual(clash["name"], "monthly_maint")
+        self.assertEqual(clash["fits_seconds"] // 60, 97)          # 1h37m of window
+        warning = submit.reservation_warning(clash, "6:00:00")
+        self.assertIn("-t 1:37:00", warning)
+        self.assertIn("2026-09-15T21:00:00", warning)
+
+    def test_a_walltime_that_fits_is_not_flagged(self) -> None:
+        self.assertIsNone(
+            submit.reservation_conflict(self.RES, submit.parse_walltime("1:30:00"), self.NOW))
+
+    def test_node_specific_reservations_do_not_cry_wolf(self) -> None:
+        only_specific = [r for r in self.RES if "MAINT" not in r["flags"]]
+        self.assertIsNone(
+            submit.reservation_conflict(only_specific, 86400, self.NOW))
+        # ...unless it names the partition being planned for.
+        clash = submit.reservation_conflict(only_specific, 86400, self.NOW, "ou_bcs_high")
+        self.assertEqual(clash["name"], "bcs_hold")
+
+    def test_no_walltime_or_no_cluster_clock_is_not_a_guess(self) -> None:
+        self.assertIsNone(submit.reservation_conflict(self.RES, None, self.NOW))
+        self.assertIsNone(submit.reservation_conflict(self.RES, 21600, None))
+
+    def test_queue_hint_fires_only_on_a_reservation_hold(self) -> None:
+        held = ("    22774166   train  ou_bcs_high  PENDING  0:00  6:00:00  1 "
+                "(ReqNodeNotAvail, Reserved for maintenance)")
+        self.assertIn("held by a reservation", submit.pending_reservation_hint(held))
+        normal = "    22774167   train  mit_normal_gpu  PENDING  0:00  6:00:00  1 (Priority)"
+        self.assertEqual(submit.pending_reservation_hint(normal), "")
+
+    def test_snapshot_records_reservations_and_explains_a_change(self) -> None:
+        with mock.patch.object(oc, "run_remote", return_value=SNAPSHOT_REMOTE):
+            snap = snapshot.build_snapshot("orcd")
+        self.assertEqual(snap["reservations"]["monthly_maint"]["end"], "2026-09-15T21:00:00")
+        self.assertIn("MAINT", snap["reservations"]["monthly_maint"]["flags"])
+        why = snapshot.significance("reservations.monthly_maint.start")
+        self.assertIn("held until the window ends", why)
 
 
 class DoctorGitClassifyTests(unittest.TestCase):

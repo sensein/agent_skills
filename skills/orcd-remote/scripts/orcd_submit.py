@@ -23,12 +23,142 @@ the shared GPU partition are both one flag apart.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import re
 import shlex
 import sys
 from pathlib import Path
 
 import orcd_common as oc
+
+
+def parse_walltime(spec: str) -> int | None:
+    """Seconds for an sbatch ``-t`` value, or None if unbounded/unparsable.
+
+    Slurm's forms: ``MM``, ``MM:SS``, ``HH:MM:SS``, ``DD-HH``, ``DD-HH:MM``,
+    ``DD-HH:MM:SS``. Note ``30`` is thirty *minutes*, not seconds.
+    """
+    s = spec.strip()
+    if not s or s.upper() in ("UNLIMITED", "INFINITE"):
+        return None
+    days = 0
+    if "-" in s:
+        d, _, s = s.partition("-")
+        if not d.isdigit():
+            return None
+        days = int(d)
+        parts = (s.split(":") if s else ["0"]) + ["0", "0"]
+        h, m, sec = parts[:3]
+    else:
+        parts = s.split(":")
+        if len(parts) == 1:
+            h, m, sec = "0", parts[0], "0"
+        elif len(parts) == 2:
+            h, m, sec = "0", parts[0], parts[1]
+        elif len(parts) == 3:
+            h, m, sec = parts
+        else:
+            return None
+    try:
+        return days * 86400 + int(h) * 3600 + int(m) * 60 + int(sec)
+    except ValueError:
+        return None
+
+
+def _slurm_time(text: str) -> dt.datetime | None:
+    try:
+        return dt.datetime.strptime(text.strip(), "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def fetch_reservations(host: str) -> tuple[dt.datetime | None, list[dict[str, str]]]:
+    """Active and upcoming reservations, plus the *cluster's* current time.
+
+    The cluster's clock is what Slurm compares against, and it need not match
+    the caller's, so the comparison baseline is fetched with the reservations.
+    """
+    script = r'''
+set +e
+echo "@@NOW"
+date +%Y-%m-%dT%H:%M:%S
+echo "@@RES"
+scontrol show reservation -o 2>/dev/null | while read -r line; do
+  [ -n "$line" ] || continue
+  get() { echo "$line" | grep -oE "(^| )$1=[^ ]*" | head -1 | cut -d= -f2-; }
+  printf "%s|%s|%s|%s|%s|%s\n" "$(get ReservationName)" "$(get StartTime)" \
+    "$(get EndTime)" "$(get NodeCnt)" "$(get PartitionName)" "$(get Flags)"
+done
+'''
+    blocks = oc.parse_kv_blocks(oc.run_remote(script, host=host, timeout=60, check=False))
+    now = _slurm_time(next((l for l in blocks.get("NOW", []) if l.strip()), ""))
+    res = []
+    for line in blocks.get("RES", []):
+        f = [x.strip() for x in line.split("|")]
+        if len(f) >= 6 and f[0]:
+            res.append({"name": f[0], "start": f[1], "end": f[2],
+                        "nodes": f[3], "partition": f[4], "flags": f[5]})
+    return now, res
+
+
+def reservation_conflict(reservations: list[dict[str, str]], walltime_s: int | None,
+                         now: dt.datetime | None, partition: str | None = None) -> dict | None:
+    """The reservation a job of this walltime would run into, if any.
+
+    A job whose time limit crosses the start of a reservation covering its
+    nodes is not scheduled before it: Slurm holds it (``ReqNodeNotAvail,
+    Reserved for maintenance``) until the window ends, which looks exactly like
+    ordinary queueing. Only cluster-wide reservations (``MAINT``/``ALL_NODES``)
+    and ones naming this partition are reported; node-specific reservations
+    cannot be evaluated from here and would only cry wolf.
+
+    Returns the soonest offender with ``fits_seconds`` -- the largest ``-t``
+    that still starts now.
+    """
+    if not walltime_s or now is None:
+        return None
+    deadline = now + dt.timedelta(seconds=walltime_s)
+    best: dict | None = None
+    for r in reservations:
+        flags = r.get("flags", "").upper()
+        rpart = r.get("partition", "")
+        cluster_wide = "MAINT" in flags or "ALL_NODES" in flags
+        names_partition = bool(partition) and rpart == partition
+        if not (cluster_wide or names_partition):
+            continue
+        start = _slurm_time(r.get("start", ""))
+        if start is None or start <= now or start > deadline:
+            continue
+        if best is None or start < _slurm_time(best["start"]):
+            best = {**r, "fits_seconds": int((start - now).total_seconds())}
+    return best
+
+
+def reservation_warning(res: dict, walltime: str) -> str:
+    """Explain a held-by-reservation request and the walltime that would run."""
+    fits = res["fits_seconds"]
+    hh, mm = divmod(max(fits // 60, 0), 60)
+    return (
+        f"\nWARNING: reservation {res['name']} starts {res['start']} "
+        f"(ends {res['end']}, {res['nodes']} nodes, flags {res['flags']}).\n"
+        f"A -t {walltime} request cannot finish before then, so Slurm holds it until the\n"
+        f"window ends -- shown only as PENDING, reason `ReqNodeNotAvail, Reserved for\n"
+        f"maintenance`, indistinguishable from ordinary queueing.\n"
+        f"Largest walltime that starts now: -t {hh}:{mm:02d}:00 ({fits // 60} min).\n"
+        f"Otherwise submit after {res['end']}."
+    )
+
+
+def pending_reservation_hint(queue_text: str) -> str:
+    """Flag queue rows held by a reservation rather than waiting their turn."""
+    if not re.search(r"ReqNodeNotAvail|Reserved for maintenance|ReqNodeNotAvail,\s*Reserv", queue_text):
+        return ""
+    return (
+        "\nOne or more jobs are held by a reservation, not queueing: `ReqNodeNotAvail`\n"
+        "with a reservation means the time limit crosses a maintenance window, so the\n"
+        "job waits for the window to end. `scontrol show reservation` shows when;\n"
+        "resubmit with a walltime that fits before it starts."
+    )
 
 
 def literal_path_problem(args: argparse.Namespace) -> str:
@@ -201,6 +331,7 @@ def main() -> int:
                 host=args.host, timeout=60,
             )
             print(out.rstrip() or "(no jobs)")
+            print(pending_reservation_hint(out), end="")
             return 0
 
         if args.status:
@@ -243,6 +374,15 @@ def main() -> int:
         oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "NOTE"])
         if any(r[4].startswith("EXCEEDS") for r in rows):
             print("\nEXCEEDS: --test-only ignores QOS TRES ceilings; those rows would queue forever and are excluded.")
+
+        # A reservation the walltime crosses holds the job with no distinct
+        # state: WOULD START above already lands past the window, but the
+        # reason is worth naming, along with the walltime that runs now.
+        res_now, reservations = fetch_reservations(args.host)
+        clash = reservation_conflict(reservations, parse_walltime(args.time), res_now,
+                                     args.partition)
+        if clash:
+            print(reservation_warning(clash, args.time))
 
         if not viable:
             print("\nNo partition accepts this request (usual causes: over the QOS limit, or -t above MaxTime).")
