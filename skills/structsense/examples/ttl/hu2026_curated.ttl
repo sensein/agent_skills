@@ -1,0 +1,898 @@
+@prefix ner:     <https://brainkb.org/ner/> .
+@prefix ex:      <https://brainkb.org/kb/s41593-026-02429-3/> .
+@prefix obo:     <http://purl.obolibrary.org/obo/> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+##############################################################################
+# Named-entity extraction of:
+#   Hu B, Temiz NZ, Chou C-N, Rupprecht P, Meissner-Bernard C, Titze B,
+#   Chung S, Friedrich RW. "Representational learning by optimization of
+#   neural manifolds in an olfactory memory network."
+#   Nature Neuroscience (2026). doi:10.1038/s41593-026-02429-3
+#
+# Instances conform to the BrainKB NER ontology
+# (named_entity_ontology_biomedical_neuroscience_v2_3).
+# Cross-ontology hooks:
+#   - ner:resolvedToConcept -> ner:OntologyConcept (conceptIRI = OBO PURL)
+#   - skos:exactMatch / skos:closeMatch / skos:relatedMatch asserted directly
+#     on each ner:NamedEntity so the graph auto-connects to CL, UBERON, ZFA,
+#     CHEBI, GO, NBO, OBI, NCBITaxon under standard SSSOM/OBO federation.
+# All external IDs verified against EBI OLS4 (2026-09-24).
+##############################################################################
+
+########################  Source publication  ###############################
+
+ex:publication a ner:Publication ;
+    ner:doi   "10.1038/s41593-026-02429-3" ;
+    ner:title "Representational learning by optimization of neural manifolds in an olfactory memory network" ;
+    ner:hasDocumentVersion ex:docv1 .
+
+ex:docv1 a ner:DocumentVersion ;
+    ner:versionOfDocument ex:publication ;
+    ner:mediaType "application/pdf" .
+
+########################  Extraction provenance  ############################
+
+ex:extraction-run-1 a ner:NERExtractionActivity ;
+    ner:taskType "named entity recognition + concept mapping" ;
+    ner:runIdentifier "hu2026-ner-v1" ;
+    prov:wasAssociatedWith ex:agent-claude ;
+    prov:used ex:docv1 .
+
+ex:agent-claude a ner:LanguageModelAgent ;
+    rdfs:label "Claude (Anthropic), OLS4-verified concept mapping" .
+
+ex:snapshot-1 a ner:ExtractionSnapshot ;
+    ner:snapshotOfDocumentVersion ex:docv1 ;
+    prov:wasGeneratedBy ex:extraction-run-1 .
+
+########################  External ontologies  ##############################
+
+ex:onto-ncbitaxon a ner:ExternalOntology ; ner:ontologyAcronym "NCBITaxon" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/ncbitaxon.owl> .
+ex:onto-uberon a ner:ExternalOntology ; ner:ontologyAcronym "UBERON" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/uberon.owl> .
+ex:onto-zfa a ner:ExternalOntology ; ner:ontologyAcronym "ZFA" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/zfa.owl> .
+ex:onto-cl a ner:ExternalOntology ; ner:ontologyAcronym "CL" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/cl.owl> .
+ex:onto-chebi a ner:ExternalOntology ; ner:ontologyAcronym "CHEBI" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/chebi.owl> .
+ex:onto-go a ner:ExternalOntology ; ner:ontologyAcronym "GO" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/go.owl> .
+ex:onto-nbo a ner:ExternalOntology ; ner:ontologyAcronym "NBO" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/nbo.owl> .
+ex:onto-obi a ner:ExternalOntology ; ner:ontologyAcronym "OBI" ;
+    ner:ontologyIRI <http://purl.obolibrary.org/obo/obi.owl> .
+
+##############################################################################
+# 1. ORGANISMS, STAGES, TRANSGENIC LINES
+##############################################################################
+
+ex:entity-zebrafish a ner:Species, ner:NamedEntity ;
+    ner:normalizedEntityKey "danio_rerio" ;
+    ner:normalizedEntityLabel "Danio rerio (zebrafish)" ;
+    ner:hasMention ex:m-zebrafish-1 ;
+    ner:resolvedToConcept ex:c-NCBITaxon_7955 ;
+    skos:exactMatch obo:NCBITaxon_7955 .
+ex:m-zebrafish-1 a ner:EntityMention ; ner:surfaceForm "zebrafish (Danio rerio)" .
+ex:c-NCBITaxon_7955 a ner:OntologyConcept ;
+    ner:conceptIdentifier "NCBITaxon:7955" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/NCBITaxon_7955> ;
+    ner:preferredLabel "Danio rerio" .
+
+ex:entity-juvenile-stage a ner:LifeStage, ner:NamedEntity ;
+    ner:normalizedEntityKey "juvenile_stage" ;
+    ner:normalizedEntityLabel "juvenile stage (46-56 dpf; 9.0-13.5 mm)" ;
+    ner:hasMention ex:m-juv-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0034919 ;
+    skos:exactMatch obo:UBERON_0034919 .
+ex:m-juv-1 a ner:EntityMention ; ner:surfaceForm "juvenile fish" .
+ex:c-UBERON_0034919 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0034919" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0034919> ;
+    ner:preferredLabel "juvenile stage" .
+
+ex:entity-adult-stage a ner:LifeStage, ner:NamedEntity ;
+    ner:normalizedEntityKey "adult_stage" ;
+    ner:normalizedEntityLabel "adult (5-6 months)" ;
+    ner:hasMention ex:m-adult-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0007023 ;
+    skos:closeMatch obo:UBERON_0007023 .
+ex:m-adult-1 a ner:EntityMention ; ner:surfaceForm "adult fish" .
+ex:c-UBERON_0007023 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0007023" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0007023> ;
+    ner:preferredLabel "adult organism" .
+
+ex:entity-tg-gcamp6s-line a ner:Strain, ner:NamedEntity ;
+    ner:normalizedEntityKey "tg_alphatubulin_gcamp6s" ;
+    ner:normalizedEntityLabel "Tg[alphaTubulin:GCaMP6s] transgenic zebrafish line" ;
+    ner:hasMention ex:m-tgline-1 ;
+    rdfs:comment "Pan-neuronal GCaMP6s under alpha-tubulin promoter; register to ZFIN line ID downstream." .
+ex:m-tgline-1 a ner:EntityMention ; ner:surfaceForm "Tg[alphaTubulin:GCaMP6s]" .
+
+ex:entity-tg-chr2-line a ner:Strain, ner:NamedEntity ;
+    ner:normalizedEntityKey "tg_dlx4_6_chr2_yfp" ;
+    ner:normalizedEntityLabel "Tg[dlx4/6:ChR2-YFP] transgenic zebrafish line" ;
+    ner:hasMention ex:m-tgchr2-1 ;
+    rdfs:comment "ChR2-YFP in superficial inhibitory interneurons of the olfactory bulb; register to ZFIN downstream." .
+ex:m-tgchr2-1 a ner:EntityMention ; ner:surfaceForm "Tg[dlx4/6:ChR2-YFP]" .
+
+##############################################################################
+# 2. BRAIN REGIONS AND ANATOMY  (UBERON / ZFA)
+##############################################################################
+
+ex:entity-pdp a ner:BrainRegion, ner:NamedEntity ;
+    ner:normalizedEntityKey "pdp_posterior_dorsal_telencephalon" ;
+    ner:normalizedEntityLabel "posterior zone of dorsal telencephalon (pDp/Dp)" ;
+    ner:hasMention ex:m-pdp-1, ex:m-pdp-2 ;
+    ner:resolvedToConcept ex:c-ZFA_0000181 ;
+    skos:exactMatch obo:ZFA_0000181 ;
+    rdfs:comment "Teleost homolog of piriform cortex (see homologyTo ex:entity-piriform-cortex); ZFA:0000181 lists 'Dp' and 'posterior zone of dorsal telencephalic area' as exact synonyms." .
+ex:m-pdp-1 a ner:EntityMention ; ner:surfaceForm "telencephalic area pDp" .
+ex:m-pdp-2 a ner:EntityMention ; ner:surfaceForm "Dp" ; ner:attributiveForm true .
+ex:c-ZFA_0000181 a ner:OntologyConcept ;
+    ner:conceptIdentifier "ZFA:0000181" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/ZFA_0000181> ;
+    ner:preferredLabel "caudal zone of dorsal telencephalon" .
+
+ex:entity-olfactory-bulb a ner:BrainRegion, ner:NamedEntity ;
+    ner:normalizedEntityKey "olfactory_bulb" ;
+    ner:normalizedEntityLabel "olfactory bulb" ;
+    ner:hasMention ex:m-ob-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0002264 ;
+    skos:exactMatch obo:UBERON_0002264 .
+ex:m-ob-1 a ner:EntityMention ; ner:surfaceForm "olfactory bulb (OB)" .
+ex:c-UBERON_0002264 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0002264" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0002264> ;
+    ner:preferredLabel "olfactory bulb" .
+
+ex:entity-telencephalon a ner:BrainRegion, ner:NamedEntity ;
+    ner:normalizedEntityKey "telencephalon" ;
+    ner:normalizedEntityLabel "telencephalon" ;
+    ner:hasMention ex:m-tel-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0001893 ;
+    skos:exactMatch obo:UBERON_0001893 .
+ex:m-tel-1 a ner:EntityMention ; ner:surfaceForm "telencephalon (Tel.)" .
+ex:c-UBERON_0001893 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0001893" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0001893> ;
+    ner:preferredLabel "telencephalon" .
+
+ex:entity-piriform-cortex a ner:CorticalArea, ner:NamedEntity ;
+    ner:normalizedEntityKey "piriform_cortex" ;
+    ner:normalizedEntityLabel "piriform cortex" ;
+    ner:hasMention ex:m-pir-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0004725 ;
+    skos:exactMatch obo:UBERON_0004725 .
+ex:m-pir-1 a ner:EntityMention ; ner:surfaceForm "piriform cortex" .
+ex:c-UBERON_0004725 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0004725" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0004725> ;
+    ner:preferredLabel "piriform cortex" .
+
+ex:entity-anterior-commissure a ner:NeuralTract, ner:NamedEntity ;
+    ner:normalizedEntityKey "anterior_commissure" ;
+    ner:normalizedEntityLabel "anterior commissure" ;
+    ner:hasMention ex:m-ac-1 ;
+    ner:resolvedToConcept ex:c-UBERON_0000935 ;
+    skos:exactMatch obo:UBERON_0000935 .
+ex:m-ac-1 a ner:EntityMention ; ner:surfaceForm "anterior commissure (AC)" .
+ex:c-UBERON_0000935 a ner:OntologyConcept ;
+    ner:conceptIdentifier "UBERON:0000935" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/UBERON_0000935> ;
+    ner:preferredLabel "anterior commissure" .
+
+##############################################################################
+# 3. CELL TYPES  (CL)
+##############################################################################
+
+ex:entity-neuron a ner:Neuron, ner:NamedEntity ;
+    ner:normalizedEntityKey "neuron" ;
+    ner:normalizedEntityLabel "neuron" ;
+    ner:hasMention ex:m-neuron-1 ;
+    ner:resolvedToConcept ex:c-CL_0000540 ;
+    skos:exactMatch obo:CL_0000540 .
+ex:m-neuron-1 a ner:EntityMention ; ner:surfaceForm "neurons" .
+ex:c-CL_0000540 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CL:0000540" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CL_0000540> ;
+    ner:preferredLabel "neuron" .
+
+ex:entity-excitatory-neuron a ner:ExcitatoryNeuron, ner:NamedEntity ;
+    ner:normalizedEntityKey "excitatory_neuron_pdp" ;
+    ner:normalizedEntityLabel "excitatory (E) neuron" ;
+    ner:hasMention ex:m-eneuron-1 ;
+    ner:resolvedToConcept ex:c-CL_0000679 ;
+    skos:closeMatch obo:CL_0000679 .
+ex:m-eneuron-1 a ner:EntityMention ; ner:surfaceForm "excitatory pDp neurons (E)" .
+ex:c-CL_0000679 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CL:0000679" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CL_0000679> ;
+    ner:preferredLabel "glutamatergic neuron" .
+
+ex:entity-inhibitory-neuron a ner:InhibitoryNeuron, ner:NamedEntity ;
+    ner:normalizedEntityKey "inhibitory_neuron_pdp" ;
+    ner:normalizedEntityLabel "inhibitory (I) neuron" ;
+    ner:hasMention ex:m-ineuron-1 ;
+    ner:resolvedToConcept ex:c-CL_0000617 ;
+    skos:closeMatch obo:CL_0000617 .
+ex:m-ineuron-1 a ner:EntityMention ; ner:surfaceForm "inhibitory neurons (I)" .
+ex:c-CL_0000617 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CL:0000617" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CL_0000617> ;
+    ner:preferredLabel "GABAergic neuron" .
+
+ex:entity-inhibitory-interneuron a ner:Interneuron, ner:NamedEntity ;
+    ner:normalizedEntityKey "ob_inhibitory_interneuron" ;
+    ner:normalizedEntityLabel "olfactory bulb superficial inhibitory interneuron" ;
+    ner:hasMention ex:m-iint-1 ;
+    ner:resolvedToConcept ex:c-CL_0000498 ;
+    skos:closeMatch obo:CL_0000498 .
+ex:m-iint-1 a ner:EntityMention ; ner:surfaceForm "superficial inhibitory interneurons of the olfactory bulb" .
+ex:c-CL_0000498 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CL:0000498" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CL_0000498> ;
+    ner:preferredLabel "inhibitory interneuron" .
+
+ex:entity-mitral-cell a ner:ProjectionNeuron, ner:NamedEntity ;
+    ner:normalizedEntityKey "mitral_cell" ;
+    ner:normalizedEntityLabel "mitral cell" ;
+    ner:hasMention ex:m-mitral-1 ;
+    ner:resolvedToConcept ex:c-CL_1001502 ;
+    skos:exactMatch obo:CL_1001502 .
+ex:m-mitral-1 a ner:EntityMention ; ner:surfaceForm "mitral cells" .
+ex:c-CL_1001502 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CL:1001502" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CL_1001502> ;
+    ner:preferredLabel "mitral cell" .
+
+ex:entity-ei-assembly a ner:NeuralPopulation, ner:NamedEntity ;
+    ner:normalizedEntityKey "ei_assembly" ;
+    ner:normalizedEntityLabel "E/I-assembly (coupled excitatory-inhibitory neuronal assembly)" ;
+    ner:hasMention ex:m-eia-1 ;
+    rdfs:comment "Model construct: 100 E + 25 I neurons with enhanced connectivity storing an odor memory; no external ontology term." .
+ex:m-eia-1 a ner:EntityMention ; ner:surfaceForm "E/I-assembly" .
+
+##############################################################################
+# 4. CHEMICAL ENTITIES  (CHEBI) — odorants and reagents
+##############################################################################
+
+ex:entity-phe a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_phenylalanine" ;
+    ner:normalizedEntityLabel "L-phenylalanine (Phe; amino acid odorant; CS in some groups)" ;
+    ner:hasMention ex:m-phe-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_17295 ;
+    skos:exactMatch obo:CHEBI_17295 .
+ex:m-phe-1 a ner:EntityMention ; ner:surfaceForm "Phe" .
+ex:c-CHEBI_17295 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:17295" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_17295> ;
+    ner:preferredLabel "L-phenylalanine" .
+
+ex:entity-arg a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_arginine" ;
+    ner:normalizedEntityLabel "L-arginine (Arg; amino acid odorant; CS in some groups)" ;
+    ner:hasMention ex:m-arg-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_16467 ;
+    skos:exactMatch obo:CHEBI_16467 .
+ex:m-arg-1 a ner:EntityMention ; ner:surfaceForm "Arg" .
+ex:c-CHEBI_16467 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:16467" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_16467> ;
+    ner:preferredLabel "L-arginine" .
+
+ex:entity-trp a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_tryptophan" ;
+    ner:normalizedEntityLabel "L-tryptophan (Trp; amino acid odorant; adult CS+)" ;
+    ner:hasMention ex:m-trp-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_16828 ;
+    skos:exactMatch obo:CHEBI_16828 .
+ex:m-trp-1 a ner:EntityMention ; ner:surfaceForm "Trp" .
+ex:c-CHEBI_16828 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:16828" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_16828> ;
+    ner:preferredLabel "L-tryptophan" .
+
+ex:entity-ala a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_alanine" ;
+    ner:normalizedEntityLabel "L-alanine (Ala; adult CS-)" ;
+    ner:hasMention ex:m-ala-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_16977 ;
+    skos:exactMatch obo:CHEBI_16977 .
+ex:m-ala-1 a ner:EntityMention ; ner:surfaceForm "alanine (Ala)" .
+ex:c-CHEBI_16977 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:16977" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_16977> ;
+    ner:preferredLabel "L-alanine" .
+
+ex:entity-ser a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_serine" ;
+    ner:normalizedEntityLabel "L-serine (Ser; non-conditioned odorant)" ;
+    ner:hasMention ex:m-ser-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_17115 ;
+    skos:exactMatch obo:CHEBI_17115 .
+ex:m-ser-1 a ner:EntityMention ; ner:surfaceForm "serine (Ser)" .
+ex:c-CHEBI_17115 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:17115" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_17115> ;
+    ner:preferredLabel "L-serine" .
+
+ex:entity-his a ner:AminoAcid, ner:NamedEntity ;
+    ner:normalizedEntityKey "l_histidine" ;
+    ner:normalizedEntityLabel "L-histidine (His; non-conditioned odorant)" ;
+    ner:hasMention ex:m-his-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_15971 ;
+    skos:exactMatch obo:CHEBI_15971 .
+ex:m-his-1 a ner:EntityMention ; ner:surfaceForm "histidine (His)" .
+ex:c-CHEBI_15971 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:15971" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_15971> ;
+    ner:preferredLabel "L-histidine" .
+
+ex:entity-tdca a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "taurodeoxycholic_acid" ;
+    ner:normalizedEntityLabel "taurodeoxycholic acid (TDCA; bile acid odorant)" ;
+    ner:hasMention ex:m-tdca-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_9410 ;
+    skos:exactMatch obo:CHEBI_9410 .
+ex:m-tdca-1 a ner:EntityMention ; ner:surfaceForm "TDCA" .
+ex:c-CHEBI_9410 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:9410" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_9410> ;
+    ner:preferredLabel "taurodeoxycholic acid" .
+
+ex:entity-tca a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "taurocholic_acid" ;
+    ner:normalizedEntityLabel "taurocholic acid (TCA; bile acid odorant)" ;
+    ner:hasMention ex:m-tca-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_28865 ;
+    skos:exactMatch obo:CHEBI_28865 .
+ex:m-tca-1 a ner:EntityMention ; ner:surfaceForm "TCA" .
+ex:c-CHEBI_28865 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:28865" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_28865> ;
+    ner:preferredLabel "taurocholic acid" .
+
+ex:entity-gca a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "glycocholic_acid" ;
+    ner:normalizedEntityLabel "glycocholic acid (GCA; bile acid odorant)" ;
+    ner:hasMention ex:m-gca-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_17687 ;
+    skos:exactMatch obo:CHEBI_17687 .
+ex:m-gca-1 a ner:EntityMention ; ner:surfaceForm "GCA" .
+ex:c-CHEBI_17687 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:17687" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_17687> ;
+    ner:preferredLabel "glycocholic acid" .
+
+ex:entity-fluorescein a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "fluorescein" ;
+    ner:normalizedEntityLabel "fluorescein (odor-onset calibration dye)" ;
+    ner:hasMention ex:m-fluo-1 ;
+    ner:resolvedToConcept ex:c-CHEBI_31624 ;
+    skos:closeMatch obo:CHEBI_31624 .
+ex:m-fluo-1 a ner:EntityMention ; ner:surfaceForm "fluorescein" .
+ex:c-CHEBI_31624 a ner:OntologyConcept ;
+    ner:conceptIdentifier "CHEBI:31624" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/CHEBI_31624> ;
+    ner:preferredLabel "fluorescein (lactone form)" .
+
+ex:entity-ogb1 a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "ogb1_am" ;
+    ner:normalizedEntityLabel "Oregon Green 488 BAPTA-1-AM (OGB-1; synthetic calcium indicator)" ;
+    ner:hasMention ex:m-ogb1-1 ;
+    rdfs:comment "No verified CHEBI term for the AM ester; candidate mapping pending." .
+ex:m-ogb1-1 a ner:EntityMention ; ner:surfaceForm "Oregon Green 488 BAPTA-1-AM (OGB-1)" .
+
+##############################################################################
+# 5. PROTEINS, GENETIC ELEMENTS
+##############################################################################
+
+ex:entity-gcamp6s a ner:Protein, ner:NamedEntity ;
+    ner:normalizedEntityKey "gcamp6s" ;
+    ner:normalizedEntityLabel "GCaMP6s (genetically encoded calcium indicator)" ;
+    ner:hasMention ex:m-gcamp-1 ;
+    rdfs:comment "Engineered GFP-calmodulin fusion; no canonical PR/UniProt entry; link to Addgene/FPbase downstream." .
+ex:m-gcamp-1 a ner:EntityMention ; ner:surfaceForm "calcium indicator GCaMP6s" .
+
+ex:entity-chr2 a ner:IonChannel, ner:NamedEntity ;
+    ner:normalizedEntityKey "channelrhodopsin_2" ;
+    ner:normalizedEntityLabel "channelrhodopsin-2 (ChR2)" ;
+    ner:hasMention ex:m-chr2-1 ;
+    rdfs:comment "Light-gated cation channel from Chlamydomonas reinhardtii; map to PR/UniProt (ChR2) downstream." .
+ex:m-chr2-1 a ner:EntityMention ; ner:surfaceForm "channelrhodopsin-2 fused to YFP" .
+
+ex:entity-atub-promoter a ner:Promoter, ner:NamedEntity ;
+    ner:normalizedEntityKey "alpha_tubulin_promoter" ;
+    ner:normalizedEntityLabel "alpha-tubulin promoter (pan-neuronal)" ;
+    ner:hasMention ex:m-atub-1 .
+ex:m-atub-1 a ner:EntityMention ; ner:surfaceForm "α-tubulin promoter" .
+
+ex:entity-dlx46 a ner:RegulatoryRegion, ner:NamedEntity ;
+    ner:normalizedEntityKey "dlx4_6_regulatory_element" ;
+    ner:normalizedEntityLabel "dlx4/6 regulatory element" ;
+    ner:hasMention ex:m-dlx-1 .
+ex:m-dlx-1 a ner:EntityMention ; ner:surfaceForm "dlx4/6" .
+
+##############################################################################
+# 6. NEURAL / COGNITIVE PROCESSES AND CONCEPTS  (GO / NBO)
+##############################################################################
+
+ex:entity-odor-discrimination-learning a ner:LearningProcess, ner:NamedEntity ;
+    ner:normalizedEntityKey "olfactory_discrimination_learning" ;
+    ner:normalizedEntityLabel "olfactory discrimination learning (appetitive conditioning)" ;
+    ner:hasMention ex:m-odl-1 ;
+    ner:resolvedToConcept ex:c-GO_0008355 ;
+    skos:closeMatch obo:GO_0008355 ;
+    skos:relatedMatch obo:GO_0008306 , obo:NBO_0000323 .
+ex:m-odl-1 a ner:EntityMention ; ner:surfaceForm "odor discrimination training" .
+ex:c-GO_0008355 a ner:OntologyConcept ;
+    ner:conceptIdentifier "GO:0008355" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/GO_0008355> ;
+    ner:preferredLabel "olfactory learning" .
+
+ex:entity-associative-learning a ner:LearningProcess, ner:NamedEntity ;
+    ner:normalizedEntityKey "associative_learning" ;
+    ner:normalizedEntityLabel "associative learning" ;
+    ner:hasMention ex:m-al-1 ;
+    ner:resolvedToConcept ex:c-GO_0008306 ;
+    skos:exactMatch obo:GO_0008306 .
+ex:m-al-1 a ner:EntityMention ; ner:surfaceForm "associative learning" .
+ex:c-GO_0008306 a ner:OntologyConcept ;
+    ner:conceptIdentifier "GO:0008306" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/GO_0008306> ;
+    ner:preferredLabel "associative learning" .
+
+ex:entity-memory a ner:MemoryProcess, ner:NamedEntity ;
+    ner:normalizedEntityKey "olfactory_memory" ;
+    ner:normalizedEntityLabel "olfactory / autoassociative memory" ;
+    ner:hasMention ex:m-mem-1 ;
+    ner:resolvedToConcept ex:c-GO_0007613 ;
+    skos:closeMatch obo:GO_0007613 .
+ex:m-mem-1 a ner:EntityMention ; ner:surfaceForm "autoassociative memory" .
+ex:c-GO_0007613 a ner:OntologyConcept ;
+    ner:conceptIdentifier "GO:0007613" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/GO_0007613> ;
+    ner:preferredLabel "memory" .
+
+ex:entity-olfactory-behavior a ner:Behavior, ner:NamedEntity ;
+    ner:normalizedEntityKey "appetitive_olfactory_behavior" ;
+    ner:normalizedEntityLabel "appetitive behavior in response to odor (ζ score)" ;
+    ner:hasMention ex:m-beh-1 ;
+    ner:resolvedToConcept ex:c-NBO_0000323 ;
+    skos:closeMatch obo:NBO_0000323 ;
+    skos:relatedMatch obo:GO_0042048 .
+ex:m-beh-1 a ner:EntityMention ; ner:surfaceForm "appetitive behavior" .
+ex:c-NBO_0000323 a ner:OntologyConcept ;
+    ner:conceptIdentifier "NBO:0000323" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/NBO_0000323> ;
+    ner:preferredLabel "olfactory behavior" .
+
+ex:entity-representational-learning a ner:LearningProcess, ner:NamedEntity ;
+    ner:normalizedEntityKey "representational_learning" ;
+    ner:normalizedEntityLabel "representational learning" ;
+    ner:hasMention ex:m-rl-1 ;
+    rdfs:comment "Central theoretical construct; no OBO term — candidate for Cognitive Atlas mapping." .
+ex:m-rl-1 a ner:EntityMention ; ner:surfaceForm "representational learning" .
+
+ex:entity-neural-manifold a ner:NeuroscienceEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "neural_manifold" ;
+    ner:normalizedEntityLabel "neural manifold (activity subspace / point-cloud of population vectors)" ;
+    ner:hasMention ex:m-nm-1 .
+ex:m-nm-1 a ner:EntityMention ; ner:surfaceForm "neural manifolds" .
+
+ex:entity-attractor-dynamics a ner:NeuralActivity, ner:NamedEntity ;
+    ner:normalizedEntityKey "attractor_dynamics" ;
+    ner:normalizedEntityLabel "attractor dynamics (fixed-point / chaotic attractor states)" ;
+    ner:hasMention ex:m-att-1 .
+ex:m-att-1 a ner:EntityMention ; ner:surfaceForm "attractor dynamics" .
+
+ex:entity-synaptic-balance a ner:SynapticProcess, ner:NamedEntity ;
+    ner:normalizedEntityKey "precise_synaptic_balance" ;
+    ner:normalizedEntityLabel "precise synaptic balance (co-tuned E/I currents)" ;
+    ner:hasMention ex:m-bal-1 .
+ex:m-bal-1 a ner:EntityMention ; ner:surfaceForm "precise synaptic balance" .
+
+ex:entity-odor-evoked-activity a ner:NeuralActivity, ner:NamedEntity ;
+    ner:normalizedEntityKey "odor_evoked_population_activity" ;
+    ner:normalizedEntityLabel "odor-evoked population activity in pDp" ;
+    ner:hasMention ex:m-oea-1 .
+ex:m-oea-1 a ner:EntityMention ; ner:surfaceForm "odor-evoked activity" .
+
+##############################################################################
+# 7. METHODS, MODALITIES, ALGORITHMS, SOFTWARE  (OBI where available)
+##############################################################################
+
+ex:entity-2p-calcium-imaging a ner:NeuroimagingModality, ner:NamedEntity ;
+    ner:normalizedEntityKey "two_photon_calcium_imaging" ;
+    ner:normalizedEntityLabel "volumetric two-photon calcium imaging (7.5 Hz remote z-scanning)" ;
+    ner:hasMention ex:m-2p-1 ;
+    skos:relatedMatch obo:OBI_0001052 ;
+    rdfs:comment "OBI:0001052 (two-photon laser/detector) is the instrument facet; no OBI assay term for calcium imaging yet." .
+ex:m-2p-1 a ner:EntityMention ; ner:surfaceForm "volumetric two-photon calcium imaging" .
+
+ex:entity-patch-clamp a ner:ElectrophysiologyModality, ner:NamedEntity ;
+    ner:normalizedEntityKey "whole_cell_patch_clamp" ;
+    ner:normalizedEntityLabel "whole-cell current/voltage clamp recording" ;
+    ner:hasMention ex:m-pc-1 ;
+    ner:resolvedToConcept ex:c-OBI_0002178 ;
+    skos:exactMatch obo:OBI_0002178 .
+ex:m-pc-1 a ner:EntityMention ; ner:surfaceForm "whole-cell current and voltage clamp recordings" .
+ex:c-OBI_0002178 a ner:OntologyConcept ;
+    ner:conceptIdentifier "OBI:0002178" ;
+    ner:conceptIRI <http://purl.obolibrary.org/obo/OBI_0002178> ;
+    ner:preferredLabel "whole-cell patch clamp assay" .
+
+ex:entity-optogenetic-silencing a ner:Stimulation, ner:NamedEntity ;
+    ner:normalizedEntityKey "optogenetic_silencing_ob" ;
+    ner:normalizedEntityLabel "optogenetic silencing of olfactory bulb output (457 nm, ChR2 in inhibitory interneurons)" ;
+    ner:hasMention ex:m-opto-1 .
+ex:m-opto-1 a ner:EntityMention ; ner:surfaceForm "optogenetic stimulation of inhibitory interneurons" .
+
+ex:entity-odor-task a ner:Assay, ner:NamedEntity ;
+    ner:normalizedEntityKey "odor_discrimination_task" ;
+    ner:normalizedEntityLabel "CS+/CS- odor discrimination task with food reward" ;
+    ner:hasMention ex:m-task-1 .
+ex:m-task-1 a ner:EntityMention ; ner:surfaceForm "odor discrimination task" .
+
+ex:entity-spiking-model a ner:ComputationalMethod, ner:NamedEntity ;
+    ner:normalizedEntityKey "pdp_spiking_network_model" ;
+    ner:normalizedEntityLabel "precisely balanced spiking network model of pDp (1000 E, 250 I, 1500 mitral-cell inputs)" ;
+    ner:hasMention ex:m-model-1 .
+ex:m-model-1 a ner:EntityMention ; ner:surfaceForm "spiking network model of pDp" .
+
+ex:entity-cascade a ner:Algorithm, ner:NamedEntity ;
+    ner:normalizedEntityKey "cascade_spike_inference" ;
+    ner:normalizedEntityLabel "CASCADE (deep-learning spike inference from calcium imaging)" ;
+    ner:hasMention ex:m-cascade-1 .
+ex:m-cascade-1 a ner:EntityMention ; ner:surfaceForm "CASCADE" .
+
+ex:entity-glue a ner:ComputationalMethod, ner:NamedEntity ;
+    ner:normalizedEntityKey "glue_theory" ;
+    ner:normalizedEntityLabel "GLUE theory (Geometry Linked to Untangling Efficiency)" ;
+    ner:hasMention ex:m-glue-1 .
+ex:m-glue-1 a ner:EntityMention ; ner:surfaceForm "'Geometry Linked to Untangling Efficiency' (GLUE) theory" .
+
+ex:entity-umap a ner:Algorithm, ner:NamedEntity ;
+    ner:normalizedEntityKey "umap" ;
+    ner:normalizedEntityLabel "UMAP (Uniform Manifold Approximation and Projection)" ;
+    ner:hasMention ex:m-umap-1 .
+ex:m-umap-1 a ner:EntityMention ; ner:surfaceForm "UMAP" .
+
+ex:entity-lda a ner:StatisticalMethod, ner:NamedEntity ;
+    ner:normalizedEntityKey "linear_discriminant_analysis" ;
+    ner:normalizedEntityLabel "linear discriminant analysis (LDA)" ;
+    ner:hasMention ex:m-lda-1 .
+ex:m-lda-1 a ner:EntityMention ; ner:surfaceForm "LDA" .
+
+ex:entity-svm a ner:StatisticalMethod, ner:NamedEntity ;
+    ner:normalizedEntityKey "support_vector_machine" ;
+    ner:normalizedEntityLabel "support vector machine (SVM)" ;
+    ner:hasMention ex:m-svm-1 .
+ex:m-svm-1 a ner:EntityMention ; ner:surfaceForm "support vector machine" .
+
+ex:entity-stardist a ner:SoftwareEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "stardist" ;
+    ner:normalizedEntityLabel "StarDist (ROI extraction)" ;
+    ner:hasMention ex:m-sd-1 .
+ex:m-sd-1 a ner:EntityMention ; ner:surfaceForm "StarDist" .
+
+ex:entity-scanimage a ner:SoftwareEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "scanimage" ;
+    ner:normalizedEntityLabel "ScanImage (microscope control)" ;
+    ner:hasMention ex:m-si-1 .
+ex:m-si-1 a ner:EntityMention ; ner:surfaceForm "Scanimage software" .
+
+ex:entity-cebra a ner:SoftwareEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "cebra" ;
+    ner:normalizedEntityLabel "CEBRA package (Procrustes alignment of embeddings)" ;
+    ner:hasMention ex:m-cebra-1 .
+ex:m-cebra-1 a ner:EntityMention ; ner:surfaceForm "CEBRA package" .
+
+##############################################################################
+# 8. GEOMETRIC / STATISTICAL MEASURES
+##############################################################################
+
+ex:entity-manifold-capacity a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "manifold_capacity" ;
+    ner:normalizedEntityLabel "manifold capacity (α = P/N*)" ;
+    ner:hasMention ex:m-cap-1 .
+ex:m-cap-1 a ner:EntityMention ; ner:surfaceForm "manifold capacity" .
+
+ex:entity-de a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "euclidean_distance_de" ;
+    ner:normalizedEntityLabel "Euclidean distance between manifold centers (dE)" ;
+    ner:hasMention ex:m-de-1 .
+ex:m-de-1 a ner:EntityMention ; ner:surfaceForm "Euclidean distance (dE)" .
+
+ex:entity-dm a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "mahalanobis_distance_dm" ;
+    ner:normalizedEntityLabel "Mahalanobis distance, directional (dM)" ;
+    ner:hasMention ex:m-dm-1 .
+ex:m-dm-1 a ner:EntityMention ; ner:surfaceForm "Mahalanobis distance (dM)" .
+
+ex:entity-cosine-distance a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "cosine_distance" ;
+    ner:normalizedEntityLabel "cosine distance between activity patterns" ;
+    ner:hasMention ex:m-cd-1 .
+ex:m-cd-1 a ner:EntityMention ; ner:surfaceForm "cosine distance" .
+
+ex:entity-eff-radius a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "effective_radius" ;
+    ner:normalizedEntityLabel "effective manifold radius (compactness)" ;
+    ner:hasMention ex:m-er-1 .
+ex:m-er-1 a ner:EntityMention ; ner:surfaceForm "effective radius" .
+
+ex:entity-eff-dimension a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "effective_dimension" ;
+    ner:normalizedEntityLabel "effective manifold dimension (flatness)" ;
+    ner:hasMention ex:m-ed-1 .
+ex:m-ed-1 a ner:EntityMention ; ner:surfaceForm "effective dimension" .
+
+ex:entity-eff-center-alignment a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "effective_center_alignment" ;
+    ner:normalizedEntityLabel "effective center alignment (center correlation)" ;
+    ner:hasMention ex:m-eca-1 .
+ex:m-eca-1 a ner:EntityMention ; ner:surfaceForm "effective center alignment" .
+
+ex:entity-eff-axis-alignment a ner:Measurement, ner:NamedEntity ;
+    ner:normalizedEntityKey "effective_axis_alignment" ;
+    ner:normalizedEntityLabel "effective axis alignment (relative orientation)" ;
+    ner:hasMention ex:m-eaa-1 .
+ex:m-eaa-1 a ner:EntityMention ; ner:surfaceForm "effective axis alignment" .
+
+##############################################################################
+# 9. EXEMPLAR CAUSAL / ASSOCIATION RELATIONS
+##############################################################################
+
+# Training increases manifold capacity (experimental group comparison)
+ex:rel-training-capacity a ner:CausalRelation ;
+    ner:hasCause  ex:entity-odor-discrimination-learning ;
+    ner:hasEffect ex:entity-manifold-capacity ;
+    ner:hasCurrentCausalRelationVersion ex:rel-training-capacity-v1 .
+ex:rel-training-capacity-v1 a ner:CausalRelationVersion ;
+    ner:versionOfCausalRelation ex:rel-training-capacity ;
+    ner:relationRevisionNumber 1 ;
+    ner:causalNegated false ;
+    ner:causalHypothetical false ;
+    rdfs:comment "Manifold capacity significantly higher in trained vs naive fish across all training groups (juvenile and adult pDp); positive polarity; experimental evidence." .
+
+# Manifold capacity predicts behavioral discrimination (association, r=0.56)
+ex:rel-capacity-behavior a ner:CausalRelation ;
+    ner:hasCause  ex:entity-manifold-capacity ;
+    ner:hasEffect ex:entity-olfactory-behavior ;
+    ner:hasCurrentCausalRelationVersion ex:rel-capacity-behavior-v1 .
+ex:rel-capacity-behavior-v1 a ner:CausalRelationVersion ;
+    ner:versionOfCausalRelation ex:rel-capacity-behavior ;
+    ner:relationRevisionNumber 1 ;
+    ner:causalNegated false ;
+    ner:causalHypothetical true ;
+    ner:hasEffectEstimate ex:est-capacity-behavior ;
+    rdfs:comment "Correlational evidence (predictive, not interventional): capacity vs behavioral discrimination score in juvenile fish." .
+ex:est-capacity-behavior a ner:EffectEstimate ;
+    ner:effectMeasure "Pearson correlation (r)" ;
+    ner:effectValue 0.56 ;
+    ner:pValue 0.004 ;
+    ner:sampleSize 25 .
+
+##############################################################################
+# 10. CONNECTIVITY LAYER (v2) — turns the entity catalog into one graph
+##############################################################################
+
+@prefix ro: <http://purl.obolibrary.org/obo/> .
+
+### 10.1 Document hub: every mention is a text span of the document version;
+###      every entity was derived from the publication.
+
+ex:m-zebrafish-1 ner:partOfDocumentVersion ex:docv1 .
+ex:m-juv-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-adult-1     ner:partOfDocumentVersion ex:docv1 .
+ex:m-tgline-1    ner:partOfDocumentVersion ex:docv1 .
+ex:m-tgchr2-1    ner:partOfDocumentVersion ex:docv1 .
+ex:m-pdp-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-pdp-2       ner:partOfDocumentVersion ex:docv1 .
+ex:m-ob-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-tel-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-pir-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-ac-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-neuron-1    ner:partOfDocumentVersion ex:docv1 .
+ex:m-eneuron-1   ner:partOfDocumentVersion ex:docv1 .
+ex:m-ineuron-1   ner:partOfDocumentVersion ex:docv1 .
+ex:m-iint-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-mitral-1    ner:partOfDocumentVersion ex:docv1 .
+ex:m-eia-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-phe-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-arg-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-trp-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-ala-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-ser-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-his-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-tdca-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-tca-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-gca-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-fluo-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-ogb1-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-gcamp-1     ner:partOfDocumentVersion ex:docv1 .
+ex:m-chr2-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-atub-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-dlx-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-odl-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-al-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-mem-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-beh-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-rl-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-nm-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-att-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-bal-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-oea-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-2p-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-pc-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-opto-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-task-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-model-1     ner:partOfDocumentVersion ex:docv1 .
+ex:m-cascade-1   ner:partOfDocumentVersion ex:docv1 .
+ex:m-glue-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-umap-1      ner:partOfDocumentVersion ex:docv1 .
+ex:m-lda-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-svm-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-sd-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-si-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-cebra-1     ner:partOfDocumentVersion ex:docv1 .
+ex:m-cap-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-de-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-dm-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-cd-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-er-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-ed-1        ner:partOfDocumentVersion ex:docv1 .
+ex:m-eca-1       ner:partOfDocumentVersion ex:docv1 .
+ex:m-eaa-1       ner:partOfDocumentVersion ex:docv1 .
+
+ex:entity-zebrafish prov:hadPrimarySource ex:publication .
+ex:entity-pdp prov:hadPrimarySource ex:publication .
+ex:entity-manifold-capacity prov:hadPrimarySource ex:publication .
+ex:entity-neural-manifold prov:hadPrimarySource ex:publication .
+
+### 10.2 Concepts cluster under their source ontologies
+###      (OntologyVersion nodes; conceptInOntologyVersion range-compliant)
+
+ex:ontov-ncbitaxon a ner:OntologyVersion ; ner:versionOfOntology ex:onto-ncbitaxon ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-uberon    a ner:OntologyVersion ; ner:versionOfOntology ex:onto-uberon    ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-zfa       a ner:OntologyVersion ; ner:versionOfOntology ex:onto-zfa       ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-cl        a ner:OntologyVersion ; ner:versionOfOntology ex:onto-cl        ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-chebi     a ner:OntologyVersion ; ner:versionOfOntology ex:onto-chebi     ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-go        a ner:OntologyVersion ; ner:versionOfOntology ex:onto-go        ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-nbo       a ner:OntologyVersion ; ner:versionOfOntology ex:onto-nbo       ; ner:ontologyVersionString "OLS4 2026-09" .
+ex:ontov-obi       a ner:OntologyVersion ; ner:versionOfOntology ex:onto-obi       ; ner:ontologyVersionString "OLS4 2026-09" .
+
+ex:c-NCBITaxon_7955  ner:conceptInOntologyVersion ex:ontov-ncbitaxon .
+ex:c-UBERON_0034919  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-UBERON_0007023  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-UBERON_0002264  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-UBERON_0001893  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-UBERON_0004725  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-UBERON_0000935  ner:conceptInOntologyVersion ex:ontov-uberon .
+ex:c-ZFA_0000181     ner:conceptInOntologyVersion ex:ontov-zfa .
+ex:c-CL_0000540      ner:conceptInOntologyVersion ex:ontov-cl .
+ex:c-CL_0000679      ner:conceptInOntologyVersion ex:ontov-cl .
+ex:c-CL_0000617      ner:conceptInOntologyVersion ex:ontov-cl .
+ex:c-CL_0000498      ner:conceptInOntologyVersion ex:ontov-cl .
+ex:c-CL_1001502      ner:conceptInOntologyVersion ex:ontov-cl .
+ex:c-CHEBI_17295     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_16467     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_16828     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_16977     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_17115     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_15971     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_9410      ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_28865     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_17687     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-CHEBI_31624     ner:conceptInOntologyVersion ex:ontov-chebi .
+ex:c-GO_0008355      ner:conceptInOntologyVersion ex:ontov-go .
+ex:c-GO_0008306      ner:conceptInOntologyVersion ex:ontov-go .
+ex:c-GO_0007613      ner:conceptInOntologyVersion ex:ontov-go .
+ex:c-NBO_0000323     ner:conceptInOntologyVersion ex:ontov-nbo .
+ex:c-OBI_0002178     ner:conceptInOntologyVersion ex:ontov-obi .
+
+### 10.3 Inter-entity structure (OBO Relation Ontology predicates)
+# BFO:0000050 part_of | RO:0001025 located_in | RO:0000057 has_participant
+# RO:0000056 participates_in | RO:0002215 capable_of
+
+# Anatomy (part_of chain)
+ex:entity-pdp                  ro:BFO_0000050 ex:entity-telencephalon .
+ex:entity-olfactory-bulb       ro:BFO_0000050 ex:entity-telencephalon .
+ex:entity-anterior-commissure  ro:BFO_0000050 ex:entity-telencephalon .
+ex:entity-pdp                  skos:relatedMatch ex:entity-piriform-cortex ;
+                               rdfs:seeAlso ex:entity-piriform-cortex .
+
+# Cells located in regions
+ex:entity-mitral-cell            ro:RO_0001025 ex:entity-olfactory-bulb .
+ex:entity-inhibitory-interneuron ro:RO_0001025 ex:entity-olfactory-bulb .
+ex:entity-excitatory-neuron      ro:RO_0001025 ex:entity-pdp .
+ex:entity-inhibitory-neuron      ro:RO_0001025 ex:entity-pdp .
+ex:entity-neuron                 ro:RO_0001025 ex:entity-pdp .
+ex:entity-ei-assembly            ro:BFO_0000050 ex:entity-spiking-model .
+
+# Cell-type hierarchy within this study
+ex:entity-excitatory-neuron      skos:broader ex:entity-neuron .
+ex:entity-inhibitory-neuron      skos:broader ex:entity-neuron .
+ex:entity-inhibitory-interneuron skos:broader ex:entity-inhibitory-neuron .
+ex:entity-mitral-cell            skos:broader ex:entity-neuron .
+
+# Organism / stage / lines
+ex:entity-juvenile-stage   ro:BFO_0000050 ex:entity-zebrafish .
+ex:entity-adult-stage      ro:BFO_0000050 ex:entity-zebrafish .
+ex:entity-tg-gcamp6s-line  skos:broader   ex:entity-zebrafish .
+ex:entity-tg-chr2-line     skos:broader   ex:entity-zebrafish .
+ex:entity-tg-gcamp6s-line  ro:RO_0000057  ex:entity-gcamp6s , ex:entity-atub-promoter .
+ex:entity-tg-chr2-line     ro:RO_0000057  ex:entity-chr2 , ex:entity-dlx46 .
+
+# Task participants: subjects, conditioned/novel odorants
+ex:entity-odor-task ro:RO_0000057
+    ex:entity-zebrafish , ex:entity-phe , ex:entity-arg , ex:entity-trp ,
+    ex:entity-ala , ex:entity-ser , ex:entity-his ,
+    ex:entity-tdca , ex:entity-tca , ex:entity-gca .
+ex:entity-odor-task ro:RO_0000056 ex:entity-odor-discrimination-learning .
+ex:entity-odor-discrimination-learning skos:broader ex:entity-associative-learning .
+ex:entity-associative-learning skos:related ex:entity-memory .
+ex:entity-olfactory-behavior ro:RO_0000056 ex:entity-odor-task .
+
+# Odorant classes
+ex:entity-aa-class a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "amino_acid_odor_class" ;
+    ner:normalizedEntityLabel "amino acid odorants (AA)" ;
+    skos:exactMatch obo:CHEBI_33709 ;
+    prov:hadPrimarySource ex:publication .
+ex:entity-ba-class a ner:ChemicalEntity, ner:NamedEntity ;
+    ner:normalizedEntityKey "bile_acid_odor_class" ;
+    ner:normalizedEntityLabel "bile acid odorants (BA)" ;
+    skos:exactMatch obo:CHEBI_3098 ;
+    prov:hadPrimarySource ex:publication .
+ex:entity-phe skos:broader ex:entity-aa-class .
+ex:entity-arg skos:broader ex:entity-aa-class .
+ex:entity-trp skos:broader ex:entity-aa-class .
+ex:entity-ala skos:broader ex:entity-aa-class .
+ex:entity-ser skos:broader ex:entity-aa-class .
+ex:entity-his skos:broader ex:entity-aa-class .
+ex:entity-tdca skos:broader ex:entity-ba-class .
+ex:entity-tca  skos:broader ex:entity-ba-class .
+ex:entity-gca  skos:broader ex:entity-ba-class .
+
+# Methods: what they use and what they measure/target
+ex:entity-2p-calcium-imaging ro:RO_0000057 ex:entity-gcamp6s , ex:entity-ogb1 ;
+    ro:RO_0000057 ex:entity-odor-evoked-activity ;
+    prov:used ex:entity-scanimage .
+ex:entity-optogenetic-silencing ro:RO_0000057 ex:entity-chr2 , ex:entity-inhibitory-interneuron ;
+    ro:RO_0000057 ex:entity-olfactory-bulb .
+ex:entity-patch-clamp ro:RO_0000057 ex:entity-neuron ;
+    ro:RO_0000057 ex:entity-synaptic-balance .
+ex:entity-cascade prov:used ex:entity-2p-calcium-imaging .
+ex:entity-odor-evoked-activity ro:RO_0001025 ex:entity-pdp .
+ex:entity-neural-manifold prov:wasDerivedFrom ex:entity-odor-evoked-activity .
+ex:entity-neural-manifold skos:related ex:entity-attractor-dynamics .
+ex:entity-spiking-model ro:RO_0000057 ex:entity-synaptic-balance , ex:entity-ei-assembly .
+
+# Analysis pipeline: measures apply to manifolds; algorithms compute measures
+ex:entity-manifold-capacity  prov:wasDerivedFrom ex:entity-neural-manifold ;
+    prov:wasInfluencedBy ex:entity-glue .
+ex:entity-de  prov:wasDerivedFrom ex:entity-neural-manifold .
+ex:entity-dm  prov:wasDerivedFrom ex:entity-neural-manifold .
+ex:entity-cosine-distance prov:wasDerivedFrom ex:entity-odor-evoked-activity .
+ex:entity-eff-radius           skos:broader ex:entity-manifold-capacity .
+ex:entity-eff-dimension        skos:broader ex:entity-manifold-capacity .
+ex:entity-eff-center-alignment skos:broader ex:entity-manifold-capacity .
+ex:entity-eff-axis-alignment   skos:broader ex:entity-manifold-capacity .
+ex:entity-glue skos:related ex:entity-manifold-capacity .
+ex:entity-umap prov:used ex:entity-cebra .
+ex:entity-lda  ro:RO_0000057 ex:entity-neural-manifold .
+ex:entity-svm  ro:RO_0000057 ex:entity-neural-manifold .
+ex:entity-stardist ro:RO_0000056 ex:entity-2p-calcium-imaging .
+ex:entity-representational-learning skos:related ex:entity-neural-manifold , ex:entity-odor-discrimination-learning .

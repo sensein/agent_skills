@@ -1,0 +1,701 @@
+{
+ "entities": {
+  "volumetric two-photon calcium imaging|Method": {
+   "normalized_key": "two_photon_calcium_imaging",
+   "normalized_label": "volumetric two-photon calcium imaging (7.5 Hz remote z-scanning)",
+   "class": "NeuroimagingModality",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "gcamp6s"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "odor_evoked_population_activity"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "ogb1_am"
+    }
+   ],
+   "uses_keys": [
+    "scanimage"
+   ]
+  },
+  "amino acids|Chemical": {
+   "normalized_key": "amino_acid_odor_class",
+   "normalized_label": "amino acid odorants (AA)",
+   "class": "ChemicalEntity"
+  },
+  "adult fish|DevelopmentalStage": {
+   "normalized_key": "adult_stage",
+   "normalized_label": "adult (5-6 months)",
+   "class": "LifeStage",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "danio_rerio"
+    }
+   ]
+  },
+  "alanine|Chemical": {
+   "normalized_key": "l_alanine",
+   "normalized_label": "L-alanine (Ala; adult CS-)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "Ala|Chemical": {
+   "normalized_key": "l_alanine",
+   "normalized_label": "L-alanine (Ala; adult CS-)",
+   "class": "AminoAcid"
+  },
+  "AC|NervousSystemPart": {
+   "normalized_key": "anterior_commissure",
+   "normalized_label": "anterior commissure",
+   "class": "NeuralTract",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "telencephalon"
+    }
+   ]
+  },
+  "anterior commissure|NervousSystemPart": {
+   "normalized_key": "anterior_commissure",
+   "normalized_label": "anterior commissure",
+   "class": "NeuralTract"
+  },
+  "Arg|Chemical": {
+   "normalized_key": "l_arginine",
+   "normalized_label": "L-arginine (Arg; amino acid odorant; CS in some groups)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "associative learning|Phenomenon": {
+   "normalized_key": "associative_learning",
+   "normalized_label": "associative learning",
+   "class": "LearningProcess",
+   "related_keys": [
+    "olfactory_memory"
+   ]
+  },
+  "attractor dynamics|Phenomenon": {
+   "normalized_key": "attractor_dynamics",
+   "normalized_label": "attractor dynamics (fixed-point / chaotic attractor states)",
+   "class": "NeuralActivity"
+  },
+  "α-tubulin promoter|Gene": {
+   "normalized_key": "alpha_tubulin_promoter",
+   "normalized_label": "alpha-tubulin promoter (pan-neuronal)",
+   "class": "Promoter"
+  },
+  "bile acids|Chemical": {
+   "normalized_key": "bile_acid_odor_class",
+   "normalized_label": "bile acid odorants (BA)",
+   "class": "ChemicalEntity"
+  },
+  "CASCADE|Method": {
+   "normalized_key": "cascade_spike_inference",
+   "normalized_label": "CASCADE (deep-learning spike inference from calcium imaging)",
+   "class": "Algorithm",
+   "uses_keys": [
+    "two_photon_calcium_imaging"
+   ]
+  },
+  "CEBRA package|Software": {
+   "normalized_key": "cebra",
+   "normalized_label": "CEBRA package (Procrustes alignment of embeddings)",
+   "class": "SoftwareEntity"
+  },
+  "channelrhodopsin-2 fused to YFP|IonChannel": {
+   "normalized_key": "channelrhodopsin_2",
+   "normalized_label": "channelrhodopsin-2 (ChR2)",
+   "class": "IonChannel"
+  },
+  "cosine distance|Measurement": {
+   "normalized_key": "cosine_distance",
+   "normalized_label": "cosine distance between activity patterns",
+   "class": "Measurement",
+   "derived_from_keys": [
+    "odor_evoked_population_activity"
+   ]
+  },
+  "Euclidean distance|Measurement": {
+   "normalized_key": "euclidean_distance_de",
+   "normalized_label": "Euclidean distance between manifold centers (dE)",
+   "class": "Measurement",
+   "derived_from_keys": [
+    "neural_manifold"
+   ]
+  },
+  "dE|Measurement": {
+   "normalized_key": "euclidean_distance_de",
+   "normalized_label": "Euclidean distance between manifold centers (dE)",
+   "class": "Measurement"
+  },
+  "dlx4/6|Gene": {
+   "normalized_key": "dlx4_6_regulatory_element",
+   "normalized_label": "dlx4/6 regulatory element",
+   "class": "RegulatoryRegion"
+  },
+  "Mahalanobis distance|Measurement": {
+   "normalized_key": "mahalanobis_distance_dm",
+   "normalized_label": "Mahalanobis distance, directional (dM)",
+   "class": "Measurement",
+   "derived_from_keys": [
+    "neural_manifold"
+   ]
+  },
+  "dM|Measurement": {
+   "normalized_key": "mahalanobis_distance_dm",
+   "normalized_label": "Mahalanobis distance, directional (dM)",
+   "class": "Measurement"
+  },
+  "effective axis alignment|Measurement": {
+   "normalized_key": "effective_axis_alignment",
+   "normalized_label": "effective axis alignment (relative orientation)",
+   "class": "Measurement",
+   "broader_key": "manifold_capacity"
+  },
+  "effective center alignment|Measurement": {
+   "normalized_key": "effective_center_alignment",
+   "normalized_label": "effective center alignment (center correlation)",
+   "class": "Measurement",
+   "broader_key": "manifold_capacity"
+  },
+  "effective dimension|Measurement": {
+   "normalized_key": "effective_dimension",
+   "normalized_label": "effective manifold dimension (flatness)",
+   "class": "Measurement",
+   "broader_key": "manifold_capacity"
+  },
+  "effective radius|Measurement": {
+   "normalized_key": "effective_radius",
+   "normalized_label": "effective manifold radius (compactness)",
+   "class": "Measurement",
+   "broader_key": "manifold_capacity"
+  },
+  "E/I-assembly|CellType": {
+   "normalized_key": "ei_assembly",
+   "normalized_label": "E/I-assembly (coupled excitatory-inhibitory neuronal assembly)",
+   "class": "NeuralPopulation",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "pdp_spiking_network_model"
+    }
+   ]
+  },
+  "E|CellType": {
+   "normalized_key": "excitatory_neuron_pdp",
+   "normalized_label": "excitatory (E) neuron",
+   "class": "ExcitatoryNeuron",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "pdp_posterior_dorsal_telencephalon"
+    }
+   ],
+   "broader_key": "neuron"
+  },
+  "excitatory pDp neurons|CellType": {
+   "normalized_key": "excitatory_neuron_pdp",
+   "normalized_label": "excitatory (E) neuron",
+   "class": "ExcitatoryNeuron"
+  },
+  "fluorescein|Chemical": {
+   "normalized_key": "fluorescein",
+   "normalized_label": "fluorescein (odor-onset calibration dye)",
+   "class": "ChemicalEntity"
+  },
+  "GCA|Chemical": {
+   "normalized_key": "glycocholic_acid",
+   "normalized_label": "glycocholic acid (GCA; bile acid odorant)",
+   "class": "ChemicalEntity",
+   "broader_key": "bile_acid_odor_class"
+  },
+  "calcium indicator GCaMP6s|Protein": {
+   "normalized_key": "gcamp6s",
+   "normalized_label": "GCaMP6s (genetically encoded calcium indicator)",
+   "class": "Protein"
+  },
+  "‘Geometry Linked to Untangling Efficiency’ (GLUE) theory|Method": {
+   "normalized_key": "glue_theory",
+   "normalized_label": "GLUE theory (Geometry Linked to Untangling Efficiency)",
+   "class": "ComputationalMethod",
+   "related_keys": [
+    "manifold_capacity"
+   ]
+  },
+  "histidine|Chemical": {
+   "normalized_key": "l_histidine",
+   "normalized_label": "L-histidine (His; non-conditioned odorant)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "His|Chemical": {
+   "normalized_key": "l_histidine",
+   "normalized_label": "L-histidine (His; non-conditioned odorant)",
+   "class": "AminoAcid"
+  },
+  "superficial inhibitory interneurons of the olfactory bulb|CellType": {
+   "normalized_key": "ob_inhibitory_interneuron",
+   "normalized_label": "olfactory bulb superficial inhibitory interneuron",
+   "class": "Interneuron",
+   "broader_key": "inhibitory_neuron_pdp",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "olfactory_bulb"
+    }
+   ]
+  },
+  "inhibitory neurons|CellType": {
+   "normalized_key": "inhibitory_neuron_pdp",
+   "normalized_label": "inhibitory (I) neuron",
+   "class": "InhibitoryNeuron",
+   "broader_key": "neuron",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "pdp_posterior_dorsal_telencephalon"
+    }
+   ]
+  },
+  "I|CellType": {
+   "normalized_key": "inhibitory_neuron_pdp",
+   "normalized_label": "inhibitory (I) neuron",
+   "class": "InhibitoryNeuron"
+  },
+  "juvenile fish|DevelopmentalStage": {
+   "normalized_key": "juvenile_stage",
+   "normalized_label": "juvenile stage (46-56 dpf; 9.0-13.5 mm)",
+   "class": "LifeStage",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "danio_rerio"
+    }
+   ]
+  },
+  "LDA|Method": {
+   "normalized_key": "linear_discriminant_analysis",
+   "normalized_label": "linear discriminant analysis (LDA)",
+   "class": "StatisticalMethod",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "neural_manifold"
+    }
+   ]
+  },
+  "manifold capacity|Measurement": {
+   "normalized_key": "manifold_capacity",
+   "normalized_label": "manifold capacity (α = P/N*)",
+   "class": "Measurement",
+   "derived_from_keys": [
+    "glue_theory",
+    "neural_manifold"
+   ]
+  },
+  "autoassociative memory|Phenomenon": {
+   "normalized_key": "olfactory_memory",
+   "normalized_label": "olfactory / autoassociative memory",
+   "class": "MemoryProcess"
+  },
+  "mitral cells|CellType": {
+   "normalized_key": "mitral_cell",
+   "normalized_label": "mitral cell",
+   "class": "ProjectionNeuron",
+   "broader_key": "neuron",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "olfactory_bulb"
+    }
+   ]
+  },
+  "neural manifolds|Other": {
+   "normalized_key": "neural_manifold",
+   "normalized_label": "neural manifold (activity subspace / point-cloud of population vectors)",
+   "class": "NeuroscienceEntity",
+   "related_keys": [
+    "attractor_dynamics"
+   ],
+   "derived_from_keys": [
+    "odor_evoked_population_activity"
+   ]
+  },
+  "neurons|CellType": {
+   "normalized_key": "neuron",
+   "normalized_label": "neuron",
+   "class": "Neuron",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "pdp_posterior_dorsal_telencephalon"
+    }
+   ]
+  },
+  "odor discrimination training|Phenomenon": {
+   "normalized_key": "olfactory_discrimination_learning",
+   "normalized_label": "olfactory discrimination learning (appetitive conditioning)",
+   "class": "LearningProcess",
+   "broader_key": "associative_learning"
+  },
+  "odor-evoked activity|Phenomenon": {
+   "normalized_key": "odor_evoked_population_activity",
+   "normalized_label": "odor-evoked population activity in pDp",
+   "class": "NeuralActivity",
+   "relations": [
+    {
+     "predicate": "located_in",
+     "target_key": "pdp_posterior_dorsal_telencephalon"
+    }
+   ]
+  },
+  "odor discrimination task|BehavioralAssay": {
+   "normalized_key": "odor_discrimination_task",
+   "normalized_label": "CS+/CS- odor discrimination task with food reward",
+   "class": "Assay",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "danio_rerio"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "glycocholic_acid"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_alanine"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_arginine"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_histidine"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_phenylalanine"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_serine"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "l_tryptophan"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "taurocholic_acid"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "taurodeoxycholic_acid"
+    },
+    {
+     "predicate": "participates_in",
+     "target_key": "olfactory_discrimination_learning"
+    }
+   ]
+  },
+  "Oregon Green 488 BAPTA-1-AM|Chemical": {
+   "normalized_key": "ogb1_am",
+   "normalized_label": "Oregon Green 488 BAPTA-1-AM (OGB-1; synthetic calcium indicator)",
+   "class": "ChemicalEntity"
+  },
+  "OGB-1|Chemical": {
+   "normalized_key": "ogb1_am",
+   "normalized_label": "Oregon Green 488 BAPTA-1-AM (OGB-1; synthetic calcium indicator)",
+   "class": "ChemicalEntity"
+  },
+  "appetitive behavior|Phenotype": {
+   "normalized_key": "appetitive_olfactory_behavior",
+   "normalized_label": "appetitive behavior in response to odor (ζ score)",
+   "class": "Behavior",
+   "relations": [
+    {
+     "predicate": "participates_in",
+     "target_key": "odor_discrimination_task"
+    }
+   ]
+  },
+  "olfactory bulb|BrainRegion": {
+   "normalized_key": "olfactory_bulb",
+   "normalized_label": "olfactory bulb",
+   "class": "BrainRegion",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "telencephalon"
+    }
+   ]
+  },
+  "OB|BrainRegion": {
+   "normalized_key": "olfactory_bulb",
+   "normalized_label": "olfactory bulb",
+   "class": "BrainRegion"
+  },
+  "optogenetic stimulation of inhibitory interneurons|Stimulus": {
+   "normalized_key": "optogenetic_silencing_ob",
+   "normalized_label": "optogenetic silencing of olfactory bulb output (457 nm, ChR2 in inhibitory interneurons)",
+   "class": "Stimulation",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "channelrhodopsin_2"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "ob_inhibitory_interneuron"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "olfactory_bulb"
+    }
+   ]
+  },
+  "whole-cell current and voltage clamp recordings|Method": {
+   "normalized_key": "whole_cell_patch_clamp",
+   "normalized_label": "whole-cell current/voltage clamp recording",
+   "class": "ElectrophysiologyModality",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "neuron"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "precise_synaptic_balance"
+    }
+   ]
+  },
+  "telencephalic area pDp|BrainRegion": {
+   "normalized_key": "pdp_posterior_dorsal_telencephalon",
+   "normalized_label": "posterior zone of dorsal telencephalon (pDp/Dp)",
+   "class": "BrainRegion",
+   "relations": [
+    {
+     "predicate": "part_of",
+     "target_key": "telencephalon"
+    }
+   ],
+   "see_also_keys": [
+    "piriform_cortex"
+   ]
+  },
+  "Dp|BrainRegion": {
+   "normalized_key": "pdp_posterior_dorsal_telencephalon",
+   "normalized_label": "posterior zone of dorsal telencephalon (pDp/Dp)",
+   "class": "BrainRegion"
+  },
+  "Phe|Chemical": {
+   "normalized_key": "l_phenylalanine",
+   "normalized_label": "L-phenylalanine (Phe; amino acid odorant; CS in some groups)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "piriform cortex|BrainRegion": {
+   "normalized_key": "piriform_cortex",
+   "normalized_label": "piriform cortex",
+   "class": "CorticalArea"
+  },
+  "Representational learning|Phenomenon": {
+   "normalized_key": "representational_learning",
+   "normalized_label": "representational learning",
+   "class": "LearningProcess",
+   "related_keys": [
+    "neural_manifold",
+    "olfactory_discrimination_learning"
+   ]
+  },
+  "Scanimage software|Software": {
+   "normalized_key": "scanimage",
+   "normalized_label": "ScanImage (microscope control)",
+   "class": "SoftwareEntity"
+  },
+  "serine|Chemical": {
+   "normalized_key": "l_serine",
+   "normalized_label": "L-serine (Ser; non-conditioned odorant)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "Ser|Chemical": {
+   "normalized_key": "l_serine",
+   "normalized_label": "L-serine (Ser; non-conditioned odorant)",
+   "class": "AminoAcid"
+  },
+  "spiking network model of pDp|Method": {
+   "normalized_key": "pdp_spiking_network_model",
+   "normalized_label": "precisely balanced spiking network model of pDp (1000 E, 250 I, 1500 mitral-cell inputs)",
+   "class": "ComputationalMethod",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "ei_assembly"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "precise_synaptic_balance"
+    }
+   ]
+  },
+  "StarDist|Software": {
+   "normalized_key": "stardist",
+   "normalized_label": "StarDist (ROI extraction)",
+   "class": "SoftwareEntity",
+   "relations": [
+    {
+     "predicate": "participates_in",
+     "target_key": "two_photon_calcium_imaging"
+    }
+   ]
+  },
+  "support vector machine|Method": {
+   "normalized_key": "support_vector_machine",
+   "normalized_label": "support vector machine (SVM)",
+   "class": "StatisticalMethod",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "neural_manifold"
+    }
+   ]
+  },
+  "precise synaptic balance|Phenomenon": {
+   "normalized_key": "precise_synaptic_balance",
+   "normalized_label": "precise synaptic balance (co-tuned E/I currents)",
+   "class": "SynapticProcess"
+  },
+  "TCA|Chemical": {
+   "normalized_key": "taurocholic_acid",
+   "normalized_label": "taurocholic acid (TCA; bile acid odorant)",
+   "class": "ChemicalEntity",
+   "broader_key": "bile_acid_odor_class"
+  },
+  "TDCA|Chemical": {
+   "normalized_key": "taurodeoxycholic_acid",
+   "normalized_label": "taurodeoxycholic acid (TDCA; bile acid odorant)",
+   "class": "ChemicalEntity",
+   "broader_key": "bile_acid_odor_class"
+  },
+  "Tel|BrainRegion": {
+   "normalized_key": "telencephalon",
+   "normalized_label": "telencephalon",
+   "class": "BrainRegion"
+  },
+  "telencephalon|BrainRegion": {
+   "normalized_key": "telencephalon",
+   "normalized_label": "telencephalon",
+   "class": "BrainRegion"
+  },
+  "Tg[dlx4/6:ChR2-YFP]|TransgenicLine": {
+   "normalized_key": "tg_dlx4_6_chr2_yfp",
+   "normalized_label": "Tg[dlx4/6:ChR2-YFP] transgenic zebrafish line",
+   "class": "Strain",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "channelrhodopsin_2"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "dlx4_6_regulatory_element"
+    }
+   ],
+   "broader_key": "danio_rerio"
+  },
+  "Tg[alphaTubulin:GCaMP6s]|TransgenicLine": {
+   "normalized_key": "tg_alphatubulin_gcamp6s",
+   "normalized_label": "Tg[alphaTubulin:GCaMP6s] transgenic zebrafish line",
+   "class": "Strain",
+   "relations": [
+    {
+     "predicate": "has_participant",
+     "target_key": "alpha_tubulin_promoter"
+    },
+    {
+     "predicate": "has_participant",
+     "target_key": "gcamp6s"
+    }
+   ],
+   "broader_key": "danio_rerio"
+  },
+  "Trp|Chemical": {
+   "normalized_key": "l_tryptophan",
+   "normalized_label": "L-tryptophan (Trp; amino acid odorant; adult CS+)",
+   "class": "AminoAcid",
+   "broader_key": "amino_acid_odor_class"
+  },
+  "UMAP|Method": {
+   "normalized_key": "umap",
+   "normalized_label": "UMAP (Uniform Manifold Approximation and Projection)",
+   "class": "Algorithm",
+   "uses_keys": [
+    "cebra"
+   ]
+  },
+  "zebrafish|Species": {
+   "normalized_key": "danio_rerio",
+   "normalized_label": "Danio rerio (zebrafish)",
+   "class": "Species"
+  },
+  "Danio rerio|Species": {
+   "normalized_key": "danio_rerio",
+   "normalized_label": "Danio rerio (zebrafish)",
+   "class": "Species"
+  }
+ },
+ "causal_relations": [
+  {
+   "id": "rel-1",
+   "cause_key": "manifold_capacity",
+   "effect_key": "appetitive_olfactory_behavior",
+   "polarity": "positive",
+   "hypothetical": true,
+   "negated": false,
+   "evidence_basis": [
+    "observational_unadjusted"
+   ],
+   "type": "contributes_to",
+   "modality": "probable",
+   "evidence": "Correlational evidence (predictive, not interventional): capacity vs behavioral discrimination score in juvenile fish.",
+   "effect_estimate": {
+    "measure": "Pearson correlation (r)",
+    "value": 0.56,
+    "p_value": 0.004,
+    "sample_size": 25
+   }
+  },
+  {
+   "id": "rel-2",
+   "cause_key": "olfactory_discrimination_learning",
+   "effect_key": "manifold_capacity",
+   "polarity": "positive",
+   "hypothetical": false,
+   "negated": false,
+   "evidence_basis": [
+    "experimental_intervention"
+   ],
+   "type": "promotes",
+   "modality": "asserted",
+   "evidence": "Manifold capacity significantly higher in trained vs naive fish across all training groups (juvenile and adult pDp); positive polarity; experimental evidence."
+  }
+ ],
+ "chains": [
+  {
+   "id": "chain-1",
+   "label": "odor training -> manifold capacity -> discrimination behaviour",
+   "relation_ids": [
+    "rel-1",
+    "rel-2"
+   ]
+  }
+ ]
+}
