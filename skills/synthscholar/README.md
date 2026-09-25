@@ -40,10 +40,11 @@ modes:
 
 What it deliberately does **not** do: search bibliographic databases for you
 (that's the application's job — here the corpus is yours), deduplicate your
-PDFs, or store any credential. Scanned PDFs are handled only if you ask for it:
-`build_corpus.py --docling` routes extraction through
-[Docling](https://github.com/docling-project/docling), whose pipeline OCRs and
-reconstructs tables. Without that flag a scanned PDF yields no text.
+PDFs, or store any credential. Scanned PDFs are handled when
+[Docling](https://github.com/docling-project/docling) is installed —
+`build_corpus.py` reaches for it first, and its pipeline OCRs and reconstructs
+tables. With `--no-docling`, or without the package, a scanned PDF yields no
+text.
 
 ## Layout
 
@@ -148,10 +149,11 @@ is by feature, not version string (the package's `__version__` and its
 - SPARQL scripts: `rdflib`.
 - SQL scripts: `psycopg[binary]>=3.1`.
 - Backfill: the `synthscholar` package importable, and migration 006 applied.
-- BYO corpus: `pip install 'synthscholar[fulltext]'` (adds `pymupdf` for PDF
-  text). Optionally `pip install docling` for `build_corpus.py --docling` —
-  layout and table-structure models plus OCR, the only backend that reads a
-  scanned PDF. `run_local_review.py` also needs `OPENROUTER_API_KEY`; without a key,
+- BYO corpus: `pip install docling` (the first extraction backend — layout and
+  table-structure models plus OCR, the only one that reads a scanned PDF) and
+  `pip install 'synthscholar[fulltext]'` (adds `pymupdf`, the fallback chain and
+  what `--no-docling` leaves you with). `run_local_review.py` also needs
+  `OPENROUTER_API_KEY`; without a key,
   the agent authors the result JSON itself and `export_review.py` serialises it
   through the same exporters.
 - Retrieving missing PDFs: `httpx`. **Open access needs no credentials** —

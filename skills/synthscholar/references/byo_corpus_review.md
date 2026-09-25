@@ -100,7 +100,7 @@ stripped before the run.
 | `abstract` | script (guess) → verify | extracted between the Abstract heading and the next section |
 | `journal` | agent / manifest | |
 | `source` | `--source` / manifest | feeds the PRISMA per-database identification tally |
-| `full_text` | script | PyMuPDF text of the **whole** document (`--max-chars 0`, the default), or Docling Markdown with `--docling`; cap it only to bound cost |
+| `full_text` | script | Docling Markdown of the **whole** document (`--max-chars 0`, the default), or PyMuPDF text with `--no-docling` / no docling installed; cap it only to bound cost |
 | `content_sha256`, `full_text_source`, `full_text_retrieved_at` | script | `full_text_source` is `user_supplied_pdf` — this is what makes the corpus auditable |
 | `_head_text` | script | first 2500 chars — **read this to complete the metadata** |
 | `_needs_metadata`, `_metadata_guesses` | script | what's missing / what was guessed and needs a look |
@@ -509,11 +509,11 @@ full-text-vs-abstract-only queries, since every PDF-backed article carries a
 
 ## Caveats
 
-- **Scanned PDFs.** No text layer → no extraction from the default chain.
-  `build_corpus.py` reports these (`NO TEXT`, 0 chars). Rebuild with
-  `--docling`, whose pipeline OCRs, or OCR them yourself first (`ocrmypdf`) —
-  otherwise the entry screens out as an irrelevant paper rather than as a
-  failed extraction.
+- **Scanned PDFs.** Only Docling reads them, and only because its pipeline OCRs;
+  every other backend needs a text layer. `build_corpus.py` uses Docling first
+  when installed, and reports the failures (`NO TEXT`, 0 chars) when it is not —
+  install it, or OCR the files yourself first (`ocrmypdf`). Otherwise the entry
+  screens out as an irrelevant paper rather than as a failed extraction.
 - **Every PDF is read in full, and that costs tokens.** Evidence extraction
   processes every chunk of every article, so a 1 M-character survey is ~85 LLM
   calls on its own. `run_local_review.py` prints the chunk count and total call

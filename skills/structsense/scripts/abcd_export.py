@@ -82,6 +82,77 @@ def _trunc(s: Any, n: int = 160) -> str:
     return t if len(t) <= n else t[: n - 1] + "…"
 
 
+def _join(value: Any, sep: str = ", ") -> str:
+    if isinstance(value, (list, tuple)):
+        return sep.join(str(v) for v in value if v) or "—"
+    return str(value) if value not in (None, "") else "—"
+
+
+def _role_matrix_block(doc: dict) -> List[str]:
+    """Which analysis gave a variable which role — the question the flat list lost.
+
+    A paper that models brain metrics as outcomes and then as mediators has two
+    honest answers, and a single Role column has to pick one. Laying the analyses
+    out as columns lets a reader see both without reading the JSON.
+    """
+    matrix = doc.get("role_matrix") or {}
+    models = matrix.get("models") or []
+    rows = matrix.get("rows") or []
+    if not models or not rows:
+        return []
+    ids = [m.get("model_id") for m in models]
+    out = [
+        "## Roles by analysis",
+        "",
+        "One column per model. A variable with two different roles across columns is"
+        " not an extraction error — it is a paper that used it two ways.",
+        "",
+        md_table(
+            ["Measure", "Timepoint", *ids, "Basis"],
+            [
+                (r.get("variable"), r.get("timepoint") or "—",
+                 *[(r.get("cells") or {}).get(mid, "·") for mid in ids],
+                 r.get("role_basis") or "—")
+                for r in rows
+            ],
+        ),
+        "",
+        "Cells: "
+        + ", ".join(f"`{k}` = {v}" for k, v in
+                    sorted((matrix.get("legend") or {}).items()))
+        + ", `·` = not in that model.",
+        "",
+        md_table(
+            ["#", "Analysis", "Section"],
+            [(m.get("model_id"), _trunc(m.get("specification"), 150),
+              m.get("section") or "—") for m in models],
+        ),
+        "",
+    ]
+    descriptive = matrix.get("descriptive_models") or []
+    if descriptive:
+        out += [
+            "Analyses that describe rather than model, and so assign no roles: "
+            + "; ".join(f"**{m.get('model_id')}** {_trunc(m.get('specification'), 90)}"
+                        for m in descriptive),
+            "",
+        ]
+    unresolved = (doc.get("role_analysis") or {}).get(
+        "unresolved_model_role_mentions") or []
+    if unresolved:
+        out += [
+            "Model role mentions that could not be tied to one variable entry:",
+            "",
+            md_table(
+                ["Model", "Role", "As written", "Why"],
+                [(u.get("model_id"), u.get("role"), u.get("as_written"),
+                  u.get("reason")) for u in unresolved],
+            ),
+            "",
+        ]
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # per-paper rendering
 # --------------------------------------------------------------------------- #
@@ -97,22 +168,38 @@ def paper_markdown(doc: dict) -> str:
         f"- **DOI**: {meta.get('doi') or '—'}",
         f"- **Study / release stated in paper**: {meta.get('study') or '—'}"
         f" / {meta.get('data_release') or '—'}",
+        f"- **Timepoints analysed**: {_join(meta.get('timepoints'))}",
+        f"- **Sample**: {meta.get('sample_size') or '—'}"
+        + (f"  •  **analytic**: {meta['analytic_sample']}"
+           if meta.get("analytic_sample") else "")
+        + (f"  •  **age**: {meta['participant_age']}"
+           if meta.get("participant_age") else ""),
+        f"- **Design**: {meta.get('design') or '—'}"
+        + (f"  •  **cohort**: {meta['cohort']}" if meta.get("cohort") else ""),
         f"- **Verified**: {ver.get('variables_dictionary_verified', 0)} variables against the"
         f" data dictionary, {ver.get('constructs_mapped', 0)} constructs mapped,"
         f" {ver.get('rejected_total', 0)} claims rejected",
+    ]
+    if meta.get("participants"):
+        lines.append(f"- **Participants**: {meta['participants']}")
+    lines += [
         "",
         "## Variables used in this study",
         "",
         md_table(
-            ["Mentioned as", "Maps to variable", "nda_or_nbdc_table", "nbdc_domain",
-             "Role", "Match", "Release(s)", "Section", "Quote"],
+            ["Measure", "Timepoint", "Mentioned as", "Maps to variable",
+             "nda_or_nbdc_table", "nbdc_domain", "Role(s) by analysis",
+             "Role basis", "Match", "Release(s)", "Section", "Quote"],
             [
                 (
+                    v.get("measure") or v.get("name"),
+                    v.get("timepoint_normalized") or v.get("timepoint") or "—",
                     v.get("mention_as_written") or v.get("name"),
                     (v.get("dictionary_match") or {}).get("variable") or "— unverified —",
                     v.get("nda_or_nbdc_table") or "—",
                     v.get("nbdc_domain") or "—",
-                    v.get("role") or "—",
+                    v.get("role_summary") or v.get("role") or "—",
+                    v.get("role_basis") or "—",
                     (v.get("dictionary_match") or {}).get("match_method")
                     if v.get("dictionary_status") == "verified" else v.get("dictionary_status"),
                     ", ".join(v.get("dd_releases_containing") or []) or "—",
@@ -123,6 +210,7 @@ def paper_markdown(doc: dict) -> str:
             ],
         ),
         "",
+        *_role_matrix_block(doc),
         "## Constructs",
         "",
         md_table(
@@ -142,17 +230,24 @@ def paper_markdown(doc: dict) -> str:
         "## Models",
         "",
         md_table(
-            ["Specification", "Predictors", "Outcomes", "Mediators", "Moderators", "Section"],
+            ["#", "Specification", "Predictors", "Outcomes", "Mediators",
+             "Moderators", "Covariates", "Tests", "Section"],
             [
                 (
+                    m.get("model_id") or f"M{i}",
                     m.get("specification") or m.get("name"),
                     ", ".join(m.get("predictors") or []) or "—",
                     ", ".join(m.get("outcomes") or []) or "—",
                     ", ".join(m.get("mediators") or []) or "—",
                     ", ".join(m.get("moderators") or []) or "—",
+                    # Covariates decide whether a role reading is right, and the
+                    # table left them out entirely — so a paper controlling for
+                    # three prior waves looked like it had used none of them.
+                    ", ".join(m.get("covariates") or []) or "—",
+                    m.get("tests_hypothesis") or "—",
                     (m.get("evidence") or {}).get("section") or "—",
                 )
-                for m in doc.get("models", [])
+                for i, m in enumerate(doc.get("models", []), 1)
             ],
         ),
         "",
@@ -253,6 +348,12 @@ def paper_turtle(doc: dict) -> str:
             rows.append(f"{indent}abcd:page {lit(ev['page'])} ;")
         return rows
 
+    # model_id -> node, so a role can point at the analysis that assigned it
+    # instead of floating free on the variable.
+    model_node = {m.get("model_id") or f"M{j + 1}": f"abcd:model-{pid}-{j}"
+                  for j, m in enumerate(doc.get("models", []))}
+    role_rows: List[str] = []
+
     for i, v in enumerate(doc.get("variables", [])):
         node = f"abcd:var-{pid}-{i}-{slug(v.get('name'))}"
         ev = v.get("evidence") or {}
@@ -272,11 +373,39 @@ def paper_turtle(doc: dict) -> str:
                 out.append(f"    abcd:nbdcDomain {lit(v['nbdc_domain'])} ;")
             if v.get("nbdc_sub_domain"):
                 out.append(f"    abcd:nbdcSubDomain {lit(v['nbdc_sub_domain'])} ;")
+        if v.get("measure"):
+            out.append(f"    abcd:measure {lit(v['measure'])} ;")
+        if v.get("timepoint"):
+            out.append(f"    abcd:timepoint {lit(v['timepoint'])} ;")
+        if v.get("timepoint_normalized"):
+            out.append(f"    abcd:timepointNormalized {lit(v['timepoint_normalized'])} ;")
+        if v.get("timepoint_order") is not None:
+            out.append(f"    abcd:timepointOrder {int(v['timepoint_order'])} ;")
         if v.get("role"):
             out.append(f"    abcd:role {lit(v['role'])} ;")
+        for r in v.get("roles") or []:
+            out.append(f"    abcd:roleInSomeAnalysis {lit(r)} ;")
+        if v.get("role_basis"):
+            out.append(f"    abcd:roleBasis {lit(v['role_basis'])} ;")
+        if v.get("role_varies_by_analysis"):
+            out.append("    abcd:roleVariesByAnalysis true ;")
         out += evidence_block(node, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
+        for k, a in enumerate(v.get("role_assignments") or []):
+            target = model_node.get(a.get("model_id"))
+            if not target:
+                continue
+            rnode = f"abcd:roleassign-{pid}-{i}-{k}"
+            role_rows += [
+                f"{rnode} a abcd:RoleAssignment ;",
+                f"    abcd:ofVariable {node} ;",
+                f"    abcd:inAnalysis {target} ;",
+                f"    abcd:role {lit(a.get('role'))} ;",
+                f"    abcd:mentionAsWritten {lit(a.get('as_written'))} ;",
+                f"    prov:wasDerivedFrom {paper} .",
+                "",
+            ]
 
     for i, c in enumerate(doc.get("constructs", [])):
         node = f"abcd:construct-{pid}-{i}-{slug(c.get('construct'))}"
@@ -298,7 +427,12 @@ def paper_turtle(doc: dict) -> str:
         node = f"abcd:model-{pid}-{i}"
         ev = m.get("evidence") or {}
         out.append(f"{node} a abcd:StatisticalModel ;")
+        out.append(f"    abcd:modelId {lit(m.get('model_id') or f'M{i + 1}')} ;")
         out.append(f"    rdfs:label {lit(m.get('specification') or m.get('name'))} ;")
+        if m.get("kind"):
+            out.append(f"    abcd:analysisKind {lit(m['kind'])} ;")
+        if m.get("tests_hypothesis"):
+            out.append(f"    abcd:testsHypothesis {lit(m['tests_hypothesis'])} ;")
         for key, pred in (("predictors", "abcd:hasPredictor"),
                           ("outcomes", "abcd:hasOutcome"),
                           ("mediators", "abcd:hasMediator"),
@@ -326,6 +460,8 @@ def paper_turtle(doc: dict) -> str:
         out += evidence_block(node, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
+
+    out += role_rows
 
     for d in (prov.get("dictionaries") or []):
         node = f"abcd:dd-{slug(d.get('study'), d.get('dd_release'))}"
@@ -743,6 +879,110 @@ def synthesis_turtle(doc: dict) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# the human coding scheme
+# --------------------------------------------------------------------------- #
+
+# The codes ABCD annotators actually apply, and where each one lives in the
+# extraction. Emitting the same three columns a human coder fills in ("Text
+# Content", "Source", "Codes") is what makes a run comparable to a gold standard
+# instead of merely plausible: a reader can diff the two files.
+#
+# The human scheme is coarser than the schema on purpose. It has no `mediator` or
+# `moderator` code — both land under "Additional Variables" — and it splits a
+# variable into the label ("Dependent Variable") and the sentence that says how it
+# was measured ("DV Supporting Info"), which here are the mention and its quote.
+CODEBOOK_ROLE_CODES = {
+    "predictor": "Independent Variable",
+    "outcome": "Dependent Variable",
+    "covariate": "Covariate",
+    "confounder": "Covariate",
+    "control": "Covariate",
+    "mediator": "Additional Variables",
+    "moderator": "Additional Variables",
+    "instrument": "Additional Variables",
+    "unspecified": "Additional Variables",
+}
+CODEBOOK_SUPPORTING = {"predictor": "IV Supporting Info",
+                       "outcome": "DV Supporting Info"}
+
+
+def paper_codebook(doc: dict) -> List[Dict[str, str]]:
+    """The extraction re-expressed in the annotators' coding scheme."""
+    meta = doc.get("source_metadata") or {}
+    source = Path(str(meta.get("source_path") or doc.get("paper_id") or "")).name
+    rows: List[Dict[str, str]] = []
+
+    def add(text: Any, code: str, **extra: Any) -> None:
+        if text in (None, "", [], "—"):
+            return
+        rows.append({"Text Content": _join(text, "; "), "Source": source,
+                     "Codes": code,
+                     # The human scheme has no mediator/moderator code; keeping the
+                     # schema's role beside it means the coarser code loses nothing.
+                     "Role": str(extra.get("role") or ""),
+                     "Timepoint": str(extra.get("timepoint") or ""),
+                     "Analyses": str(extra.get("analyses") or ""),
+                     "Section": str(extra.get("section") or "")})
+
+    add(meta.get("data_release"), "ABCD Release")
+    add(meta.get("timepoints"), "ABCD Time Point")
+    add(meta.get("sample_size"), "Sample Size")
+    add(meta.get("analytic_sample"), "Sample Size")
+    add(meta.get("participants"), "Participant")
+    add(meta.get("participant_age"), "Participant Age")
+
+    for v in doc.get("variables") or []:
+        role = str(v.get("role") or "unspecified")
+        ev = v.get("evidence") or {}
+        analyses = ", ".join(
+            dict.fromkeys(a.get("model_id") for a in v.get("role_assignments") or []))
+        add(v.get("mention_as_written") or v.get("name"),
+            CODEBOOK_ROLE_CODES.get(role, "Additional Variables"),
+            role=v.get("role_summary") or role,
+            timepoint=v.get("timepoint_normalized") or v.get("timepoint"),
+            analyses=analyses, section=ev.get("section"))
+        support = CODEBOOK_SUPPORTING.get(role)
+        if support and ev.get("quote"):
+            add(ev["quote"], support,
+                timepoint=v.get("timepoint_normalized") or v.get("timepoint"),
+                section=ev.get("section"))
+
+    for m in doc.get("models") or []:
+        add(m.get("specification"), "Statistical Model",
+            analyses=m.get("model_id"),
+            section=(m.get("evidence") or {}).get("section"))
+
+    for f in doc.get("findings") or []:
+        add((f.get("evidence") or {}).get("quote") or f.get("statement"), "Findings",
+            section=(f.get("evidence") or {}).get("section"))
+    return rows
+
+
+CODEBOOK_COLUMNS = ("Text Content", "Source", "Codes", "Role", "Timepoint",
+                    "Analyses", "Section")
+
+
+def paper_codebook_tsv(doc: dict) -> str:
+    rows = paper_codebook(doc)
+    out = ["\t".join(CODEBOOK_COLUMNS)]
+    for r in rows:
+        # Tabs and newlines are the format; a quote containing either would silently
+        # add a column or a row.
+        out.append("\t".join(
+            re.sub(r"[\t\r\n]+", " ", r.get(c, "")).strip() for c in CODEBOOK_COLUMNS))
+    return "\n".join(out) + "\n"
+
+
+def synthesis_codebook_tsv(doc: dict) -> str:
+    """A corpus-level codebook is the per-paper ones concatenated."""
+    out = ["\t".join(CODEBOOK_COLUMNS)]
+    for paper in doc.get("papers") or []:
+        for line in paper_codebook_tsv(paper).splitlines()[1:]:
+            out.append(line)
+    return "\n".join(out) + "\n"
+
+
+# --------------------------------------------------------------------------- #
 # writing
 # --------------------------------------------------------------------------- #
 
@@ -753,20 +993,24 @@ def write_all(doc: dict, base: Path, *, kind: str = "paper",
     base.parent.mkdir(parents=True, exist_ok=True)
     md_fn = paper_markdown if kind == "paper" else synthesis_markdown
     ttl_fn = paper_turtle if kind == "paper" else synthesis_turtle
+    cb_fn = paper_codebook_tsv if kind == "paper" else synthesis_codebook_tsv
     written: Dict[str, Path] = {}
     for fmt in formats:
-        if fmt not in ("json", "md", "ttl"):
-            raise ValueError(f"unknown format {fmt!r} (json | md | ttl)")
+        if fmt not in ("json", "md", "ttl", "codebook"):
+            raise ValueError(f"unknown format {fmt!r} (json | md | ttl | codebook)")
         # APPEND the extension; never with_suffix(). Paper filenames routinely embed
         # a DOI ("Whitmore-2023-10.1162_imag_a_00037"), and with_suffix() would treat
         # ".1162_imag_a_00037_abcd" as the suffix and replace it — truncating the name
         # to "Whitmore-2023-10.json" and silently colliding with every other paper
         # from the same year and prefix.
-        out = base.parent / f"{base.name}.{fmt}"
+        out = base.parent / (f"{base.name}.codebook.tsv" if fmt == "codebook"
+                             else f"{base.name}.{fmt}")
         if fmt == "json":
             out.write_text(json.dumps(doc, indent=1, ensure_ascii=False))
         elif fmt == "md":
             out.write_text(md_fn(doc))
+        elif fmt == "codebook":
+            out.write_text(cb_fn(doc))
         else:
             out.write_text(ttl_fn(doc))
         written[fmt] = out

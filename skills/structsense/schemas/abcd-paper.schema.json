@@ -103,6 +103,20 @@
             "null"
           ],
           "description": "Where the data came from: NDA release, DEAP, NBDC Data Hub."
+        },
+        "participants": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Who was analysed and who was excluded, as the paper states it \u2014 the annotators' `Participant` code."
+        },
+        "participant_age": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Age of the sample as printed ('mean age 12.9', 'ages 9-10')."
         }
       },
       "additionalProperties": true
@@ -379,6 +393,16 @@
           "type": "string"
         }
       }
+    },
+    "role_analysis": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Summary of the per-analysis role pass: how many variables change role between analyses, which model mentions could not be tied to a declared variable, and which analyses are descriptive."
+    },
+    "role_matrix": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Variables x analyses, each cell the role that analysis gave it."
     }
   },
   "$defs": {
@@ -500,13 +524,67 @@
           ]
         },
         "role": {
-          "$ref": "#/$defs/Role"
+          "$ref": "#/$defs/Role",
+          "description": "The single headline role. Kept for readers that expect one value, but a role belongs to an analysis, not to a variable \u2014 read `roles` and `role_assignments` whenever `role_varies_by_analysis` is true."
         },
         "timepoint": {
           "type": [
             "string",
             "null"
+          ],
+          "description": "The wave as the paper words it, verbatim."
+        },
+        "timepoint_normalized": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The wave in one wording: 'baseline', '1-year follow-up', or a span for a measure the paper treats across waves."
+        },
+        "timepoint_order": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Waves since baseline (0 = baseline). null when the wording does not pin one down \u2014 never guessed, because a wrong order rewrites which measurement was the outcome."
+        },
+        "timepoint_span": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "[first, last] when the entry covers a range of waves."
+        },
+        "measure": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The instrument this entry measures, shared by every wave of it. Three entries reading 'internalizing behaviors', 'Internalizing Time 2' and 'Internalizing problems year 1' are one measure at three waves, and without this a reader cannot tell."
+        },
+        "measure_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Grouping key for `measure`; also the merge key with the wave."
+        },
+        "measure_instances": {
+          "type": [
+            "integer",
+            "null"
           ]
+        },
+        "measure_waves": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
         },
         "dictionary_status": {
           "type": "string",
@@ -735,6 +813,87 @@
           ],
           "additionalProperties": true,
           "description": "The variable's NDA structure is not listed for the release the paper states. A warning, never a rejection: the check is structure-level and papers do misstate their release."
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "description": "Every role this variable plays across `models[]`, in precedence order. A brain metric that is an outcome in the group-difference models and a mediator in the mediation model has two, and reporting one of them makes the other analysis disappear."
+        },
+        "role_assignments": {
+          "type": "array",
+          "description": "Which analysis assigned which role, from the model's own arrays.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "model_id": {
+                "type": "string"
+              },
+              "role": {
+                "$ref": "#/$defs/Role"
+              },
+              "as_written": {
+                "type": "string",
+                "description": "The string the model array used."
+              },
+              "section": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "role_varies_by_analysis": {
+          "type": "boolean"
+        },
+        "role_summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display form: 'outcome (M1, M2); mediator (M4)'."
+        },
+        "role_basis": {
+          "type": "string",
+          "enum": [
+            "paper_statement_confirmed_by_model",
+            "model_declaration",
+            "paper_statement",
+            "prior_wave_control",
+            "unresolved"
+          ],
+          "description": "Where the role came from. `model_declaration` means the prose and the model arrays disagreed and the arrays won (`role_conflict` keeps both). `prior_wave_control` is the one inference in the pipeline \u2014 see `role_inference`. `unresolved` means no analysis names it."
+        },
+        "role_stated_in_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role_conflict": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true
+        },
+        "role_inference": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Why a role was inferred rather than read. Only `prior_wave_control` fires: an earlier wave of a measure whose later wave is the outcome, where the paper already declares some earlier wave a covariate."
+        },
+        "bidirectional_in": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Models where this variable is both predictor and outcome \u2014 a cross-lagged or bidirectional design, not a contradiction."
         }
       }
     },
@@ -892,6 +1051,43 @@
         },
         "evidence": {
           "$ref": "#/$defs/Evidence"
+        },
+        "model_id": {
+          "type": "string",
+          "description": "M1, M2, ... \u2014 assigned by the pipeline in document order."
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descriptive",
+            "correlational",
+            "regression",
+            "mixed_model",
+            "mediation",
+            "moderation",
+            "moderated_mediation",
+            "growth_curve",
+            "sem",
+            "survival",
+            "classification",
+            "machine_learning",
+            "other",
+            null
+          ],
+          "description": "What kind of analysis this is. `descriptive` and `correlational` assign no roles \u2014 every variable in a correlation matrix sits on both axes, and reading that as predictor/outcome made one paper's income a predictor of itself."
+        },
+        "tests_hypothesis": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The hypothesis or research question this analysis tests, as the paper numbers it ('Hypothesis 2'). Roles change between hypotheses \u2014 a variable that is a covariate in H1 is the mediator in H2 \u2014 and without this the two collapse."
+        },
+        "assigns_roles": {
+          "type": "boolean"
         }
       }
     },

@@ -1,25 +1,98 @@
 # Changelog
 
-## 0.7.0 — Docling in the PDF extraction chain
+## 0.8.0 — ABCD: a role belongs to an analysis, and a wave is not a name
 
-- `input_loader` gains [Docling](https://github.com/docling-project/docling) as a
-  backend, placed after GROBID and ahead of the PyMuPDF family: GROBID is still
-  first because it is a server that is either up or not, and Docling is ahead of
-  the rest because it converts through a layout model and a table-structure model
-  instead of reading the text layer, so a two-column paper comes back in reading
-  order and a table comes back as addressable cells.
-- **This is the first backend that reads a scanned PDF.** Docling's default
-  pipeline OCRs; every other backend needs a text layer and returns nothing for a
-  scan, which is indistinguishable from a corrupt file and — in ABCD mode — used
-  to surface as the unhelpful "produced no text" error. That error now names the
-  fix, and it is a fix rather than a dead end.
+Feedback on the first ABCD corpus run was that the right variables came out but
+the roles and timepoints were muddled. Both complaints trace to one shape: a flat
+`variables[]` list gives each variable one `role` and one free-text `timepoint`,
+while a paper assigns roles per analysis and measures the same thing at three
+waves.
+
+- **New `scripts/abcd_roles.py`**, run after verification and before export. It
+  derives roles from `models[]` — which already record what each analysis did —
+  so a variable now carries `roles[]`, `role_assignments[]` (which model gave it
+  which role, in that model's own words), `role_varies_by_analysis`,
+  `role_summary` and `role_basis`. `role` stays a single string for existing
+  readers. Brain metrics that were outcomes of a group difference and then
+  mediators of a cognitive effect used to export as "mediator" alone, and the
+  first analysis simply disappeared.
+- **A Roles-by-analysis matrix in the Markdown** — variables down the side,
+  analyses across the top — plus the analyses' own `covariates`, which the models
+  table had never printed. A paper controlling for three prior waves looked like
+  it had used none of them.
+- **Correlation and descriptive analyses assign no roles.** Everything in a
+  correlation matrix sits on both axes; reading its arrays literally made one
+  paper's family income a predictor of itself. `models[].kind` declares this, and
+  absent a `kind` the specification is recognised.
+- **`prior_wave_control`** — the one inference the pipeline makes. An earlier wave
+  of an outcome lands as `unspecified` when it appears only in Table 1; it is
+  promoted to `covariate` *only* where the paper already declares some other wave
+  of the same measure a covariate, and `role_inference` records what licensed it.
+- **Waves are parsed, not string-matched.** `timepoint_order` /
+  `timepoint_normalized` / `timepoint_span`: a baseline cue wins, then an explicit
+  follow-up year, then `Time N` / `wave N` (counting from one), then a bare
+  `year N`. Cues that cannot be reconciled leave the order null rather than
+  guessing — a wrong order rewrites which measurement was the outcome.
+- **One measure, several waves, one identity.** `measure` / `measure_key` group
+  "internalizing behaviors", "Internalizing Time 2" and "Internalizing problems
+  year 1" as one instrument at three waves, and duplicates now merge on
+  `(measure, wave)` instead of on the wording — so "family income" at `baseline`
+  and "Income Time 1" at `baseline (Time 1)` stop standing as two variables. The
+  synthesis keys on the measure too, collapsing what were three corpus rows into
+  one. Growth intercepts, slopes, change scores and composites are deliberately
+  kept separate from the measure they derive from.
+- **`bidirectional_in[]`** for cross-lagged designs, where a variable is both
+  predictor and outcome in the *same* model — a design, not a contradiction.
+- **New `--formats codebook`**: a TSV in the ABCD annotators' own coding scheme
+  (Text Content · Source · Codes, plus Role · Timepoint · Analyses · Section), so
+  a run can be diffed against hand-coded gold data instead of eyeballed.
+- **Turtle** gains `abcd:RoleAssignment` nodes linking a variable to the
+  `abcd:StatisticalModel` that gave it a role, plus `abcd:measure`,
+  `abcd:timepointNormalized`, `abcd:modelId`, `abcd:analysisKind` and
+  `abcd:testsHypothesis`.
+- **Fixed: half of `source_metadata` was collected and then dropped.**
+  `abcd_extract` gathered `timepoints`, `cohort`, `site_count`, `analytic_sample`
+  and `data_source` from the payload and wrote only the first seven fields, so a
+  four-wave study exported with no timepoints at all. New `participants` and
+  `participant_age` fields cover the annotators' Participant codes, and the
+  Markdown header now shows waves, sample and design.
+- **The extractor prompt** now requires one `name` per measure with the wave in
+  `timepoint` only (never in the name), complete `covariates[]` on every model,
+  one model entry per hypothesis with `tests_hypothesis`, and `kind` on each
+  analysis.
+
+## 0.7.0 — Docling as the general stage-1 extraction backend
+
+- `input_loader` is no longer a PDF reader with extras.
+  [Docling](https://github.com/docling-project/docling) is **stage 1 for every
+  format it handles** — PDF, DOCX, PPTX, XLSX, HTML, AsciiDoc, MD, CSV, images
+  (PNG/JPEG/TIFF/BMP/WEBP) and, with its `asr` extra, audio — because `convert()`
+  dispatches on the format itself. For everything except PDF/CSV/TXT/MD it is the
+  only backend here: nothing else could open a Word manuscript, a slide deck or a
+  page scan at all, so those inputs used to be rejected outright.
+- It also leads for PDFs, ahead of GROBID and the PyMuPDF family, because it
+  converts through a layout model and a table-structure model instead of reading
+  the text layer: a two-column paper comes back in reading order and a table comes
+  back as addressable cells.
+- **It is the only backend that reads a scanned PDF or an image**, since its
+  pipeline OCRs by default (engine bundled — `pip install docling` needs no system
+  packages). Everything else returns nothing for a scan, indistinguishable from a
+  corrupt file, and in ABCD mode that surfaced as the unhelpful "produced no text"
+  error. That error now names the fix.
+- Fallback is unchanged in substance: when Docling is absent or fails on a file,
+  PDFs go GROBID → pymupdf4llm → PyMuPDF → pdfminer as before, and the reason
+  Docling did not run is carried into the final error message so a total failure
+  names every backend tried. TXT/MD/CSV still read straight off disk.
 - The cost is real (models downloaded on first use, seconds per page, and it pulls
-  torch), so it is not in `requirements.txt` — it is a commented optional line —
-  and both CLIs take `--no-docling`: `scripts.input_loader` and `abcd_extract.py`.
-  A corpus of clean text-layer PDFs should skip it.
-- Nothing changes for an install without docling: the import fails, the reason is
-  appended to the extractor error list exactly like every other missing backend,
-  and the chain falls through to pymupdf4llm.
+  torch), so it stays a commented optional line in `requirements.txt` rather than
+  a default install, and `--no-docling` skips it on both `scripts.input_loader`
+  and `abcd_extract.py`. That flag also gives up the non-PDF formats.
+- `abcd_inputs.PAPER_SUFFIXES` widened to match, so a directory of DOCX/PPTX/HTML/
+  images is a corpus now. `.csv`/`.xlsx` deliberately stay out — in this pipeline
+  a spreadsheet is a list of DOIs to fetch, and reclassifying it as a paper would
+  break that detection. The `--prepare` sidecar dedupe generalised from "PDF
+  stems" to any document stem, so a `<stem>.txt` next to `<stem>.docx` is not
+  processed as a second paper.
 
 ## 0.6.1 — Dictionary coverage, citation detection, duplicate handling
 

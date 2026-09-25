@@ -1,34 +1,44 @@
-"""Read PDF / CSV / TXT input and return plain text with reproducible offsets.
+"""Read a document of any supported format and return plain text with reproducible
+offsets.
 
-This is the most important "missing" piece for users running NER on papers:
-the skill assumes plain-text input, but real users hand it PDFs. This module
-extracts text deterministically, with multiple fallbacks so it works whether
-or not the user has GROBID, Docling, PyMuPDF, or pdfminer installed.
+This is the most important "missing" piece for users running extraction on
+papers: the skill assumes plain-text input, but real users hand it PDFs — and
+increasingly Word manuscripts, slide decks, spreadsheets and page scans. This
+module extracts text deterministically, with fallbacks so it works whether or
+not the user has Docling, GROBID, PyMuPDF or pdfminer installed.
 
-Backend selection order:
+**Docling is stage 1 for every format it handles**, and it handles far more than
+PDF: DOCX, PPTX, XLSX, HTML, AsciiDoc, Markdown, CSV, images (PNG/JPEG/TIFF/BMP/
+WEBP) and, with its `asr` extra, audio. For everything except PDF/CSV/TXT/MD it
+is the *only* backend here — nothing else in the chain can open a .docx or a page
+scan at all. So the order is Docling first, then the PDF-specific backends as
+fallback for when Docling is absent or fails:
 
-1. **GROBID** (if reachable) — best for academic PDFs. Preserves section
-   structure (Introduction, Methods, Results, …). Pointed at by the
-   `GROBID_SERVER_URL_OR_EXTERNAL_SERVICE` env var or `--grobid-url` flag.
-2. **Docling** (https://github.com/docling-project/docling) — layout and
-   table-structure models, exported as Markdown. The only backend here that
-   reads a *scanned* PDF, because its default pipeline runs OCR; everything
-   else needs a text layer. Pure pip, no server, but it downloads models on
-   first use and is the slowest option, so it is skippable (`--no-docling`).
-3. **pymupdf4llm** — layout-aware Markdown, no server and no models. The best
-   option for anyone who can run neither GROBID nor Docling.
-4. **PyMuPDF** (`fitz`) — fast, accurate raw-text extractor. Works on any
-   PDF type (papers, questionnaires, reports, forms).
-5. **pdfminer.six** — pure-Python, slower, no system deps. Last-resort
+1. **Docling** (https://github.com/docling-project/docling) — a layout model and
+   a table-structure model over a unified document representation, exported as
+   Markdown. OCR is on by default, which makes it the only backend that reads a
+   *scanned* PDF or an image; everything below needs a text layer. Pure pip, no
+   server, but models are downloaded on first use and it is the slowest option,
+   so it is skippable (`--no-docling`).
+2. **GROBID** (PDF only, if reachable) — purpose-built for academic PDFs and
+   still the best at TEI section structure (Introduction, Methods, Results, …).
+   Pointed at by `GROBID_SERVER_URL_OR_EXTERNAL_SERVICE` or `--grobid-url`.
+3. **pymupdf4llm** (PDF only) — layout-aware Markdown, no server and no models.
+4. **PyMuPDF** (`fitz`, PDF only) — fast, accurate raw-text extractor. Works on
+   any PDF type (papers, questionnaires, reports, forms).
+5. **pdfminer.six** (PDF only) — pure-Python, slower, no system deps. Last-resort
    fallback when none of the above is installed.
 
-CSV/TXT just read the bytes (CSV is round-tripped through pandas if available,
-otherwise read verbatim).
+TXT/MD/CSV always read straight off disk, Docling installed or not (CSV is
+round-tripped through pandas if available, otherwise read verbatim). Docling
+converts those formats too, but a text file gains nothing from a document model
+and the conversion would change the bytes — which would shift every span offset
+computed against an earlier extraction of the same file.
 
-For NER pipelines: **always write the extracted text to disk before
-extraction**, so character offsets in the result file refer to a stable text.
-Re-extracting the PDF later might yield different offsets if a library
-version changes.
+For extraction pipelines: **always write the extracted text to disk first**, so
+character offsets in the result file refer to a stable text. Re-extracting later
+might yield different offsets if a library version changes — and switching
+backends definitely does.
 
 Adapted from structsense `utils.process_file`.
 """
@@ -41,6 +51,33 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 logger = logging.getLogger("input_loader")
+
+
+# What Docling converts, and therefore what this module accepts. Audio needs
+# docling's `asr` extra; if it is missing the conversion fails and, having no
+# fallback for that format, the error is raised rather than silently swallowed.
+DOCLING_SUFFIXES = frozenset({
+    ".pdf",
+    ".docx", ".pptx", ".xlsx",
+    ".html", ".htm", ".xhtml",
+    ".md", ".adoc", ".asciidoc",
+    ".csv",
+    ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp",
+    ".wav", ".mp3",
+})
+
+# What the non-Docling backends can read. An extension in DOCLING_SUFFIXES but
+# not here has no fallback: no Docling, no text.
+FALLBACK_SUFFIXES = frozenset({".pdf", ".csv", ".txt", ".md"})
+
+# Formats that are already text and are read straight off disk, Docling installed
+# or not. Docling converts these too, but routing them through a document model
+# buys nothing and would *change the bytes* — and since span offsets are computed
+# against whatever text this module returns, changing them silently invalidates
+# every offset in a result file produced before the change.
+TEXTUAL_SUFFIXES = frozenset({".txt", ".md", ".csv"})
+
+SUPPORTED_SUFFIXES = DOCLING_SUFFIXES | FALLBACK_SUFFIXES
 
 
 # ---------------------------------------------------------------------------
@@ -56,19 +93,23 @@ def process_file(
 ) -> str:
     """Read a file and return its content as plain text.
 
-    Supported extensions: `.pdf`, `.csv`, `.txt`, `.md`.
+    Docling runs first for every format it supports (see `DOCLING_SUFFIXES`);
+    PDF/CSV/TXT/MD fall back to the older backends when it is absent or fails,
+    and the other formats have no fallback because nothing else here can open
+    them.
 
     Args:
         source_path: file to read.
         grobid_url: GROBID server URL. Defaults to the
             `GROBID_SERVER_URL_OR_EXTERNAL_SERVICE` env var, or
             `http://localhost:8070`.
-        prefer_grobid: if True (default), try GROBID first for PDFs.
-            Set False to skip GROBID and go straight to Docling/PyMuPDF/pdfminer
-            (useful for non-academic PDFs).
-        use_docling: if True (default), try Docling after GROBID. Set False to
-            skip it when the model download or its per-page cost is not worth
-            it — the chain then falls through to pymupdf4llm/PyMuPDF/pdfminer.
+        prefer_grobid: if True (default), try GROBID before the PyMuPDF family
+            once Docling is out of the picture. Set False to skip GROBID
+            entirely (useful for non-academic PDFs).
+        use_docling: if True (default), Docling is stage 1. Set False to skip it
+            when the model download or its per-page cost is not worth it — PDFs
+            then go GROBID → pymupdf4llm → PyMuPDF → pdfminer, and the
+            Docling-only formats become unreadable.
 
     Raises:
         FileNotFoundError: if `source_path` doesn't exist.
@@ -79,15 +120,40 @@ def process_file(
         raise FileNotFoundError(f"file not found: {p}")
 
     ext = p.suffix.lower()
+    if ext not in SUPPORTED_SUFFIXES:
+        raise ValueError(
+            f"unsupported extension {ext!r} (supported: "
+            f"{', '.join(sorted(SUPPORTED_SUFFIXES))})"
+        )
+
+    errors: list[str] = []
+
+    # Stage 1, and the only stage that is format-agnostic.
+    if use_docling and ext in DOCLING_SUFFIXES and ext not in TEXTUAL_SUFFIXES:
+        text = _try_docling(p, errors=errors)
+        if text and text.strip():
+            if ext == ".pdf":
+                warn_if_captions_missing(text, f"{p.name} (docling)")
+            return text
+        if ext not in FALLBACK_SUFFIXES:
+            raise ValueError(
+                f"docling could not read {p.name} and nothing else here can open "
+                f"{ext} files: " + " | ".join(errors)
+            )
+        logger.info("docling unavailable for %s, falling back: %s",
+                    p.name, " | ".join(errors))
+    elif ext not in FALLBACK_SUFFIXES:
+        raise ValueError(
+            f"{ext} files can only be read by docling, which is disabled here "
+            f"(use_docling=False / --no-docling)"
+        )
+
     if ext == ".pdf":
         return _read_pdf(p, grobid_url=grobid_url, prefer_grobid=prefer_grobid,
-                         use_docling=use_docling)
+                         errors=errors)
     if ext == ".csv":
         return _read_csv(p)
-    if ext in (".txt", ".md"):
-        return p.read_text(encoding="utf-8", errors="replace")
-
-    raise ValueError(f"unsupported extension {ext!r} (supported: .pdf, .csv, .txt, .md)")
+    return p.read_text(encoding="utf-8", errors="replace")
 
 
 # Caption / table markers, covering every producer: BioC and JATS emit "[FIG]" /
@@ -161,25 +227,18 @@ def process_file_to_text_file(
 # ---------------------------------------------------------------------------
 
 def _read_pdf(path: Path, *, grobid_url: Optional[str],
-              prefer_grobid: bool, use_docling: bool = True) -> str:
-    errors: list[str] = []
+              prefer_grobid: bool, errors: Optional[list[str]] = None) -> str:
+    """The PDF-only fallback chain, reached when Docling is absent or failed.
+
+    `errors` carries in whatever stage 1 already recorded, so the final failure
+    message names every backend that was tried, Docling included.
+    """
+    errors = errors if errors is not None else []
 
     if prefer_grobid:
         text = _try_grobid(path, grobid_url=grobid_url, errors=errors)
         if text and text.strip():
             warn_if_captions_missing(text, f"{path.name} (grobid)")
-            return text
-
-    # Docling before the PyMuPDF family: it runs a layout model and a
-    # table-structure model rather than reading the text layer, so it is the only
-    # backend that produces anything at all for a scanned paper, and it keeps
-    # table cells addressable. It costs a model download and real per-page time,
-    # which is why GROBID (a server that is either up or not) is still tried
-    # first and why this stage is skippable.
-    if use_docling:
-        text = _try_docling(path, errors=errors)
-        if text and text.strip():
-            warn_if_captions_missing(text, f"{path.name} (docling)")
             return text
 
     # pymupdf4llm before plain PyMuPDF: it is layout-aware and keeps figure captions
@@ -207,14 +266,18 @@ def _read_pdf(path: Path, *, grobid_url: Optional[str],
 
 
 def _try_docling(path: Path, *, errors: list[str]) -> Optional[str]:
-    """Markdown via Docling — layout + table structure, and OCR for scans.
+    """Markdown via Docling — any supported format, layout + tables, OCR for scans.
 
-    Docling converts through a document model instead of a text layer: a layout
-    model orders the page and a table-structure model reconstructs cells, so a
-    two-column paper comes back in reading order and a table comes back as a pipe
-    table. Its default PDF pipeline also runs OCR, which makes this the one
-    backend in the chain that returns text for a scanned PDF — every other one
-    returns nothing, indistinguishable from a corrupt file.
+    Docling converts through a unified document representation instead of a text
+    layer: a layout model orders the page and a table-structure model reconstructs
+    cells, so a two-column paper comes back in reading order and a table comes back
+    as a pipe table. The same call handles DOCX, PPTX, XLSX, HTML, images and the
+    rest of `DOCLING_SUFFIXES` — `convert()` dispatches on the format itself, which
+    is why this is the general stage-1 backend rather than a PDF one.
+
+    OCR is on by default, which makes this the one backend here that returns text
+    for a scanned PDF or an image — every other one returns nothing,
+    indistinguishable from a corrupt file.
 
     OCR is on by default (`PdfPipelineOptions.do_ocr=True`), and `pip install
     docling` bundles an engine (rapidocr) so it works with no system packages;
@@ -496,19 +559,24 @@ def _read_csv(path: Path) -> str:
 if __name__ == "__main__":
     import argparse, sys
     ap = argparse.ArgumentParser(
-        description="Extract text from a PDF / CSV / TXT and write a "
-                    "<stem>.txt next to the source so subsequent NER stages "
-                    "have stable character offsets."
+        description="Extract text from a document (PDF, DOCX, PPTX, XLSX, HTML, "
+                    "image, CSV, TXT, MD — anything docling reads) and write a "
+                    "<stem>.txt next to the source so subsequent extraction "
+                    "stages have stable character offsets."
     )
-    ap.add_argument("source", help="path to .pdf / .csv / .txt / .md")
+    ap.add_argument("source",
+                    help="path to any supported document; docling handles the "
+                         "non-PDF formats, PDFs also have server-free fallbacks")
     ap.add_argument("--out", default=None, help="output text path (default: <stem>.txt)")
     ap.add_argument("--grobid-url", default=None,
                     help="GROBID server URL (default: $GROBID_SERVER_URL_OR_EXTERNAL_SERVICE or http://localhost:8070)")
     ap.add_argument("--no-grobid", action="store_true",
-                    help="Skip GROBID; use Docling / PyMuPDF / pdfminer only.")
+                    help="Skip GROBID in the PDF fallback chain.")
     ap.add_argument("--no-docling", action="store_true",
-                    help="Skip Docling (avoids its model download and per-page "
-                         "cost); use GROBID / pymupdf4llm / PyMuPDF / pdfminer only.")
+                    help="Skip Docling, the stage-1 backend (avoids its model "
+                         "download and per-page cost). PDFs then go GROBID -> "
+                         "pymupdf4llm -> PyMuPDF -> pdfminer; DOCX/PPTX/XLSX/HTML/"
+                         "image input becomes unreadable.")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")

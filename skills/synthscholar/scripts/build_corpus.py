@@ -46,13 +46,17 @@ would hide the results and discussion sections from the analysis.
 Requires: pymupdf (``pip install pymupdf``) for text extraction. Falls back
 to ``pypdf`` and then the ``pdftotext`` CLI when PyMuPDF is unavailable.
 
-``--docling`` swaps in Docling (https://github.com/docling-project/docling) as
-the first backend: layout and table-structure models exported as Markdown, and
-OCR (on by default, engine bundled), so it is the only option here that reads a
-**scanned** PDF. It is opt-in
-rather than default because the default chain mirrors the hosted app's parser,
-and because Docling downloads models on first use and costs seconds per page.
-Which backend produced each entry is recorded in ``_extractor``.
+Extraction order is Docling (https://github.com/docling-project/docling) first,
+then the app's own PyMuPDF parser, bare PyMuPDF, pypdf, and the ``pdftotext``
+CLI. Docling leads because it converts through layout and table-structure models
+rather than a text layer, so tables survive as cells and — with OCR on by
+default — a **scanned** PDF yields text at all, which no other backend here can
+manage. If it is not installed or fails on a file, the chain falls through and
+says so. ``--no-docling`` skips it, which is worth doing for a large corpus of
+clean text-layer PDFs (it downloads models on first use and costs seconds per
+page) or when you need the corpus to match byte-for-byte what the hosted app's
+parser produces. Which backend produced each entry is recorded in
+``_extractor``.
 """
 from __future__ import annotations
 
@@ -97,22 +101,22 @@ _DOI_TRAILING = ".,;:)]}>'\""
 
 
 def _extract_text(pdf: Path, max_chars: int, *,
-                  prefer_docling: bool = False) -> tuple[str, str]:
+                  use_docling: bool = True) -> tuple[str, str]:
     """Return ``(text, extractor_name)``; text is "" when every backend fails.
 
     ``max_chars=0`` means the whole document — the default, because the review
     pipeline chunks each article's full text and reads every chunk, so a
     truncated corpus would hide exactly the results sections it needs.
 
-    ``prefer_docling`` puts Docling ahead of everything else. Off by default so a
-    local corpus is built by the same parser the hosted app uses and the two runs
-    stay comparable; worth turning on for scanned PDFs, which no other backend
-    here can read at all, and for papers whose tables carry the results.
+    Docling goes first (``--no-docling`` to skip it): it is the only backend here
+    that reads a scanned PDF, and it keeps table cells addressable. When it is
+    absent or fails, the rest of the chain — which is what the hosted app uses —
+    runs exactly as before.
     """
     max_chars = max_chars if max_chars > 0 else _UNLIMITED
 
-    # 0. Docling, only when asked for (--docling).
-    if prefer_docling:
+    # 0. Docling.
+    if use_docling:
         text = _try_docling(pdf)
         if text:
             return text[:max_chars], "docling"
@@ -186,20 +190,27 @@ def _extract_text(pdf: Path, max_chars: int, *,
     return "", ""
 
 
+_DOCLING_ABSENT_REPORTED = False
+
+
 def _try_docling(pdf: Path) -> str:
     """Markdown via Docling, or "" with a warning on stderr.
 
-    Unlike the other backends this one is only reached when the user asked for
-    it, so a failure is reported rather than swallowed — silently falling back to
-    a text-layer parser is how a scanned PDF ends up in a corpus as an empty
-    ``full_text`` that reads like a paper with nothing in it.
+    The failure is reported rather than swallowed, unlike the text-layer backends
+    below: falling back quietly is how a scanned PDF ends up in a corpus as an
+    empty ``full_text`` that reads like a paper with nothing in it, and then
+    screens out as irrelevant rather than as a failed extraction.
     """
+    global _DOCLING_ABSENT_REPORTED
     try:
         from docling.document_converter import DocumentConverter  # type: ignore
     except ImportError:
-        print("  WARN  --docling given but docling is not installed "
-              "(pip install docling); falling back to the PyMuPDF chain",
-              file=sys.stderr)
+        # Once per run, not once per paper: a 200-PDF corpus does not need 200
+        # copies of the same note.
+        if not _DOCLING_ABSENT_REPORTED:
+            print("  NOTE  docling not installed (pip install docling) — using the "
+                  "PyMuPDF chain, which cannot read a scanned PDF", file=sys.stderr)
+            _DOCLING_ABSENT_REPORTED = True
         return ""
     try:
         result = DocumentConverter().convert(str(pdf))
@@ -333,11 +344,11 @@ def build_item(
     max_chars: int,
     default_source: str,
     overrides: dict,
-    prefer_docling: bool = False,
+    use_docling: bool = True,
 ) -> dict:
     """Build one corpus entry (an ``Article``-shaped dict + ``_`` bookkeeping)."""
     raw = pdf.read_bytes()
-    text, extractor = _extract_text(pdf, max_chars, prefer_docling=prefer_docling)
+    text, extractor = _extract_text(pdf, max_chars, use_docling=use_docling)
     pdf_meta = _pdf_metadata(pdf)
     head = text[:HEAD_CHARS]
 
@@ -469,12 +480,13 @@ def main() -> int:
     ap.add_argument("--source", default="user_supplied",
                     help="Article.source for PRISMA per-database identification counts; "
                          "override per file in the manifest (e.g. PubMed)")
-    ap.add_argument("--docling", action="store_true",
-                    help="extract with Docling first (layout + table models, and "
-                         "OCR, so it is the only backend that reads a scanned PDF). "
-                         "Needs `pip install docling`; downloads models on first "
-                         "use and costs seconds per page. Off by default so the "
-                         "corpus matches what the hosted app's parser produces.")
+    ap.add_argument("--no-docling", action="store_true",
+                    help="skip Docling, the first backend, and use the PyMuPDF "
+                         "chain only. Docling gives the best tables and is the "
+                         "only backend that reads a scanned PDF, but it downloads "
+                         "models on first use and costs seconds per page — skip it "
+                         "for a large corpus of clean text-layer PDFs, or when the "
+                         "corpus must match the hosted app's parser byte for byte.")
     ap.add_argument("--check", metavar="CORPUS",
                     help="validate an existing corpus file instead of building one")
     args = ap.parse_args()
@@ -497,7 +509,7 @@ def main() -> int:
             max_chars=args.max_chars,
             default_source=args.source,
             overrides=manifest.get(pdf.name, {}),
-            prefer_docling=args.docling,
+            use_docling=not args.no_docling,
         )
         items.append(item)
         status = "ok" if not item["_needs_metadata"] else "needs: " + ",".join(item["_needs_metadata"])
