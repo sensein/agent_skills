@@ -1,5 +1,13 @@
 # Alignment prompt — ontology mapping
 
+> **Trusted ontologies first.** Before any HTTP mapper, run
+> `python -m scripts.concept_mapping map <result.json>`: it maps every item it can
+> from the trusted ontology files (`trusted_ontologes/priority.md` order), then
+> sends only the rest to the local hybrid service and BioPortal
+> (`concept_mapping.json` → `sources_priority`). Use the calls below for whatever
+> is still `unmapped`, with `--only-unmapped` semantics: never overwrite a
+> trusted-ontology mapping with a remote one.
+
 Use this prompt only when running alignment **via an LLM with a tool**. If you have a batch concept-mapping endpoint, call it directly instead and skip the LLM (see `references/ontology-mapping.md` → "Backend 3" and the direct-tool-call section).
 
 ## System

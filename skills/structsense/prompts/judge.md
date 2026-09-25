@@ -1,4 +1,15 @@
-# Judge prompt — per-item quality scoring
+# Judge prompt — single-judge fallback (legacy)
+
+> **The default judge is now the ensemble** — five narrow, independent judges
+> (`judge-grounding.md`, `judge-labeling.md`, `judge-mapping.md`,
+> `judge-kg-keys.md`, `judge-claims.md`) aggregated by `scripts/judge_combine.py`
+> and, for disagreements only, `judge-combiner.md`. See
+> `references/judge-ensemble.md`. A single score hides which failure mode fired
+> and lets a hallucination be averaged away; the ensemble makes every drop
+> attributable and treats hallucination as a gate, not a weight.
+>
+> Use this prompt only when the user explicitly asks for one quick 0–1 score per
+> item (`pipeline.py --judge-mode single`). It records `judge_method: "llm"`.
 
 ## System
 

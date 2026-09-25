@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/judge-review.schema.json",
+  "title": "Single-judge review (one part of one ensemble judge)",
+  "description": "What one judge writes for one packet (judge/packets/<judge>/part-NNN.json). Several parts of the same judge are merged by scripts/judge_combine.py; an item id reviewed twice by one judge is an input error. See references/judge-ensemble.md.",
+  "type": "object",
+  "required": ["judge", "items"],
+  "properties": {
+    "judge": {"type": "string", "description": "panel member name, as in judges_config.json"},
+    "model": {"type": ["string", "null"], "description": "model id of the judge (llm:<id>), or script:<name>"},
+    "mode": {"type": ["string", "null"], "enum": ["host_sequential", "parallel", "deterministic", null],
+             "description": "host_sequential = the host model ran this judge as its own pass (independence is procedural); parallel = separate calls/models; deterministic = a script."},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict", "confidence", "reason"],
+        "properties": {
+          "id": {"type": "string", "description": "'<entity>|<label>' for items ('<term>|KeyTerm' for unlabeled key terms); causal id, chain id, or '<src_key>--<predicate>--<tgt_key>' for claims"},
+          "verdict": {"type": "string", "enum": ["pass", "flag", "fail"]},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "reason": {"type": "string", "maxLength": 400},
+          "suggestion": {
+            "type": ["object", "null"],
+            "description": "machine-usable fix within this judge's dimension only",
+            "properties": {
+              "label": {"type": "string"},
+              "tier": {"type": "string", "enum": ["exactMatch", "closeMatch", "broadMatch", "narrowMatch", "relatedMatch"]},
+              "normalized_key": {"type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$"},
+              "hypothetical": {"type": "boolean"},
+              "negated": {"type": "boolean"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
