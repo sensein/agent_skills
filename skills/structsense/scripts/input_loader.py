@@ -3,18 +3,24 @@
 This is the most important "missing" piece for users running NER on papers:
 the skill assumes plain-text input, but real users hand it PDFs. This module
 extracts text deterministically, with multiple fallbacks so it works whether
-or not the user has GROBID, PyMuPDF, or pdfminer installed.
+or not the user has GROBID, Docling, PyMuPDF, or pdfminer installed.
 
 Backend selection order:
 
 1. **GROBID** (if reachable) — best for academic PDFs. Preserves section
    structure (Introduction, Methods, Results, …). Pointed at by the
    `GROBID_SERVER_URL_OR_EXTERNAL_SERVICE` env var or `--grobid-url` flag.
-2. **PyMuPDF** (`fitz`) — fast, accurate raw-text extractor. Works on any
-   PDF type (papers, questionnaires, reports, forms). Falls back to it when
-   GROBID is unreachable or returns no sections.
-3. **pdfminer.six** — pure-Python, slower, no system deps. Last-resort
-   fallback when neither GROBID nor PyMuPDF is available.
+2. **Docling** (https://github.com/docling-project/docling) — layout and
+   table-structure models, exported as Markdown. The only backend here that
+   reads a *scanned* PDF, because its default pipeline runs OCR; everything
+   else needs a text layer. Pure pip, no server, but it downloads models on
+   first use and is the slowest option, so it is skippable (`--no-docling`).
+3. **pymupdf4llm** — layout-aware Markdown, no server and no models. The best
+   option for anyone who can run neither GROBID nor Docling.
+4. **PyMuPDF** (`fitz`) — fast, accurate raw-text extractor. Works on any
+   PDF type (papers, questionnaires, reports, forms).
+5. **pdfminer.six** — pure-Python, slower, no system deps. Last-resort
+   fallback when none of the above is installed.
 
 CSV/TXT just read the bytes (CSV is round-tripped through pandas if available,
 otherwise read verbatim).
@@ -46,6 +52,7 @@ def process_file(
     *,
     grobid_url: Optional[str] = None,
     prefer_grobid: bool = True,
+    use_docling: bool = True,
 ) -> str:
     """Read a file and return its content as plain text.
 
@@ -57,8 +64,11 @@ def process_file(
             `GROBID_SERVER_URL_OR_EXTERNAL_SERVICE` env var, or
             `http://localhost:8070`.
         prefer_grobid: if True (default), try GROBID first for PDFs.
-            Set False to skip GROBID and go straight to PyMuPDF/pdfminer
+            Set False to skip GROBID and go straight to Docling/PyMuPDF/pdfminer
             (useful for non-academic PDFs).
+        use_docling: if True (default), try Docling after GROBID. Set False to
+            skip it when the model download or its per-page cost is not worth
+            it — the chain then falls through to pymupdf4llm/PyMuPDF/pdfminer.
 
     Raises:
         FileNotFoundError: if `source_path` doesn't exist.
@@ -70,7 +80,8 @@ def process_file(
 
     ext = p.suffix.lower()
     if ext == ".pdf":
-        return _read_pdf(p, grobid_url=grobid_url, prefer_grobid=prefer_grobid)
+        return _read_pdf(p, grobid_url=grobid_url, prefer_grobid=prefer_grobid,
+                         use_docling=use_docling)
     if ext == ".csv":
         return _read_csv(p)
     if ext in (".txt", ".md"):
@@ -119,7 +130,9 @@ def warn_if_captions_missing(text: str, label: str = "input") -> dict:
             "ceiling rather than a paper without figures. Options, best first: "
             "(1) open access? `python -m scripts.fetch_fulltext <PMCID>` needs no PDF "
             "and no GROBID; (2) run GROBID and pass --grobid-url; "
-            "(3) pip install pymupdf4llm (layout-aware, no server) and re-extract.",
+            "(3) pip install docling (layout + table models, and the only backend "
+            "that OCRs a scanned PDF); (4) pip install pymupdf4llm (layout-aware, "
+            "no server) and re-extract.",
             label, cov["chars"],
         )
     return cov
@@ -148,13 +161,25 @@ def process_file_to_text_file(
 # ---------------------------------------------------------------------------
 
 def _read_pdf(path: Path, *, grobid_url: Optional[str],
-              prefer_grobid: bool) -> str:
+              prefer_grobid: bool, use_docling: bool = True) -> str:
     errors: list[str] = []
 
     if prefer_grobid:
         text = _try_grobid(path, grobid_url=grobid_url, errors=errors)
         if text and text.strip():
             warn_if_captions_missing(text, f"{path.name} (grobid)")
+            return text
+
+    # Docling before the PyMuPDF family: it runs a layout model and a
+    # table-structure model rather than reading the text layer, so it is the only
+    # backend that produces anything at all for a scanned paper, and it keeps
+    # table cells addressable. It costs a model download and real per-page time,
+    # which is why GROBID (a server that is either up or not) is still tried
+    # first and why this stage is skippable.
+    if use_docling:
+        text = _try_docling(path, errors=errors)
+        if text and text.strip():
+            warn_if_captions_missing(text, f"{path.name} (docling)")
             return text
 
     # pymupdf4llm before plain PyMuPDF: it is layout-aware and keeps figure captions
@@ -179,6 +204,37 @@ def _read_pdf(path: Path, *, grobid_url: Optional[str],
     raise ValueError(
         f"all PDF extractors failed for {path.name}: " + " | ".join(errors)
     )
+
+
+def _try_docling(path: Path, *, errors: list[str]) -> Optional[str]:
+    """Markdown via Docling — layout + table structure, and OCR for scans.
+
+    Docling converts through a document model instead of a text layer: a layout
+    model orders the page and a table-structure model reconstructs cells, so a
+    two-column paper comes back in reading order and a table comes back as a pipe
+    table. Its default PDF pipeline also runs OCR, which makes this the one
+    backend in the chain that returns text for a scanned PDF — every other one
+    returns nothing, indistinguishable from a corrupt file.
+
+    OCR is on by default (`PdfPipelineOptions.do_ocr=True`), and `pip install
+    docling` bundles an engine (rapidocr) so it works with no system packages;
+    `docling[easyocr]`, or `docling[ocrmac]` on macOS, swap the engine.
+
+    The cost is real: models are downloaded on first use (hundreds of MB) and
+    conversion is seconds per page, more with OCR. Failures fall through to the
+    lighter backends rather than raising.
+    """
+    try:
+        from docling.document_converter import DocumentConverter
+    except ImportError as e:
+        errors.append(f"docling: not installed ({e}); pip install docling")
+        return None
+    try:
+        result = DocumentConverter().convert(str(path))
+        return result.document.export_to_markdown()
+    except Exception as e:  # noqa: BLE001 - any failure just falls through
+        errors.append(f"docling: {e}")
+        return None
 
 
 def _try_pymupdf4llm(path: Path, *, errors: list[str]) -> Optional[str]:
@@ -449,7 +505,10 @@ if __name__ == "__main__":
     ap.add_argument("--grobid-url", default=None,
                     help="GROBID server URL (default: $GROBID_SERVER_URL_OR_EXTERNAL_SERVICE or http://localhost:8070)")
     ap.add_argument("--no-grobid", action="store_true",
-                    help="Skip GROBID; use PyMuPDF / pdfminer only.")
+                    help="Skip GROBID; use Docling / PyMuPDF / pdfminer only.")
+    ap.add_argument("--no-docling", action="store_true",
+                    help="Skip Docling (avoids its model download and per-page "
+                         "cost); use GROBID / pymupdf4llm / PyMuPDF / pdfminer only.")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -458,5 +517,6 @@ if __name__ == "__main__":
         out_path=args.out,
         grobid_url=args.grobid_url,
         prefer_grobid=not args.no_grobid,
+        use_docling=not args.no_docling,
     )
     print(f"{out_path}\t{len(text)} chars", file=sys.stderr)

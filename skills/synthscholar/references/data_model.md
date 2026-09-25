@@ -39,6 +39,26 @@ Distinguishing rule: a source with a `slr:full_text_artifact` is full-text
 included; one without is abstract-only. Emitted by `rdf_export.py`
 (`_add_included_source`).
 
+### Research questions
+
+Each `protocol.research_questions` entry becomes a `slr:ResearchQuestion` under
+a stable IRI beneath the review (`<review-iri>/question/RQ1.1`, or
+`…:question:RQ1.1` for a URN review id):
+
+- `slr:question_id` (`"RQ1.1"`), `slr:question_text`, `dcterms:title` (the
+  short title), `slr:theme` — and `?review slr:research_question ?q`.
+- Every study's charted answer is a `slr:ChartingQuestionAnswer` with
+  `slr:answer_text`, `slr:source_id`, `slr:question_id`, linked both ways
+  (`?q slr:has_answer ?a`, `?a slr:answers_question ?q`) and to the study
+  (`?a slr:about_source ?src`). The study's `slr:ChartingRecord` also points at
+  it via `slr:charting_question_answer`, so a study-first walk reaches the
+  answers without going through the question.
+
+Emitted by `research_questions.add_to_graph`, called from `_build_graph` — so
+every review carries them, whatever produced the corpus. Recipes:
+`research-questions`, `question-answers` in
+[sparql_queries.md](sparql_queries.md).
+
 ## PostgreSQL (article store)
 
 - **`article_store`** — one row per article, unique on `pmid`. `full_text` is

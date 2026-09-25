@@ -73,8 +73,9 @@ structsense/
 │   ├── normalize_result.py  ← idempotent post-processor. Lifts paper_title/doi to
 │   │                          source_metadata, tags source_model, attaches grouped
 │   │                          + stats. Runs automatically in pipeline.py; also CLI.
-│   ├── input_loader.py      ← PDF/CSV/TXT ingestion with GROBID → PyMuPDF →
-│   │                          pdfminer fallback chain. CLI writes <stem>.txt.
+│   ├── input_loader.py      ← PDF/CSV/TXT ingestion with GROBID → Docling →
+│   │                          pymupdf4llm → PyMuPDF → pdfminer fallback chain
+│   │                          (Docling also OCRs scans). CLI writes <stem>.txt.
 │   ├── task_detection.py    ← auto-detect task type (ner/resource/structured/…)
 │   │                          from a free-text description. Heuristic + LLM.
 │   ├── model_context.py     ← model context-window registry + downstream
@@ -566,8 +567,13 @@ pip install json-repair
 # For repair_to_schema()
 pip install jsonschema
 
-# PDF text extraction — input_loader tries GROBID -> PyMuPDF -> pdfminer.six
-pip install pymupdf pdfminer.six
+# PDF text extraction — input_loader tries GROBID -> Docling -> pymupdf4llm
+# -> PyMuPDF -> pdfminer.six and uses whichever is present
+pip install pymupdf pymupdf4llm pdfminer.six
+
+# Optional, and the only way to read a SCANNED PDF (its pipeline OCRs); also the
+# best tables. Downloads models on first use; skip it with --no-docling.
+pip install docling
 
 # Excel: the NBDC variable catalog workbook, and .xlsx DOI lists
 pip install openpyxl

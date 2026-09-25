@@ -263,3 +263,40 @@ WHERE {
 }
 ORDER BY ?pmid
 ```
+
+## `research-questions` — the protocol's questions and how many studies answered each
+
+```sparql
+SELECT ?qid ?title (COUNT(?a) AS ?answers)
+WHERE {
+  ?q a slr:ResearchQuestion ; slr:has_answer ?a .
+  OPTIONAL { ?q slr:question_id ?qid }
+  OPTIONAL { ?q dcterms:title ?title }
+}
+GROUP BY ?qid ?title
+ORDER BY ?qid
+```
+
+An answer count below the included-study count means some articles didn't
+report enough to chart that question — worth knowing before quoting a
+question's synthesis as if it covered the corpus.
+
+## `question-answers` — every study's answer to one research question
+
+The recipe asks `RQ1.1`; edit the id, or use `--sparql` with your own file.
+
+```sparql
+SELECT ?pmid ?source_id ?answer
+WHERE {
+  ?q slr:question_id "RQ1.1" ; slr:has_answer ?a .
+  ?a slr:answer_text ?answer .
+  OPTIONAL { ?a slr:source_id ?source_id }
+  OPTIONAL { ?a slr:about_source/bibo:pmid ?pmid }
+}
+ORDER BY ?source_id
+```
+
+Both work on any review exported since the research-question merge landed (see
+`references/byo_corpus_review.md` § 5). Older exports carry the answers only
+inside the charting rubrics — re-export, or run
+`scripts/research_questions.py review.json --outdir out/`, to get these nodes.

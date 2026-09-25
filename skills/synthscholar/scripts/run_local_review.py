@@ -435,7 +435,9 @@ async def run(args: argparse.Namespace) -> int:
     # Re-stamp so per-group / post-run invocations are included.
     collector.stamp(result)
 
-    written = write_exports(result, args.outdir, args.formats, base=args.base)
+    themes = json.loads(Path(args.rq_themes).read_text(encoding="utf-8")) if args.rq_themes else None
+    written = write_exports(result, args.outdir, args.formats, base=args.base,
+                            rq_themes=themes)
     f = result.flow
     print(f"\nIncluded {len(result.included_articles)} of {len(articles)} articles.")
     print(f"Full text:  {f.full_text_retrieved} of {f.sought_fulltext} available"
@@ -473,6 +475,9 @@ def main() -> int:
     ap.add_argument("--base", default="review", help="output filename stem")
     ap.add_argument("--formats", nargs="+", default=["md", "ttl", "json", "charting", "appraisal"],
                     metavar="FMT", help=f"any of: {' '.join(ALL_FORMATS)}")
+    ap.add_argument("--rq-themes", metavar="PATH",
+                    help='JSON map {"RQ1": "Participants", …} relabelling the '
+                         "research-question sections, by id or major group")
     ap.add_argument("--model", default=os.environ.get("SYNTHSCHOLAR_MODEL", "anthropic/claude-sonnet-4"),
                     help="OpenRouter model id (default: $SYNTHSCHOLAR_MODEL or anthropic/claude-sonnet-4)")
     ap.add_argument("--api-key", default="", help="OpenRouter key (else $OPENROUTER_API_KEY)")

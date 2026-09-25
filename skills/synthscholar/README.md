@@ -33,13 +33,17 @@ modes:
 | **Screen eligibility on full text, not abstracts** | `run_local_review.py` | Every retrieved report is assessed on its full text where one exists; papers without are marked `assessed_on="abstract_only"` rather than quietly included. |
 | **Account for what was read and why** | PRISMA flow + exports | How many full texts were retrieved and by which route, how many decisions were made on full text vs abstract, and exclusion reasons per stage. |
 | **Export for humans and for machines** | `export_review.py` | `md`, `ttl` (SLR ontology, triple-store ready), `jsonld`, `json`, `bib`, plus `charting`, `appraisal`, `per-group`, `narrative`. |
+| **Answer the review's research questions, per study and per question** | `research_questions.py` (automatic) | The protocol's questions are charted per article, then organised question-first into every export: a Markdown appendix, a `research_questions` JSON block, and `slr:ResearchQuestion` nodes you can query without string-matching an id. |
 | **Add the search strategy after the fact** | `update_provenance.py` | Databases, query strings, dates, filters, record counts, registration ID — patched in and re-exported, so a run is never blocked on paperwork. |
-| **Interrogate a finished review** | `query_sparql.py` (14 recipes), `query_postgres.py` (8) | Full-text vs abstract-only inclusions, retrieval routes, reading basis, screening decisions, exclusion reasons, EZproxy-sourced articles, full-text search over the store. |
+| **Interrogate a finished review** | `query_sparql.py` (16 recipes), `query_postgres.py` (8) | Full-text vs abstract-only inclusions, retrieval routes, reading basis, screening decisions, exclusion reasons, research-question answers, EZproxy-sourced articles, full-text search over the store. |
 | **Run without an OpenRouter key** | `export_review.py` | The agent performs the stages itself and serialises through the same exporters — identical schema and exports, different author. |
 
 What it deliberately does **not** do: search bibliographic databases for you
 (that's the application's job — here the corpus is yours), deduplicate your
-PDFs, OCR scanned documents, or store any credential.
+PDFs, or store any credential. Scanned PDFs are handled only if you ask for it:
+`build_corpus.py --docling` routes extraction through
+[Docling](https://github.com/docling-project/docling), whose pipeline OCRs and
+reconstructs tables. Without that flag a scanned PDF yields no text.
 
 ## Layout
 
@@ -60,6 +64,7 @@ synthscholar/
     ├── ezproxy_client.py        #   └─ vendored EZproxy client
     ├── run_local_review.py      # run the full pipeline over a supplied corpus
     ├── export_review.py         # validate + export a review to md/ttl/jsonld/bib/…
+    ├── research_questions.py    #   └─ organises the RQ answers question-first
     ├── update_provenance.py     # add the search strategy later, then re-export
     ├── query_sparql.py          # run recipes against a .ttl / .jsonld export
     ├── query_postgres.py        # run recipes against the article store DB
@@ -144,7 +149,9 @@ is by feature, not version string (the package's `__version__` and its
 - SQL scripts: `psycopg[binary]>=3.1`.
 - Backfill: the `synthscholar` package importable, and migration 006 applied.
 - BYO corpus: `pip install 'synthscholar[fulltext]'` (adds `pymupdf` for PDF
-  text). `run_local_review.py` also needs `OPENROUTER_API_KEY`; without a key,
+  text). Optionally `pip install docling` for `build_corpus.py --docling` —
+  layout and table-structure models plus OCR, the only backend that reads a
+  scanned PDF. `run_local_review.py` also needs `OPENROUTER_API_KEY`; without a key,
   the agent authors the result JSON itself and `export_review.py` serialises it
   through the same exporters.
 - Retrieving missing PDFs: `httpx`. **Open access needs no credentials** —

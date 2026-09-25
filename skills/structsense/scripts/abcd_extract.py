@@ -85,11 +85,12 @@ def _now() -> str:
 # text + LLM
 # --------------------------------------------------------------------------- #
 
-def load_text(path: Path, *, grobid_url: Optional[str] = None) -> Tuple[str, str]:
+def load_text(path: Path, *, grobid_url: Optional[str] = None,
+              use_docling: bool = True) -> Tuple[str, str]:
     """Return (text, extractor_name)."""
     from scripts.input_loader import process_file
 
-    result = process_file(path, grobid_url=grobid_url)
+    result = process_file(path, grobid_url=grobid_url, use_docling=use_docling)
     if isinstance(result, tuple):
         text, meta = result[0], (result[1] if len(result) > 1 else {})
         extractor = (meta or {}).get("extractor", "unknown") if isinstance(meta, dict) else "unknown"
@@ -186,16 +187,18 @@ def _payload_meta(payload: dict) -> Dict[str, Any]:
 
 def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary],
                   atlas: Optional[CognitiveAtlas], grobid_url: Optional[str] = None,
+                  use_docling: bool = True,
                   payload_override: Optional[dict] = None,
                   context_index: Optional[Any] = None,
                   nda: Optional[Any] = None,
                   study: Optional[str] = None) -> dict:
     """Extract + verify one paper. `payload_override` skips the LLM (re-verify)."""
     started = time.time()
-    text, extractor = load_text(path, grobid_url=grobid_url)
+    text, extractor = load_text(path, grobid_url=grobid_url, use_docling=use_docling)
     if not text.strip():
         raise RuntimeError(f"{path} produced no text — is it a scanned PDF? "
-                           "Run OCR first, or pass a .txt sidecar.")
+                           "Install docling (its pipeline OCRs, and input_loader "
+                           "tries it automatically) and re-run, or pass a .txt sidecar.")
 
     if payload_override is not None:
         merged = {k: payload_override.get(k) or [] for k in SECTIONS}
@@ -330,6 +333,11 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     help=f"where results go (default: <input>/{DEFAULT_OUT_DIRNAME})")
     ap.add_argument("--formats", default="json,md,ttl")
     ap.add_argument("--grobid-url", default=os.getenv("GROBID_URL"))
+    ap.add_argument("--no-docling", action="store_true",
+                    help="skip the Docling extraction backend. It gives the best "
+                         "tables and is the only one that reads a scanned PDF, but "
+                         "it downloads models and costs seconds per page — worth "
+                         "turning off for a large corpus of clean text-layer PDFs.")
     ap.add_argument("--reverify", type=Path, default=None,
                     help="re-verify an existing *_abcd.json against its paper "
                          "(alias of --payload; no LLM is called)")
@@ -449,7 +457,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         plan = []
         for path in inputs:
             try:
-                text, extractor = load_text(path, grobid_url=a.grobid_url)
+                text, extractor = load_text(path, grobid_url=a.grobid_url,
+                                            use_docling=not a.no_docling)
             except Exception as exc:
                 plan.append({"paper": str(path), "error": str(exc)})
                 continue
@@ -524,6 +533,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     continue
             doc = extract_paper(path, llm_model=a.llm_model, dictionary=dictionary,
                                 atlas=atlas, grobid_url=a.grobid_url,
+                                use_docling=not a.no_docling,
                                 payload_override=this_payload,
                                 context_index=context_index, nda=nda,
                                 study=a.study)
