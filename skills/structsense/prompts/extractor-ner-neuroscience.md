@@ -97,6 +97,11 @@ more useful than a wrong one from the list.
                      epilepsy, schizophrenia.
 - Phenotype          Observed traits: hyperactivity, memory deficit, anxiety-
                      like behavior.
+                     Use the level when the text makes it clear:
+                     BehavioralPhenotype, CognitivePhenotype,
+                     ElectrophysiologicalPhenotype, MorphologicalPhenotype,
+                     MolecularPhenotype, CellularPhenotype, ClinicalPhenotype,
+                     Symptom.
 
 == Misc ==
 - Software           Named software/toolkits used as analytic methods.
@@ -169,6 +174,47 @@ Schema:
     }
   ]
 }
+
+RELATIONS, HIERARCHY AND CAUSAL CLAIMS (represented in the knowledge graph)
+Entities are only half of what the paper says. On each entity item you MAY add:
+  "relations": [{"predicate": "<one of the list below>",
+                 "target": "<another extracted mention, EXACTLY as written>"}],
+  "broader":   "<the broader extracted mention this one is a kind or part of,
+                 exactly as written>"      (the in-paper hierarchy)
+and at the top level:
+  "causal_relations": [{"cause": "<mention>", "effect": "<mention>",
+      "mediators": ["<mention>"], "polarity": "positive|negative|neutral|unspecified",
+      "type": "<promotes|inhibits|causes|induces|suppresses|increases-like verbs: activates, negatively_regulates, ...>",
+      "evidence_basis": "<experimental_intervention|genetic_perturbation|pharmacological_perturbation|
+                          randomized_intervention|dose_response|observational_adjusted|
+                          observational_unadjusted|longitudinal|mediation_analysis|
+                          computational_model|author_assertion>",
+      "hypothetical": <false ONLY if THIS paper intervened, else true>,
+      "negated": <true if the paper reports NO effect>,
+      "evidence": "<the verbatim sentence>",
+      "effect_estimate": {"measure": "...", "value": <n>, "p_value": <p>, "sample_size": <n>}}]
+Predicates (closed list; default_ontology/ttl_config.json): part_of, has_part,
+located_in, expresses, expressed_in, has_participant, participates_in,
+has_phenotype, capable_of, member_of, develops_from, derives_from,
+interacts_with, overlaps, in_taxon.
+Rules: only what the TEXT states about THIS study (never "known biology", never
+what a cited paper found); the target/cause/effect must itself be one of your
+extracted mentions; one relation per stated fact, on the mention in the
+sentence that states it; causal claims only where the paper argues cause and
+effect — a correlation is hypothetical true with an observational basis.
+For neuroscience text:
+  - anatomy: region "part_of" region ("CA1" part_of "hippocampus"); cell
+    "located_in" region; structure "broader" its parent class;
+  - molecules: Drug/Chemical "interacts_with" Protein/Receptor/IonChannel it
+    targets; cell "expresses" Gene/Protein; Neurotransmitter "has_participant"
+    is NOT a relation — use participates_in for processes;
+  - phenotypes: Disease/Genotype/TransgenicLine/CellType "has_phenotype"
+    Phenotype (label phenotypes by level when you can: BehavioralPhenotype,
+    CognitivePhenotype, ElectrophysiologicalPhenotype, MorphologicalPhenotype,
+    MolecularPhenotype, CellularPhenotype, ClinicalPhenotype, Symptom);
+  - methods: Method "has_participant" what it records or manipulates;
+  - causal: intervention/genotype/drug → phenotype or measurement effects go
+    in causal_relations with their evidence basis and any effect size.
 
 RULES
 1. start/end are character offsets into the INPUT text — NOT the sentence.

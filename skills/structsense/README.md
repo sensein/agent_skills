@@ -57,8 +57,9 @@ structsense/
 │   └── abcd-extraction.md                 ← ABCD/HBCD mode: verification, provenance, synthesis
 ├── prompts/                 ← copy-paste-ready system + user prompts
 │   ├── extractor-ner-general.md           ← Person / Org / Location / Product / Event / …
-│   ├── extractor-ner-neuroscience.md      ← BrainRegion / Gene / Protein / Drug / Method / …
+│   ├── extractor-ner-neuroscience.md      ← BrainRegion / Gene / Protein / Drug / Method / phenotypes by level …
 │   ├── extractor-ner-cns-cells.md         ← CellType / CellSubtype / LineageMarker / Ephys / …
+│   │                                        (all three also emit relations, hierarchy, causal claims)
 │   ├── extractor-abcd.md                  ← ABCD/HBCD variables / constructs / models / findings
 │   ├── mask-recall-pass.md                ← pass-2: catch mentions pass-1 missed
 │   ├── mask-verify-pass.md                ← per-item cloze label check
@@ -84,6 +85,8 @@ structsense/
 │   ├── concept_mapping.py   ← trusted-ontology lexicon (index / lookup / map), priority,
 │   │                          routing, then local hybrid → BioPortal
 │   ├── prefixes.py          ← the one prefix registry (show / check / compact / expand)
+│   ├── relations.py         ← resolves the extractor's relations / hierarchy / causal claims
+│   │                          (and cns-cells cell_context) to extracted entities
 │   ├── json_to_ttl.py       ← judged result + kg_plan → Turtle (UUIDv5 IRIs, full provenance)
 │   ├── validate_ttl.py      ← the gate: OWL vocabulary, SHACL, policy, prefixes, connectivity
 │   ├── judge_prepare.py     ← deterministic grounding review + one packet per judge
@@ -188,7 +191,8 @@ For NER, **always run mask-recall on top of pass-1** unless cost is critical. Ty
 | Stage | How |
 |---|---|
 | Ontology mapping | `python -m scripts.concept_mapping map <result.json>` — trusted ontologies in `priority.md` order, then local hybrid, then BioPortal (tool-only; no IRI from model knowledge) |
-| KG plan (NER) | `prompts/kg-plan.md` → `kg_plan.json`: keys, finer classes, relations and causal claims the paper states |
+| Relations (in extraction) | the extractor emits per-mention `relations` / `broader` and document `causal_relations`; `scripts/relations.py` resolves them to extracted entities (see [Relations, hierarchy and causal claims](#relations-hierarchy-and-causal-claims-09)) |
+| KG plan (NER) | `prompts/kg-plan.md` → `kg_plan.json`: coreference keys, finer classes, cross-sentence relations and chains extraction could not state |
 | Judge ensemble | `scripts/judge_prepare.py` → one judge at a time per `prompts/judge-*.md` → `scripts/judge_combine.py` (→ `prompts/judge-combiner.md` only for disagreements) |
 | Turtle | `python -m scripts.json_to_ttl <result.json> --kg-plan kg_plan.json --source paper.pdf` → `python -m scripts.validate_ttl <stem>.ttl` (must report 0 violations) |
 | Human review | `prompts/humanfeedback.md` (escalations from the combiner) |
@@ -504,8 +508,10 @@ One validated `<stem>.ttl` per paper — N papers, N files. Everything is an ins
 - **Alignment**: only tool-verified mappings become IRIs, at an honest skos tier, each
   with its decision record (candidate, rank, confidence, the source and method that
   decided it).
-- **Claims**: paper-stated RO/BFO edges, in-paper hierarchies, and causal relations
-  with versions, evidence basis and effect estimates.
+- **Claims**: paper-stated RO/BFO edges (incl. has_phenotype), in-paper hierarchies
+  (`skos:broader`: subtype → type → class), and causal relations with versions,
+  evidence basis and effect estimates — stated by the extractor itself for every
+  NER domain (plus kg_plan), resolved to entities and reviewed by the claims judge.
 - **Provenance**: run start/end (recorded, never inferred), agent versions, a
   configuration hash, and the judges as data — one activity per judge with its model
   version and prompt hash, every verdict as a `ReviewDecision` (dimension, confidence),
@@ -516,6 +522,30 @@ One validated `<stem>.ttl` per paper — N papers, N files. Everything is an ins
 the SHACL shapes (`default_ontology/named_entity_shapes.ttl`), config policy, prefix
 consistency, labels and one connected component. See
 [references/ttl-representation.md](references/ttl-representation.md).
+
+## Relations, hierarchy and causal claims (0.9)
+
+Entities are half of what a paper says; the extractor states the other half with
+them, for every NER domain:
+
+- **per mention** — `relations`: `{predicate, target}` with the target another
+  extracted mention as written, predicate from the closed list in
+  `default_ontology/ttl_config.json` (`part_of`, `located_in`, `expresses`,
+  `has_phenotype` RO:0002200, `in_taxon`, `capable_of`, `develops_from`, …); and
+  `broader`: the in-paper hierarchy (CellSubtype → CellType → CellClass, region →
+  larger region, drug → drug class);
+- **cns-cells** — the existing `cell_context` becomes edges: marker → `expresses`,
+  region/layer → `located_in`, species → `in_taxon`, ephys → `has_phenotype`;
+- **per document** — `causal_relations`: cause → effect (genotype / intervention /
+  drug → phenotype or measurement), with mediators, polarity, evidence basis,
+  `hypothetical` (false only for this paper's own intervention) and effect size.
+
+`scripts/relations.py` resolves each target to an extracted mention of the same
+paper (unresolvable ones are reported, never invented); the claims judge reviews
+every claim; survivors become RO/BFO edges, `skos:broader`, and the causal module
+in the Turtle. SHACL requires both ends to be extracted entities, no self-loops, and
+acyclic hierarchies; the validator rejects predicates outside the config and warns
+when a target is the wrong kind (`relation_range_hints`).
 
 ## Trusted ontologies (0.9)
 

@@ -167,6 +167,47 @@ Schema:
   ]
 }
 
+RELATIONS, HIERARCHY AND CAUSAL CLAIMS (represented in the knowledge graph)
+Entities are only half of what the paper says. On each entity item you MAY add:
+  "relations": [{"predicate": "<one of the list below>",
+                 "target": "<another extracted mention, EXACTLY as written>"}],
+  "broader":   "<the broader extracted mention this one is a kind or part of,
+                 exactly as written>"      (the in-paper hierarchy)
+and at the top level:
+  "causal_relations": [{"cause": "<mention>", "effect": "<mention>",
+      "mediators": ["<mention>"], "polarity": "positive|negative|neutral|unspecified",
+      "type": "<promotes|inhibits|causes|induces|suppresses|increases-like verbs: activates, negatively_regulates, ...>",
+      "evidence_basis": "<experimental_intervention|genetic_perturbation|pharmacological_perturbation|
+                          randomized_intervention|dose_response|observational_adjusted|
+                          observational_unadjusted|longitudinal|mediation_analysis|
+                          computational_model|author_assertion>",
+      "hypothetical": <false ONLY if THIS paper intervened, else true>,
+      "negated": <true if the paper reports NO effect>,
+      "evidence": "<the verbatim sentence>",
+      "effect_estimate": {"measure": "...", "value": <n>, "p_value": <p>, "sample_size": <n>}}]
+Predicates (closed list; default_ontology/ttl_config.json): part_of, has_part,
+located_in, expresses, expressed_in, has_participant, participates_in,
+has_phenotype, capable_of, member_of, develops_from, derives_from,
+interacts_with, overlaps, in_taxon.
+Rules: only what the TEXT states about THIS study (never "known biology", never
+what a cited paper found); the target/cause/effect must itself be one of your
+extracted mentions; one relation per stated fact, on the mention in the
+sentence that states it; causal claims only where the paper argues cause and
+effect — a correlation is hypothetical true with an observational basis.
+For cell text, this is where the cell taxonomy lives:
+  - CellSubtype "broader" CellType, CellType "broader" CellClass
+    ("Sst-Chodl" → "Sst interneurons" → "GABAergic neurons") — whenever the
+    paper places a cluster or type under another;
+  - cell "expresses" LineageMarker, cell "located_in" BrainRegion/CorticalLayer,
+    cell "has_phenotype" EphysProperty/FiringPattern/MorphologyClass,
+    cell "in_taxon" Species — `cell_context` already carries these for the
+    cell mention; add "relations" for anything cell_context cannot hold
+    (projection targets: "located_in"/"part_of" of a Projection; "develops_from"
+    for lineage; "has_part" for subcellular structures);
+  - genotype/manipulation → phenotype effects go in causal_relations
+    ("Pvalb knockout reduced gamma power" — cause "Pvalb knockout",
+    effect "gamma power", polarity negative, genetic_perturbation).
+
 RULES
 1. start/end are character offsets into the INPUT text — NOT the sentence.
 2. text[start:end] MUST equal entity (or term). Verify before emitting.
