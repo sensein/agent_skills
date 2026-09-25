@@ -1,5 +1,112 @@
 # Changelog
 
+## 0.9.0 — Turtle is the deliverable; trusted ontologies first; a judge panel, not a score
+
+A NER or resource run now ends in `<stem>.ttl`: instances of the bundled Named
+Entity Ontology (`default_ontology/named_entity_ontology.owl`, 2.3.0), gated before
+it is handed back. The JSON the stages exchange is working state.
+
+- **Representation.** New `scripts/json_to_ttl.py` writes every entity, every
+  mention (offsets, sentence, section, the model that surfaced it), each tool-
+  verified concept with its mapping decision, each judge verdict as a
+  `ner:ReviewDecision`, and — from `kg_plan.json` (new `prompts/kg-plan.md`) — the
+  paper-stated RO/BFO edges, SKOS/PROV links and the causal module. Deterministic
+  and model-free: a model writes only the judgment layer, never Turtle.
+- **Identity.** Every IRI is a UUIDv5 (`default_ontology/ttl_config.json` `iri`):
+  entities from `entity|<normalizedEntityKey>`, concepts from `concept|<IRI>`,
+  ontology hubs from `ontology|<ACRONYM>` — shared across papers, and identical to
+  the BrainKB graph's scheme — and paper-local nodes from `<kind>|<DOI>|<local>`.
+- **The gate.** New `scripts/validate_ttl.py`: OWL vocabulary and domain/range under
+  subclass closure; new SHACL shapes (`default_ontology/named_entity_shapes.ttl`),
+  including "every external `skos:*Match` is backed by a tool-verified concept" and
+  "mapping provenance is `tool`"; config policy (generic keys, interventional
+  evidence for non-hypothetical claims); prefix consistency; labels; one connected
+  component. `pipeline.py` renames a failing file `.invalid.ttl` and reports it.
+- **Trusted ontologies first.** New `scripts/concept_mapping.py` maps from the
+  ontology files in `trusted_ontologes/` before any remote service, in the order of
+  the editable `trusted_ontologes/priority.md` (seeded from `sources.json`: 42
+  declared ontologies enabled, 74 discovery candidates `off`). Each file is indexed
+  once into `lexicon/<name>.tsv.gz` + `lexicon.sqlite` (all 42, PR's 1.2 GB
+  included, in about 95 s); lookups are exact on a normalised form, routed by
+  label, guarded against bare abbreviations (PFC is prefrontal cortex in UBERON
+  and prefollicle cell in FBbt), and ambiguity is reported rather than resolved.
+  Everything is `concept_mapping.json`; `trusted_ontologes/README.md` lists the
+  ontologies (`concept_mapping readme`).
+- **One prefix registry.** New `scripts/prefixes.py`: a term keeps the prefix of its
+  namespace whichever file it came from (cl.owl's UBERON terms are UBERON), a
+  file's own namespace takes its priority.md CURIE prefix, and anything else is
+  left unregistered rather than guessed. The mapper, the IRI validator, the TTL
+  writer and the gate all read it. Building it surfaced and fixed relative
+  `rdf:about` against `xml:base` (ABA-AMB), a missing base (CogAt, declared in
+  priority.md) and foreign namespaces inside trusted files (biolink in BKE, HGNC
+  and MGI in PR).
+- **Keys from the ontologies.** Without a kg_plan key, `normalizedEntityKey` is the
+  trusted ontologies' preferred label for the one class the text denotes. The
+  hand-kept synonym table is gone: `key_synonyms.json` holds user overrides only, and
+  `concept_mapping export-synonyms` writes the generated, context-tagged table.
+- **Judge ensemble.** New panel (`judges_config.json`): a deterministic
+  `grounding_script`, and grounding / labeling / mapping / kg-keys / claims judges
+  (`prompts/judge-*.md`), each one dimension, run independently;
+  `scripts/judge_combine.py` aggregates — critical fails are gates, mapping fails
+  demote, uncontested suggestions apply, a key rename follows every edge — on the
+  raw mentions, so re-normalising cannot resurrect a dropped item;
+  `prompts/judge-combiner.md` settles only ties and may only choose a judge's
+  suggestion. `scripts/judge_ensemble.py` runs it headless with per-judge models.
+  `prompts/judge.md` remains as the single-score fallback (`--judge-mode single`).
+- **pipeline.py**: `--mapper config` (default) is the cascade above; `--judge` runs
+  the ensemble; `--kg-plan-model`; `--format ttl` (default) with `--keep-json`;
+  `--ner-domain general|neuroscience|cns-cells`. Fixed: framework-mode NER loaded
+  `prompts/extractor-ner.md`, which does not exist, and the BioPortal fallback used
+  `os` without importing it.
+- **Ontology 2.4 provenance.** The TTL now records the extraction event end to end:
+  run start/end (recorded, never inferred), `ner:agentVersion` on every agent, a
+  `ner:ConfigurationArtifact` whose `configurationHash` covers every config in
+  effect, snapshot and causal-version times (`prov:generatedAtTime`, `validFrom`),
+  per-source mapping activities with their methods, and the path mention →
+  annotation version → `hasMappingDecision` / `hasMappingCandidate` (`mappingRank`,
+  `decisionConfidence`). **Judging is provenance too**: one activity per judge with
+  its model version and `PromptArtifact` hash, the combine and combiner steps, and a
+  `ner:ChangeRecord` for every relabel, tier change, key rename, demotion and drop;
+  `classificationConfidence` is the ensemble score. Every `ReviewDecision` carries
+  `ner:reviewDimension` and `ner:reviewConfidence` (new in 2.4.0) and hangs off the
+  entity and each mention's annotation version; an "ensemble-combined" decision
+  `prov:wasDerivedFrom` each judge's, made by the combine step (or the combiner). New SHACL shapes check the times,
+  hashes, versions and change records. String literals are written plain (identical
+  in RDF 1.1, and what hand-written queries match). CamelCase ontology labels fold
+  to spaced keys (`CellTypeTaxonomy` → `cell_type_taxonomy`).
+- **The KG plan is a default step for NER.** `pipeline.py` always writes
+  `kg_plan.json` (its own model, else the judge's, else the extractor's; only
+  `--kg-plan-model none` skips it); host-model mode lists it as a standard step, and
+  `json_to_ttl` warns when a NER result is converted without one (`--no-kg-plan`
+  to say it is intended).
+- **Relations, hierarchy and causal claims come out of the extraction.** Every NER
+  prompt (general / neuroscience / cns-cells) now asks for per-mention `relations`
+  (closed RO/BFO list incl. has_phenotype RO:0002200, in_taxon, capable_of,
+  develops_from) and `broader` (the in-paper hierarchy), and document-level
+  `causal_relations` (genotype / intervention → phenotype, with evidence basis and
+  effect size); the cns-cells `cell_context` becomes expresses / located_in /
+  in_taxon / has_phenotype edges. New `scripts/relations.py` resolves each to
+  extracted entities (unresolvable ones are reported, never invented); the claims
+  judge reviews them (it no longer needs a kg_plan to run); the TTL writes the
+  survivors. New SHACL shapes: relation endpoints must be entities, no self-loops,
+  acyclic skos:broader and part-of, a mediator is not also cause/effect; the
+  validator rejects RO/BFO predicates outside the config and warns on targets
+  outside `relation_range_hints`. The neuroscience prompt labels phenotypes by
+  level (Behavioral/Cognitive/Electrophysiological/Morphological/Molecular/
+  Cellular/Clinical, Symptom), matching the ontology's classes.
+- **Classes the ontology adds are used immediately.** A label that names a declared
+  class resolves to that class before `label_class_map.json` is consulted, so
+  2.4.0's new `LineageMarker`, `MorphologyClass`, `FiringPattern`,
+  `ConnectivityMotif` and `AtlasReference` type the CNS-cell labels directly
+  (their old coarser stand-ins were removed from the map).
+- **Worked example on a real paper** (`examples/ttl/`, Hu et al. 2026, CC BY 4.0):
+  1,039 grounded mentions of 63 entities through trusted mapping, the ensemble and
+  the gate to 39,014 valid triples. The mapping judge demotes four exact-label
+  matches that mean the wrong thing — stereo-unspecified CHEBI alanine, serine and histidine
+  where the paper means the L-forms, and an UBERON term for the zebrafish Dp — and
+  all 28 concept IRIs and 62 of 63 entity IRIs equal the human-curated graph's (the
+  63rd is the guardrail key `neuron`, renamed `neuron_pdp` on purpose).
+
 ## 0.8.0 — ABCD: a role belongs to an analysis, and a wave is not a name
 
 Feedback on the first ABCD corpus run was that the right variables came out but

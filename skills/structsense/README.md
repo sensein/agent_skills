@@ -192,7 +192,7 @@ For NER, **always run mask-recall on top of pass-1** unless cost is critical. Ty
 |---|---|
 | Ontology mapping | `python -m scripts.concept_mapping map <result.json>` — trusted ontologies in `priority.md` order, then local hybrid, then BioPortal (tool-only; no IRI from model knowledge) |
 | Relations (in extraction) | the extractor emits per-mention `relations` / `broader` and document `causal_relations`; `scripts/relations.py` resolves them to extracted entities (see [Relations, hierarchy and causal claims](#relations-hierarchy-and-causal-claims-09)) |
-| KG plan (NER) | `prompts/kg-plan.md` → `kg_plan.json`: coreference keys, finer classes, cross-sentence relations and chains extraction could not state |
+| KG plan (NER, default step) | `prompts/kg-plan.md` → `kg_plan.json`: coreference keys, finer classes, cross-sentence relations and chains extraction could not state |
 | Judge ensemble | `scripts/judge_prepare.py` → one judge at a time per `prompts/judge-*.md` → `scripts/judge_combine.py` (→ `prompts/judge-combiner.md` only for disagreements) |
 | Turtle | `python -m scripts.json_to_ttl <result.json> --kg-plan kg_plan.json --source paper.pdf` → `python -m scripts.validate_ttl <stem>.ttl` (must report 0 violations) |
 | Human review | `prompts/humanfeedback.md` (escalations from the combiner) |
@@ -602,7 +602,7 @@ python -m scripts.pipeline \
 | `--judge-mode` | `ensemble` | `ensemble` (independent judges + deterministic combine) or `single` (legacy one-score judge). |
 | `--judge-models` | none | Per-judge models, e.g. `mapping=openrouter/x,claims=openrouter/y`. |
 | `--combiner` | `--judge` | Model for `prompts/judge-combiner.md` (disagreements only). |
-| `--kg-plan-model` | `--judge` | Model that writes `kg_plan.json`; `none` to skip. |
+| `--kg-plan-model` | `--judge`, else `--extractor` | Model that writes `kg_plan.json` — a default step for NER; `none` skips it explicitly. |
 | `--format` | `ttl` | `ttl`: one validated `<stem>.ttl` per input (a failing file is renamed `.invalid.ttl`); `json`: the legacy `<stem>_final.json`. |
 | `--keep-json` | off | With `--format ttl`, keep the working JSON under `<out-dir>/.structsense/`. |
 | `--out-dir` | beside each input | Where results go. |
