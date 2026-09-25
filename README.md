@@ -12,6 +12,7 @@ The list below is kept in alphabetical order by skill name.
 
 | Skill                                                        | Description |
 |--------------------------------------------------------------| --- |
+| [`bkbit-data-translators`](./skills/bkbit-data-translators/SKILL.md) | Convert BICAN source data into BICAN Knowledgebase model instances (JSON-LD/Turtle) with the [bkbit](https://github.com/brain-bican/bkbit) data translators: Specimen Portal NHash IDs, Brain Knowledge Platform file manifests and specimen metadata, NCBI/Ensembl GFF3 genome annotations, HMBA cell-type taxonomies, and anatomical-structure CSVs. |
 | [`duct`](./skills/duct/SKILL.md)                             | Wrap any command with [con/duct](https://github.com/con/duct) to capture wall-clock time, CPU, and memory usage as structured logs, so agents and reviewers can inspect what a run actually consumed. |
 | [`kya`](./skills/kya/SKILL.md)                               | Govern and review agents with [veldt-kya](https://github.com/veldtlabs/veldt-kya) (Know Your Agents) — risk-score, consensus-judge, and drift-check an agent, emit compliance evidence, and write a governance verdict that the `labnb` loop can break on. |
 | [`labnb`](./skills/labnb/SKILL.md)                           | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture and promotion, isolated experiment workspaces, focused companion skills, and append-only indexing across projects, investigations, and tasks. |
