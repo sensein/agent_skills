@@ -1,0 +1,4 @@
+# regenerable: python -m scripts.concept_mapping index
+trusted_ontologes/lexicon/
+# validate_ttl --check-ols cache
+.ols_cache.json
