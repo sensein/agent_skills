@@ -2,9 +2,8 @@
 #
 #     pip install -r requirements-dev.txt
 
-# Parse and validate the Turtle that abcd_export writes, before trusting it in a
-# triple store. `python -c "from rdflib import Graph; Graph().parse('x.ttl')"`.
-rdflib>=7.0,<8
+# rdflib and pyshacl are core requirements now (requirements.txt): the Turtle
+# is the deliverable, and scripts/validate_ttl.py gates it.
 
 # Read the NBDC catalog workbook with a dataframe for ad-hoc inspection.
 pandas>=2.0,<3
