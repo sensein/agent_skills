@@ -100,6 +100,26 @@ def _mapping_of(g: dict) -> Optional[dict]:
     return None
 
 
+def _identity_of(g: dict) -> dict:
+    """For the mapping judge: the occurrence's identity basis (canonical candidate and
+    non-contextual features) and which features the tool found supporting or against
+    the mapping — so a mapping is judged on WHY the entity is that type, not its name."""
+    from identity import normalize
+    for it in g["items"]:
+        ib = normalize(it.get("identity_basis"))
+        if not ib:
+            continue
+        feats = [f"{f['kind']}: {f['value']} ({f['role']}, {f['source']})" for f in ib["features"]]
+        out = {"identity": {"canonical_candidate": ib.get("canonical_candidate"), "features": feats[:12]}}
+        im = it.get("identity_mapping")
+        if im:
+            out["identity"]["mapping_basis"] = im.get("basis")
+            out["identity"]["justified_by"] = [feats[i] for i in im.get("justified_by") or [] if i < len(feats)]
+            out["identity"]["contradicted_by"] = [feats[i] for i in im.get("contradicted_by") or [] if i < len(feats)]
+        return out
+    return {}
+
+
 def build_packets(result: dict, text: str, *, kg_plan: Optional[dict], cfg: dict,
                   script_review: dict) -> dict[str, list[dict]]:
     groups = mention_groups(result)
@@ -122,7 +142,7 @@ def build_packets(result: dict, text: str, *, kg_plan: Optional[dict], cfg: dict
                                for g in groups if g["kind"] == "entity"]
     if "mapping" in judges:
         packets["mapping"] = [{"id": g["id"], "entity": g["surface"], "label": g["label"],
-                               **_mapping_of(g), "sentences": _sentences(g, k)}
+                               **_mapping_of(g), **_identity_of(g), "sentences": _sentences(g, k)}
                               for g in groups if _mapping_of(g)]
     # claims the extractor itself stated (per-mention relations, cell_context,
     # causal_relations) are reviewed exactly like kg_plan claims

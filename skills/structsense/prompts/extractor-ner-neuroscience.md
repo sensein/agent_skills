@@ -201,6 +201,69 @@ Schema:
   ]
 }
 
+IDENTITY BASIS — what it is AND why it is that (represented in the knowledge graph)
+For EVERY cell mention (CellType / CellClass / CellSubtype, including coordinated ones)
+add "identity_basis". For OTHER entities add it when the text states what makes the
+entity that thing — the same fields, with the kinds that apply: a brain region's parent
+structure (hierarchy) and location (anatomical); a drug's action ("TTX, a sodium channel
+blocker": functional, defining); a method's principle; a gene's organism (species). Name alone is not enough: record the
+biological characteristics the text gives that justify calling this span that cell type.
+  Cell type = hierarchy + molecular identity + anatomical context + developmental
+  context + morphology / connectivity / physiology   (Zeng 2022, Cell)
+  "identity_basis": {
+    "canonical_candidate": "<the canonical type the span denotes, a short name>",
+    "hierarchy_level": "neighborhood|class|subclass|supertype|type|subtype|group|cluster|null",
+    "name_derivation": "marker_based|layer_projection|morphology_based|region_based|
+                        neurotransmitter_based|arbitrary_cluster|eponymous|mixed|null",
+    "stability": "type|state|transient|null",
+    "state_evidence": "cross_condition_comparison|timepoint_series|lineage_tracing|
+                       perturbation|asserted_only|null",
+    "features": [{
+      "kind": "hierarchy|molecular_marker|neurotransmitter|transcriptomic|anatomical|
+               morphological|electrophysiological|connectivity|developmental|
+               functional|species|state",
+      "value": "<normalized: a gene SYMBOL, 'GABA', 'cortical layer 5', 'basket', 'interneuron'>",
+      "target": "<surface of the extracted entity it is, if extracted (e.g. 'Pvalb')>",
+      "polarity": "positive|negative|high|low|enriched|depleted|absent|graded|unspecified",
+      "role": "defining|supporting|contextual|excluding",
+      "source": "explicit_text|surrounding_context|ontology_inference|naming_convention",
+      "detection": "<immunostaining|ish|scrna_seq|reporter_line|patch_clamp|tracing|... if stated>",
+      "marker_class": "transcription_factor|combinatorial|binary|cross_species_curated|enriched|canonical|null",
+      "confidence": <0-1>,
+      "quote": "<verbatim words, <= 25, that state it (omit only for ontology_inference / naming_convention)>"
+    }]
+  }
+Example — "Pvalb-positive GABAergic interneurons in layer 5 of the motor cortex":
+  canonical_candidate "Pvalb GABAergic interneuron", hierarchy_level "subclass",
+  name_derivation "marker_based", stability "type", features:
+    hierarchy interneuron       role supporting  source explicit_text
+    molecular_marker PVALB +    role defining    source explicit_text  (the name is built on it)
+    neurotransmitter GABA       role supporting  source explicit_text
+    anatomical cortical layer 5 role contextual  source explicit_text
+    anatomical motor cortex     role contextual  source explicit_text
+ROLES — never assume; decide from the text:
+  defining    the characteristic the type is identified BY (the marker in a marker-named
+              type; chandelier morphology for a chandelier cell; a transcriptomic cluster)
+  supporting  consistent with the type and disambiguating, not its definition (GABAergic
+              for a Pvalb interneuron; fast-spiking for a basket cell)
+  contextual  where/when it is observed (motor cortex, adult mouse): do NOT make a region
+              defining unless the type is region-defined (a "striatal SPN", "L5 IT")
+  excluding   a negative criterion the type must lack (SST-negative)
+RULES
+  I1 Only characteristics this text states for THIS occurrence (its sentence or the
+     surrounding paragraph -> source explicit_text / surrounding_context). What the name
+     itself encodes ("Pvalb", "L5 IT", "chandelier") is source naming_convention. Your own
+     biology knowledge is never a source.
+  I2 Markers are symbols: "PVALB", "Sst", "Olig2" — never phrases ("top 60 differentially
+     expressed genes", "distinct marker genes" are not markers).
+  I3 A state is not a type: reactive astrocytes, activated microglia, IEG-high neurons ->
+     stability "state" (state_evidence "asserted_only" unless the paper compared conditions).
+  I4 Do not force a discrete type onto a gradient or continuum; leave hierarchy_level null.
+  I5 A vague mention ("neurons", "these cells") has at most a hierarchy feature; do not
+     invent characteristics for it.
+  I6 Keep features on the occurrence whose sentence states them; another occurrence of the
+     same name gets its own identity_basis (or none).
+
 RELATIONS, HIERARCHY AND CAUSAL CLAIMS (represented in the knowledge graph)
 Entities are only half of what the paper says. On each entity item you MAY add:
   "relations": [{"predicate": "<one of the list below>",

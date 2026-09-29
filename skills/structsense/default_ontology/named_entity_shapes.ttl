@@ -551,3 +551,34 @@ nsh:RelationAssertionShape a sh:NodeShape ;
                 ?mention ner:partOfDocumentVersion/ner:versionOfDocument ?source .
             }
         }""" ] .
+
+# ---------------------------------------------------------------------------
+# Identity basis: what an occurrence is AND why (ontology 2.6.0)
+# ---------------------------------------------------------------------------
+
+nsh:IdentityBasisShape a sh:NodeShape ;
+    sh:targetClass ner:IdentityBasis ;
+    sh:property [
+        sh:path [ sh:inversePath ner:hasIdentityBasis ] ; sh:minCount 1 ; sh:class ner:EntityMention ;
+        sh:message "An identity basis belongs to an occurrence (EntityMention hasIdentityBasis)." ] ;
+    sh:property [ sh:path ner:canonicalCandidateLabel ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:identityHierarchyLevel ; sh:maxCount 1 ; sh:class ner:HierarchyLevel ] ;
+    sh:property [ sh:path ner:nameDerivation ; sh:maxCount 1 ; sh:class ner:NameDerivation ] ;
+    sh:property [ sh:path ner:typeStability ; sh:maxCount 1 ; sh:class ner:TypeStability ] ;
+    sh:property [ sh:path ner:hasIdentityFeature ; sh:class ner:IdentityFeature ] .
+
+nsh:IdentityFeatureShape a sh:NodeShape ;
+    sh:targetClass ner:IdentityFeature ;
+    sh:property [ sh:path ner:featureValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [
+        sh:path ner:featureRole ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:IdentityFeatureRole ;
+        sh:message "Every identity feature states its role: defining, supporting, contextual or excluding." ] ;
+    sh:property [
+        sh:path ner:featureEvidenceSource ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:IdentityEvidenceSource ;
+        sh:message "Every identity feature states where it comes from: explicit text, surrounding context, ontology inference or naming convention." ] ;
+    sh:property [ sh:path ner:featureConfidence ; sh:maxCount 1 ; sh:datatype xsd:decimal ;
+                  sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ner:featureEntity ; sh:class ner:NamedEntity ] ;
+    sh:property [
+        sh:path [ sh:inversePath ner:hasIdentityFeature ] ; sh:minCount 1 ;
+        sh:message "Orphan identity feature: no IdentityBasis lists it." ] .

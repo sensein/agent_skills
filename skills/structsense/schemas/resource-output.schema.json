@@ -178,6 +178,7 @@
             "trusted_ontology",
             "no_match",
             "remote_error",
+            "identity_contradicted",
             null
           ]
         },

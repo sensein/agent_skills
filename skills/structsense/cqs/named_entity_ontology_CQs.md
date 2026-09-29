@@ -1143,3 +1143,88 @@ GROUP BY ?cellA ?cellB
 HAVING (COUNT(DISTINCT ?shared) >= 2)
 ORDER BY DESC(?nShared)
 ```
+
+## M. Identity basis — what an entity is AND why
+
+**CQ64 — Why is each cell mention identified as that cell type: its canonical type, hierarchy level, and every observed characteristic with its role and source?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?cell ?mention ?doi ?canonical ?level ?kind ?value ?role ?source ?polarity ?quote ?featureEntity
+WHERE {
+  ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
+  ?m ner:surfaceForm ?sf ; ner:hasIdentityBasis ?b ; ner:partOfDocumentVersion/ner:versionOfDocument ?pub .
+  BIND (REPLACE(STR(?sf), "\\s+", " ") AS ?mention)
+  OPTIONAL { ?pub ner:doi ?doi }
+  OPTIONAL { ?b ner:canonicalCandidateLabel ?canonical }
+  OPTIONAL { ?b ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?level) }
+  ?b ner:hasIdentityFeature ?f .
+  ?f a ?fc ; ner:featureValue ?value ; ner:featureRole ?r ; ner:featureEvidenceSource ?s .
+  FILTER (STRENDS(STR(?fc), "IdentityFeature") && ?fc != ner:IdentityFeature)
+  BIND (REPLACE(STRAFTER(STR(?fc), "https://brainkb.org/ner/"), "IdentityFeature$", "") AS ?kind)
+  BIND (STRAFTER(STR(?r), "feature-role/") AS ?role)
+  BIND (STRAFTER(STR(?s), "feature-source/") AS ?source)
+  OPTIONAL { ?f ner:featurePolarity ?polarity }
+  OPTIONAL { ?f ner:featureQuote ?quote }
+  OPTIONAL { ?f ner:featureEntity/ner:normalizedEntityKey ?featureEntity }
+}
+ORDER BY ?cell ?mention (IF(?role = "defining", 0, IF(?role = "supporting", 1, IF(?role = "excluding", 2, 3))))
+```
+
+**CQ65 — Which characteristics justify (or contradict) each cell-type ontology mapping?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+SELECT ?cell ?conceptId ?conceptLabel ?status
+       (GROUP_CONCAT(DISTINCT ?just; separator=" ; ") AS ?justifiedBy)
+       (GROUP_CONCAT(DISTINCT ?contra; separator=" ; ") AS ?contradictedBy)
+WHERE {
+  ?dec a ner:ConceptMappingDecision ; ner:decisionForNormalizedEntity ?e ;
+       ner:selectedCandidate/ner:candidateConcept ?c .
+  ?e ner:normalizedEntityKey ?cell .
+  ?c ner:conceptIdentifier ?conceptId .
+  OPTIONAL { ?c ner:preferredLabel ?conceptLabel }
+  OPTIONAL { ?dec ner:mappingStatus ?st . BIND (STRAFTER(STR(?st), "mapping-status/") AS ?status) }
+  OPTIONAL { ?dec ner:justifiedByIdentityFeature ?jf . ?jf ner:featureValue ?jv ; ner:featureRole ?jr .
+             BIND (CONCAT(?jv, " (", STRAFTER(STR(?jr), "feature-role/"), ")") AS ?just) }
+  OPTIONAL { ?dec ner:contradictedByIdentityFeature ?cf . ?cf ner:featureValue ?cv ; ner:featureRole ?cr .
+             BIND (CONCAT(?cv, " (", STRAFTER(STR(?cr), "feature-role/"), ")") AS ?contra) }
+  FILTER (BOUND(?just) || BOUND(?contra))
+}
+GROUP BY ?cell ?conceptId ?conceptLabel ?status
+ORDER BY ?cell
+```
+
+**CQ66 — Do different papers identify the same cell type by the same defining characteristics?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+SELECT ?cell ?doi
+       (GROUP_CONCAT(DISTINCT ?def; separator=" ; ") AS ?definingInPaper)
+       (GROUP_CONCAT(DISTINCT ?sup; separator=" ; ") AS ?supportingInPaper)
+       (GROUP_CONCAT(DISTINCT ?ctx; separator=" ; ") AS ?contextInPaper)
+WHERE {
+  ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
+  ?m ner:hasIdentityBasis ?b ; ner:partOfDocumentVersion/ner:versionOfDocument ?pub .
+  OPTIONAL { ?pub ner:doi ?doi }
+  OPTIONAL { ?b ner:hasIdentityFeature ?f1 . ?f1 ner:featureRole <https://brainkb.org/ner/feature-role/defining> ; ner:featureValue ?def }
+  OPTIONAL { ?b ner:hasIdentityFeature ?f2 . ?f2 ner:featureRole <https://brainkb.org/ner/feature-role/supporting> ; ner:featureValue ?sup }
+  OPTIONAL { ?b ner:hasIdentityFeature ?f3 . ?f3 ner:featureRole <https://brainkb.org/ner/feature-role/contextual> ; ner:featureValue ?ctx }
+}
+GROUP BY ?cell ?doi
+ORDER BY ?cell ?doi
+```
+
+**CQ67 — Cell mentions with no stated identity basis, or with no defining characteristic (named but never characterized)?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+SELECT ?cell (COUNT(DISTINCT ?m) AS ?mentions) (COUNT(DISTINCT ?mb) AS ?mentionsWithBasis)
+       (COUNT(DISTINCT ?md) AS ?mentionsWithDefiningFeature)
+WHERE {
+  ?e a ?t ; ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
+  FILTER (?t IN (ner:CellType, ner:CellSubtype, ner:Neuron, ner:Interneuron, ner:GlialCell))
+  OPTIONAL { ?m ner:hasIdentityBasis ?b . BIND (?m AS ?mb) }
+  OPTIONAL { ?m ner:hasIdentityBasis/ner:hasIdentityFeature/ner:featureRole <https://brainkb.org/ner/feature-role/defining> .
+             BIND (?m AS ?md) }
+}
+GROUP BY ?cell
+ORDER BY ?mentionsWithDefiningFeature ?cell
+```

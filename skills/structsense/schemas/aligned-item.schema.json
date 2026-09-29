@@ -56,6 +56,7 @@
         "trusted_ontology",
         "no_match",
         "remote_error",
+        "identity_contradicted",
         null
       ],
       "description": "How the alignment stage was run. Useful for debugging unexpected mappings."

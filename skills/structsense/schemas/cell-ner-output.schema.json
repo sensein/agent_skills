@@ -330,6 +330,7 @@
             "trusted_ontology",
             "no_match",
             "remote_error",
+            "identity_contradicted",
             null
           ]
         },
@@ -404,6 +405,202 @@
           "type": "string",
           "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
           "description": "Reviewed global identity, shared across sources."
+        },
+        "identity_basis": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "WHY this occurrence is that entity type and WHICH canonical type it denotes (references/identity-basis.md; Zeng 2022). Required for cell mentions in the cns-cells and neuroscience variants; for other entities when the text states what makes them that thing. Occurrence-level: never copied to other occurrences by expansion.",
+          "properties": {
+            "canonical_candidate": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The canonical type the span denotes, e.g. 'Pvalb GABAergic interneuron' for 'Pvalb-positive GABAergic interneurons'. A name, not a sentence."
+            },
+            "hierarchy_level": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "neighborhood",
+                "class",
+                "subclass",
+                "supertype",
+                "type",
+                "subtype",
+                "group",
+                "cluster",
+                null
+              ]
+            },
+            "name_derivation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "marker_based",
+                "layer_projection",
+                "morphology_based",
+                "region_based",
+                "neurotransmitter_based",
+                "arbitrary_cluster",
+                "eponymous",
+                "mixed",
+                null
+              ]
+            },
+            "stability": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "type",
+                "state",
+                "transient",
+                null
+              ]
+            },
+            "state_evidence": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "cross_condition_comparison",
+                "timepoint_series",
+                "lineage_tracing",
+                "continuity_of_transcriptome",
+                "ieg_activation",
+                "perturbation",
+                "asserted_only",
+                null
+              ]
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "value",
+                  "role",
+                  "source"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "hierarchy",
+                      "molecular_marker",
+                      "neurotransmitter",
+                      "transcriptomic",
+                      "anatomical",
+                      "morphological",
+                      "electrophysiological",
+                      "connectivity",
+                      "developmental",
+                      "functional",
+                      "species",
+                      "state"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Normalized characteristic: a gene SYMBOL (not a phrase like 'top 60 genes'), 'GABA', 'cortical layer 5', 'basket', 'interneuron'."
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Surface of the extracted entity this feature is (e.g. 'Pvalb'), when it is also extracted."
+                  },
+                  "polarity": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "positive",
+                      "negative",
+                      "high",
+                      "low",
+                      "enriched",
+                      "depleted",
+                      "absent",
+                      "graded",
+                      "unspecified",
+                      null
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "defining",
+                      "supporting",
+                      "contextual",
+                      "excluding"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "explicit_text",
+                      "surrounding_context",
+                      "ontology_inference",
+                      "naming_convention"
+                    ]
+                  },
+                  "detection": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "How detected, when stated: immunostaining, ish, scrna_seq, snrna_seq, spatial_transcriptomics, facs, reporter_line, patch_clamp, morphological_reconstruction, tracing, registration_to_atlas."
+                  },
+                  "marker_class": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "transcription_factor",
+                      "combinatorial",
+                      "binary",
+                      "cross_species_curated",
+                      "enriched",
+                      "canonical",
+                      "unspecified",
+                      null
+                    ]
+                  },
+                  "confidence": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "quote": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Verbatim words (<= 25) that state the feature; required unless source is ontology_inference or naming_convention."
+                  }
+                }
+              }
+            }
+          }
         }
       },
       "additionalProperties": true,

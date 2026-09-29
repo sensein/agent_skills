@@ -578,6 +578,8 @@ class TurtleBuilder:
         self.mention_nodes: dict[tuple, URIRef] = {}
         self.item_mentions: dict[int, URIRef] = {}
         self.classifications: dict[str, URIRef] = {}  # reading -> shared EntityClassification
+        self.mention_no: dict[int, int] = {}          # id(item) -> mention number within its entity
+        self.surface_index: dict[str, URIRef] = {}    # reading-form surface -> entity node
         self.coordinated: list[dict] = []  # coordinated spans, resolved into components after all entities
         self.entity_by_group_id: dict[str, dict] = {}
         self.agents: dict[str, URIRef] = {}
@@ -983,6 +985,11 @@ class TurtleBuilder:
             self.entity_by_group_id[grp["id"].lower()] = ent
 
         for ent in self.entities_by_key.values():
+            for grp in ent["groups"]:
+                for it in grp["items"]:
+                    self.surface_index.setdefault(reading_form(str(it.get(grp["surf_key"]) or "")).lower(), ent["node"])
+                self.surface_index.setdefault(reading_form(grp["surface"]).lower(), ent["node"])
+        for ent in self.entities_by_key.values():
             self.emit_entity(ent)
         self.emit_components()
 
@@ -999,6 +1006,11 @@ class TurtleBuilder:
         for note in dict.fromkeys(ent["notes"]):
             self.add(node, RDFS.comment, Literal(note))
         ent["decisions"] = {}
+        n = 0  # the same numbering emit_mention uses, so decisions can point at features
+        for grp in ent["groups"]:
+            for it in grp["items"]:
+                n += 1
+                self.mention_no[id(it)] = n
         self.emit_mapping(ent)  # first: mentions' annotation versions point at its decisions
         self.refine_class(ent)
         mention_n = 0
@@ -1033,6 +1045,7 @@ class TurtleBuilder:
             self.add(m, NER.documentStartOffset, self.lit(start, XSD.nonNegativeInteger))
             self.add(m, NER.documentEndOffset, self.lit(end, XSD.nonNegativeInteger))
         self.counts["mentions"] += 1
+        self.emit_identity(ent, it, m, n)
         agent = self.source_agent(it.get("source_model"))
         slots = coordinated_slots(it)
         if slots:
@@ -1255,6 +1268,87 @@ class TurtleBuilder:
             self.counts["unmapped_entities"] += 1
             self.brainkb_default_concept(ent)
 
+    _FEATURE_CLASS = {"hierarchy": "HierarchyIdentityFeature", "molecular_marker": "MolecularIdentityFeature",
+                      "neurotransmitter": "NeurotransmitterIdentityFeature",
+                      "transcriptomic": "TranscriptomicIdentityFeature", "anatomical": "AnatomicalIdentityFeature",
+                      "morphological": "MorphologicalIdentityFeature",
+                      "electrophysiological": "ElectrophysiologicalIdentityFeature",
+                      "connectivity": "ConnectivityIdentityFeature", "developmental": "DevelopmentalIdentityFeature",
+                      "functional": "FunctionalIdentityFeature", "species": "TaxonomicIdentityFeature",
+                      "state": "StateIdentityFeature"}
+
+    def feature_node(self, ent: dict, n: int, i: int) -> URIRef:
+        return self.mint("identity_feature", f"{ent['key']}|{n}|{i}")
+
+    def emit_identity(self, ent: dict, it: dict, m: URIRef, n: int) -> None:
+        """What this occurrence is and WHY (identity_basis, scripts/identity.py): the
+        canonical candidate, hierarchy level, name derivation, type/state, and each
+        grounded feature with its role and source. Features the text does not state
+        where claimed are dropped and counted."""
+        from identity import grounded_mask
+        ib, mask = grounded_mask(it, self.source_text)
+        if not ib:
+            return
+        basis = self.mint("identity_basis", f"{ent['key']}|{n}")
+        self.add(basis, RDF.type, NER.IdentityBasis)
+        self.label(basis, "identity basis")
+        self.add(m, NER.hasIdentityBasis, basis)
+        if ib.get("canonical_candidate"):
+            self.add(basis, NER.canonicalCandidateLabel, self.lit(" ".join(str(ib["canonical_candidate"]).split()), XSD.string))
+        for key, prop, scheme in (("hierarchy_level", NER.identityHierarchyLevel, "hierarchy-level"),
+                                  ("name_derivation", NER.nameDerivation, "name-derivation"),
+                                  ("stability", NER.typeStability, "type-stability")):
+            v = ib.get(key)
+            if v and v in self.vocab.get(scheme, ()):
+                self.add(basis, prop, NER[f"{scheme}/{v}"])
+        if ib.get("state_evidence"):
+            self.add(basis, NER.stateEvidence, self.lit(str(ib["state_evidence"]), XSD.string))
+        for i, (f, ok) in enumerate(zip(ib["features"], mask)):
+            if not ok:
+                self.counts["identity_features_ungrounded"] += 1
+                continue
+            node = self.feature_node(ent, n, i)
+            self.add(node, RDF.type, NER[self._FEATURE_CLASS[f["kind"]]])
+            self.add(basis, NER.hasIdentityFeature, node)
+            val = " ".join(str(f["value"]).split())
+            self.label(node, f"{val} ({f['role']})")
+            self.add(node, NER.featureValue, self.lit(val, XSD.string))
+            self.add(node, NER.featureRole, NER[f"feature-role/{f['role']}"])
+            self.add(node, NER.featureEvidenceSource, NER[f"feature-source/{f['source']}"])
+            if f.get("polarity"):
+                self.add(node, NER.featurePolarity, self.lit(str(f["polarity"]), XSD.string))
+            conf = f.get("confidence")
+            if isinstance(conf, (int, float)) and 0 <= conf <= 1:
+                self.add(node, NER.featureConfidence, self.dec(round(float(conf), 4)))
+            for key, prop in (("detection", NER.featureDetection), ("marker_class", NER.featureMarkerClass)):
+                if f.get(key):
+                    self.add(node, prop, self.lit(str(f[key]), XSD.string))
+            if f.get("quote"):
+                self.add(node, NER.featureQuote, self.lit(" ".join(str(f["quote"]).split()), XSD.string))
+            target = self.surface_index.get(reading_form(str(f.get("target") or f.get("value") or "")).lower())
+            if target is not None and target != ent["node"]:
+                self.add(node, NER.featureEntity, target)
+            self.counts["identity_features"] += 1
+
+    def link_identity_to_decision(self, ent: dict, dec: URIRef, oid: str) -> None:
+        """Which characteristics justify (or contradict) this mapping, per occurrence
+        (identity_mapping from scripts/identity.py; only grounded features)."""
+        from identity import grounded_mask
+        for grp in ent["groups"]:
+            for it in grp["items"]:
+                im = it.get("identity_mapping") or {}
+                if not im or str(it.get("ontology_id") or "") != str(oid):
+                    continue
+                _ib, mask = grounded_mask(it, self.source_text)
+                n = self.mention_no.get(id(it))
+                if n is None:
+                    continue
+                for key, prop in (("justified_by", NER.justifiedByIdentityFeature),
+                                  ("contradicted_by", NER.contradictedByIdentityFeature)):
+                    for i in im.get(key) or []:
+                        if i < len(mask) and mask[i]:
+                            self.add(dec, prop, self.feature_node(ent, n, i))
+
     def refine_class(self, ent: dict) -> None:
         """A generic cell class ('CellType') mapped exact/close/broad to a CL term below
         an anchor (CL:0000540 neuron, CL:0000129 microglial cell, ...) also gets the
@@ -1367,6 +1461,7 @@ class TurtleBuilder:
     def emit_decision(self, ent: dict, concept: URIRef, ref, rel: str, it: dict, single: str = ""):
         base = f"{ent['key']}|{ref[1]}"
         dec, cand = self.mint("mapping_decision", base), self.mint("mapping_candidate", base)
+        self.link_identity_to_decision(ent, dec, single or ref[0])
         ent.setdefault("decisions", {})[single or ref[0]] = (dec, cand)
         self.add(cand, RDF.type, NER.ConceptMappingCandidate)
         self.add(cand, NER.candidateConcept, concept)

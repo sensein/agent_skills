@@ -6,7 +6,7 @@ description: Extract named entities and source-stated relations from unstructure
 license: Apache-2.0
 ---
 
-> **Skill version 0.11.0; ontology 2.5.0.** Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
+> **Skill version 0.12.0; ontology 2.6.0.** Every cell mention records what it is AND why (identity basis: canonical type + defining / supporting / contextual characteristics). Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
 
 
 
@@ -39,6 +39,15 @@ reports and papers. A source does not need a DOI or publication metadata.
   surface form linked to its sentences) are opt-in (`--entity-views`) or made later
   from any TTL with `python -m scripts.entity_view <stem>.ttl`; they are never the
   validated ingestion graph.
+- **What it is, and why it is that.** Every cell mention (both NER variants), and any
+  entity whose text says what makes it that thing, carries an `identity_basis`: the
+  canonical type it denotes and the characteristics the text gives — hierarchy, markers,
+  neurotransmitter, location, morphology, physiology, connectivity, development, species,
+  state — each with its role (defining / supporting / contextual / excluding) and source
+  (explicit text / surrounding context / ontology inference / naming convention).
+  Ungrounded features are dropped; mapping uses them (f(name, hierarchy, defining
+  characteristics, context)) and records which features justify it. See
+  `references/identity-basis.md` (grounded in Zeng 2022, `cell-type-definition-framework.md`).
 - **NER scope.** Resolve identity and extract source-stated relations; causal
   chains and external anatomy/hierarchy enrichment require an explicit request.
   Do not invent links between entities that merely share a category.

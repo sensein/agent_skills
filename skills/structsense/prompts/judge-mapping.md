@@ -38,6 +38,16 @@ Calibration:
 OUTPUT strict JSON only:
 {"judge":"mapping","model":"<id>","mode":"host_sequential|parallel",
  "items":[{"id":"...","verdict":"...","confidence":0.0-1.0,"reason":"<=140 chars","suggestion":{"tier":"..."}}]}
+
+IDENTITY (cell types especially): when an item carries `identity` — the canonical
+candidate and the features the text gives (defining / supporting / contextual /
+excluding) — judge the mapping on WHY the entity is that type, not on its name:
+  - fail a term a defining or supporting feature contradicts (a GABAergic span mapped
+    to a glutamatergic type; a glial span mapped to a neuron type);
+  - a term that matches the base type but not the defining features is at most a
+    broadMatch (PVALB+ interneuron -> "interneuron");
+  - contextual features (region, species) do not make a mapping exact; they only
+    rule out a region- or species-specific term that does not fit.
 ```
 
 ## User

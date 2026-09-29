@@ -975,8 +975,19 @@ def map_result(result: dict, mapper: ConceptMapper, *, only_unmapped: bool = Fal
     for key, surf in (("entities", "entity"), ("key_terms", "term")):
         if result.get(key):
             mapper.map_items(result[key], surf, only_unmapped=only_unmapped)
+    # cell-type mapping = f(name, hierarchy, defining characteristics, context): check the
+    # name mapping against the occurrence's identity basis, and try identity-derived
+    # queries where the name failed or was contradicted (scripts/identity.py)
+    from identity import refine_mappings
+    from class_anchors import lookup as classes_of
+
+    def map_one(trial: dict) -> dict:
+        mapper.map_items([trial], "entity")
+        return trial
+    ident = refine_mappings(result.get("entities") or [], map_one, classes_of)
     meta = mapper.meta()
     meta.update({"started_at": started, "ended_at": _utc_now(), "config_hash": config_hash(mapper.cfg)})
+    meta["identity_refinement"] = ident
     result.setdefault("stats", {})["alignment"] = meta
     return result
 

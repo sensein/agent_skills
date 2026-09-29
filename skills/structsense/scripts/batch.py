@@ -568,7 +568,10 @@ def advance(job: Job) -> Optional[dict]:
                 "instructions": (
                     "Follow the prompt's System block on this chunk. Write its JSON (entities; key_terms; "
                     "optional causal_relations only if requested) to `write`; offsets may be chunk-local. Emit each "
-                    "occurrence with its own context, identity and evidence-bearing relations. Expansion can "
+                    "occurrence with its own context, identity and evidence-bearing relations; every cell "
+                    "mention (and any entity whose text says what makes it that thing) gets an identity_basis: "
+                    "canonical_candidate plus features with role defining/supporting/contextual/excluding and "
+                    "source (prompt section IDENTITY BASIS). Expansion can "
                     "recover plain repeated surfaces but cannot recover context-specific claims. "
                     "Chunk 1: also fill source_metadata (paper_title, doi, year, "
                     "journal, authors as [{name, orcid?}] in printed order) — only what the text states. "

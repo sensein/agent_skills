@@ -190,13 +190,13 @@
    "normalized_key": "excitatory_neuron_pdp",
    "normalized_label": "excitatory (E) neuron",
    "class": "ExcitatoryNeuron",
+   "broader_key": "neuron",
    "relations": [
     {
      "predicate": "located_in",
      "target_key": "pdp_posterior_dorsal_telencephalon"
     }
-   ],
-   "broader_key": "neuron"
+   ]
   },
   "excitatory pDp neurons|CellType": {
    "normalized_key": "excitatory_neuron_pdp",
@@ -254,13 +254,13 @@
    "normalized_key": "inhibitory_neuron_pdp",
    "normalized_label": "inhibitory (I) neuron",
    "class": "InhibitoryNeuron",
+   "broader_key": "neuron",
    "relations": [
     {
      "predicate": "located_in",
      "target_key": "pdp_posterior_dorsal_telencephalon"
     }
-   ],
-   "broader_key": "neuron"
+   ]
   },
   "I|CellType": {
    "normalized_key": "inhibitory_neuron_pdp",
@@ -599,6 +599,7 @@
    "normalized_key": "tg_dlx4_6_chr2_yfp",
    "normalized_label": "Tg[dlx4/6:ChR2-YFP] transgenic zebrafish line",
    "class": "Strain",
+   "broader_key": "danio_rerio",
    "relations": [
     {
      "predicate": "has_participant",
@@ -608,8 +609,7 @@
      "predicate": "has_participant",
      "target_key": "dlx4_6_regulatory_element"
     }
-   ],
-   "broader_key": "danio_rerio"
+   ]
   },
   "Tg[alphaTubulin:GCaMP6s]|TransgenicLine": {
    "normalized_key": "tg_alphatubulin_gcamp6s",

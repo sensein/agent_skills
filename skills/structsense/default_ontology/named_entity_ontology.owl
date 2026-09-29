@@ -942,8 +942,8 @@
     <rdfs:label xml:lang="en">Named Entity Ontology</rdfs:label>
     <dcterms:description xml:lang="en">Version 2.2 adds a first-class causality module for relation extraction. It represents source-anchored causal relation mentions, canonical causal relations, cause/effect/mediator/moderator/confounder roles, polarity, directness, modality, causal evidence basis, mechanisms, context, quantitative effect estimates, mapping to external causal predicates, provenance, and temporal evolution. Causal and associative relations are explicitly separated.</dcterms:description>
     <dcterms:description xml:lang="en">Version 2.3 repairs the remaining local class disconnection in the causality module and guarantees that all locally defined OWL classes are connected to the NamedEntityElement root. Integration with the Assertion–Evidence ontology is provided by a separate bridge ontology.</dcterms:description>
-    <owl:versionInfo>2.5.0</owl:versionInfo>
-    <owl:versionIRI rdf:resource="https://brainkb.org/ner/2.5.0/"/>
+    <owl:versionInfo>2.6.0</owl:versionInfo>
+    <owl:versionIRI rdf:resource="https://brainkb.org/ner/2.6.0/"/>
     <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2026-09-24</dcterms:created>
     <dcterms:creator>BrainKB</dcterms:creator>
     <dcterms:relation rdf:resource="https://brainkb.org/assertion-evidence/"/>
@@ -4151,4 +4151,426 @@
 <rdf:Description rdf:about="https://brainkb.org/ner/createdBy"><rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/><rdfs:label>created by</rdfs:label><rdfs:domain rdf:resource="https://brainkb.org/ner/NamedEntity"/><rdfs:range rdf:resource="https://brainkb.org/ner/NamedEntity"/></rdf:Description>
 <rdf:Description rdf:about="https://brainkb.org/ner/owns"><rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/><rdfs:label>owns</rdfs:label><rdfs:domain rdf:resource="https://brainkb.org/ner/NamedEntity"/><rdfs:range rdf:resource="https://brainkb.org/ner/NamedEntity"/></rdf:Description>
 <rdf:Description rdf:about="https://brainkb.org/ner/refersToEntity"><owl:inverseOf rdf:resource="https://brainkb.org/ner/hasMention"/></rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityBasis">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Identity Basis</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/AnnotationArtifact"/>
+    <skos:definition xml:lang="en">Why one occurrence is classified as its entity type and which canonical type it denotes: the canonical candidate, the hierarchy level, how the name was built, type versus state, and the identity features observed for this occurrence. Answers 'what is it' and 'why is it that'. Grounded in Zeng 2022 (Cell, doi:10.1016/j.cell.2022.06.031).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/AnnotationArtifact"/>
+    <skos:definition xml:lang="en">A characteristic stated for an occurrence that bears on its identity (a marker, neurotransmitter, location, morphology, physiology, connectivity, developmental origin, function, species, parent type or state), with the role it plays (defining, supporting, contextual, excluding), where it comes from (explicit text, surrounding context, ontology inference, naming convention), polarity and confidence. Not a scientific-claim assertion.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/HierarchyIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Hierarchy Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">The parent type the occurrence is a kind of (neuron, interneuron, glial cell): the class/subclass position in a type hierarchy.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/MolecularIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Molecular Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A gene, transcript, protein, reporter or transcription-factor marker stated for the occurrence (PVALB-positive, Sst-Cre, Olig2+).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/NeurotransmitterIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Neurotransmitter Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">The transmitter phenotype stated for the occurrence (GABAergic, glutamatergic, cholinergic, dopaminergic).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/TranscriptomicIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Transcriptomic Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A transcriptomic or epigenomic cluster, taxonomy assignment or signature that establishes the type (an scRNA-seq cluster, a taxonomy accession).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/AnatomicalIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Anatomical Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A region, subregion, layer or compartment stated for the occurrence (layer 5, motor cortex, striosome).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/MorphologicalIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Morphological Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A morphology stated for the occurrence (basket, chandelier, pyramidal, bipolar dendrites).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/ElectrophysiologicalIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Electrophysiological Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A firing pattern or intrinsic physiological property stated for the occurrence (fast-spiking, burst firing).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/ConnectivityIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Connectivity Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A projection target or connectivity property stated for the occurrence (intratelencephalic, corticothalamic, targets the axon initial segment).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/DevelopmentalIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Developmental Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A developmental origin or lineage stated for the occurrence (MGE-derived, from the ganglionic eminence).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/FunctionalIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Functional Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A function or role that identifies the occurrence (feedforward inhibition, a sodium channel blocker for a drug).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/TaxonomicIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Taxonomic Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">The species or organism the occurrence is placed in (mouse, human).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/StateIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">State Identity Feature</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A cell state rather than a type property (reactive, activated, IEG-high); states are not promoted to types.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityFeatureRole">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Identity Feature Role</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">The part a feature plays in identifying an occurrence.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityFeatureRoleScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Identity Feature Role Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-role/defining">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityFeatureRole"/>
+    <skos:prefLabel xml:lang="en">defining</skos:prefLabel>
+    <skos:definition xml:lang="en">The characteristic defines or identifies the type (PVALB+ for a Pvalb-defined type; chandelier morphology for a chandelier cell).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityFeatureRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-role/supporting">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityFeatureRole"/>
+    <skos:prefLabel xml:lang="en">supporting</skos:prefLabel>
+    <skos:definition xml:lang="en">Consistent with the type and useful for disambiguating it, but not its definition (GABAergic for a Pvalb interneuron).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityFeatureRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-role/contextual">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityFeatureRole"/>
+    <skos:prefLabel xml:lang="en">contextual</skos:prefLabel>
+    <skos:definition xml:lang="en">Where or when the occurrence is observed; compatible with, but not a reason for, the identity (motor cortex, adult mouse).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityFeatureRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-role/excluding">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityFeatureRole"/>
+    <skos:prefLabel xml:lang="en">excluding</skos:prefLabel>
+    <skos:definition xml:lang="en">A characteristic the type must lack or a negative criterion (SST-negative).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityFeatureRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityEvidenceSource">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Identity Evidence Source</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">Where an identity feature comes from.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/IdentityEvidenceSourceScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Identity Evidence Source Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-source/explicit_text">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityEvidenceSource"/>
+    <skos:prefLabel xml:lang="en">explicit text</skos:prefLabel>
+    <skos:definition xml:lang="en">Stated in the span or its own sentence.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityEvidenceSourceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-source/surrounding_context">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityEvidenceSource"/>
+    <skos:prefLabel xml:lang="en">surrounding context</skos:prefLabel>
+    <skos:definition xml:lang="en">Stated nearby (the paragraph or section), not in the span's own sentence.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityEvidenceSourceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-source/ontology_inference">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityEvidenceSource"/>
+    <skos:prefLabel xml:lang="en">ontology inference</skos:prefLabel>
+    <skos:definition xml:lang="en">Implied by the ontology hierarchy of the mapped term (a GABAergic parent), not by the text.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityEvidenceSourceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/feature-source/naming_convention">
+    <rdf:type rdf:resource="https://brainkb.org/ner/IdentityEvidenceSource"/>
+    <skos:prefLabel xml:lang="en">naming convention</skos:prefLabel>
+    <skos:definition xml:lang="en">Asserted by how the name is built (a marker-based name such as Pvalb, a layer-projection name such as L5 IT), not measured in this paper.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/IdentityEvidenceSourceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/HierarchyLevel">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Hierarchy Level</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">The level of a cell-type hierarchy an occurrence names (class, subclass, type, subtype; HMBA neighborhood/class/subclass/group).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/HierarchyLevelScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Hierarchy Level Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/neighborhood">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">neighborhood</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'neighborhood'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/class">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">class</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'class'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/subclass">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">subclass</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'subclass'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/supertype">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">supertype</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'supertype'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/type">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">type</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'type'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/subtype">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">subtype</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'subtype'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/group">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">group</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'group'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hierarchy-level/cluster">
+    <rdf:type rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:prefLabel xml:lang="en">cluster</skos:prefLabel>
+    <skos:definition xml:lang="en">Hierarchy level 'cluster'.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/HierarchyLevelScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/NameDerivation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Name Derivation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">How a cell-type name is built; the structure is evidence.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/NameDerivationScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Name Derivation Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/marker_based">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">marker based</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is marker based.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/layer_projection">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">layer projection</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is layer projection.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/morphology_based">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">morphology based</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is morphology based.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/region_based">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">region based</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is region based.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/neurotransmitter_based">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">neurotransmitter based</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is neurotransmitter based.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/arbitrary_cluster">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">arbitrary cluster</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is arbitrary cluster.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/eponymous">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">eponymous</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is eponymous.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/name-derivation/mixed">
+    <rdf:type rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:prefLabel xml:lang="en">mixed</skos:prefLabel>
+    <skos:definition xml:lang="en">The name is mixed.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/NameDerivationScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/TypeStability">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Type Stability</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">Whether an occurrence names a type, a state or a transient condition.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/TypeStabilityScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Type Stability Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/type-stability/type">
+    <rdf:type rdf:resource="https://brainkb.org/ner/TypeStability"/>
+    <skos:prefLabel xml:lang="en">type</skos:prefLabel>
+    <skos:definition xml:lang="en">A stable cell type.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/TypeStabilityScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/type-stability/state">
+    <rdf:type rdf:resource="https://brainkb.org/ner/TypeStability"/>
+    <skos:prefLabel xml:lang="en">state</skos:prefLabel>
+    <skos:definition xml:lang="en">A cell state (reactive astrocyte, activated microglia).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/TypeStabilityScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/type-stability/transient">
+    <rdf:type rdf:resource="https://brainkb.org/ner/TypeStability"/>
+    <skos:prefLabel xml:lang="en">transient</skos:prefLabel>
+    <skos:definition xml:lang="en">A transient condition.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/TypeStabilityScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hasIdentityBasis">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">has identity basis</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/EntityMention"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <skos:definition xml:lang="en">The identity basis recorded for this occurrence.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/hasIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">has identity feature</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">A characteristic observed for the occurrence.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureEntity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">feature entity</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/NamedEntity"/>
+    <skos:definition xml:lang="en">The extracted entity the feature refers to (the PVALB gene entity for a PVALB-positive feature).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureRole">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">feature role</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityFeatureRole"/>
+    <skos:definition xml:lang="en">Defining, supporting, contextual or excluding.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureEvidenceSource">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">feature evidence source</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityEvidenceSource"/>
+    <skos:definition xml:lang="en">Explicit text, surrounding context, ontology inference or naming convention.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/identityHierarchyLevel">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">identity hierarchy level</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/HierarchyLevel"/>
+    <skos:definition xml:lang="en">The hierarchy level the occurrence names.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/nameDerivation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">name derivation</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/NameDerivation"/>
+    <skos:definition xml:lang="en">How the occurrence's name is built.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/typeStability">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">type stability</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/TypeStability"/>
+    <skos:definition xml:lang="en">Type, state or transient.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/justifiedByIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">justified by identity feature</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/ConceptMappingDecision"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">An identity feature that supports this mapping (found in the chosen concept's label or synonyms, or consistent with its ontology hierarchy).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/contradictedByIdentityFeature">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">contradicted by identity feature</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/ConceptMappingDecision"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <skos:definition xml:lang="en">An identity feature that conflicts with this mapping (a GABAergic feature against a glutamatergic term).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/canonicalCandidateLabel">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">canonical candidate label</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">The canonical cell type the occurrence denotes, as the extractor proposes it (Pvalb GABAergic interneuron).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureValue">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature value</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">The characteristic as normalized text (PVALB, GABA, cortical layer 5).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featurePolarity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature polarity</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">positive, negative, high, low, enriched, depleted, absent or unspecified.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureConfidence">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature confidence</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
+    <skos:definition xml:lang="en">Confidence (0-1) that the feature holds for the occurrence and plays the stated role.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureDetection">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature detection</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">How the feature was detected, when stated (immunostaining, scRNA-seq, reporter line, patch clamp).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureMarkerClass">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature marker class</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">For markers: transcription_factor, combinatorial, binary, cross_species_curated, enriched or canonical.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/featureQuote">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">feature quote</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityFeature"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">The verbatim words (at most 25) that state the feature.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/stateEvidence">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">state evidence</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">How a type/state call is justified (cross_condition_comparison, timepoint_series, lineage_tracing, perturbation, asserted_only).</skos:definition>
+  </rdf:Description>
 </rdf:RDF>

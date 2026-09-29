@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.12.0 — what an entity is, and why it is that (ontology 2.6.0)
+
+- **Identity basis.** Every cell mention (cns-cells and neuroscience variants), and any
+  entity whose text states what makes it that thing, records `identity_basis`: a
+  canonical candidate ("Pvalb GABAergic interneuron"), hierarchy level, name derivation,
+  type/state, and features (hierarchy, molecular marker, neurotransmitter,
+  transcriptomic, anatomical, morphological, electrophysiological, connectivity,
+  developmental, functional, species, state) with role (defining / supporting /
+  contextual / excluding), source (explicit text / surrounding context / ontology
+  inference / naming convention), polarity, detection, marker class, confidence and
+  quote. Grounded in Zeng 2022 (references/cell-type-definition-framework.md, from the
+  structsense context layer) and the BICAN/AIT crosswalk.
+- **Ontology 2.6.0.** IdentityBasis, IdentityFeature (+12 kinds), controlled roles,
+  sources, hierarchy levels, name derivations and stability; hasIdentityBasis,
+  hasIdentityFeature, featureEntity, justifiedByIdentityFeature,
+  contradictedByIdentityFeature, and datatype properties. SHACL shapes for both.
+- **Grounded features only.** A text-sourced feature whose quote/value is not in the
+  occurrence's sentence or nearby text is dropped and counted.
+- **Identity-aware mapping.** After the name cascade, a mapping a defining/supporting
+  feature contradicts is rejected (CL hierarchy via class_anchors); unmapped cells try
+  the canonical candidate and marker/transmitter + base-type compositions; the features
+  that justify the chosen term are recorded (`identity_mapping`) and written on the
+  mapping decision. The mapping judge sees the identity basis.
+- **CQ64–67**: why a mention is that type; which features justify each mapping; do papers
+  define the same type the same way; which cells are named but never characterized.
+
 ## 0.10.0 — corpus runs that finish: progressive batches, a stricter gate, cell spans
 
 Learned on a 211-paper BICAN run (neuroscience + cns-cells). Every fix is in code
