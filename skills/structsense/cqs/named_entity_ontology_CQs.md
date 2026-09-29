@@ -1229,36 +1229,37 @@ GROUP BY ?cell
 ORDER BY ?mentionsWithDefiningFeature ?cell
 ```
 
-**CQ68 — For each cell mention: what is it (canonical type, level, ontology term) and why does it qualify — one row per characteristic (kind, value, role, source), and whether it justified the mapping?**
+**CQ68 — For each cell mention: what is it (canonical type, level, specificity, ontology term) and why does it qualify — one row per characteristic (kind, value, role, source), whether it justified the mapping, with every node IRI?**
 ```sparql
 PREFIX ner: <https://brainkb.org/ner/>
-SELECT ?cell ?mention ?doi ?canonicalType ?hierarchyLevel ?specificity ?coordinatedElements ?ontologyTerm
-       ?featureKind ?featureValue ?role ?source ?polarity ?quote ?linkedEntity ?justifiesMapping
+SELECT ?entity ?cell ?mentionNode ?mention ?paper ?doi
+       ?identityBasis ?canonicalType ?hierarchyLevel ?specificity ?coordinatedElements
+       ?concept ?ontologyTerm
+       ?feature ?featureKind ?featureValue ?role ?source ?polarity ?quote
+       ?linkedEntityNode ?linkedEntity ?justifiesMapping
 WHERE {
-  ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
-  ?m ner:surfaceForm ?sf ; ner:hasIdentityBasis ?b ;
-     ner:partOfDocumentVersion/ner:versionOfDocument ?pub .
+  ?entity ner:normalizedEntityKey ?cell ; ner:hasMention ?mentionNode .
+  ?mentionNode ner:surfaceForm ?sf ; ner:hasIdentityBasis ?identityBasis ;
+               ner:partOfDocumentVersion/ner:versionOfDocument ?paper .
   BIND (REPLACE(STR(?sf), "\\s+", " ") AS ?mention)
-  OPTIONAL { ?pub ner:doi ?doi }
-  OPTIONAL { ?b ner:canonicalCandidateLabel ?canonicalType }
-  OPTIONAL { ?b ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?hierarchyLevel) }
-  OPTIONAL { ?b ner:identitySpecificity ?sp . BIND (STRAFTER(STR(?sp), "specificity/") AS ?specificity) }  # cell_phenotype | cell_vague | cell_hetero
-  OPTIONAL { ?m ner:coordinatedElementCount ?coordinatedElements }   # a coordinated span names this many cells
-  OPTIONAL {                                   # WHAT: the mapped term (external or BrainKB default)
-    ?e ner:resolvedToConcept ?c . ?c ner:conceptIdentifier ?ontologyTerm .
+  OPTIONAL { ?paper ner:doi ?doi }
+  OPTIONAL { ?identityBasis ner:canonicalCandidateLabel ?canonicalType }
+  OPTIONAL { ?identityBasis ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?hierarchyLevel) }
+  OPTIONAL { ?identityBasis ner:identitySpecificity ?sp . BIND (STRAFTER(STR(?sp), "specificity/") AS ?specificity) }  # cell_phenotype | cell_vague | cell_hetero
+  OPTIONAL { ?mentionNode ner:coordinatedElementCount ?coordinatedElements }   # a coordinated span names this many cells
+  OPTIONAL { ?entity ner:resolvedToConcept ?concept . ?concept ner:conceptIdentifier ?ontologyTerm }   # WHAT
+  OPTIONAL {                                                                    # WHY: one row per characteristic
+    ?identityBasis ner:hasIdentityFeature ?feature .
+    ?feature a ?fc ; ner:featureValue ?featureValue ; ner:featureRole ?r ; ner:featureEvidenceSource ?s .
+    FILTER (STRENDS(STR(?fc), "IdentityFeature") && ?fc != ner:IdentityFeature)
+    BIND (REPLACE(STRAFTER(STR(?fc), "https://brainkb.org/ner/"), "IdentityFeature$", "") AS ?featureKind)
+    BIND (STRAFTER(STR(?r), "feature-role/") AS ?role)
+    BIND (STRAFTER(STR(?s), "feature-source/") AS ?source)
+    OPTIONAL { ?feature ner:featurePolarity ?polarity }
+    OPTIONAL { ?feature ner:featureQuote ?quote }
+    OPTIONAL { ?feature ner:featureEntity ?linkedEntityNode . ?linkedEntityNode ner:normalizedEntityKey ?linkedEntity }
+    BIND (EXISTS { ?dec ner:justifiedByIdentityFeature ?feature } AS ?justifiesMapping)
   }
-  OPTIONAL {
-  ?b ner:hasIdentityFeature ?f .                # WHY: one row per characteristic
-  ?f a ?fc ; ner:featureValue ?featureValue ; ner:featureRole ?r ; ner:featureEvidenceSource ?s .
-  FILTER (STRENDS(STR(?fc), "IdentityFeature") && ?fc != ner:IdentityFeature)
-  BIND (REPLACE(STRAFTER(STR(?fc), "https://brainkb.org/ner/"), "IdentityFeature$", "") AS ?featureKind)
-  BIND (STRAFTER(STR(?r), "feature-role/") AS ?role)
-  BIND (STRAFTER(STR(?s), "feature-source/") AS ?source)
-  OPTIONAL { ?f ner:featurePolarity ?polarity }
-  OPTIONAL { ?f ner:featureQuote ?quote }
-  OPTIONAL { ?f ner:featureEntity/ner:normalizedEntityKey ?linkedEntity }
-  BIND (EXISTS { ?dec ner:justifiedByIdentityFeature ?f } AS ?justifiesMapping)
-  }                                             # a vague/hetero mention may have no features
 }
 ORDER BY ?cell ?doi ?mention ?featureKind ?featureValue
 ```
