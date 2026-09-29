@@ -1229,15 +1229,11 @@ GROUP BY ?cell
 ORDER BY ?mentionsWithDefiningFeature ?cell
 ```
 
-**CQ68 — For each cell mention: what is it (canonical type, level, ontology term) and why does it qualify (characteristics by role, and those that justify the mapping)?**
+**CQ68 — For each cell mention: what is it (canonical type, level, ontology term) and why does it qualify — one row per characteristic (kind, value, role, source), and whether it justified the mapping?**
 ```sparql
 PREFIX ner: <https://brainkb.org/ner/>
 SELECT ?cell ?mention ?doi ?canonicalType ?hierarchyLevel ?ontologyTerm
-       (GROUP_CONCAT(DISTINCT ?def; separator=" ; ") AS ?defining)
-       (GROUP_CONCAT(DISTINCT ?sup; separator=" ; ") AS ?supporting)
-       (GROUP_CONCAT(DISTINCT ?ctx; separator=" ; ") AS ?contextual)
-       (GROUP_CONCAT(DISTINCT ?exc; separator=" ; ") AS ?excluding)
-       (GROUP_CONCAT(DISTINCT ?just; separator=" ; ") AS ?mappingJustifiedBy)
+       ?featureKind ?featureValue ?role ?source ?polarity ?quote ?linkedEntity ?justifiesMapping
 WHERE {
   ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
   ?m ner:surfaceForm ?sf ; ner:hasIdentityBasis ?b ;
@@ -1246,37 +1242,19 @@ WHERE {
   OPTIONAL { ?pub ner:doi ?doi }
   OPTIONAL { ?b ner:canonicalCandidateLabel ?canonicalType }
   OPTIONAL { ?b ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?hierarchyLevel) }
-
-  # WHAT: the ontology term the entity is mapped to (external or BrainKB default)
-  OPTIONAL {
-    ?e ner:resolvedToConcept ?c . ?c ner:conceptIdentifier ?cid .
-    OPTIONAL { ?c ner:preferredLabel ?cl }
-    BIND (CONCAT(?cid, ' "', COALESCE(?cl, ""), '"') AS ?ontologyTerm)
+  OPTIONAL {                                   # WHAT: the mapped term (external or BrainKB default)
+    ?e ner:resolvedToConcept ?c . ?c ner:conceptIdentifier ?ontologyTerm .
   }
-
-  # WHY: every grounded characteristic of THIS occurrence, by role ("kind: value [source]")
-  OPTIONAL { ?b ner:hasIdentityFeature ?f1 . ?f1 ner:featureRole <https://brainkb.org/ner/feature-role/defining> ;
-             a ?k1 ; ner:featureValue ?v1 ; ner:featureEvidenceSource ?s1 .
-             FILTER (STRENDS(STR(?k1), "IdentityFeature") && ?k1 != ner:IdentityFeature)
-             BIND (CONCAT(REPLACE(STRAFTER(STR(?k1), "ner/"), "IdentityFeature$", ""), ": ", ?v1,
-                          " [", STRAFTER(STR(?s1), "feature-source/"), "]") AS ?def) }
-  OPTIONAL { ?b ner:hasIdentityFeature ?f2 . ?f2 ner:featureRole <https://brainkb.org/ner/feature-role/supporting> ;
-             a ?k2 ; ner:featureValue ?v2 ; ner:featureEvidenceSource ?s2 .
-             FILTER (STRENDS(STR(?k2), "IdentityFeature") && ?k2 != ner:IdentityFeature)
-             BIND (CONCAT(REPLACE(STRAFTER(STR(?k2), "ner/"), "IdentityFeature$", ""), ": ", ?v2,
-                          " [", STRAFTER(STR(?s2), "feature-source/"), "]") AS ?sup) }
-  OPTIONAL { ?b ner:hasIdentityFeature ?f3 . ?f3 ner:featureRole <https://brainkb.org/ner/feature-role/contextual> ;
-             a ?k3 ; ner:featureValue ?v3 ; ner:featureEvidenceSource ?s3 .
-             FILTER (STRENDS(STR(?k3), "IdentityFeature") && ?k3 != ner:IdentityFeature)
-             BIND (CONCAT(REPLACE(STRAFTER(STR(?k3), "ner/"), "IdentityFeature$", ""), ": ", ?v3,
-                          " [", STRAFTER(STR(?s3), "feature-source/"), "]") AS ?ctx) }
-  OPTIONAL { ?b ner:hasIdentityFeature ?f4 . ?f4 ner:featureRole <https://brainkb.org/ner/feature-role/excluding> ;
-             ner:featureValue ?v4 . BIND (?v4 AS ?exc) }
-
-  # WHICH characteristics justified the ontology mapping
-  OPTIONAL { ?dec a ner:ConceptMappingDecision ; ner:decisionForNormalizedEntity ?e ;
-                  ner:justifiedByIdentityFeature ?jf . ?jf ner:featureValue ?jv . BIND (?jv AS ?just) }
+  ?b ner:hasIdentityFeature ?f .                # WHY: one row per characteristic
+  ?f a ?fc ; ner:featureValue ?featureValue ; ner:featureRole ?r ; ner:featureEvidenceSource ?s .
+  FILTER (STRENDS(STR(?fc), "IdentityFeature") && ?fc != ner:IdentityFeature)
+  BIND (REPLACE(STRAFTER(STR(?fc), "https://brainkb.org/ner/"), "IdentityFeature$", "") AS ?featureKind)
+  BIND (STRAFTER(STR(?r), "feature-role/") AS ?role)
+  BIND (STRAFTER(STR(?s), "feature-source/") AS ?source)
+  OPTIONAL { ?f ner:featurePolarity ?polarity }
+  OPTIONAL { ?f ner:featureQuote ?quote }
+  OPTIONAL { ?f ner:featureEntity/ner:normalizedEntityKey ?linkedEntity }
+  BIND (EXISTS { ?dec ner:justifiedByIdentityFeature ?f } AS ?justifiesMapping)
 }
-GROUP BY ?cell ?mention ?doi ?canonicalType ?hierarchyLevel ?ontologyTerm
-ORDER BY ?cell ?doi ?mention
+ORDER BY ?cell ?doi ?mention ?featureKind ?featureValue
 ```
