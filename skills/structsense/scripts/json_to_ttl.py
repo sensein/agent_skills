@@ -1000,6 +1000,7 @@ class TurtleBuilder:
             self.add(node, RDFS.comment, Literal(note))
         ent["decisions"] = {}
         self.emit_mapping(ent)  # first: mentions' annotation versions point at its decisions
+        self.refine_class(ent)
         mention_n = 0
         for grp in ent["groups"]:
             for it in grp["items"]:
@@ -1243,6 +1244,7 @@ class TurtleBuilder:
                 # it; compact drops only per-mention annotation/review history
                 self.emit_decision(ent, concept, ref, rel, it, single)
                 ent.setdefault("concept_ids", []).append(single)
+                ent.setdefault("mapped_tiers", []).append((ref[0], tier))
                 ent["coordinated"] = ent.get("coordinated") or bool(coordinated_slots(it))
                 emitted += 1
                 self.counts["mapped_concepts"] += 1
@@ -1252,6 +1254,26 @@ class TurtleBuilder:
                 f"No tool-verified ontology mapping ({why}); checked via {self.mapper_name} on {self.date}."))
             self.counts["unmapped_entities"] += 1
             self.brainkb_default_concept(ent)
+
+    def refine_class(self, ent: dict) -> None:
+        """A generic cell class ('CellType') mapped exact/close/broad to a CL term below
+        an anchor (CL:0000540 neuron, CL:0000129 microglial cell, ...) also gets the
+        anchor's NER class (ttl_config.json class_from_concept; scripts/class_anchors)."""
+        cfg = self.cfg.raw.get("class_from_concept") or {}
+        if not cfg.get("anchors") or not (set(ent["classes"]) & set(cfg.get("applies_to") or [])):
+            return
+        from class_anchors import lookup
+        tiers = set(cfg.get("tiers") or ["exactMatch", "closeMatch", "broadMatch"])
+        added = set()
+        for iri, tier in ent.get("mapped_tiers") or []:
+            if tier in tiers:
+                for cls in lookup(iri):
+                    if cls in self.declared and cls not in ent["classes"]:
+                        added.add(cls)
+        for cls in sorted(added):
+            self.add(ent["node"], RDF.type, NER[cls])
+        if added:
+            self.counts["classes_refined"] += 1
 
     def brainkb_default_concept(self, ent: dict) -> None:
         """No source mapped this entity: link it to a provisional BrainKB concept

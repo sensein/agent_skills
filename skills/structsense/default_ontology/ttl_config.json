@@ -428,5 +428,37 @@
       "nuclei",
       "nucleus"
     ]
+  },
+  "class_from_concept": {
+    "_comment": "An entity whose extractor label is a generic cell class (applies_to) and that is mapped at one of `tiers` to a CL term below an anchor gets that anchor's NER class too (all anchors above the term: an inhibitory interneuron is Interneuron and InhibitoryNeuron). Deterministic, from the CL hierarchy (scripts/class_anchors.py builds the table once from ontology_file). A narrowMatch or relatedMatch says nothing about what the entity IS, so it never refines.",
+    "ontology_file": "trusted_ontologes/cl.owl",
+    "table": "trusted_ontologes/lexicon/class_anchors.json",
+    "applies_to": [
+      "CellType",
+      "CellSubtype",
+      "NeuralCellType",
+      "ScientificNamedEntity"
+    ],
+    "tiers": [
+      "exactMatch",
+      "closeMatch",
+      "broadMatch"
+    ],
+    "anchors": {
+      "CL:0000540": "Neuron",
+      "CL:0000099": "Interneuron",
+      "CL:0000679": "ExcitatoryNeuron",
+      "CL:0000617": "InhibitoryNeuron",
+      "CL:0000498": "InhibitoryNeuron",
+      "CL:0000100": "MotorNeuron",
+      "CL:0000101": "SensoryNeuron",
+      "CL:0000125": "GlialCell",
+      "CL:0000127": "Astrocyte",
+      "CL:0000129": "Microglia",
+      "CL:0000128": "Oligodendrocyte",
+      "CL:0000065": "EpendymalCell",
+      "CL:0000047": "NeuralStemCell",
+      "CL:0002319": "NeuralCellType"
+    }
   }
 }
