@@ -4573,4 +4573,11 @@
     <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
     <skos:definition xml:lang="en">How a type/state call is justified (cross_condition_comparison, timepoint_series, lineage_tracing, perturbation, asserted_only).</skos:definition>
   </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/identitySpecificity">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">identity specificity</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/SpecificityCategory"/>
+    <skos:definition xml:lang="en">How specific this occurrence's cell reference is: cell_phenotype (a defined type), cell_vague (an unspecific cell reference), cell_hetero (a heterogeneous or coordinated reference to several types) or unspecified.</skos:definition>
+  </rdf:Description>
 </rdf:RDF>

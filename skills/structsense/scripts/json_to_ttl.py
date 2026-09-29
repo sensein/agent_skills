@@ -1287,8 +1287,11 @@ class TurtleBuilder:
         where claimed are dropped and counted."""
         from identity import grounded_mask
         ib, mask = grounded_mask(it, self.source_text)
-        if not ib:
+        spec = it.get("specificity")
+        spec = spec if spec in self.vocab.get("specificity", ()) else None
+        if not ib and not spec:
             return
+        ib = ib or {"features": []}
         basis = self.mint("identity_basis", f"{ent['key']}|{n}")
         self.add(basis, RDF.type, NER.IdentityBasis)
         self.label(basis, "identity basis")
@@ -1303,6 +1306,8 @@ class TurtleBuilder:
                 self.add(basis, prop, NER[f"{scheme}/{v}"])
         if ib.get("state_evidence"):
             self.add(basis, NER.stateEvidence, self.lit(str(ib["state_evidence"]), XSD.string))
+        if spec:  # cell_phenotype / cell_vague / cell_hetero, in every profile
+            self.add(basis, NER.identitySpecificity, NER[f"specificity/{spec}"])
         for i, (f, ok) in enumerate(zip(ib["features"], mask)):
             if not ok:
                 self.counts["identity_features_ungrounded"] += 1

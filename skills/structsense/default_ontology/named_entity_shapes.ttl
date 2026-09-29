@@ -565,6 +565,7 @@ nsh:IdentityBasisShape a sh:NodeShape ;
     sh:property [ sh:path ner:identityHierarchyLevel ; sh:maxCount 1 ; sh:class ner:HierarchyLevel ] ;
     sh:property [ sh:path ner:nameDerivation ; sh:maxCount 1 ; sh:class ner:NameDerivation ] ;
     sh:property [ sh:path ner:typeStability ; sh:maxCount 1 ; sh:class ner:TypeStability ] ;
+    sh:property [ sh:path ner:identitySpecificity ; sh:maxCount 1 ; sh:class ner:SpecificityCategory ] ;
     sh:property [ sh:path ner:hasIdentityFeature ; sh:class ner:IdentityFeature ] .
 
 nsh:IdentityFeatureShape a sh:NodeShape ;

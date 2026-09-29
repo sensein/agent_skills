@@ -1232,7 +1232,7 @@ ORDER BY ?mentionsWithDefiningFeature ?cell
 **CQ68 — For each cell mention: what is it (canonical type, level, ontology term) and why does it qualify — one row per characteristic (kind, value, role, source), and whether it justified the mapping?**
 ```sparql
 PREFIX ner: <https://brainkb.org/ner/>
-SELECT ?cell ?mention ?doi ?canonicalType ?hierarchyLevel ?ontologyTerm
+SELECT ?cell ?mention ?doi ?canonicalType ?hierarchyLevel ?specificity ?coordinatedElements ?ontologyTerm
        ?featureKind ?featureValue ?role ?source ?polarity ?quote ?linkedEntity ?justifiesMapping
 WHERE {
   ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
@@ -1242,9 +1242,12 @@ WHERE {
   OPTIONAL { ?pub ner:doi ?doi }
   OPTIONAL { ?b ner:canonicalCandidateLabel ?canonicalType }
   OPTIONAL { ?b ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?hierarchyLevel) }
+  OPTIONAL { ?b ner:identitySpecificity ?sp . BIND (STRAFTER(STR(?sp), "specificity/") AS ?specificity) }  # cell_phenotype | cell_vague | cell_hetero
+  OPTIONAL { ?m ner:coordinatedElementCount ?coordinatedElements }   # a coordinated span names this many cells
   OPTIONAL {                                   # WHAT: the mapped term (external or BrainKB default)
     ?e ner:resolvedToConcept ?c . ?c ner:conceptIdentifier ?ontologyTerm .
   }
+  OPTIONAL {
   ?b ner:hasIdentityFeature ?f .                # WHY: one row per characteristic
   ?f a ?fc ; ner:featureValue ?featureValue ; ner:featureRole ?r ; ner:featureEvidenceSource ?s .
   FILTER (STRENDS(STR(?fc), "IdentityFeature") && ?fc != ner:IdentityFeature)
@@ -1255,6 +1258,7 @@ WHERE {
   OPTIONAL { ?f ner:featureQuote ?quote }
   OPTIONAL { ?f ner:featureEntity/ner:normalizedEntityKey ?linkedEntity }
   BIND (EXISTS { ?dec ner:justifiedByIdentityFeature ?f } AS ?justifiesMapping)
+  }                                             # a vague/hetero mention may have no features
 }
 ORDER BY ?cell ?doi ?mention ?featureKind ?featureValue
 ```
