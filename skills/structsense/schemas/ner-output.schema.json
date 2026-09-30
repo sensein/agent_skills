@@ -165,6 +165,34 @@
         },
         "additionalProperties": true
       }
+    },
+    "source_relevance": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Once per document (chunk 1): what the document is about, decided from the text, never from MeSH (R4).",
+      "properties": {
+        "document_focus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "subject",
+            "substantial",
+            "incidental",
+            "absent",
+            null
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "additionalProperties": true,
@@ -537,6 +565,66 @@
               }
             }
           }
+        },
+        "salience": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "subject_of_passage",
+            "supporting_evidence",
+            "incidental_mention",
+            "background_citation",
+            "reagent_or_material",
+            "contrastive_aside",
+            "negative_statement",
+            "out_of_scope",
+            null
+          ],
+          "description": "The role this occurrence plays in its passage (never a reason to skip it)."
+        },
+        "passage_focus": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "cns_cells",
+            "other_topic",
+            "mixed",
+            null
+          ]
+        },
+        "attributed_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "this_study",
+            "cited_work",
+            "general_knowledge",
+            "hypothetical",
+            null
+          ],
+          "description": "Whose statement this is; a cited_work occurrence never carries a defining identity feature (R5)."
+        },
+        "definitional_role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "defines",
+            "operationalizes",
+            "adopts",
+            "uses",
+            "contrasts",
+            "questions",
+            null
+          ],
+          "description": "'uses' is the default and should dominate."
         }
       },
       "additionalProperties": true

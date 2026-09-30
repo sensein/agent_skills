@@ -684,6 +684,12 @@ class TurtleBuilder:
         if self.meta.get("journal"):
             self.add(self.pub, DCTERMS.bibliographicCitation, Literal(str(self.meta["journal"])))
         self.emit_authors()
+        rel = self.meta.get("source_relevance") or self.result.get("source_relevance") or {}
+        focus = rel.get("document_focus") if isinstance(rel, dict) else None
+        if focus in self.vocab.get("document-focus", ()):
+            self.add(self.pub, NER.documentFocus, NER[f"document-focus/{focus}"])
+            for ev in (rel.get("evidence") or [])[:5]:
+                self.add(self.pub, NER.documentFocusEvidence, self.lit(" ".join(str(ev).split()), XSD.string))
         srcs = self.meta.get("metadata_sources") or {}
         if srcs:
             biblio = ("title", "doi", "pmid", "pmcid", "year", "publication_date", "journal", "authors")
@@ -1045,6 +1051,14 @@ class TurtleBuilder:
             self.add(m, NER.documentStartOffset, self.lit(start, XSD.nonNegativeInteger))
             self.add(m, NER.documentEndOffset, self.lit(end, XSD.nonNegativeInteger))
         self.counts["mentions"] += 1
+        # occurrence context (every profile): salience, passage focus, attribution, role
+        for key, prop, scheme in (("salience", NER.mentionSalience, "salience"),
+                                  ("passage_focus", NER.passageFocus, "passage-focus"),
+                                  ("attributed_to", NER.attributedTo, "attribution"),
+                                  ("definitional_role", NER.definitionalRole, "definitional-role")):
+            v = it.get(key)
+            if v and v in self.vocab.get(scheme, ()):
+                self.add(m, prop, NER[f"{scheme}/{v}"])
         self.emit_identity(ent, it, m, n)
         agent = self.source_agent(it.get("source_model"))
         slots = coordinated_slots(it)

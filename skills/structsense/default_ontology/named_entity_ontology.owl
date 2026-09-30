@@ -942,8 +942,8 @@
     <rdfs:label xml:lang="en">Named Entity Ontology</rdfs:label>
     <dcterms:description xml:lang="en">Version 2.2 adds a first-class causality module for relation extraction. It represents source-anchored causal relation mentions, canonical causal relations, cause/effect/mediator/moderator/confounder roles, polarity, directness, modality, causal evidence basis, mechanisms, context, quantitative effect estimates, mapping to external causal predicates, provenance, and temporal evolution. Causal and associative relations are explicitly separated.</dcterms:description>
     <dcterms:description xml:lang="en">Version 2.3 repairs the remaining local class disconnection in the causality module and guarantees that all locally defined OWL classes are connected to the NamedEntityElement root. Integration with the Assertion–Evidence ontology is provided by a separate bridge ontology.</dcterms:description>
-    <owl:versionInfo>2.6.0</owl:versionInfo>
-    <owl:versionIRI rdf:resource="https://brainkb.org/ner/2.6.0/"/>
+    <owl:versionInfo>2.7.0</owl:versionInfo>
+    <owl:versionIRI rdf:resource="https://brainkb.org/ner/2.7.0/"/>
     <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2026-09-24</dcterms:created>
     <dcterms:creator>BrainKB</dcterms:creator>
     <dcterms:relation rdf:resource="https://brainkb.org/assertion-evidence/"/>
@@ -4578,6 +4578,248 @@
     <rdfs:label xml:lang="en">identity specificity</rdfs:label>
     <rdfs:domain rdf:resource="https://brainkb.org/ner/IdentityBasis"/>
     <rdfs:range rdf:resource="https://brainkb.org/ner/SpecificityCategory"/>
-    <skos:definition xml:lang="en">How specific this occurrence's cell reference is: cell_phenotype (a defined type), cell_vague (an unspecific cell reference), cell_hetero (a heterogeneous or coordinated reference to several types) or unspecified.</skos:definition>
+    <skos:definition xml:lang="en">Whether this occurrence's cell identity is stated well enough to ground (independent of how exactly an ontology class fits): cell_phenotype (a groundable type or class, however coarse, including a conjunction of named types such as 'D1- or D2-SPNs'), cell_vague (a hedged set such as '&lt;TYPE&gt; subtypes' or a marker-only set such as 'RFP+ cells'), cell_hetero (a set that cannot be enumerated: a deliberate mixture such as 'immune cells' or a negatively defined set) or unspecified.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/MentionSalience">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Mention Salience</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">The role an occurrence plays in its passage (structsense context layer, validated against human annotation).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/MentionSalienceScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Mention Salience Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/subject_of_passage">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">subject of passage</skos:prefLabel>
+    <skos:definition xml:lang="en">The passage is about this entity.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/supporting_evidence">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">supporting evidence</skos:prefLabel>
+    <skos:definition xml:lang="en">Used to support the passage's claim.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/incidental_mention">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">incidental mention</skos:prefLabel>
+    <skos:definition xml:lang="en">Named in passing; the passage is about something else.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/background_citation">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">background citation</skos:prefLabel>
+    <skos:definition xml:lang="en">In a sentence summarising prior work.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/reagent_or_material">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">reagent or material</skos:prefLabel>
+    <skos:definition xml:lang="en">A cell line or preparation used as a tool.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/contrastive_aside">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">contrastive aside</skos:prefLabel>
+    <skos:definition xml:lang="en">Mentioned only to contrast with the real subject.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/negative_statement">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">negative statement</skos:prefLabel>
+    <skos:definition xml:lang="en">The text says it was not present or not involved.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/salience/out_of_scope">
+    <rdf:type rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:prefLabel xml:lang="en">out of scope</skos:prefLabel>
+    <skos:definition xml:lang="en">A different preparation or organ system.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/MentionSalienceScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/PassageFocus">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Passage Focus</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">What the passage around an occurrence is about.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/PassageFocusScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Passage Focus Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/passage-focus/cns_cells">
+    <rdf:type rdf:resource="https://brainkb.org/ner/PassageFocus"/>
+    <skos:prefLabel xml:lang="en">cns cells</skos:prefLabel>
+    <skos:definition xml:lang="en">The passage is about CNS cells.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/PassageFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/passage-focus/other_topic">
+    <rdf:type rdf:resource="https://brainkb.org/ner/PassageFocus"/>
+    <skos:prefLabel xml:lang="en">other topic</skos:prefLabel>
+    <skos:definition xml:lang="en">The passage is about something else.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/PassageFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/passage-focus/mixed">
+    <rdf:type rdf:resource="https://brainkb.org/ner/PassageFocus"/>
+    <skos:prefLabel xml:lang="en">mixed</skos:prefLabel>
+    <skos:definition xml:lang="en">Both.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/PassageFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/Attribution">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Attribution</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">Whose statement an occurrence carries; a cited finding is not this paper's evidence and never defines a type.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/AttributionScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Attribution Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/attribution/this_study">
+    <rdf:type rdf:resource="https://brainkb.org/ner/Attribution"/>
+    <skos:prefLabel xml:lang="en">this study</skos:prefLabel>
+    <skos:definition xml:lang="en">Stated as this paper's own finding or usage.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/AttributionScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/attribution/cited_work">
+    <rdf:type rdf:resource="https://brainkb.org/ner/Attribution"/>
+    <skos:prefLabel xml:lang="en">cited work</skos:prefLabel>
+    <skos:definition xml:lang="en">Attributed to cited work.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/AttributionScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/attribution/general_knowledge">
+    <rdf:type rdf:resource="https://brainkb.org/ner/Attribution"/>
+    <skos:prefLabel xml:lang="en">general knowledge</skos:prefLabel>
+    <skos:definition xml:lang="en">Stated as background knowledge.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/AttributionScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/attribution/hypothetical">
+    <rdf:type rdf:resource="https://brainkb.org/ner/Attribution"/>
+    <skos:prefLabel xml:lang="en">hypothetical</skos:prefLabel>
+    <skos:definition xml:lang="en">A hypothesis or proposal.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/AttributionScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/DefinitionalRole">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Definitional Role</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">What an occurrence does with its term: define it, operationalize it, adopt someone's definition, or merely use it.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/DefinitionalRoleScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Definitional Role Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/defines">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">defines</skos:prefLabel>
+    <skos:definition xml:lang="en">The text states what the term is.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/operationalizes">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">operationalizes</skos:prefLabel>
+    <skos:definition xml:lang="en">The text states how it is measured or gated here.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/adopts">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">adopts</skos:prefLabel>
+    <skos:definition xml:lang="en">The text adopts a named definition or taxonomy.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/uses">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">uses</skos:prefLabel>
+    <skos:definition xml:lang="en">The term is used; nothing is said about what it is (the default).</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/contrasts">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">contrasts</skos:prefLabel>
+    <skos:definition xml:lang="en">The term is contrasted with another.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitional-role/questions">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:prefLabel xml:lang="en">questions</skos:prefLabel>
+    <skos:definition xml:lang="en">The text questions the term's definition or validity.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DefinitionalRoleScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/DocumentFocus">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label xml:lang="en">Document Focus</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/ner/NamedEntityControlledTerm"/>
+    <skos:definition xml:lang="en">What a whole document is about with respect to the extracted domain, decided from the text (never from MeSH).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/DocumentFocusScheme">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <rdfs:label xml:lang="en">NER Document Focus Scheme</rdfs:label>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/document-focus/subject">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DocumentFocus"/>
+    <skos:prefLabel xml:lang="en">subject</skos:prefLabel>
+    <skos:definition xml:lang="en">The document is about these entities.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DocumentFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/document-focus/substantial">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DocumentFocus"/>
+    <skos:prefLabel xml:lang="en">substantial</skos:prefLabel>
+    <skos:definition xml:lang="en">A section or figure is; the document is not.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DocumentFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/document-focus/incidental">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DocumentFocus"/>
+    <skos:prefLabel xml:lang="en">incidental</skos:prefLabel>
+    <skos:definition xml:lang="en">Passing mentions only.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DocumentFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/document-focus/absent">
+    <rdf:type rdf:resource="https://brainkb.org/ner/DocumentFocus"/>
+    <skos:prefLabel xml:lang="en">absent</skos:prefLabel>
+    <skos:definition xml:lang="en">No relevant content.</skos:definition>
+    <skos:inScheme rdf:resource="https://brainkb.org/ner/DocumentFocusScheme"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/mentionSalience">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">mention salience</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/EntityMention"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/MentionSalience"/>
+    <skos:definition xml:lang="en">The role this occurrence plays in its passage.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/passageFocus">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">passage focus</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/EntityMention"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/PassageFocus"/>
+    <skos:definition xml:lang="en">What the passage around this occurrence is about.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/attributedTo">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">attributed to</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/EntityMention"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/Attribution"/>
+    <skos:definition xml:lang="en">Whose statement this occurrence carries.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/definitionalRole">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">definitional role</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/EntityMention"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/DefinitionalRole"/>
+    <skos:definition xml:lang="en">Whether this occurrence defines, operationalizes, adopts, uses, contrasts or questions its term.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/documentFocus">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:label xml:lang="en">document focus</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/Publication"/>
+    <rdfs:range rdf:resource="https://brainkb.org/ner/DocumentFocus"/>
+    <skos:definition xml:lang="en">What the document is about for the extracted domain.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/ner/documentFocusEvidence">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:label xml:lang="en">document focus evidence</rdfs:label>
+    <rdfs:domain rdf:resource="https://brainkb.org/ner/Publication"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <skos:definition xml:lang="en">A verbatim phrase or section name that justifies the document focus.</skos:definition>
   </rdf:Description>
 </rdf:RDF>

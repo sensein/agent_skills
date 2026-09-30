@@ -6,7 +6,7 @@ description: Extract named entities and source-stated relations from unstructure
 license: Apache-2.0
 ---
 
-> **Skill version 0.12.0; ontology 2.6.0.** Every cell mention records what it is AND why (identity basis: canonical type + defining / supporting / contextual characteristics). Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
+> **Skill version 0.13.0; ontology 2.7.0.** Every cell mention records what it is AND why (identity basis: canonical type + defining / supporting / contextual characteristics). Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
 
 
 
@@ -48,6 +48,13 @@ reports and papers. A source does not need a DOI or publication metadata.
   Ungrounded features are dropped; mapping uses them (f(name, hierarchy, defining
   characteristics, context)) and records which features justify it. See
   `references/identity-basis.md` (grounded in Zeng 2022, `cell-type-definition-framework.md`).
+- **Specificity is not mapping exactness.** A bare type name is `cell_phenotype`; a
+  conjunction of named types stays `cell_phenotype`; `cell_vague` / `cell_hetero` only
+  for hedged/marker-only and non-enumerable sets; spans stop at the cell name (rules
+  S1-S6, measured against human annotation: `references/cell-ner-gold-validation.md`).
+  Every occurrence also records salience, passage focus, attribution and definitional
+  role; each document its focus. Focus never gates extraction; a cited finding never
+  defines a type.
 - **NER scope.** Resolve identity and extract source-stated relations; causal
   chains and external anatomy/hierarchy enrichment require an explicit request.
   Do not invent links between entities that merely share a category.

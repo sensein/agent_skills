@@ -70,9 +70,10 @@ def _norm(s: Any) -> str:
     return " ".join(re.sub(r"[^a-z0-9+]+", " ", str(s or "").lower()).split())
 
 
-def normalize(ib: Any) -> Optional[dict]:
+def normalize(ib: Any, attributed_to: Optional[str] = None) -> Optional[dict]:
     """The list form, whatever the extractor wrote. Unknown kinds/roles/sources are
-    dropped rather than guessed."""
+    dropped rather than guessed. R5: an occurrence attributed to cited work is not this
+    paper's evidence, so none of its features stays 'defining' (-> supporting)."""
     if not isinstance(ib, dict):
         return None
     out = {k: ib.get(k) for k in ("canonical_candidate", "hierarchy_level", "name_derivation",
@@ -101,6 +102,8 @@ def normalize(ib: Any) -> Optional[dict]:
         if f["role"] is None:  # no role stated: contextual for place/species, else supporting
             f["role"] = "contextual" if f["kind"] in ("anatomical", "species") else "supporting"
         f.pop("support", None)
+        if attributed_to == "cited_work" and f["role"] == "defining":
+            f["role"], f["role_downgraded"] = "supporting", "cited_work (R5)"
         clean.append(f)
     out["features"] = clean
     return out if (clean or out.get("canonical_candidate")) else None
@@ -109,7 +112,7 @@ def normalize(ib: Any) -> Optional[dict]:
 def ground(item: dict, text: Optional[str], window: int = 800) -> tuple[Optional[dict], int]:
     """(identity_basis, n_dropped): text-sourced features whose quote (or value, or
     target) is not in the occurrence's sentence / nearby text are dropped."""
-    ib = normalize(item.get("identity_basis"))
+    ib = normalize(item.get("identity_basis"), item.get("attributed_to"))
     if not ib:
         return None, 0
     hay = [str(item.get("sentence") or "")]
@@ -132,7 +135,7 @@ def ground(item: dict, text: Optional[str], window: int = 800) -> tuple[Optional
 def grounded_mask(item: dict, text: Optional[str], window: int = 800) -> tuple[Optional[dict], list[bool]]:
     """(normalized identity_basis, per-feature grounded flags) — indices stay those of
     normalize(), which assess() and identity_mapping use."""
-    ib = normalize(item.get("identity_basis"))
+    ib = normalize(item.get("identity_basis"), item.get("attributed_to"))
     if not ib:
         return None, []
     hay = [str(item.get("sentence") or "")]
@@ -155,7 +158,7 @@ def assess(item: dict, concept_label: Optional[str], concept_classes: list[str])
     target (or its common expansion) is in the concept label, or the concept sits under
     the class the feature implies. Contradiction: the concept sits under the class the
     feature rules out (GABA vs ExcitatoryNeuron, neuron vs GlialCell)."""
-    ib = normalize(item.get("identity_basis")) or {"features": []}
+    ib = normalize(item.get("identity_basis"), item.get("attributed_to")) or {"features": []}
     label = _norm(concept_label)
     classes = set(concept_classes or [])
     justified, contradicted = [], []
@@ -176,7 +179,7 @@ def assess(item: dict, concept_label: Optional[str], concept_classes: list[str])
 def candidate_queries(item: dict, surface: str) -> list[str]:
     """Identity-derived lookups, most specific first: the canonical candidate, then
     defining/supporting markers and transmitter composed with the base type."""
-    ib = normalize(item.get("identity_basis")) or {}
+    ib = normalize(item.get("identity_basis"), item.get("attributed_to")) or {}
     feats = ib.get("features") or []
     base = next((f["value"] for f in feats if f["kind"] == "hierarchy"), None)
     out = []
@@ -211,7 +214,7 @@ def refine_mappings(items: list[dict], map_one: Callable[[dict], dict],
     supporting feature contradicts, preferring the one most features justify."""
     stats = {"assessed": 0, "remapped": 0, "rejected_contradicted": 0}
     for it in items:
-        if it.get("label") not in CELL_LABELS or not normalize(it.get("identity_basis")):
+        if it.get("label") not in CELL_LABELS or not normalize(it.get("identity_basis"), it.get("attributed_to")):
             continue
         stats["assessed"] += 1
         cur = None

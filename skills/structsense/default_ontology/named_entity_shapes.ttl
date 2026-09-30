@@ -583,3 +583,27 @@ nsh:IdentityFeatureShape a sh:NodeShape ;
     sh:property [
         sh:path [ sh:inversePath ner:hasIdentityFeature ] ; sh:minCount 1 ;
         sh:message "Orphan identity feature: no IdentityBasis lists it." ] .
+
+nsh:MentionContextShape a sh:NodeShape ;
+    sh:targetClass ner:EntityMention ;
+    sh:property [ sh:path ner:mentionSalience ; sh:maxCount 1 ; sh:class ner:MentionSalience ] ;
+    sh:property [ sh:path ner:passageFocus ; sh:maxCount 1 ; sh:class ner:PassageFocus ] ;
+    sh:property [ sh:path ner:attributedTo ; sh:maxCount 1 ; sh:class ner:Attribution ] ;
+    sh:property [ sh:path ner:definitionalRole ; sh:maxCount 1 ; sh:class ner:DefinitionalRole ] .
+
+nsh:DocumentFocusShape a sh:NodeShape ;
+    sh:targetClass ner:Publication ;
+    sh:property [ sh:path ner:documentFocus ; sh:maxCount 1 ; sh:class ner:DocumentFocus ] .
+
+# R5: a cited finding never DEFINES a type
+nsh:CitedWorkNeverDefinesShape a sh:NodeShape ;
+    sh:targetClass ner:EntityMention ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "An occurrence attributed to cited work carries a defining identity feature ({?f}); a cited finding defines someone else's population (R5)." ;
+        sh:select """
+            SELECT $this ?f WHERE {
+                $this ner:attributedTo <https://brainkb.org/ner/attribution/cited_work> ;
+                      ner:hasIdentityBasis/ner:hasIdentityFeature ?f .
+                ?f ner:featureRole <https://brainkb.org/ner/feature-role/defining> .
+            }""" ] .

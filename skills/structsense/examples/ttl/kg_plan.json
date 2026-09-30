@@ -319,11 +319,11 @@
    "normalized_key": "neural_manifold",
    "normalized_label": "neural manifold (activity subspace / point-cloud of population vectors)",
    "class": "NeuroscienceEntity",
-   "derived_from_keys": [
-    "odor_evoked_population_activity"
-   ],
    "related_keys": [
     "attractor_dynamics"
+   ],
+   "derived_from_keys": [
+    "odor_evoked_population_activity"
    ]
   },
   "neurons|CellType": {
@@ -615,6 +615,7 @@
    "normalized_key": "tg_alphatubulin_gcamp6s",
    "normalized_label": "Tg[alphaTubulin:GCaMP6s] transgenic zebrafish line",
    "class": "Strain",
+   "broader_key": "danio_rerio",
    "relations": [
     {
      "predicate": "has_participant",
@@ -624,8 +625,7 @@
      "predicate": "has_participant",
      "target_key": "gcamp6s"
     }
-   ],
-   "broader_key": "danio_rerio"
+   ]
   },
   "Trp|Chemical": {
    "normalized_key": "l_tryptophan",

@@ -195,6 +195,27 @@ Schema:
   ]
 }
 
+SALIENCE AND ATTRIBUTION — on every cell item (and, for attributed_to, any item)
+  "salience": "subject_of_passage | supporting_evidence | incidental_mention |
+               background_citation | reagent_or_material | contrastive_aside |
+               negative_statement | out_of_scope",
+  "passage_focus": "cns_cells | other_topic | mixed",
+  "attributed_to": "this_study | cited_work | general_knowledge | hypothetical",
+  "definitional_role": "defines | operationalizes | adopts | uses | contrasts | questions"
+                       ("uses" is the default and should dominate)
+  and ONCE in chunk 1, next to source_metadata:
+  "source_relevance": {"document_focus": "subject | substantial | incidental | absent",
+                       "evidence": ["<verbatim phrase or section name>"]}
+  R1 Focus never gates extraction: extract every mention even when the passage is about
+     something else (salience incidental_mention, passage_focus other_topic).
+  R2 One incidental mention never raises document focus; what the paper is ABOUT does.
+  R3 An incidental mention is valid output: tag it, keep it.
+  R4 Never derive document focus from MeSH or keywords; decide it from the text.
+  R5 A mention attributed to a cited work is not this paper's evidence: attributed_to
+     "cited_work", and none of its identity features is "defining".
+  "immune cells" in "they work in a manner similar to immune cells" is
+  contrastive_aside / general_knowledge, not supporting_evidence / this_study.
+
 IDENTITY BASIS — what it is AND why it is that (represented in the knowledge graph)
 For EVERY cell mention (every CellType / CellClass / CellSubtype item, including vague
 and coordinated ones) add "identity_basis". Name alone is not enough: record the
@@ -303,8 +324,13 @@ For cell text, this is where the cell taxonomy lives:
     effect "gamma power", polarity negative, genetic_perturbation).
 
 RULES
-1. start/end are character offsets into the INPUT text — NOT the sentence.
-2. text[start:end] MUST equal entity (or term). Verify before emitting.
+1. start/end are character offsets into the INPUT text — NOT the sentence. Give them
+   ONLY when you can read them off exactly; otherwise OMIT them. The pipeline
+   re-anchors every item by its verbatim `sentence` (and every other occurrence by
+   string search), so a missing offset costs nothing and a wrong one costs a mention.
+   NEVER compute offsets with code, never announce a plan, never call a tool: the
+   whole response is the JSON object, starting with `{` (E13).
+2. When you do give them, text[start:end] MUST equal entity (or term).
 3. `sentence` is a CONTEXT WINDOW, not necessarily one sentence. It MUST be
    a verbatim substring of the input text, and it MUST cover the whole span:
    when a mention crosses a sentence boundary, include every sentence it
@@ -338,14 +364,31 @@ RULES
    exactly the papers where cell diversity is the subject. Only skip cells
    belonging to a clearly different preparation (a peripheral-tissue control,
    an unrelated organ) — and when in doubt, emit.
-9b. SPECIFICITY: every cell item also carries `specificity`, one of:
-     - "cell_phenotype" — identity stated well enough to ground
-     - "cell_vague"     — a hedged set: "<TYPE> subtypes", "types of <TYPE>",
-                          "subsets of …", or "<MARKER>+ cells" naming no type
-     - "cell_hetero"    — a deliberate mixture, or a negatively-defined set
-                          ("non-<MARKER>+ cells", "immune cells")
-   A marker does NOT make a cell type. Vague and hetero items are correct
-   output, not failures — they simply carry no ontology id.
+9b. SPECIFICITY: every cell item also carries `specificity`. Specificity asks ONE
+   thing — is the identity stated well enough to ground at all? It is NOT how
+   exactly an ontology class fits (that is the qualifier). Measured against human
+   annotation, conflating the two was the largest error (10 of 27, all over-hedged):
+   S1. A BARE CANONICAL TYPE OR CLASS NAME IS "cell_phenotype": "interneuron",
+       "pyramidal", "inhibitory neurons", "leukocyte", "pacemaker excitatory cells",
+       "Chattering neurons". Coarse is NOT vague.
+   S2. "cell_vague" ONLY for a hedged set ("<TYPE> subtypes", "subsets of ...",
+       "types of <TYPE>") or a marker-only set naming no type ("<MARKER>+ cells",
+       "RFP+ cells"). Nothing else. No ontology id.
+   S3. "cell_hetero" ONLY for sets that cannot be enumerated: a deliberate mixture
+       ("immune cells") or a negatively-defined set ("non-<MARKER>+ cells"). A
+       CONJUNCTION OF NAMED TYPES IS NOT A MIXTURE.
+   S4. A COORDINATED SPAN OF GROUNDABLE TYPES STAYS "cell_phenotype": "D1- or
+       D2-SPNs", "inhibitory and excitatory neurons" -> cell_phenotype,
+       coordinated_elements 2, two ';'-separated id slots in text order.
+   S5. AN INEXACT MATCH DOES NOT LOWER SPECIFICITY: a mention groundable only as a
+       related class, or with two ','-separated candidates, is still cell_phenotype.
+   A marker does NOT make a cell type. Vague and hetero items are correct output,
+   not failures — they simply carry no ontology id.
+9b2. S6. SPAN BOUNDARIES STOP AT THE CELL NAME. Do not absorb trailing modifiers,
+   possessives or locative clauses: "tanycytes", not "tanycytes lining the vmARH";
+   "ependymal cells", not "typical ependymal cells"; "Lrig1+ cell", not "Lrig1+ cell
+   lineages". Emit the locative or qualifying material as its own entity (and as an
+   identity feature) when it is itself in the taxonomy.
 9c. NESTED SPANS: when a hedged wrapper contains a groundable term, emit BOTH,
    sharing the start offset and differing in end:
      - "<TYPE> subtypes"  -> specificity cell_vague,      no id

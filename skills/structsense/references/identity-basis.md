@@ -78,3 +78,31 @@ may only corroborate a transcriptomic type elsewhere; modalities do not always a
 5. **Questions**: CQ64 (why is it that type), CQ65 (which features justify the mapping),
    CQ66 (do papers define the same type the same way), CQ67 (named but never
    characterized).
+
+## Specificity, span boundaries, salience and attribution (context layer v2)
+
+Measured against a human-annotated BioC sample (`cell-ner-gold-validation.md`): recall
+1.00, but specificity agreed on only 17 of 27 — always over-hedged. Specificity (is the
+identity groundable?) and the mapping qualifier (how exactly a class fits) are
+independent:
+
+| rule | |
+|---|---|
+| S1 | a bare canonical type or class name is `cell_phenotype` ("interneuron", "inhibitory neurons", "leukocyte") |
+| S2 | `cell_vague` only for a hedged set ("<TYPE> subtypes") or a marker-only set ("RFP+ cells") |
+| S3 | `cell_hetero` only for sets that cannot be enumerated ("immune cells", "non-X+ cells") |
+| S4 | a conjunction of named types ("D1- or D2-SPNs") stays `cell_phenotype`, with coordinated_elements and ';' slots |
+| S5 | an inexact (related / multi-candidate) match does not lower specificity |
+| S6 | spans stop at the cell name ("tanycytes", not "tanycytes lining the vmARH") |
+
+Per occurrence the extractor also records `salience` (subject_of_passage,
+supporting_evidence, incidental_mention, background_citation, reagent_or_material,
+contrastive_aside, negative_statement, out_of_scope), `passage_focus`, `attributed_to`
+(this_study, cited_work, general_knowledge, hypothetical) and `definitional_role`
+(defines, operationalizes, adopts, uses, contrasts, questions); once per document,
+`source_relevance.document_focus` (subject, substantial, incidental, absent — decided
+from the text, never from MeSH). Focus never gates extraction (R1, R3); a cited finding
+is never `defining` (R5: normalize downgrades it, SHACL rejects it); rank papers for a
+cell by focus plus subject/supporting mentions, not raw counts (R6, CQ69). CQ70 lists
+the valid-but-not-evidence mentions. Offsets are never computed by the model: items are
+re-anchored by their verbatim sentence (E7, E13).

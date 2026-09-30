@@ -1233,6 +1233,7 @@ ORDER BY ?mentionsWithDefiningFeature ?cell
 ```sparql
 PREFIX ner: <https://brainkb.org/ner/>
 SELECT ?entity ?cell ?mentionNode ?mention ?paper ?doi
+       ?salience ?attributedTo ?definitionalRole
        ?identityBasis ?canonicalType ?hierarchyLevel ?specificity ?coordinatedElements
        ?concept ?ontologyTerm
        ?feature ?featureKind ?featureValue ?role ?source ?polarity ?quote
@@ -1243,6 +1244,9 @@ WHERE {
                ner:partOfDocumentVersion/ner:versionOfDocument ?paper .
   BIND (REPLACE(STR(?sf), "\\s+", " ") AS ?mention)
   OPTIONAL { ?paper ner:doi ?doi }
+  OPTIONAL { ?mentionNode ner:mentionSalience ?sal . BIND (STRAFTER(STR(?sal), "salience/") AS ?salience) }
+  OPTIONAL { ?mentionNode ner:attributedTo ?att . BIND (STRAFTER(STR(?att), "attribution/") AS ?attributedTo) }
+  OPTIONAL { ?mentionNode ner:definitionalRole ?dr . BIND (STRAFTER(STR(?dr), "definitional-role/") AS ?definitionalRole) }
   OPTIONAL { ?identityBasis ner:canonicalCandidateLabel ?canonicalType }
   OPTIONAL { ?identityBasis ner:identityHierarchyLevel ?lv . BIND (STRAFTER(STR(?lv), "hierarchy-level/") AS ?hierarchyLevel) }
   OPTIONAL { ?identityBasis ner:identitySpecificity ?sp . BIND (STRAFTER(STR(?sp), "specificity/") AS ?specificity) }  # cell_phenotype | cell_vague | cell_hetero
@@ -1262,4 +1266,44 @@ WHERE {
   }
 }
 ORDER BY ?cell ?doi ?mention ?featureKind ?featureValue
+```
+
+**CQ69 — Which papers actually characterize a given cell (rank by document focus and subject/supporting mentions, never raw counts)?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+SELECT ?cell ?paper ?doi ?documentFocus
+       (COUNT(DISTINCT ?subj) AS ?subjectMentions) (COUNT(DISTINCT ?supp) AS ?supportingMentions)
+       (COUNT(DISTINCT ?inc) AS ?incidentalMentions) (COUNT(DISTINCT ?defn) AS ?mentionsWithDefiningFeature)
+WHERE {
+  ?e ner:normalizedEntityKey ?cell ; ner:hasMention ?m .
+  ?m ner:partOfDocumentVersion/ner:versionOfDocument ?paper .
+  OPTIONAL { ?paper ner:doi ?doi }
+  OPTIONAL { ?paper ner:documentFocus ?f . BIND (STRAFTER(STR(?f), "document-focus/") AS ?documentFocus) }
+  OPTIONAL { ?m ner:mentionSalience <https://brainkb.org/ner/salience/subject_of_passage> . BIND (?m AS ?subj) }
+  OPTIONAL { ?m ner:mentionSalience <https://brainkb.org/ner/salience/supporting_evidence> . BIND (?m AS ?supp) }
+  OPTIONAL { ?m ner:mentionSalience <https://brainkb.org/ner/salience/incidental_mention> . BIND (?m AS ?inc) }
+  OPTIONAL { ?m ner:hasIdentityBasis/ner:hasIdentityFeature/ner:featureRole <https://brainkb.org/ner/feature-role/defining> .
+             BIND (?m AS ?defn) }
+}
+GROUP BY ?cell ?paper ?doi ?documentFocus
+ORDER BY ?cell (IF(?documentFocus = "subject", 0, IF(?documentFocus = "substantial", 1, 2)))
+         DESC(?mentionsWithDefiningFeature) DESC(?subjectMentions) DESC(?supportingMentions)
+```
+
+**CQ70 — Which cell mentions are only incidental, attributed to cited work, contrastive or negative (valid mentions that are not this paper's evidence)?**
+```sparql
+PREFIX ner: <https://brainkb.org/ner/>
+SELECT ?cell ?entity ?mentionNode ?mention ?doi ?salience ?attributedTo ?sentence
+WHERE {
+  ?entity ner:normalizedEntityKey ?cell ; ner:hasMention ?mentionNode .
+  ?mentionNode ner:surfaceForm ?sf ; ner:partOfDocumentVersion/ner:versionOfDocument ?paper .
+  BIND (REPLACE(STR(?sf), "\\s+", " ") AS ?mention)
+  OPTIONAL { ?paper ner:doi ?doi }
+  OPTIONAL { ?mentionNode ner:mentionSalience ?sal . BIND (STRAFTER(STR(?sal), "salience/") AS ?salience) }
+  OPTIONAL { ?mentionNode ner:attributedTo ?att . BIND (STRAFTER(STR(?att), "attribution/") AS ?attributedTo) }
+  OPTIONAL { ?mentionNode ner:inSentence/ner:sentenceText ?st . BIND (REPLACE(STR(?st), "\\s+", " ") AS ?sentence) }
+  FILTER (?salience IN ("incidental_mention", "background_citation", "contrastive_aside", "negative_statement", "out_of_scope")
+          || ?attributedTo IN ("cited_work", "hypothetical"))
+}
+ORDER BY ?cell ?doi
 ```

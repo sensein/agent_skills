@@ -81,3 +81,45 @@ def test_ttl_carries_identity_and_validates(tmp_path):
     dec = next(g.subjects(rdflib.RDF.type, NER.ConceptMappingDecision))
     assert len(set(g.objects(dec, NER.justifiedByIdentityFeature))) == 3
     assert any(g.value(f, NER.featureEntity) is not None for f in feats)  # PVALB -> the Pvalb gene entity
+
+
+def test_salience_attribution_and_r5(tmp_path):
+    """Salience / passage focus / attribution / definitional role land on the mention;
+    document focus on the publication; a cited finding is never defining (R5)."""
+    cited = item()
+    cited.update({"salience": "background_citation", "passage_focus": "cns_cells",
+                  "attributed_to": "cited_work", "definitional_role": "uses", "specificity": "cell_phenotype"})
+    res = {"source_metadata": {"paper_title": "t", "doi": "10.9999/r5",
+                               "source_relevance": {"document_focus": "subject", "evidence": ["Abstract"]}},
+           "task_type": "ner", "entities": [cited], "key_terms": []}
+    src = tmp_path / "t.txt"
+    src.write_text(TEXT)
+    ttl, _ = result_to_ttl(res, source_path=src)
+    out = tmp_path / "t.ttl"
+    out.write_text(ttl)
+    assert validate_file(out)["ok"]
+    g = rdflib.Graph().parse(out)
+    m = next(g.subjects(rdflib.RDF.type, NER.EntityMention))
+    assert g.value(m, NER.mentionSalience) == NER["salience/background_citation"]
+    assert g.value(m, NER.attributedTo) == NER["attribution/cited_work"]
+    assert g.value(m, NER.definitionalRole) == NER["definitional-role/uses"]
+    pub = next(g.subjects(rdflib.RDF.type, NER.Publication))
+    assert g.value(pub, NER.documentFocus) == NER["document-focus/subject"]
+    roles = {str(r) for r in g.objects(None, NER.featureRole)}
+    assert str(NER["feature-role/defining"]) not in roles  # PVALB downgraded to supporting
+
+
+def test_shacl_rejects_cited_defining(tmp_path):
+    """The gate itself enforces R5, whatever wrote the graph."""
+    bad = tmp_path / "bad.ttl"
+    it = item()
+    it.update({"attributed_to": "this_study"})
+    res = {"source_metadata": {"paper_title": "t", "doi": "10.9999/r5b"}, "task_type": "ner",
+           "entities": [it], "key_terms": []}
+    src = tmp_path / "t.txt"
+    src.write_text(TEXT)
+    ttl, _ = result_to_ttl(res, source_path=src)
+    ttl = ttl.replace("attribution/this_study", "attribution/cited_work")  # forge a cited + defining pair
+    bad.write_text(ttl)
+    rep = validate_file(bad)
+    assert not rep["ok"] and any("R5" in k for k in rep["violations"])

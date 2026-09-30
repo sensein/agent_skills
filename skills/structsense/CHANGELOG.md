@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.13.0 — cell NER rules from human-annotation validation (ontology 2.7.0)
+
+From the structsense context layer v2 (gold validation against human-annotated BioC
+passages; Zeng 2022 worked run):
+- **Specificity S1–S6** in both NER prompts: coarse is not vague; a conjunction of named
+  types stays cell_phenotype (not cell_hetero); cell_vague / cell_hetero only for
+  hedged or marker-only and non-enumerable sets; an inexact match does not lower
+  specificity; spans stop at the cell name. The identitySpecificity definition in the
+  ontology is corrected accordingly.
+- **Salience and attribution** per occurrence (salience, passage_focus, attributed_to,
+  definitional_role) and document_focus per paper; ontology 2.7.0 adds their
+  vocabularies and properties; SHACL rejects a cited-work occurrence with a defining
+  feature (R5), and identity normalization downgrades it.
+- **No model-computed offsets** (E7/E13): prompts say to omit offsets that cannot be
+  read off exactly; items are re-anchored by their verbatim sentence.
+- **CQ68** adds salience/attribution/definitional role; **CQ69** ranks papers that
+  characterize a cell by focus and salience; **CQ70** lists incidental, cited,
+  contrastive and negative mentions.
+- `references/cell-ner-gold-validation.md` keeps the evidence for the rules.
+
 ## 0.12.0 — what an entity is, and why it is that (ontology 2.6.0)
 
 - **Identity basis.** Every cell mention (cns-cells and neuroscience variants), and any

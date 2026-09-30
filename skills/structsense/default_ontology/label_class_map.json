@@ -1,6 +1,6 @@
 {
   "_comment": "Extractor label -> class in the default ontology (https://brainkb.org/ner/). A label that IS the name of a declared class resolves to that class first (scripts/json_to_ttl.py resolve_class), so a class added to the ontology is picked up without touching this file; entries here are only for labels with no class of their own. A label with no entry and no same-named class gets `fallback_class` plus an rdfs:comment naming the raw label; the raw label is always kept as ner:classificationLabelRaw. Never map a label to a class the ontology does not declare: the validator rejects it.",
-  "ontology_version": "2.6.0",
+  "ontology_version": "2.7.0",
   "fallback_class": "ScientificNamedEntity",
   "general_fallback_class": "GeneralNamedEntity",
   "key_term_class": "ScientificNamedEntity",

@@ -201,6 +201,34 @@ Schema:
   ]
 }
 
+CELL MENTIONS in this variant follow the cns-cells specificity rules: a bare type
+name is specific ("interneuron", "inhibitory neurons" -> identity groundable); a
+conjunction of named types ("D1- or D2-SPNs") is two named types, not a mixture; only
+"<TYPE> subtypes" / "<MARKER>+ cells" are vague and only "immune cells" / "non-X cells"
+are heterogeneous. S6. SPAN BOUNDARIES STOP AT THE CELL NAME: "tanycytes", not
+"tanycytes lining the vmARH"; "ependymal cells", not "typical ependymal cells".
+
+SALIENCE AND ATTRIBUTION — on every cell item (and, for attributed_to, any item)
+  "salience": "subject_of_passage | supporting_evidence | incidental_mention |
+               background_citation | reagent_or_material | contrastive_aside |
+               negative_statement | out_of_scope",
+  "passage_focus": "cns_cells | other_topic | mixed",
+  "attributed_to": "this_study | cited_work | general_knowledge | hypothetical",
+  "definitional_role": "defines | operationalizes | adopts | uses | contrasts | questions"
+                       ("uses" is the default and should dominate)
+  and ONCE in chunk 1, next to source_metadata:
+  "source_relevance": {"document_focus": "subject | substantial | incidental | absent",
+                       "evidence": ["<verbatim phrase or section name>"]}
+  R1 Focus never gates extraction: extract every mention even when the passage is about
+     something else (salience incidental_mention, passage_focus other_topic).
+  R2 One incidental mention never raises document focus; what the paper is ABOUT does.
+  R3 An incidental mention is valid output: tag it, keep it.
+  R4 Never derive document focus from MeSH or keywords; decide it from the text.
+  R5 A mention attributed to a cited work is not this paper's evidence: attributed_to
+     "cited_work", and none of its identity features is "defining".
+  "immune cells" in "they work in a manner similar to immune cells" is
+  contrastive_aside / general_knowledge, not supporting_evidence / this_study.
+
 IDENTITY BASIS — what it is AND why it is that (represented in the knowledge graph)
 For EVERY cell mention (CellType / CellClass / CellSubtype, including coordinated ones)
 add "identity_basis". For OTHER entities add it when the text states what makes the
@@ -312,8 +340,11 @@ For neuroscience text:
     in causal_relations with their evidence basis and any effect size.
 
 RULES
-1. start/end are character offsets into the INPUT text — NOT the sentence.
-2. text[start:end] MUST equal entity (or term). Verify before emitting.
+1. start/end are character offsets into the INPUT text — NOT the sentence. Give them
+   ONLY when you can read them off exactly; otherwise OMIT them. The pipeline
+   re-anchors every item by its verbatim `sentence`. NEVER compute offsets with code,
+   never announce a plan, never call a tool: the response is the JSON object (E13).
+2. When you do give them, text[start:end] MUST equal entity (or term).
 3. Sentence MUST be a substring of the input text.
 4. The same (entity, start, end) triple must not appear twice. Different
    start/end values for the same surface form ARE different mentions —

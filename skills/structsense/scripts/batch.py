@@ -394,6 +394,9 @@ def build_result(job: Job, text: str, chunks: list[dict]) -> dict:
             for k, v in (obj.get("source_metadata") or {}).items():
                 if v and not meta.get(k):
                     meta[k] = v
+            rel = obj.get("source_relevance")
+            if isinstance(rel, dict) and rel.get("document_focus") and not meta.get("source_relevance"):
+                meta["source_relevance"] = rel  # chunk 1 decides; later chunks only fill a gap
     lex = {"entries": entries, "items": [e for e in entries if isinstance(e.get("start"), int)]}
     items, rep = expand(lex, text, model=job.model, keep_nested=job.domain == "cns-cells")
     kts = [k for k in kts if isinstance(k.get("start"), int)]
@@ -571,7 +574,10 @@ def advance(job: Job) -> Optional[dict]:
                     "occurrence with its own context, identity and evidence-bearing relations; every cell "
                     "mention (and any entity whose text says what makes it that thing) gets an identity_basis: "
                     "canonical_candidate plus features with role defining/supporting/contextual/excluding and "
-                    "source (prompt section IDENTITY BASIS). Expansion can "
+                    "source (prompt section IDENTITY BASIS), plus salience / passage_focus / attributed_to / "
+                    "definitional_role; chunk 1 also gives source_relevance.document_focus. Omit offsets "
+                    "you cannot read off exactly: every item is re-anchored by its verbatim sentence. "
+                    "Expansion can "
                     "recover plain repeated surfaces but cannot recover context-specific claims. "
                     "Chunk 1: also fill source_metadata (paper_title, doi, year, "
                     "journal, authors as [{name, orcid?}] in printed order) — only what the text states. "
