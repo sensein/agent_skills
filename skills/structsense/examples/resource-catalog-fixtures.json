@@ -1,0 +1,35 @@
+{
+  "_note": "Synthetic sources and manually prepared expected outputs; these are not observed LLM results.",
+  "dataset": {
+    "source": "We release the Pine Maze Dataset. Its archive identifier is DANDI:000123. The dataset version is 0.2.0. We analyzed it with OldScope.",
+    "expected": {
+      "name": "Pine Maze Dataset", "description": "A released maze dataset.", "type": "Dataset",
+      "identifiers": [{"scheme": "DANDI", "value": "000123", "evidence": {"quote": "Its archive identifier is DANDI:000123."}}],
+      "versions": [{"value": "0.2.0", "evidence": {"quote": "The dataset version is 0.2.0."}}],
+      "mentions": {"tools": ["OldScope"]}
+    }
+  },
+  "tool": {
+    "source": "We introduce MazeCheck, a tool that reads NWB files and writes validation reports. It cannot inspect external links. MazeCheck version 1.4.0 is available for download. We compare it with OldScope.",
+    "expected": {
+      "name": "MazeCheck", "description": "A tool that reads NWB files and writes validation reports.", "type": "Tool",
+      "versions": [{"value": "1.4.0", "evidence": {"quote": "MazeCheck version 1.4.0 is available for download."}}],
+      "mentions": {"tools": ["OldScope"]}
+    }
+  },
+  "both": {
+    "source": "We release the Pine Maze Dataset and introduce MazeCheck. Pine Maze Dataset has identifier DANDI:000123. MazeCheck version 1.4.0 reads NWB files. Version 1.5.0 of MazeCheck is under development. OldScope was used as a comparison.",
+    "expected": [
+      {"name": "Pine Maze Dataset", "description": "A released maze dataset.", "type": "Dataset", "identifiers": [{"scheme": "DANDI", "value": "000123", "evidence": {"quote": "Pine Maze Dataset has identifier DANDI:000123."}}], "mentions": {"tools": ["OldScope"]}},
+      {"name": "MazeCheck", "description": "A tool that reads NWB files.", "type": "Tool", "versions": [{"value": "1.4.0", "evidence": {"quote": "MazeCheck version 1.4.0 reads NWB files."}}, {"value": "1.5.0", "evidence": {"quote": "Version 1.5.0 of MazeCheck is under development."}}], "mentions": {"tools": ["OldScope"]}}
+    ]
+  },
+  "mentions_only": {
+    "source": "We used OldScope and referenced the Pine Maze Dataset to analyze our existing recordings.",
+    "expected": {"extracted_resources": {}}
+  },
+  "legacy": {
+    "source": "We introduce MazeCheck, a tool for checking NWB files.",
+    "expected": {"name": "MazeCheck", "description": "A tool for checking NWB files.", "type": "Tool"}
+  }
+}

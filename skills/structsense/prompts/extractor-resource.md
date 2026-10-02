@@ -28,6 +28,8 @@ Schema:
       "target": "<primary target domain, e.g. 'Animal', 'Human', 'Multimodal'>",
       "specific_target": "<comma-separated specifics, e.g. 'Mouse, Rat'>",
       "url": "<canonical URL or null>",
+      "identifiers": [{"scheme": "<source-stated scheme>", "value": "<source-stated ID>", "evidence": {"quote": "<exact source passage>"}}],
+      "versions": [{"value": "<source-stated resource version>", "evidence": {"quote": "<exact source passage>"}}],
       "mentions": {
         "datasets":   ["<name>", ...],
         "benchmarks": ["<name>", ...],
@@ -48,6 +50,14 @@ RULES
 4. If a URL is not present in the source, set it to null. Do NOT invent URLs.
 5. `description` is factual and copied/paraphrased from the source.
    Do not infer capabilities the source doesn't claim.
+6. For a primary Dataset or Tool only, include `identifiers` and `versions`
+   when explicitly stated. Each claim needs an exact contiguous quote from
+   INPUT TEXT containing its value (and identifier scheme). Omit the field
+   when absent; never turn the paper's publication year into a version.
+   Keep separately stated versions as separate claims, even if they conflict.
+   These are source claims, not independently verified catalog facts.
+7. Do not add these fields to secondary resources in `mentions`. A cited
+   dataset or tool is not automatically a primary resource.
 
 If you cannot comply, output {"error": "<one-line reason>"}.
 ```

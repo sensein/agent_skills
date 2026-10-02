@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Dataset and Tool extraction can retain source-stated identifiers and multiple version claims with exact source quotes. The JSON-to-Turtle path carries these as standard-vocabulary literals with source-linked claim statements; legacy resource objects remain valid.
+
 ## 0.10.0 — corpus runs that finish: progressive batches, a stricter gate, cell spans
 
 Learned on a 211-paper BICAN run (neuroscience + cns-cells). Every fix is in code

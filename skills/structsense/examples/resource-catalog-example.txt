@@ -1,0 +1,5 @@
+We release the Pine Maze Dataset and introduce MazeCheck.
+Pine Maze Dataset has identifier DANDI:000123.
+MazeCheck version 1.4.0 reads NWB files.
+Version 1.5.0 of MazeCheck is under development.
+OldScope was used as a comparison.
