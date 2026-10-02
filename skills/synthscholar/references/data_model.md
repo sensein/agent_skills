@@ -5,6 +5,9 @@ skill queries, and how provenance is captured upstream.
 
 ## RDF (SLR ontology)
 
+The ontology is bundled: `ontology/slr_ontology.owl.ttl` (OWL), `ontology/slr_ontology.yaml`
+(LinkML), `ontology/slr_ontology.schema.json`, `ontology/slr_diagram.md`.
+
 Namespace: `slr: <https://w3id.org/slr-ontology/>`.
 
 - A review is a `slr:SystematicReview`; it links included publications via
@@ -130,8 +133,11 @@ Every individual decision is exported too: the review carries
 aggregate counts — it answers "was this study included after someone read the
 paper, or only its abstract?".
 
-All of these terms are **declared in the ontology** (`slr_ontology.yaml` and
-`slr_ontology.owl.ttl`), so a triple store that validates against the schema
+All of these terms are **declared in the ontology**, which ships with this skill in
+`ontology/` (`slr_ontology.owl.ttl`, the LinkML source `slr_ontology.yaml`,
+`slr_ontology.schema.json`, `slr_diagram.md` — see `ontology/README.md` for its source
+commit; never fetch it from GitHub). `python scripts/check_ontology.py <review.ttl>`
+confirms every term an export uses is declared. A triple store that validates against the schema
 will accept an export: classes `slr:ScreeningDecisionRecord`,
 `slr:RetrievalRouteCount`, `slr:ExclusionReasonCount`, `slr:RunConfiguration`,
 `slr:SearchIteration`, `slr:EnvVarPresence`, `slr:EvidenceAnnotation`, and the

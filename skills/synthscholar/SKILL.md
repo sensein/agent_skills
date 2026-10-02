@@ -382,6 +382,10 @@ scripts) to see every named recipe.
   PRISMA-flow accounting, the two execution paths, exports and ingestion.
 - [references/sparql_queries.md](references/sparql_queries.md) — SPARQL recipe catalog.
 - [references/sql_queries.md](references/sql_queries.md) — SQL recipe catalog.
+- [ontology/](ontology/README.md) — **the SLR ontology itself, bundled** (OWL Turtle,
+  LinkML YAML, JSON Schema, diagram) with its source commit. Use these files; do not look
+  the ontology up on GitHub. `python scripts/check_ontology.py [review.ttl]` checks that
+  every `slr:` term used is declared.
 - [references/data_model.md](references/data_model.md) — the SLR-ontology terms
   and the `article_store` / `article_full_text` schema this skill relies on,
   plus how provenance is captured in the pipeline.

@@ -12,3 +12,7 @@ review_output/
 pdfs/
 *.ttl
 *.jsonld
+
+# ...but the bundled SLR ontology IS part of the skill (self-contained; never fetched)
+!ontology/
+!ontology/*.ttl

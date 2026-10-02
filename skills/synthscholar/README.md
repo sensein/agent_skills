@@ -57,6 +57,12 @@ synthscholar/
 │   ├── sparql_queries.md        # SPARQL recipe catalog
 │   ├── sql_queries.md           # SQL recipe catalog
 │   └── data_model.md            # SLR ontology + DB schema + provenance values
+├── ontology/                    # the SLR ontology, bundled (no network needed)
+│   ├── slr_ontology.owl.ttl     # OWL (Turtle) — load next to an exported review graph
+│   ├── slr_ontology.yaml        # LinkML source (generates the OWL and JSON Schema)
+│   ├── slr_ontology.schema.json # JSON Schema for the review JSON
+│   ├── slr_diagram.md           # class diagram
+│   └── README.md                # source commit + checksums
 └── scripts/
     ├── validate_protocol.py     # scaffold + completeness-gate a protocol file
     ├── build_corpus.py          # PDFs → corpus.json (full text, hashes, provenance)
@@ -69,7 +75,8 @@ synthscholar/
     ├── update_provenance.py     # add the search strategy later, then re-export
     ├── query_sparql.py          # run recipes against a .ttl / .jsonld export
     ├── query_postgres.py        # run recipes against the article store DB
-    └── backfill_full_text.py    # populate article_full_text from legacy rows
+    ├── backfill_full_text.py    # populate article_full_text from legacy rows
+    └── check_ontology.py        # terms used are declared in the bundled ontology; refresh it
 ```
 
 ## Quick start
