@@ -49,7 +49,7 @@ a stable IRI beneath the review (`<review-iri>/question/RQ1.1`, or
 `…:question:RQ1.1` for a URN review id):
 
 - `slr:question_id` (`"RQ1.1"`), `slr:question_text`, `dcterms:title` (the
-  short title), `slr:theme` — and `?review slr:research_question ?q`.
+  short title), `slr:theme` — and `?review slr:has_research_question ?q` (`slr:research_question` is the review's question text).
 - Every study's charted answer is a `slr:ChartingQuestionAnswer` with
   `slr:answer_text`, `slr:source_id`, `slr:question_id`, linked both ways
   (`?q slr:has_answer ?a`, `?a slr:answers_question ?q`) and to the study

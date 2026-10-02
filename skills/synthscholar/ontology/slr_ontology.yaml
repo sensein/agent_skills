@@ -1283,6 +1283,12 @@ classes:
         range: ChartingActivity
         inlined: true
     attributes:
+      charting_question_answer:
+        description: >-
+          An answer, in this study's charting, to one of the review's research
+          questions (the same node the question's has_answer reaches).
+        range: ChartingQuestionAnswer
+        multivalued: true
       record_id:
         description: Unique identifier for this charting record version.
         identifier: true
@@ -1905,6 +1911,42 @@ classes:
         range: float
 
   # 34. SystematicReview (tree_root)
+  ResearchQuestion:
+    description: >-
+      A research question of the review, under a stable IRI
+      (<review-iri>/question/<id>), asked of every included study during
+      charting; its answers are ChartingQuestionAnswer nodes. Its short title,
+      when it has one, is dcterms:title.
+    attributes:
+      question_id:
+        description: Identifier of the research question (e.g. RQ1.1).
+      question_text:
+        description: The question as asked.
+      theme:
+        description: Theme or group the question belongs to.
+      has_answer:
+        description: An answer to this question from one included study.
+        range: ChartingQuestionAnswer
+        multivalued: true
+
+  ChartingQuestionAnswer:
+    description: >-
+      One included study's answer to one research question, as charted, linked
+      to the question and to the study it is about.
+    attributes:
+      question_id:
+        description: Identifier of the research question (e.g. RQ1.1).
+      answer_text:
+        description: The answer as charted.
+      source_id:
+        description: Unique identifier for the source.
+      answers_question:
+        description: The research question this answers.
+        range: ResearchQuestion
+      about_source:
+        description: The included study the answer is about.
+        range: IncludedSource
+
   SystematicReview:
     description: The top-level container for a complete systematic literature review.
     tree_root: true
@@ -1971,6 +2013,13 @@ classes:
         inlined: true
       research_question:
         description: Full text of the primary research question.
+      has_research_question:
+        description: >-
+          A research question of this review as a node (asked of every included
+          study during charting); research_question remains the primary question's
+          text.
+        range: ResearchQuestion
+        multivalued: true
       pico_population:
         description: PICO Population element.
       pico_intervention:

@@ -5315,3 +5315,151 @@ slr:StudyDesignEnum a owl:Class ;
         <https://w3id.org/slr-ontology/StudyDesignEnum#systematic_review> .
 
 
+
+# Research questions and their per-study answers (ResearchQuestion, ChartingQuestionAnswer).
+slr:ChartingRecord rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:charting_question_answer ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom slr:ChartingQuestionAnswer ;
+            owl:onProperty slr:charting_question_answer ] .
+
+slr:SystematicReview rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom slr:ResearchQuestion ;
+            owl:onProperty slr:has_research_question ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:has_research_question ] .
+
+slr:ChartingQuestionAnswer a owl:Class ;
+    rdfs:label "ChartingQuestionAnswer" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom slr:ResearchQuestion ;
+            owl:onProperty slr:answers_question ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:source_id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:answers_question ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:source_id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:source_id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:answer_text ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:answers_question ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:about_source ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:answer_text ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:answer_text ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:about_source ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom slr:IncludedSource ;
+            owl:onProperty slr:about_source ] ;
+    skos:definition "One included study's answer to one research question, as charted, linked to the question and to the study it is about." ;
+    skos:inScheme slr: .
+
+slr:ResearchQuestion a owl:Class ;
+    rdfs:label "ResearchQuestion" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:question_text ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:theme ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:question_text ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:question_id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:question_text ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty slr:theme ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty slr:theme ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty slr:has_answer ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom slr:ChartingQuestionAnswer ;
+            owl:onProperty slr:has_answer ] ;
+    skos:definition "A research question of the review, under a stable IRI (<review-iri>/question/<id>), asked of every included study during charting; its answers are ChartingQuestionAnswer nodes. Its short title, when it has one, is dcterms:title." ;
+    skos:inScheme slr: .
+
+slr:charting_question_answer a owl:ObjectProperty ;
+    rdfs:label "charting_question_answer" ;
+    skos:definition "An answer, in this study's charting, to one of the review's research questions (the same node the question's has_answer reaches)." ;
+    skos:inScheme slr: .
+
+slr:has_answer a owl:ObjectProperty ;
+    rdfs:label "has_answer" ;
+    skos:definition "An answer to this question from one included study." ;
+    skos:inScheme slr: .
+
+slr:has_research_question a owl:ObjectProperty ;
+    rdfs:label "has_research_question" ;
+    skos:definition "A research question of this review as a node (asked of every included study during charting); research_question remains the primary question's text." ;
+    skos:inScheme slr: .
+
+slr:about_source a owl:ObjectProperty ;
+    rdfs:label "about_source" ;
+    skos:definition "The included study the answer is about." ;
+    skos:inScheme slr: .
+
+slr:answer_text a owl:DatatypeProperty ;
+    rdfs:label "answer_text" ;
+    skos:definition "The answer as charted." ;
+    skos:inScheme slr: .
+
+slr:answers_question a owl:ObjectProperty ;
+    rdfs:label "answers_question" ;
+    skos:definition "The research question this answers." ;
+    skos:inScheme slr: .
+
+slr:question_text a owl:DatatypeProperty ;
+    rdfs:label "question_text" ;
+    skos:definition "The question as asked." ;
+    skos:inScheme slr: .
+
+slr:theme a owl:DatatypeProperty ;
+    rdfs:label "theme" ;
+    skos:definition "Theme or group the question belongs to." ;
+    skos:inScheme slr: .
+
+slr:question_id a owl:DatatypeProperty ;
+    rdfs:label "question_id" ;
+    skos:definition "Identifier of the research question (e.g. RQ1.1)." ;
+    skos:inScheme slr: .

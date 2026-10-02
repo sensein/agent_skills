@@ -328,10 +328,67 @@
             "title": "ChartingActivity",
             "type": "object"
         },
+        "ChartingQuestionAnswer": {
+            "additionalProperties": false,
+            "description": "One included study's answer to one research question, as charted, linked to the question and to the study it is about.",
+            "properties": {
+                "about_source": {
+                    "description": "The included study the answer is about.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "answer_text": {
+                    "description": "The answer as charted.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "answers_question": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ResearchQuestion"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "The research question this answers."
+                },
+                "question_id": {
+                    "description": "Identifier of the research question (e.g. RQ1.1).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "source_id": {
+                    "description": "Unique identifier for the source.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "ChartingQuestionAnswer",
+            "type": "object"
+        },
         "ChartingRecord": {
             "additionalProperties": false,
             "description": "A versioned record of data charted from an included source.",
             "properties": {
+                "charting_question_answer": {
+                    "description": "An answer, in this study's charting, to one of the review's research questions (the same node the question's has_answer reaches).",
+                    "items": {
+                        "$ref": "#/$defs/ChartingQuestionAnswer"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "generated_at_time": {
                     "description": "The time at which the entity was generated.",
                     "format": "date-time",
@@ -2055,6 +2112,45 @@
             "title": "ReportingStandardEnum",
             "type": "string"
         },
+        "ResearchQuestion": {
+            "additionalProperties": false,
+            "description": "A research question of the review, under a stable IRI (<review-iri>/question/<id>), asked of every included study during charting; its answers are ChartingQuestionAnswer nodes. Its short title, when it has one, is dcterms:title.",
+            "properties": {
+                "has_answer": {
+                    "description": "An answer to this question from one included study.",
+                    "items": {
+                        "$ref": "#/$defs/ChartingQuestionAnswer"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "question_id": {
+                    "description": "Identifier of the research question (e.g. RQ1.1).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "question_text": {
+                    "description": "The question as asked.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Theme or group the question belongs to.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "title": "ResearchQuestion",
+            "type": "object"
+        },
         "ReviewDecisionEnum": {
             "description": "Decision made by a reviewer during a review event.",
             "enum": [
@@ -2935,6 +3031,16 @@
                         "null"
                     ]
                 },
+                "has_research_question": {
+                    "description": "A research question of this review as a node (asked of every included study during charting); research_question remains the primary question's text.",
+                    "items": {
+                        "$ref": "#/$defs/ResearchQuestion"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
                 "included_sources": {
                     "description": "Sources included in this review.",
                     "items": {
@@ -3478,6 +3584,16 @@
             "format": "date-time",
             "type": [
                 "string",
+                "null"
+            ]
+        },
+        "has_research_question": {
+            "description": "A research question of this review as a node (asked of every included study during charting); research_question remains the primary question's text.",
+            "items": {
+                "$ref": "#/$defs/ResearchQuestion"
+            },
+            "type": [
+                "array",
                 "null"
             ]
         },

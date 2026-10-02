@@ -415,7 +415,7 @@ So the exporters pivot them question-first
 | --- | --- |
 | `review.md` | an appendix — one section per question, every study's answer under it, themed by question group; the oversized `Review Q&A` cells become a link to it |
 | `review.json` | a top-level `research_questions` block: question id, text, theme, and each answer with its `source_id` / `pmid` / title / year |
-| `review.ttl`, `review.jsonld` | one `slr:ResearchQuestion` per question under a stable IRI (`<review-iri>/question/RQ1.1`), `slr:research_question` from the review, and `slr:has_answer` ↔ `slr:answers_question` ↔ `slr:about_source` per answer |
+| `review.ttl`, `review.jsonld` | one `slr:ResearchQuestion` per question under a stable IRI (`<review-iri>/question/RQ1.1`), `slr:has_research_question` from the review, and `slr:has_answer` ↔ `slr:answers_question` ↔ `slr:about_source` per answer |
 
 This lives in the exporters, not in this mode's scripts, so it holds for every
 review — a corpus you supplied and the hosted pipeline's own searches alike.
