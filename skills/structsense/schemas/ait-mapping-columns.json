@@ -1,0 +1,1188 @@
+{
+  "description": "Column contract for prompts/extractor-cell-type-ait-mapping.md. Generated from the prompt's 'Standardized output' section; scripts/ait_tables.py validates against it. Column order is part of the contract.",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "quoting": "all",
+    "line_terminator": "\\n",
+    "empty": "not applicable",
+    "na_token": "NA",
+    "na_meaning": "looked for and not found",
+    "multivalue_separator": "|",
+    "multivalue_escape": "a literal | inside a value is written \\|",
+    "boolean": [
+      "true",
+      "false"
+    ],
+    "date": "ISO 8601"
+  },
+  "vocabularies": {
+    "source_type": [
+      "main_text",
+      "supplementary",
+      "zenodo",
+      "figshare",
+      "dryad",
+      "github",
+      "geo",
+      "sra",
+      "nemo",
+      "other"
+    ],
+    "entity_type": [
+      "cell_type",
+      "gene",
+      "species",
+      "brain_region"
+    ],
+    "species_role": [
+      "experimental",
+      "antibody_host",
+      "citation_only",
+      "reference_dataset"
+    ],
+    "hierarchy_level": [
+      "class",
+      "subclass",
+      "supertype",
+      "cluster",
+      "type",
+      "unspecified"
+    ],
+    "assertion_type": [
+      "asserted",
+      "inferred"
+    ],
+    "extraction_flag": [
+      "ok",
+      "uncertain",
+      "unverified_evidence",
+      "generic_phrase",
+      "duplicate_merged"
+    ],
+    "evidence_verified": [
+      "exact",
+      "exact_offset_corrected",
+      "fuzzy",
+      "not_found"
+    ],
+    "modality": [
+      "transcriptomic",
+      "spatial",
+      "electrophysiological",
+      "morphological",
+      "epigenomic",
+      "proteomic",
+      "multimodal"
+    ],
+    "match_confidence": [
+      "exact",
+      "partial",
+      "none"
+    ],
+    "basis_for_match": [
+      "label_exact",
+      "label_normalized",
+      "marker_genes",
+      "brain_region",
+      "species",
+      "hierarchy_level",
+      "author_statement",
+      "supplementary_mapping"
+    ],
+    "skos_relation": [
+      "skos:exactMatch",
+      "skos:closeMatch",
+      "skos:broadMatch",
+      "skos:narrowMatch",
+      "skos:relatedMatch",
+      "none"
+    ],
+    "mapped_by": [
+      "code",
+      "llm",
+      "human"
+    ]
+  },
+  "tables": {
+    "paper.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "doi",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "pmid",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "pmcid",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "journal",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "publication_date",
+          "type": "date",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "first_author",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "last_author",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "corresponding_author",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "abstract",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "license",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "full_text_source",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_supplementary_files",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "taxonomy_deposited",
+          "type": "boolean",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "taxonomy_deposit_url",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "extracted_at",
+          "type": "datetime",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "extractor_version",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "run_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": []
+    },
+    "sources.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "source_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "source_type",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "source_type",
+          "required": true
+        },
+        {
+          "name": "identifier",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "retrieved",
+          "type": "boolean",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "retrieval_status",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "contains_cell_type_table",
+          "type": "boolean",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_rows",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        }
+      ],
+      "aligned_multivalue": []
+    },
+    "entities.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "mention_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "entity_type",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "entity_type",
+          "required": true
+        },
+        {
+          "name": "label_verbatim",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "label_normalized",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "aliases",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_mentions",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "merged_mention_ids",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "marker_genes",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "marker_genes_normalized",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "brain_region",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "brain_region_acronym",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "species",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "species_role",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "species_role",
+          "required": false
+        },
+        {
+          "name": "ncbi_taxon_id",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "assay_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "hierarchy_level",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "hierarchy_level",
+          "required": false
+        },
+        {
+          "name": "assertion_type",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "assertion_type",
+          "required": false
+        },
+        {
+          "name": "evidence_sentence",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "evidence_section",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_chunk_id",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_char_start",
+          "type": "integer",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_char_end",
+          "type": "integer",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_verified",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "evidence_verified",
+          "required": true
+        },
+        {
+          "name": "evidence_similarity",
+          "type": "float",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "extraction_flag",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "extraction_flag",
+          "required": true
+        },
+        {
+          "name": "field_provenance",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "extractor_version",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "run_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": [
+        "evidence_sentence",
+        "evidence_section",
+        "evidence_chunk_id",
+        "evidence_char_start",
+        "evidence_char_end",
+        "evidence_verified",
+        "evidence_similarity"
+      ]
+    },
+    "methods.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "assay_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "assay_name",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "modality",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "modality",
+          "required": false
+        },
+        {
+          "name": "targeted",
+          "type": "boolean",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "gene_panel_name",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "gene_panel_size",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "gene_panel_source",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "median_reads_per_cell",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "median_umis_per_cell",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "median_genes_per_cell",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_cells_qc",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_nuclei_qc",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "preparation",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "species",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "brain_region",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_donors",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "donor_ages",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "donor_sexes",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "clustering_method",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "clustering_software_version",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "clustering_resolution",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "annotation_method",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "reference_taxonomy",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_sentence",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "evidence_chunk_id",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_verified",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "evidence_verified",
+          "required": true
+        },
+        {
+          "name": "field_provenance",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "run_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": [
+        "evidence_sentence",
+        "evidence_chunk_id",
+        "evidence_verified"
+      ]
+    },
+    "mappings.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "mention_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "cell_type_name_as_in_paper",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "species_experimental",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "ait_taxonomy_used",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "ait_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "ait_cell_type_label",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "ait_hierarchy_level",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "match_confidence",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "match_confidence",
+          "required": true
+        },
+        {
+          "name": "basis_for_match",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "basis_for_match",
+          "required": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "mapping_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "ait_node_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "skos_relation",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "skos_relation",
+          "required": true
+        },
+        {
+          "name": "mapping_evidence",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "no_match_reason",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "nearest_ancestor_node_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "cl_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "supersedes_mapping_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "mapped_by",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "mapped_by",
+          "required": true
+        },
+        {
+          "name": "field_provenance",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "run_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": []
+    },
+    "review_sheet.csv": {
+      "columns": [
+        {
+          "name": "cell_type_name",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "ait_match",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "ait_taxonomy_used",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "evidence_sentence",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "asserted_or_inferred",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "assertion_type",
+          "required": false
+        },
+        {
+          "name": "source_in_paper",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "brain_region",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "marker_genes",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "assay",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "species",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "hierarchy_level",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "hierarchy_level",
+          "required": false
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": []
+    },
+    "entity_cards.csv": {
+      "columns": [
+        {
+          "name": "paper_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "mention_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "cell_type_name_as_in_paper",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "ait_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "ait_node_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "ait_cell_type_label",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "skos_relation",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "skos_relation",
+          "required": true
+        },
+        {
+          "name": "match_confidence",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": "match_confidence",
+          "required": true
+        },
+        {
+          "name": "gene_namespace",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "genes_shared",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "genes_paper_only",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "genes_taxonomy_only",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_shared",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_paper_only",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "n_taxonomy_only",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "jaccard",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "panel_limited",
+          "type": "boolean",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "jaccard_panel_restricted",
+          "type": "float",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "assay_name",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "gene_panel_size",
+          "type": "integer",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_sentence",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": true
+        },
+        {
+          "name": "evidence_verified",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "evidence_verified",
+          "required": true
+        },
+        {
+          "name": "field_provenance",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "run_id",
+          "type": "string",
+          "multivalued": false,
+          "vocabulary": null,
+          "required": true
+        }
+      ],
+      "aligned_multivalue": [
+        "evidence_sentence",
+        "evidence_verified"
+      ]
+    }
+  }
+}

@@ -61,6 +61,7 @@ structsense/
 │   ├── extractor-ner-cns-cells.md         ← CellType / CellSubtype / LineageMarker / Ephys / …
 │   │                                        (all three also emit relations, hierarchy, causal claims)
 │   ├── extractor-abcd.md                  ← ABCD/HBCD variables / constructs / models / findings
+│   ├── extractor-cell-type-ait-mapping.md ← cell types → AIT taxonomy (SKOS edges)
 │   ├── mask-recall-pass.md                ← pass-2: catch mentions pass-1 missed
 │   ├── mask-verify-pass.md                ← per-item cloze label check
 │   ├── extractor-resource.md              ← Model / Dataset / Tool / Benchmark / …
@@ -80,7 +81,8 @@ structsense/
 │   ├── judge-review.schema.json           ← one judge's review of one packet
 │   ├── kg-plan.schema.json                ← kg_plan.json
 │   ├── abcd-paper.schema.json             ← ABCD per-paper result (+ rejected[], verification)
-│   └── abcd-synthesis.schema.json         ← cross-paper consensus / divergence / roles
+│   ├── abcd-synthesis.schema.json         ← cross-paper consensus / divergence / roles
+│   └── ait-mapping-columns.json           ← AIT mapping: 7-table CSV column contract
 ├── scripts/                 ← pure-Python runnable helpers
 │   ├── concept_mapping.py   ← trusted-ontology lexicon (index / lookup / map), priority,
 │   │                          routing, then local hybrid → BioPortal
@@ -129,10 +131,15 @@ structsense/
 │   ├── abcd_extract.py      ← driver: one argument, auto-detected. --prepare/--payload
 │   │                          when you are the model; --llm-model when a framework calls
 │   ├── abcd_synthesize.py   ← cross-paper consensus/divergence + role consistency
-│   └── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
+│   ├── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
+│   ├── ait_taxonomy.py      ← AIT taxonomy catalog: list / rank / show
+│   ├── ait_evidence.py      ← AIT Pass 2a: lexical evidence check + quarantine
+│   ├── ait_tables.py        ← AIT column contract: init / derive / review-sheet / validate
+│   └── ait_gene_diff.py     ← AIT Pass 4: entity cards + marker-gene diff
 ├── data/
-│   └── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
-│                              539,781 variables in 8.6 MB gzipped (self-contained)
+│   ├── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
+│   │                          539,781 variables in 8.6 MB gzipped (self-contained)
+│   └── allen_taxonomies.json ← the 8 supported Allen (AIT) cell type taxonomies
 ├── requirements.txt         ← core deps; -llm / -ner / -dev for the optional paths
 └── examples/                ← worked end-to-end examples
     ├── ttl/                 ← a real open-access paper (Hu et al. 2026, CC BY 4.0) end to end
@@ -179,6 +186,7 @@ It's **idempotent** — safe to run on already-canonical files. It also runs aut
 | Entities + key terms from general text | `prompts/extractor-ner-general.md` |
 | Entities + key terms from neuroscience text | `prompts/extractor-ner-neuroscience.md` |
 | CNS cell-typing extraction (atlases, patch-seq, scRNA-seq) | `prompts/extractor-ner-cns-cells.md` |
+| Map a paper's cell types to Allen Institute (AIT) taxonomies | `prompts/extractor-cell-type-ait-mapping.md` |
 | Pull tools / datasets / models / benchmarks from a paper | `prompts/extractor-resource.md` |
 | Convert a PDF to a target JSON schema (e.g. ReproSchema) | `prompts/extractor-structured.md` |
 

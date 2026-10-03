@@ -1,12 +1,12 @@
 ---
 name: structsense
 metadata:
-  version: "0.11.0"
-description: Extract named entities and source-stated relations from unstructured text, notes, messages, web pages and papers. Resolve repeated mentions and aliases to stable entities with source provenance, optional tool-backed ontology mapping, and validated Turtle plus entity-focused JSON. Also supports resource extraction, target JSON schemas and ABCD/HBCD study extraction.
+  version: "0.12.0"
+description: Extract named entities and source-stated relations from unstructured text, notes, messages, web pages and papers. Resolve repeated mentions and aliases to stable entities with source provenance, optional tool-backed ontology mapping, and validated Turtle plus entity-focused JSON. Also supports resource extraction, target JSON schemas, ABCD/HBCD study extraction, and mapping a paper's cell types to Allen Institute (AIT) cell type taxonomies with code-verified evidence and SKOS relations.
 license: Apache-2.0
 ---
 
-> **Skill version 0.11.0; ontology 2.5.0.** Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
+> **Skill version 0.12.0; ontology 2.5.0.** Entity identity is global; occurrence and relation evidence is source-specific. Compact Turtle is the default, with entity-focused JSON/Turtle views and an optional full audit profile. See the entity-extraction contract below.
 
 
 
@@ -173,6 +173,7 @@ python -m scripts.batch status --manifest <dir>/.structsense/batch.json
      - CNS-cell-focused text (cell atlases, patch-seq, scRNA-seq cell typing, BICCN-style cell census — anything where cell types + markers + morphology + ephys are the subject) → `prompts/extractor-ner-cns-cells.md`, **plus `references/cell-annotation-conventions.md`** if the output will be scored against a human gold standard (specificity types, nested spans, coordinated ids — the conventions that make the difference between a real error and a format mismatch).
    - Tools / datasets / models / benchmarks → load `references/resource-extraction.md` and `prompts/extractor-resource.md`.
    - User has a target JSON schema → load `references/structured-extraction.md` and `prompts/extractor-structured.md`.
+   - **Cell types → Allen Institute (AIT) taxonomies** (one paper is one node; its cell types become SKOS edges to AIT nodes, with marker-gene diffs and assay/panel depth) → `prompts/extractor-cell-type-ait-mapping.md`. Four passes: index + extract → verify → map → entity cards. This mode emits seven fixed-schema CSVs (`schemas/ait-mapping-columns.json`), not NER JSON. The trust steps are code: `scripts/ait_evidence.py` (lexical evidence check + quarantine), `scripts/ait_taxonomy.py` (taxonomy choice from `data/allen_taxonomies.json`; never a hardcoded list), `scripts/ait_gene_diff.py` (entity cards) and `scripts/ait_tables.py` (`derive` / `review-sheet` / `validate`, which must exit 0). `skos:exactMatch` means same-taxonomy identity only.
    - **ABCD / HBCD variables, models, findings, or cross-paper synthesis** → load `references/abcd-extraction.md` and `prompts/extractor-abcd.md`. This mode has its own verifier and its own hard rules (see rule 16); it is not a variant of NER. Single PDF or a directory in bulk; every run emits JSON + Markdown + Turtle.
 2. **Want exhaustive recall? (almost always yes for NER)** → after pass-1 extraction, run the **mask-recall pass** with `prompts/mask-recall-pass.md` + `scripts/mask_pass.py`. Optionally also run **mask-verify** (`prompts/mask-verify-pass.md`) for per-item label sanity. See `references/ner-extraction.md` → "Two-pass strategy: mask-mode".
 2b. **Biomedical text? Enable the HuggingFace NER ensemble.** Pass `--ner-profile biomedical_broad` (or `cns_cells` / `pharmacology` / `genetic` / `clinical` / `minimal` / `all`) to run specialist models alongside the LLM extractor. Every mention carries a `source_model` field; the grouped view records `consensus_count` (how many models agreed). See `references/ner-models.md`. Skip the ensemble for non-biomedical text or when `transformers` isn't installed.
@@ -353,6 +354,7 @@ The files below are intentionally separated so you only load what the current ta
 - `judge.md` — legacy single-score judge (only on request).
 - `humanfeedback.md` — apply human reviewer edits.
 - `extractor-abcd.md` — ABCD/HBCD extractor: variables (as mentioned), constructs, models, findings with roles/directions, each with a verbatim quote + section/page.
+- `extractor-cell-type-ait-mapping.md` — four-pass workflow (index + extract → lexical verification → SKOS mapping to Allen Institute (AIT) cell type taxonomies → entity cards with marker-gene diff), emitting seven fixed-schema CSV tables plus `run_report.md`. Drives the `ait_*.py` scripts.
 
 ### `schemas/`
 - `ner-output.schema.json` — JSON Schema for NER output. **Task-agnostic — keep it that way**; cell-specific constraints live in the two files below.
@@ -364,6 +366,7 @@ The files below are intentionally separated so you only load what the current ta
 - `judge-review.schema.json` — one judge's review of one packet.
 - `kg-plan.schema.json` — kg_plan.json.
 - `abcd-paper.schema.json` — ABCD/HBCD per-paper result: variables (with `mention_as_written`, `dictionary_status`, `nda_or_nbdc_table`, `nbdc_domain`), constructs, models, findings, `rejected[]`, `verification`, and provenance including every dictionary snapshot consulted.
+- `ait-mapping-columns.json` — the AIT mapping mode's column contract: all seven tables (147 columns) in order, with type, multi-valued/aligned flags, controlled vocabularies and required flags. Not a JSON Schema; `scripts/ait_tables.py validate` reads it, and a test keeps it in sync with the prompt's column lists.
 - `abcd-synthesis.schema.json` — cross-paper synthesis: per-construct consensus/divergence verdicts, per-variable role consistency, variable↔construct links, and the `method` block recording the thresholds a verdict was reached under.
 
 ### `scripts/` (runnable helpers)
@@ -409,6 +412,11 @@ The files below are intentionally separated so you only load what the current ta
 - `abcd_synthesize.py` — cross-paper synthesis: `claims[]` with per-paper evidence, strength and contradictions; consensus/divergence per construct with the papers behind each direction and the variables that measured it; role consistency per variable with per-paper provenance and the dd release each mapping holds in; and a dataset row per paper. **Counts by paper, not by finding.**
 - `abcd_roles.py` — **per-analysis roles and wave identity**, run after verification. Parses each `timepoint` into a comparable order, groups per-wave entries under one `measure`, and cross-references `models[]` to give every variable the role each analysis assigned it (`roles[]`, `role_assignments[]`, `role_summary`, `role_varies_by_analysis`, `bidirectional_in[]`). `python -m scripts.abcd_roles` runs its self-checks.
 - `abcd_export.py` — JSON + Markdown tables + Turtle writers shared by both drivers. The Turtle uses PROV-O plus a small `abcd:` vocabulary, carrying quote, `usedContext`, char offsets, section/page, `mentionAsWritten`, `ndaOrNbdcTable` and `nbdcDomain` into triples, plus an `abcd:RoleAssignment` per variable-in-analysis. `--formats codebook` additionally writes a TSV in the ABCD annotators' own coding scheme (Text Content · Source · Codes), so a run can be diffed against hand-coded gold data.
+
+- `ait_taxonomy.py` — **AIT taxonomy catalog**: `list` / `rank --species … --region …` / `show <AIT id|CCN>` over `data/allen_taxonomies.json` (a dated snapshot of the eight supported brain-map.org taxonomies, each with its page URL, with per-species AIT numbers for the multi-species ones).
+- `ait_evidence.py` — **AIT Pass 2a lexical verifier**. Normalises quote and source identically (NFKC, quotes/dashes, soft hyphens, line-break hyphenation, whitespace), then tests at the recorded offsets → whole document → fuzzy (≥0.95). Writes `exact | exact_offset_corrected | fuzzy | not_found` per aligned sentence, corrects offsets, quarantines entities with no found evidence, and writes `evidence_report.json`.
+- `ait_tables.py` — **AIT column contract**: `init` (header-only files), `derive` (`match_confidence` from `skos_relation`, crosswalk copies), `review-sheet` (the deterministic join, strictly verified evidence only), `validate` (headers, types, vocabularies, crosswalk, quarantine, same-taxonomy `exactMatch` rule, review-sheet equality).
+- `ait_gene_diff.py` — **AIT Pass 4 entity cards**: shared / paper-only / taxonomy-only marker sets, counts, Jaccard, and `jaccard_panel_restricted` for targeted assays, from `{ait_node_id: [genes]}` marker sets. Exact symbol comparison; resolve orthologs first.
 
 ### `examples/`
 - `ttl/` — **end to end on a real open-access paper** (Hu et al. 2026, CC BY 4.0): text, a human-curated reference TTL, the working JSON with 1,039 grounded mentions, kg_plan, `run.sh`, and the validated result `hu2026.ttl` whose entity and concept IRIs equal the curated graph's.

@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.12.0 — Cell types to Allen (AIT) taxonomies, with the trust steps in code
+
+New mode: `prompts/extractor-cell-type-ait-mapping.md` extracts a
+paper's cell types, genes, species, regions and assay metadata and maps them to
+Allen Institute cell type taxonomies. The paper is the node; every mapping is a
+reversible SKOS edge keyed on `mention_id` and `ait_node_id`, so going from a
+taxonomy back to the literature is a query. The prompt describes four passes
+(index + extract → verify → map → entity cards) and seven fixed-schema CSVs.
+The steps that must not be model judgement are scripts:
+
+- **`scripts/ait_evidence.py`** checks every evidence sentence against the source
+  text: identical normalisation on both sides (NFKC, quotes/dashes, soft hyphens,
+  line-break hyphenation, whitespace), then the recorded offsets, then the whole
+  document, then a fuzzy alignment at ≥0.95. An entity with no evidence found is
+  quarantined and can never become an edge. `fuzzy` evidence can still support an
+  edge, but stays out of the review sheet and is reported separately.
+- **`scripts/ait_taxonomy.py` + `data/allen_taxonomies.json`.** The prompt's
+  hardcoded taxonomy table moved into one data file: the eight supported Allen
+  taxonomies, each with its brain-map.org page, CCN, species, regions and
+  per-species AIT numbers for the multi-species ones. A paper none of them covers
+  is recorded as `none`, never forced onto the nearest taxonomy.
+- **`scripts/ait_tables.py`** holds the column contract
+  (`schemas/ait-mapping-columns.json`, 147 columns). `derive` fills
+  `match_confidence` from `skos_relation` and copies the crosswalk columns.
+  `review-sheet` builds the curator view as a pure join. `validate` checks headers,
+  types, vocabularies, the crosswalk and the quarantine rule.
+- **House rule: `skos:exactMatch` means same-taxonomy identity only.** The match
+  needs an `author_statement` or `supplementary_mapping` basis and a species the
+  taxonomy covers; everything else is `closeMatch`. `exactMatch` is transitive, so
+  without this rule a chain of edges would fuse AIT nodes across taxonomies.
+- **`scripts/ait_gene_diff.py`** builds the entity cards: shared, paper-only and
+  taxonomy-only marker sets with Jaccard, plus a panel-restricted Jaccard for
+  targeted assays, which cannot report off-panel genes.
+- There is deliberately no numeric mapping score, because a score the model
+  reports for itself gets read as calibrated.
+- `tests/test_structsense_ait.py` covers all four scripts and keeps the schema in
+  sync with the prompt's column lists.
+
 ## 0.10.0 — corpus runs that finish: progressive batches, a stricter gate, cell spans
 
 Learned on a 211-paper BICAN run (neuroscience + cns-cells). Every fix is in code
