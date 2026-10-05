@@ -74,6 +74,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from group_by_entity import mention_groups, reading_form  # noqa: E402
+from resource_claims import checked_claims  # noqa: E402
 
 SKILL_DIR = _SCRIPTS_DIR.parent
 ONTOLOGY_DIR = SKILL_DIR / "default_ontology"
@@ -1656,6 +1657,7 @@ class TurtleBuilder:
             if key in self.entities_by_key:
                 ent = self.entities_by_key[key]
                 ent["groups"].append(grp)
+                self.emit_resource_claims(ent["node"], res)
                 continue
             self.entities_by_key[key] = ent
             self.entity_by_group_id[gid.lower()] = ent
@@ -1669,6 +1671,7 @@ class TurtleBuilder:
     def emit_resource(self, ent: dict, res: dict):
         node = ent["node"]
         self.emit_entity_core(ent)
+        self.emit_resource_claims(node, res)
         if res.get("description"):
             self.add(node, RDFS.comment, Literal(f"description: {res['description']}"))
         url = res.get("url")
@@ -1703,6 +1706,27 @@ class TurtleBuilder:
             for name in names or []:
                 other = self.secondary_resource(name, cls)
                 self.add(node, SKOS.related, other)
+
+    def emit_resource_claims(self, node: URIRef, res: dict):
+        """Preserve supported source claims without introducing catalog predicates."""
+        claims, errors = checked_claims(res, self.source_text)
+        self.warnings.extend(errors)
+        for field, value, quote in claims:
+            predicate = DCTERMS.identifier if field == "identifiers" else OWL.versionInfo
+            literal = Literal(value)
+            self.add(node, predicate, literal)
+            local = hashlib.sha256(f"{node}|{field}|{value}|{quote}".encode()).hexdigest()[:16]
+            statement = self.mint("resource-claim", local)
+            self.add(statement, RDF.type, RDF.Statement)
+            self.label(statement, "Resource identifier claim" if field == "identifiers"
+                       else "Resource version claim")
+            self.add(statement, RDF.subject, node)
+            self.add(statement, RDF.predicate, predicate)
+            self.add(statement, RDF.object, literal)
+            self.add(statement, DCTERMS.description, Literal(quote))
+            self.add(statement, PROV.hadPrimarySource, self.pub)
+            self.add(statement, PROV.wasGeneratedBy, self.run)
+            self.counts["resource_claims"] += 1
 
     def emit_entity_core(self, ent: dict):
         node = ent["node"]

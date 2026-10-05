@@ -144,4 +144,24 @@ Note that **DeepLabCut** (the parent toolkit) is a mention because the *primary*
 - **Multi-resource releases** (e.g. "we release a dataset and an accompanying model"): emit each as a separate top-level resource under `"1"`, `"2"`. Don't merge.
 - **Resources without URLs**: emit `"url": null` rather than guessing. Made-up URLs poison downstream consumers.
 - **Vague targets** ("various species"): set `specific_target: null`. Don't pad with examples that weren't in the text.
-- **Versions** ("DeepLabCut v2.3"): keep the version in `name`; don't add a separate `version` field unless your schema asks for one.
+- **Versions** ("DeepLabCut v2.3"): the Dataset/Tool schema now accepts a `versions` array. Record each source-stated value separately with a verbatim quote; never infer a version from publication date. Other resource types retain their existing representation.
+
+## Source-backed Dataset and Tool claims
+
+This first Resources Catalog slice adds optional `identifiers[]` and `versions[]` to primary Dataset and Tool records. Legacy records without them are still valid. Omit absent fields; an empty array is not evidence that no identifier or version exists. Conflicting or multiple stated versions stay as separate claims, not one chosen value.
+
+| Source passage | Extracted and normalized field | Turtle output |
+|---|---|---|
+| `DANDI:000123` in an exact quote | `identifiers[{scheme: "DANDI", value: "000123", evidence: {quote: "…"}}]` | `dcterms:identifier "DANDI:000123"` plus an `rdf:Statement` linked to the source publication and quote |
+| `version 1.4.0` in an exact quote | `versions[{value: "1.4.0", evidence: {quote: "…"}}]` | `owl:versionInfo "1.4.0"` plus the same kind of source-linked statement |
+
+Quotes must be exact contiguous substrings of the normalized text consumed by the extractor (not PDF byte offsets). The pipeline rejects a claim if its quote cannot be found or omits its value; direct JSON-to-Turtle conversion skips that claim and reports a warning when the source is missing or inconsistent. These are statements *made by the source*, not verified registry metadata. Source identity comes from the existing document provenance, and extraction-run identity remains separate.
+
+For a reproducible synthetic example, from `skills/structsense` run:
+
+```bash
+python -m scripts.json_to_ttl examples/resource-catalog-example.json --source examples/resource-catalog-example.txt --out resource-catalog-example.ttl
+python -m scripts.validate_ttl resource-catalog-example.ttl
+```
+
+The expected JSON was manually prepared, not produced by an LLM. It introduces a Dataset and a Tool separately, retains the cited OldScope as a mention, and keeps two MazeCheck version claims. No resource version is supplied for the dataset because the source does not state one. Input/output requirements, applicability, maintainers, benchmark results and limitations await an authoritative catalog schema and agreed RDF mapping; this slice does not infer or emit them.

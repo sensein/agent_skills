@@ -58,6 +58,7 @@ from ner_models import (
 from normalize_result import (
     lift_doc_metadata, tag_missing_source_model,
 )
+from resource_claims import require_supported_claims
 
 logger = logging.getLogger("pipeline")
 
@@ -592,6 +593,8 @@ def run(text: str, *, task: str, extractor_model: str,
         judged["stats"].setdefault("elapsed_seconds", {})["judge"] = round(time.monotonic() - t0, 2)
     if kg_plan is not None:
         judged["kg_plan"] = kg_plan  # carried to json_to_ttl; not part of the TTL itself
+    if task == "resource":
+        require_supported_claims(judged, text)
     # WHEN, WHO: recorded, never inferred (ner:NERExtractionActivity prov:startedAtTime ...)
     judged["run_metadata"] = {
         "started_at": started_at,

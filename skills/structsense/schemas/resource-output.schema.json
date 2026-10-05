@@ -91,6 +91,14 @@
           ],
           "format": "uri"
         },
+        "identifiers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/IdentifierClaim" }
+        },
+        "versions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/VersionClaim" }
+        },
         "mentions": {
           "type": "object",
           "properties": {
@@ -208,7 +216,36 @@
           ]
         }
       },
-      "additionalProperties": true
+      "additionalProperties": true,
+      "if": { "properties": { "type": { "enum": ["Dataset", "Tool"] } }, "required": ["type"] },
+      "else": {
+        "not": { "anyOf": [ { "required": ["identifiers"] }, { "required": ["versions"] } ] }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "required": ["quote"],
+      "properties": { "quote": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "IdentifierClaim": {
+      "type": "object",
+      "required": ["scheme", "value", "evidence"],
+      "properties": {
+        "scheme": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/Evidence" }
+      },
+      "additionalProperties": false
+    },
+    "VersionClaim": {
+      "type": "object",
+      "required": ["value", "evidence"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/Evidence" }
+      },
+      "additionalProperties": false
     },
     "Concept": {
       "type": "object",
