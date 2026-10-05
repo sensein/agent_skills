@@ -61,7 +61,7 @@ Upload the following from the `structsense/` folder:
 | `prompts/alignment.md` | Ontology alignment. |
 | `prompts/judge.md` | Quality scoring. |
 | `schemas/ner-output.schema.json` | Output validation. |
-| `schemas/resource-output.schema.json` | Resource output validation. |
+| `schemas/bkr-resource-extraction.schema.json` | Resource extraction contract (BrainKB Resource Ontology profile). |
 | `references/ner-extraction.md` | NER methodology. |
 | `references/ner-models.md` | HF ensemble docs. |
 | `references/ontology-mapping.md` | Mapper backends + cascade. |

@@ -1,0 +1,1320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brainkb.org/resource/schemas/bkr-resource-extraction.schema.json",
+  "title": "BrainKB resource extraction output",
+  "description": "Structured extraction profile for the BrainKB Resource Ontology. One record per resource. Every field is optional except record_id, extracted_type and name \u2014 a record is allowed to be incomplete, but it must say what it looked for and did not find (not_found_fields) rather than leaving absence ambiguous. scripts/extraction_to_bkr.py converts a conforming document into BKR Turtle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "extracted_resources"
+  ],
+  "properties": {
+    "extracted_resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "extracted_type",
+          "name"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "description": "Local identifier for this record within the extraction run."
+          },
+          "extracted_type": {
+            "enum": [
+              "dataset",
+              "tool",
+              "software_library",
+              "model",
+              "pipeline",
+              "workflow",
+              "archive",
+              "schema",
+              "ontology",
+              "taxonomy",
+              "benchmark",
+              "leaderboard",
+              "device",
+              "material_collection",
+              "service",
+              "protocol",
+              "publication",
+              "notebook"
+            ],
+            "description": "Closed vocabulary; each value names the BKR class the converter instantiates."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stable_identifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "scheme": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "DOI",
+                    "RRID",
+                    "Handle",
+                    "ARK",
+                    "PURL",
+                    "URL",
+                    "URN",
+                    "PMID",
+                    "SWHID",
+                    "ISBN",
+                    "ISSN",
+                    "arXiv",
+                    "bibcode",
+                    "w3id",
+                    "accession",
+                    null
+                  ]
+                },
+                "resolves_through": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Archive or registry the identifier resolves through."
+                }
+              }
+            }
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Concept"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Concept"
+            }
+          },
+          "modalities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Concept"
+            }
+          },
+          "species": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Concept"
+            }
+          },
+          "applicability": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "declared": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Scope"
+                }
+              },
+              "validated": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Scope"
+                }
+              },
+              "observed": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Scope"
+                }
+              },
+              "out_of_scope": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Scope"
+                }
+              }
+            }
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "statement"
+              ],
+              "properties": {
+                "statement": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "software_dependency",
+                    "hardware_requirement",
+                    "input_data_requirement",
+                    "reference_resource_requirement",
+                    "license_requirement",
+                    "approval_requirement",
+                    "expertise_requirement"
+                  ]
+                },
+                "required_resource": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "minimum_version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "statement"
+              ],
+              "properties": {
+                "statement": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "statistical",
+                    "distributional",
+                    "independence",
+                    "biological",
+                    "technical",
+                    "preprocessing",
+                    "batch_effect",
+                    "data",
+                    "reference",
+                    "scope"
+                  ]
+                },
+                "criticality": {
+                  "enum": [
+                    "critical",
+                    "moderate",
+                    "minor"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "stated",
+                    "verified",
+                    "untested",
+                    "violated",
+                    "disputed",
+                    "retired"
+                  ]
+                },
+                "consequence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "What goes wrong when it does not hold. Required by SHACL for critical assumptions."
+                },
+                "testable_by": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Evidence"
+                  }
+                }
+              }
+            }
+          },
+          "benchmark_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "benchmark": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "metric": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "string",
+                    "null"
+                  ]
+                },
+                "method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "scope_statement": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Evidence"
+                  }
+                }
+              }
+            }
+          },
+          "usage_examples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "scope_statement": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "demonstrates": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "statement"
+              ],
+              "properties": {
+                "statement": {
+                  "type": "string"
+                },
+                "issue_tracker_item": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "failure_modes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "statement"
+              ],
+              "properties": {
+                "statement": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "symptom": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "silent": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "True when output looks plausible instead of failing loudly."
+                },
+                "severity": {
+                  "enum": [
+                    "critical",
+                    "moderate",
+                    "minor",
+                    null
+                  ]
+                },
+                "mitigation": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "detected_by": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "related_assumption": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Evidence"
+                  }
+                }
+              }
+            }
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "agent_type": {
+                  "enum": [
+                    "person",
+                    "organization",
+                    "consortium",
+                    "working_group",
+                    "research_group",
+                    null
+                  ]
+                },
+                "role": {
+                  "enum": [
+                    "owner",
+                    "maintainer",
+                    "creator",
+                    "contact",
+                    "publisher",
+                    "rights_holder",
+                    "steward",
+                    "host",
+                    null
+                  ]
+                },
+                "identifier": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ORCID, ROR or other agent identifier."
+                },
+                "affiliation": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version"
+              ],
+              "properties": {
+                "version": {
+                  "type": "string"
+                },
+                "release_date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                },
+                "status": {
+                  "enum": [
+                    "planned",
+                    "in_development",
+                    "draft",
+                    "released",
+                    "maintained",
+                    "frozen",
+                    "superseded",
+                    "deprecated",
+                    "withdrawn",
+                    null
+                  ]
+                },
+                "supersedes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "deprecation_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "migration_guidance": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "commit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "changes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          "addition",
+                          "removal",
+                          "modification",
+                          "metadata_correction",
+                          "reprocessing",
+                          "schema_migration",
+                          "nomenclature_change",
+                          "mapping_update",
+                          "scope_change",
+                          "license_change",
+                          "retraction"
+                        ]
+                      },
+                      "trigger": {
+                        "enum": [
+                          "pipeline_update",
+                          "model_update",
+                          "ontology_update",
+                          "mapping_rerun",
+                          "source_correction",
+                          "human_review",
+                          null
+                        ]
+                      },
+                      "reason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "breaking": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "changed_field": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/IOSpec"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/IOSpec"
+            }
+          },
+          "deposited_in": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Archive holding the resource."
+          },
+          "conforms_to_schema": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "access": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "level": {
+                "enum": [
+                  "open",
+                  "registered",
+                  "controlled",
+                  "embargoed",
+                  "consortium_internal",
+                  "restricted_by_agreement",
+                  "unavailable",
+                  null
+                ]
+              },
+              "request_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "committee": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "embargo_end": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date"
+              },
+              "data_use_permissions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "DUO CURIE, e.g. DUO:0000042."
+                }
+              },
+              "data_use_modifiers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "extracted_type": {
+                  "enum": [
+                    "dataset",
+                    "tool",
+                    "software_library",
+                    "model",
+                    "pipeline",
+                    "workflow",
+                    "archive",
+                    "schema",
+                    "ontology",
+                    "taxonomy",
+                    "benchmark",
+                    "leaderboard",
+                    "device",
+                    "material_collection",
+                    "service",
+                    "protocol",
+                    "publication",
+                    "notebook",
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source_documents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "identifier": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "extraction": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "pipeline": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "pipeline_version": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "model_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "model_version": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "model_provider": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "timestamp": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "snapshot_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "review": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "unreviewed",
+                      "accepted",
+                      "corrected",
+                      "rejected"
+                    ]
+                  },
+                  "comment": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "reviewer": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "confidence": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "field_evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "field",
+                    "quote"
+                  ],
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "description": "Record field the quote supports, e.g. species, assumptions[0], inputs[1].format."
+                    },
+                    "quote": {
+                      "type": "string"
+                    },
+                    "sentence": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "document": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "start": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "end": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "not_found_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Profile fields the extractor looked for and did not find in the source. Explicit absence."
+          },
+          "field_completeness": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "judge": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "method": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "remarks": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Surface string exactly as it appears in the source."
+        },
+        "mapped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "method"
+            ],
+            "properties": {
+              "concept_iri": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Ontology term IRI. MUST be omitted when method is llm_judgment and no retrieval or review confirmed it."
+              },
+              "concept_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "CURIE form, e.g. NCBITaxon:10090."
+              },
+              "concept_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "ontology": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Ontology acronym, e.g. NCBITaxon, UBERON, CL, EFO, EDAM."
+              },
+              "ontology_version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "relation": {
+                "enum": [
+                  "exact",
+                  "close",
+                  "broader",
+                  "narrower",
+                  "related"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "accepted",
+                  "proposed",
+                  "rejected",
+                  "ambiguous",
+                  "unresolved",
+                  "skipped",
+                  "deprecated",
+                  "superseded"
+                ]
+              },
+              "method": {
+                "enum": [
+                  "exact_lexical",
+                  "normalized_lexical",
+                  "bm25",
+                  "dense_embedding",
+                  "hybrid_retrieval",
+                  "reranker",
+                  "rule_based",
+                  "human_review",
+                  "llm_judgment",
+                  "skipped"
+                ]
+              },
+              "provenance_raw": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Verbatim provenance label from the pipeline, e.g. tool | llm_knowledge | skipped."
+              },
+              "confidence": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quote"
+      ],
+      "properties": {
+        "quote": {
+          "type": "string"
+        },
+        "sentence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sentence_index": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "start": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "document": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Section or page, when offsets are unavailable."
+        }
+      }
+    },
+    "IOSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Name or IRI of the schema the input/output conforms to."
+        },
+        "modality": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "tabular",
+            "time_series",
+            "graph",
+            "spatial",
+            "sequence",
+            "volumetric",
+            "multimodal",
+            null
+          ]
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "primary_data",
+            "reference",
+            "configuration",
+            "annotation",
+            "metadata",
+            "report",
+            "intermediate",
+            "log",
+            null
+          ]
+        },
+        "cardinality": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "example": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Conditions on this input/output; each becomes a bkr:Assumption linked with bkr:ioConstraint."
+        }
+      }
+    },
+    "Scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_level": {
+          "enum": [
+            "extracted_from_text",
+            "developer_asserted",
+            "documented_in_publication",
+            "inferred_from_usage",
+            "empirically_validated",
+            "benchmarked"
+          ]
+        },
+        "target_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "specific_target_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "species": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "anatomical_structures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "cell_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "developmental_stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "assays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "modalities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "sample_size": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "spatial_resolution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "asserted_in": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        }
+      }
+    }
+  }
+}

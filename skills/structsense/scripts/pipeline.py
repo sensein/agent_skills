@@ -58,7 +58,6 @@ from ner_models import (
 from normalize_result import (
     lift_doc_metadata, tag_missing_source_model,
 )
-from resource_claims import require_supported_claims
 
 logger = logging.getLogger("pipeline")
 
@@ -97,6 +96,11 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
     # NER has one prompt per domain (prompts/extractor-ner-<domain>.md); the other
     # tasks have one prompt each. There is no extractor-ner.md.
     system = _load_prompt(f"extractor-ner-{ner_domain}" if task == "ner" else f"extractor-{task}")
+    if task == "resource":
+        # one record per resource needs the whole document: the Availability section
+        # names the identifier, Methods the inputs, Limitations the failure modes
+        from resource_kg import load_config as _rkg_config
+        chunk_size = max(chunk_size, int(_rkg_config().get("extraction_chunk_chars", 60000)))
     chunks = chunk_by_sentences(text, max_chars=chunk_size)
     logger.info("extract: %d chunks", len(chunks))
 
@@ -122,8 +126,9 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
         if "key_terms" in r:
             key_terms.extend(reanchor_items(r["key_terms"], chunk_start))
         if "extracted_resources" in r:
-            for k, lst in (r["extracted_resources"] or {}).items():
-                resources.extend(lst or [])
+            er = r["extracted_resources"] or []
+            for lst in (er.values() if isinstance(er, dict) else [er]):
+                resources.extend(x for x in (lst or []) if isinstance(x, dict))
 
     out: dict[str, Any] = {}
     if entities or task == "ner":
@@ -135,7 +140,7 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
         valid, dropped = validate_all(text, key_terms)
         out["key_terms"] = dedupe(valid, key_fields=("term", "start", "end"))
     if resources:
-        out["extracted_resources"] = {"1": resources}
+        out["extracted_resources"] = resources  # BKR records (resource_kg merges chunk duplicates)
     out["task_type"] = task
     return out
 
@@ -485,6 +490,7 @@ def run(text: str, *, task: str, extractor_model: str,
     # --- 2. alignment ---
     # Default: the configured cascade (concept_mapping.json): trusted ontologies in
     # trusted_ontologes/priority.md order, then local hybrid, then BioPortal.
+    cm = None
     if mapper_backend == "config":
         t0 = time.monotonic()
         from concept_mapping import ConceptMapper, map_result
@@ -594,7 +600,10 @@ def run(text: str, *, task: str, extractor_model: str,
     if kg_plan is not None:
         judged["kg_plan"] = kg_plan  # carried to json_to_ttl; not part of the TTL itself
     if task == "resource":
-        require_supported_claims(judged, text)
+        # resource KG (references/resource-extraction.md): drop what the text does not
+        # state, map scope labels with the same tool cascade as NER (never an LLM IRI)
+        from resource_kg import prepare
+        prepare(judged, text, mapper=cm)
     # WHEN, WHO: recorded, never inferred (ner:NERExtractionActivity prov:startedAtTime ...)
     judged["run_metadata"] = {
         "started_at": started_at,

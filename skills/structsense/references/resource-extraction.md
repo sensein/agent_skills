@@ -1,167 +1,199 @@
-# Resource extraction (tools / datasets / models / benchmarks)
+# Resource extraction → resource knowledge graph (BrainKB Resource Ontology)
 
 ## Goal
 
-Given a paper, README, or homepage, extract **one primary research resource** with its metadata, and capture related resources only as **secondary mentions**.
+From a paper, preprint, README or model card, extract the **research resources** it
+describes or uses — datasets, software, models, pipelines, workflows, archives,
+schemas, ontologies, taxonomies, benchmarks, leaderboards, devices, material
+collections, services, protocols, notebooks — and deliver them as a **resource KG**
+in the BrainKB Resource Ontology (BKR).
 
-This is different from NER:
-- NER pulls **many spans**; resource extraction pulls **one structured record** per source.
-- NER labels are entity types; resource `type` is fixed: `Model`, `Dataset`, `Tool`, `Benchmark`, `Leaderboard`, `Paper`.
+The point is not a list of names. Per resource, the KG records what makes it safely
+reusable, each statement tied to a verbatim quote and to the paper:
 
-## Output schema
-
-See `schemas/resource-output.schema.json`. Top level:
-
-```jsonc
-{
-  "extracted_resources": {
-    "1": [{
-      "name": "string",                // canonical name
-      "description": "string",         // 1–3 sentences, factual
-      "type": "Model | Dataset | Tool | Benchmark | Leaderboard | Paper",
-      "category": "string",            // free text task category, e.g. "Pose Estimation"
-      "target": "string",              // e.g. "Animal", "Human", "Multimodal"
-      "specific_target": "string",     // e.g. "Quadruped, Horse, Mice"
-      "url": "string",                 // canonical URL (homepage / repo)
-      "mentions": {                    // OTHER resources referenced — secondary only
-        "datasets": ["string"],
-        "benchmarks": ["string"],
-        "models": ["string"],
-        "papers": ["string"]
-      }
-    }]
-  }
-}
-```
-
-The numeric key (`"1"`) is so a single batch can hold multiple resources from different sources. For a single document, you'll usually have just `"1"`.
-
-## "One primary resource" rule
-
-The single biggest failure mode is the model dumping every mentioned model/dataset as a top-level resource. To prevent it, encode this rule in the extractor prompt:
-
-> Identify **the single primary resource** the source document is about. Every other tool, dataset, model, benchmark, or paper that is referenced goes under `mentions`, never as a sibling top-level resource.
-
-Heuristics for "the primary one":
-
-- For a paper: the artifact in the title and the abstract's "we introduce/propose/release …" sentence.
-- For a README: the repo's own name and tagline.
-- For a model card: the model the page documents.
-
-## Type field discipline
-
-`type` is a **closed vocabulary**. Reject anything outside the set:
-
-```
-Model | Dataset | Tool | Benchmark | Leaderboard | Paper
-```
-
-If the model wants to emit `"Library"` or `"Framework"`, normalize to `"Tool"`. If it wants `"Corpus"`, normalize to `"Dataset"`.
-
-## Alignment for resources (different from NER)
-
-For resources, alignment **doesn't** add `ontology_id` to the whole resource. Instead it adds nested concept mappings to specific fields:
-
-```jsonc
-{
-  "name": "DeepLabCut SuperAnimal-Quadruped",
-  "type": "Model",
-  "target": "Animal",
-  "mapped_target_concept": [
-    { "id": "http://purl.obolibrary.org/obo/BTO_0000042",
-      "label": "animal", "ontology": "BTO" }
-  ],
-  "specific_target": "Quadruped, Horse, Mice",
-  "mapped_specific_target_concept": [
-    { "specific_target": "Mice",
-      "mapped_target_concept": {
-        "label": "Mus musculus", "id": "NCBITaxon:10090", "ontology": "NCBITaxon"
-      }
-    }
-  ],
-  "concept_mapping_provenance": "tool"
-}
-```
-
-The alignment stage:
-1. Maps `target` → `mapped_target_concept` (usually one concept).
-2. Splits `specific_target` on commas and maps each → `mapped_specific_target_concept` (list of `{specific_target, mapped_target_concept}`).
-3. Does **not** rewrite `name`, `description`, `type`, `category`, `url`, or `mentions`.
-
-## Judging resources
-
-The judge scores **the primary resource only**, not items inside `mentions`. The score reflects:
-
-- Are `name`, `type`, `url` plausible and consistent with the description?
-- Is the resource correctly classified (Model vs Tool vs Dataset)?
-- Does the ontology mapping make sense?
-
-```jsonc
-{
-  "judge_resource": {
-    "1": [{
-      ...all fields preserved...
-      "judge_score": 0.92,
-      "remarks": "Type=Model is correct; mapped_specific_target_concept for 'Mice' is the right NCBITaxon."
-    }]
-  }
-}
-```
-
-## What to feed the extractor
-
-For a multi-page paper, feed:
-
-1. Title + abstract
-2. The "Introduction" paragraphs that name the artifact
-3. Any "Implementation" / "Release" / "Availability" section
-4. The first table that lists datasets/benchmarks used
-
-Skip Methods/Experiments details — they're a distraction for resource extraction (they mostly belong under `mentions`).
-
-If the source is a README, feed the README's first 2–3 sections (intro + install + usage) plus the "Citation"/"Related work" section if present.
-
-## Worked walkthrough
-
-For a paper introducing **DeepLabCut SuperAnimal-Quadruped**:
-
-| Field | Value |
-|---|---|
-| `name` | "DeepLabCut SuperAnimal-Quadruped" |
-| `type` | "Model" |
-| `category` | "Pose Estimation" |
-| `target` | "Animal" |
-| `specific_target` | "Quadruped, Horse, Mice" |
-| `url` | "https://deeplabcut.github.io/DeepLabCut/docs/ModelZoo.html" |
-| `mentions.datasets` | ["Quadruped-80K", "AnimalPose"] |
-| `mentions.benchmarks` | ["AP-10K", "AnimalPose"] |
-| `mentions.models` | ["DeepLabCut"] |
-
-Note that **DeepLabCut** (the parent toolkit) is a mention because the *primary* resource here is the SuperAnimal-Quadruped model, not the toolkit.
-
-## Edge cases
-
-- **Multi-resource releases** (e.g. "we release a dataset and an accompanying model"): emit each as a separate top-level resource under `"1"`, `"2"`. Don't merge.
-- **Resources without URLs**: emit `"url": null` rather than guessing. Made-up URLs poison downstream consumers.
-- **Vague targets** ("various species"): set `specific_target: null`. Don't pad with examples that weren't in the text.
-- **Versions** ("DeepLabCut v2.3"): the Dataset/Tool schema now accepts a `versions` array. Record each source-stated value separately with a verbatim quote; never infer a version from publication date. Other resource types retain their existing representation.
-
-## Source-backed Dataset and Tool claims
-
-This first Resources Catalog slice adds optional `identifiers[]` and `versions[]` to primary Dataset and Tool records. Legacy records without them are still valid. Omit absent fields; an empty array is not evidence that no identifier or version exists. Conflicting or multiple stated versions stay as separate claims, not one chosen value.
-
-| Source passage | Extracted and normalized field | Turtle output |
+| concern | BKR | from the extraction |
 |---|---|---|
-| `DANDI:000123` in an exact quote | `identifiers[{scheme: "DANDI", value: "000123", evidence: {quote: "…"}}]` | `dcterms:identifier "DANDI:000123"` plus an `rdf:Statement` linked to the source publication and quote |
-| `version 1.4.0` in an exact quote | `versions[{value: "1.4.0", evidence: {quote: "…"}}]` | `owl:versionInfo "1.4.0"` plus the same kind of source-linked statement |
+| what it applies to — claimed / shown / used on / ruled out | `bkr:DeclaredScope` / `ValidatedScope` / `ObservedScope` / `OutOfScope` | `applicability.{declared,validated,observed,out_of_scope}` |
+| on which taxa, anatomy, cell types, assays, conditions | `bkrls:appliesToTaxon`, `appliesToAnatomicalStructure`, `appliesToCellType`, `appliesToAssay`, `appliesToCondition`, `bkr:appliesToTask` / `Topic` / `Modality` | scope dimensions (concept labels, tool-mapped) |
+| what it assumes | `bkr:Assumption` (+ kind subclasses): criticality, status, `violationConsequence`, `isTestableBy` | `assumptions[]` |
+| how it fails | `bkr:FailureMode`: condition, symptom, mitigation, severity, `bkr:isSilentFailure` | `failure_modes[]` |
+| what it needs / takes / gives | `bkr:Requirement`, `InputSpecification`, `OutputSpecification` | `requirements[]`, `inputs[]`, `outputs[]` |
+| how well it did | `bkr:BenchmarkResult` (`dqv:QualityMeasurement`) | `benchmark_evidence[]` |
+| identifiers, versions, access | `adms:Identifier`, `bkr:ResourceVersion` (+ change records), `bkr:AccessCondition`, licence | `stable_identifiers`, `versions`, `access`, `license` |
+| which paper attests it | `dcterms:isReferencedBy` → the paper's `ner:Publication` | filled by the pipeline |
+| the metadata record and its quotes | `dcat:CatalogRecord`, `bkr:ResourceAssertion` → `ner:EntityMention` (`ner:evidenceText`) | `provenance.field_evidence` |
+| what was looked for and not found | `bkr:notFoundField` on the record | `not_found_fields` |
 
-Quotes must be exact contiguous substrings of the normalized text consumed by the extractor (not PDF byte offsets). The pipeline rejects a claim if its quote cannot be found or omits its value; direct JSON-to-Turtle conversion skips that claim and reports a warning when the source is missing or inconsistent. These are statements *made by the source*, not verified registry metadata. Source identity comes from the existing document provenance, and extraction-run identity remains separate.
+The four-way scope split is the reason for the ontology: a catalogue that collapses
+"applies to" overstates its sources.
 
-For a reproducible synthetic example, from `skills/structsense` run:
+## Files
+
+| file | role |
+|---|---|
+| `default_ontology/brainkb_resource_ontology.owl` | the ontology: the BKR standalone (core + vocabularies + life-science axes + BrainKB/SEPIO and schema.org/SOSA/DataCite bridges merged, no `owl:imports`). Also the vocabulary the converter reads `extracted_type → class` from (`bkr:instantiatesClass`). |
+| `default_ontology/brainkb_resource_shapes.ttl` | the policy shapes (SHACL), deliberately outside the ontology |
+| `default_ontology/resource_kg_config.json` | instance base, concept routing, grounding, source-silence shapes |
+| `schemas/bkr-resource-extraction.schema.json` | the extraction contract (30 fields per record) |
+| `prompts/extractor-resource.md` | the extractor prompt |
+| `scripts/resource_kg.py` | records → ground → map → convert → stubs → link; and `validate` |
+| `scripts/bkr_convert.py`, `scripts/bkr_stubs.py` | the BKR converter and mention-stub resolver (vendored from bkr-0.5.6) |
+| `cqs/brainkb_resource_ontology_CQs.md` | 21 competency questions, runnable with `cqs/run_cqs.py --entail` |
+
+## Pipeline
+
+```
+document ─▶ extraction JSON ─▶ ground ─▶ map ─▶ provenance ─▶ BKR Turtle ─▶ stubs ─▶ SHACL gate
+          (extractor-resource.md,   (source   (concept_     (paper +      (bkr_convert)  (bkr_stubs)  (validate_ttl)
+           bkr-resource-extraction   text)     mapping.json)  run)
+           schema)
+```
 
 ```bash
-python -m scripts.json_to_ttl examples/resource-catalog-example.json --source examples/resource-catalog-example.txt --out resource-catalog-example.ttl
-python -m scripts.validate_ttl resource-catalog-example.ttl
+# framework mode
+python -m scripts.pipeline --task resource --input paper.txt --mapper config
+# or, with a result JSON in hand (host-model mode, or an earlier run)
+python -m scripts.json_to_ttl result_final.json --source paper.pdf         # auto-detects resources
+python -m scripts.resource_kg build result_final.json --source paper.pdf --map   # same, with concept mapping
+python -m scripts.validate_ttl result.ttl                                    # gate: must exit 0
+python cqs/run_cqs.py result.ttl --cqs cqs/brainkb_resource_ontology_CQs.md \
+    --with-ontology default_ontology/brainkb_resource_ontology.owl --entail  # competency questions
 ```
 
-The expected JSON was manually prepared, not produced by an LLM. It introduces a Dataset and a Tool separately, retains the cited OldScope as a mention, and keeps two MazeCheck version claims. No resource version is supplied for the dataset because the source does not state one. Input/output requirements, applicability, maintainers, benchmark results and limitations await an authoritative catalog schema and agreed RDF mapping; this slice does not infer or emit them.
+### 1. Extract — two tiers
+
+The extractor reads the whole document (`extraction_chunk_chars`, default 60 000;
+records from several chunks are merged by name). It writes:
+
+- a **deep record** for each resource the document describes (usually what it
+  produces): description, identifiers, versions, scope, assumptions, failure modes,
+  benchmarks, IO, owners, access, mentions;
+- a **catalogue record** for each third-party resource it uses: name, type,
+  identifier, version and an **observed** scope recording how this study used it;
+- **mentions** for resources only named in passing.
+
+Inclusion: resources produced, and third-party resources actually used. Exclusion:
+wet-lab consumables (probes, kits, antibodies, stains), instruments used only as
+equipment, figure/table/supplement labels, journal names, cited papers as such, and
+bare method names with no named implementation. A key-resources table or a
+"Data and code availability" section is authoritative for identifiers, RRIDs,
+versions and URLs.
+
+### 2. Ground — only what the source states
+
+`resource_kg.ground` checks every record against the normalised source text (NFKC,
+quotes and dashes folded, soft hyphens and line-break hyphenation removed — the same
+normalisation the AIT evidence check uses):
+
+| checked | rule | on failure |
+|---|---|---|
+| `stable_identifiers[].value` | stated as a complete token (DOI with or without `https://doi.org/`, RRID with or without `RRID:`) | removed; field added to `not_found_fields` |
+| `versions[].version` | stated as a complete token (`1.4` is not `1.4.0`) | removed |
+| `url`, `license` | stated in the text | removed |
+| every evidence `quote` | found verbatim (fuzzy ≥ 0.95 tolerated for extraction noise) | quote dropped |
+| `start` / `end` | never trusted (model-computed offsets) | removed; the quote is the anchor |
+| a `ValidatedScope` | must keep evidence or a benchmark result (BKR invariant 2) | demoted to a declared scope |
+| an `llm_judgment` mapping | never carries an IRI | IRI dropped, label kept |
+| `mentions[].name` | named in the text | removed |
+
+Removals are listed in the result (`resource_grounding.removed`) and the build
+report. Without a source text nothing can be checked, so identifiers, versions,
+URLs, licences and quotes are all removed — pass `--source`.
+
+### 3. Map concepts — tools only
+
+Scope-dimension labels go through the same `ConceptMapper` cascade as NER
+(`concept_mapping.json`: trusted ontologies by `priority.md`, then local hybrid,
+then BioPortal). `resource_kg_config.json` `concept_routing` says which extractor
+label restricts each dimension's ontologies:
+
+| dimension | routed as | ontologies (label_routing) |
+|---|---|---|
+| species | Species | NCBITaxon |
+| anatomical_structures | BrainRegion | UBERON |
+| cell_types | CellType | CL, PCL |
+| developmental_stages | DevelopmentalStage | UBERON, MmusDv, HsapDv |
+| assays, modalities | Method | OBI, EFO |
+| conditions | Disease | MONDO, DOID |
+| tasks, topics, variables | — not mapped | the label survives, unmapped |
+
+Each hit becomes a `ner:ConceptMappingDecision` with the method (`normalized_lexical`
+for trusted files, `hybrid_retrieval` for the local service, `exact_lexical` for a
+BioPortal label hit, `rule_based` for curated mappings), relation (from the match
+tier) and status. Exact/close tiers are `accepted` and become SKOS shortcuts on a
+per-batch label concept; weaker tiers stay `proposed` — recorded, not asserted on the
+scope. A tie between two classes is `ambiguous`, with the candidates named.
+
+### 4. Provenance and identity
+
+- The paper is the **same node** the NER graph of that paper uses: its
+  `ner:Publication` IRI is derived exactly as `json_to_ttl` derives it (DOI, else
+  source id/path), so the resource KG and the NER KG join on it. Every resource is
+  `dcterms:isReferencedBy` it; every record `prov:hadPrimarySource` it.
+- The run is a `bkr:AutomatedExtraction` associated with the structsense
+  `ner:PipelineAgent` and the extractor model.
+- A **resource is one node across papers** (UUIDv5 of its normalised name), so
+  "which papers use Scanpy" is one hop. Its records, scopes, assumptions and quotes
+  are per paper (keyed on a hash of the paper id and the record id), so two papers'
+  claims never merge. Set `global_resource_key: false` for one node per record.
+- Instance IRIs are UUIDv5 under `https://brainkb.org/kb/` (the NER base). Output is
+  byte-identical across runs; each node keeps its derivation key as
+  `dcterms:identifier`. Changing `instance_base` re-keys every instance.
+
+### 5. Mention stubs
+
+Each `mentions` entry becomes a stub (`dcterms:identifier "mentioned/<name>"`).
+`bkr_stubs.resolve` merges a stub onto the full record of the same resource
+(normalised name, parenthetical / prefix / suffix variants, identifier values, URLs).
+A stub with no full record is kept: a resource the paper names but does not describe
+is a fact. Pass `--alias aliases.json` (`{mention: resource name}`) for variants the
+rules miss; run `python -m scripts.bkr_stubs corpus.ttl --out corpus.ttl` over a
+merged corpus to join a stub in one paper onto another paper's record.
+
+### 6. Validate
+
+`python -m scripts.validate_ttl x.ttl` recognises a resource KG and gates it with
+`resource_kg.validate_graph`:
+
+- SHACL against `brainkb_resource_shapes.ttl` with the ontology;
+- every `bkr:`/`ner:` class and predicate declared in the BKR or NER ontology;
+- one connected component.
+
+**Source silence is a finding, not a defect.** A paper rarely states a licence or an
+access condition, so `CitableResourceShape` ("a citable resource must state a
+licence, a rights statement or an access condition") fires on most records. Those
+results are reported as findings and do not fail the gate. `ScopedResourceShape` (a
+tool/model must declare a scope) is a finding only when the gap is declared — the
+record lists `applicability` in `not_found_fields`, or the node is a mention stub —
+otherwise it is an extraction gap and fails. **Never fix a finding by inventing a
+licence or a scope.**
+
+### 7. Query
+
+`cqs/brainkb_resource_ontology_CQs.md` holds the 21 BKR competency questions
+(resources for a species, declared vs validated, applied outside declared scope,
+critical / violated assumptions, deprecated versions and replacements, breaking
+changes, mapping audit, failure modes, attesting works, extraction completeness, …).
+`bkr:hasScope` and `bkr:appliedToConcept` are **entailed, never asserted** — run with
+`--entail` (OWL-RL over data + ontology; needs `owlrl`) or most queries return
+nothing.
+
+## Legacy input
+
+The earlier structsense resource shape (`schemas/resource-output.schema.json`:
+`{"extracted_resources": {"1": [{name, type, category, target, specific_target,
+url, identifiers, versions, mentions{datasets, tools, ...}}]}}`) is still accepted
+and upgraded through the crosswalk the ontology itself declares
+(`bkr:structsenseField`): `type` → `extracted_type` (Paper → publication),
+`category` → `tasks`, `target`/`specific_target` → a declared scope's target labels,
+NCBITaxon `mapped_specific_target_concept` → `species`, `identifiers`/`versions` →
+`stable_identifiers`/`versions` with their quotes as field evidence, `mentions{}` →
+typed `mentions[]`, `judge_score`/`remarks` → `judge`. A legacy record with no target
+records `applicability` as not found. The output is a BKR resource KG either way.
+
+## Judging
+
+The judge scores records, not mentions: are `name`, `extracted_type`, identifiers
+and URL consistent with the quotes; is the scope split honest (a validated scope
+with a reported evaluation, not a claim); are assumptions and failure modes stated
+in the text. A score is carried as `judge` → `dqv:QualityMeasurement` on the record.

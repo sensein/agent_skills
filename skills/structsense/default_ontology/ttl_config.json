@@ -151,15 +151,6 @@
     "fail": "rejected",
     "flag_fixed": "corrected"
   },
-  "secondary_resource_classes": {
-    "_comment": "resource-mode `mentions` lists -> class of the secondary entity",
-    "datasets": "DatasetEntity",
-    "benchmarks": "DatasetEntity",
-    "models": "ComputationalMethod",
-    "papers": "PublicationEntity",
-    "tools": "SoftwareEntity",
-    "_default": "ResearchEntity"
-  },
   "media_types": {
     ".pdf": "application/pdf",
     ".txt": "text/plain",

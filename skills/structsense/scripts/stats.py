@@ -32,6 +32,9 @@ def _iter_items(result: Mapping[str, Any]) -> Iterable[tuple[str, dict]]:
         for bucket, items in res.items():
             for it in items or []:
                 yield "resources", it
+    elif isinstance(res, list):  # BKR records (resource_kg)
+        for it in res:
+            yield "resources", it
 
 
 def _bucket_score(s: Optional[float]) -> str:
@@ -102,6 +105,8 @@ def compute_stats(
     if isinstance(res_container, dict):
         for items in res_container.values():
             resources.extend(items or [])
+    elif isinstance(res_container, list):
+        resources.extend(res_container)
 
     # ---- alignment provenance ----
     prov = Counter()

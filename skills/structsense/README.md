@@ -4,7 +4,9 @@
 
 A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with ontology mapping, a judge ensemble, and human-in-the-loop review.
 
-Since 0.9.0 the result of a NER or resource run is **Turtle — one validated `<stem>.ttl` per paper**, instances of the bundled Named Entity Ontology (v2.4) with deterministic UUIDv5 IRIs, so the same entity in two papers is the same node. Concepts are mapped against the bundled **trusted ontologies first**, in the order you set in [`trusted_ontologes/priority.md`](trusted_ontologes/priority.md), then a local hybrid service, then BioPortal. Quality comes from a **judge ensemble** — independent grounding / labeling / mapping / key / claim judges plus a deterministic combiner — and every judge step, verdict and change is recorded as provenance in the Turtle. See [Turtle output](#turtle-output-09) and [Trusted ontologies](#trusted-ontologies-09).
+Since 0.9.0 the result of a NER run is **Turtle — one validated `<stem>.ttl` per paper**, instances of the bundled Named Entity Ontology (v2.4) with deterministic UUIDv5 IRIs, so the same entity in two papers is the same node. Concepts are mapped against the bundled **trusted ontologies first**, in the order you set in [`trusted_ontologes/priority.md`](trusted_ontologes/priority.md), then a local hybrid service, then BioPortal. Quality comes from a **judge ensemble** — independent grounding / labeling / mapping / key / claim judges plus a deterministic combiner — and every judge step, verdict and change is recorded as provenance in the Turtle. See [Turtle output](#turtle-output-09) and [Trusted ontologies](#trusted-ontologies-09).
+
+A **resource** run (datasets, software, models, pipelines, archives, schemas, benchmarks, …) delivers a **resource knowledge graph** in the bundled **BrainKB Resource Ontology** (`default_ontology/brainkb_resource_ontology.owl`): per resource, what it is claimed to apply to vs shown to apply to vs used on, its assumptions, failure modes, inputs/outputs, versions and identifiers, each tied to a verbatim quote and to the paper's `ner:Publication` — the same node the paper's NER graph uses. See [Resource knowledge graph](#resource-knowledge-graph).
 
 Since 0.5.0 it also does **ABCD / HBCD extraction and cross-paper synthesis** — which variables a study used (resolved against the NBDC data dictionary, with `nda_or_nbdc_table` and `nbdc_domain`), the constructs behind them (Cognitive Atlas), the models specified, and the findings reported — under strict quote-level verification, for one PDF or a whole corpus. See [ABCD / HBCD extraction](#abcd--hbcd-extraction).
 
@@ -64,7 +66,7 @@ structsense/
 │   ├── extractor-cell-type-ait-mapping.md ← cell types → AIT taxonomy (SKOS edges)
 │   ├── mask-recall-pass.md                ← pass-2: catch mentions pass-1 missed
 │   ├── mask-verify-pass.md                ← per-item cloze label check
-│   ├── extractor-resource.md              ← Model / Dataset / Tool / Benchmark / …
+│   ├── extractor-resource.md              ← research resources → BrainKB Resource Ontology KG
 │   ├── extractor-structured.md            ← user-supplied JSON Schema
 │   ├── alignment.md                       ← ontology mapping
 │   ├── judge-grounding.md / judge-labeling.md / judge-mapping.md /
@@ -75,7 +77,8 @@ structsense/
 │   └── humanfeedback.md                   ← apply reviewer edits
 ├── schemas/                 ← JSON Schemas for outputs (drop into structured-outputs APIs)
 │   ├── ner-output.schema.json
-│   ├── resource-output.schema.json
+│   ├── bkr-resource-extraction.schema.json ← the resource extraction contract (BKR profile)
+│   ├── resource-output.schema.json        ← legacy resource shape (still accepted as input)
 │   ├── aligned-item.schema.json
 │   ├── judged-item.schema.json
 │   ├── judge-review.schema.json           ← one judge's review of one packet
@@ -187,7 +190,7 @@ It's **idempotent** — safe to run on already-canonical files. It also runs aut
 | Entities + key terms from neuroscience text | `prompts/extractor-ner-neuroscience.md` |
 | CNS cell-typing extraction (atlases, patch-seq, scRNA-seq) | `prompts/extractor-ner-cns-cells.md` |
 | Map a paper's cell types to Allen Institute (AIT) taxonomies | `prompts/extractor-cell-type-ait-mapping.md` |
-| Pull tools / datasets / models / benchmarks from a paper | `prompts/extractor-resource.md` |
+| Pull resources (datasets, software, models, pipelines, archives, …) from a paper as a resource KG | `prompts/extractor-resource.md` |
 | Convert a PDF to a target JSON schema (e.g. ReproSchema) | `prompts/extractor-structured.md` |
 
 ### 2. Run pass-1, then pass-2 (mask-recall) for exhaustive yield
@@ -524,6 +527,39 @@ python -m scripts.batch status --manifest ~/out/.structsense/batch.json
 - Extraction names each surface once; `scripts/expand_mentions.py` finds every
   occurrence with exact offsets, robust to PDF line wraps and hyphenation, and skips
   references, acknowledgements and funding text.
+
+## Resource knowledge graph
+
+`--task resource` (pipeline), a `resource` batch variant, or any result JSON with
+`extracted_resources` handed to `json_to_ttl` produces a resource KG in the BrainKB
+Resource Ontology (BKR 0.5.6, bundled standalone as
+`default_ontology/brainkb_resource_ontology.owl`, shapes in
+`brainkb_resource_shapes.ttl`):
+
+```bash
+python -m scripts.pipeline --task resource --input paper.txt --mapper config
+python -m scripts.batch init --input ~/papers --variants resource --out ~/out --model <id>
+python -m scripts.resource_kg build result_final.json --source paper.pdf --map
+python -m scripts.validate_ttl paper.ttl                     # recognises a resource KG
+python cqs/run_cqs.py ~/out --cqs cqs/brainkb_resource_ontology_CQs.md \
+    --with-ontology default_ontology/brainkb_resource_ontology.owl --entail
+```
+
+- **Scope, four ways**: declared / validated (must cite its evidence) / observed in
+  use / out of scope, each on taxa, anatomy, cell types, assays, conditions, tasks.
+- **Assumptions and failure modes** (criticality, consequence, silent failures),
+  requirements, inputs/outputs, benchmark results, versions with change records,
+  identifiers, access and licence.
+- **Grounded**: identifiers, versions, URLs, licences and every quote must occur in
+  the source; what does not is removed and listed in `not_found_fields`. Scope labels
+  are mapped by the same tool cascade as NER — never an LLM IRI.
+- **Joined**: a resource is one node across papers; each paper's record and claims
+  stay separate and point at the paper's `ner:Publication`, the node its NER graph
+  shares. The batch roll-up writes `corpus_resource_kg.ttl` with mention stubs
+  resolved across papers.
+- **Gated**: BKR SHACL + vocabulary + one component. A licence the paper never states
+  is a *finding about the source*, not a failure. See
+  [references/resource-extraction.md](references/resource-extraction.md).
 
 ## Turtle output (0.9)
 

@@ -54,7 +54,7 @@ A reusable methodology for turning unstructured text and PDFs into clean, schema
 Trigger when the user asks to:
 
 - Extract **named entities + key terms** (NER) from biomedical, neuroscience, or scientific text.
-- Pull **resources** out of papers — tools, datasets, models, benchmarks, leaderboards.
+- Pull **resources** out of papers — datasets, software, models, pipelines, archives, schemas, ontologies, benchmarks — as a **resource knowledge graph** in the BrainKB Resource Ontology (what each applies to: claimed vs validated vs used on; assumptions; failure modes; versions; identifiers; quoted evidence).
 - Convert a document into a **target JSON schema** (e.g. ReproSchema, Croissant, a custom schema the user supplies).
 - **Map extracted terms to ontologies** (BioPortal, OLS, OBO, BTO, CL, UBERON, NCBITaxon, MESH, …).
 - **Score or judge** the quality of an existing extraction.
@@ -171,7 +171,7 @@ python -m scripts.batch status --manifest <dir>/.structsense/batch.json
      - General-domain text (news, finance, biographies, generic web pages, mixed text) → `prompts/extractor-ner-general.md`.
      - Neuroscience text — broad (behavior + systems + cellular + molecular + computational) → `prompts/extractor-ner-neuroscience.md`.
      - CNS-cell-focused text (cell atlases, patch-seq, scRNA-seq cell typing, BICCN-style cell census — anything where cell types + markers + morphology + ephys are the subject) → `prompts/extractor-ner-cns-cells.md`, **plus `references/cell-annotation-conventions.md`** if the output will be scored against a human gold standard (specificity types, nested spans, coordinated ids — the conventions that make the difference between a real error and a format mismatch).
-   - Tools / datasets / models / benchmarks → load `references/resource-extraction.md` and `prompts/extractor-resource.md`.
+   - Resources (datasets / software / models / pipelines / archives / schemas / benchmarks …) → load `references/resource-extraction.md` and `prompts/extractor-resource.md` (contract: `schemas/bkr-resource-extraction.schema.json`, with its `$defs`). The deliverable is a **resource KG** in the BrainKB Resource Ontology (`default_ontology/brainkb_resource_ontology.owl`): `scripts/resource_kg.py` grounds every identifier, version, URL, licence and quote in the source, maps scope labels with the concept-mapping cascade (never an LLM IRI), converts, merges mention stubs and links the records to the paper's `ner:Publication`.
    - User has a target JSON schema → load `references/structured-extraction.md` and `prompts/extractor-structured.md`.
    - **Cell types → Allen Institute (AIT) taxonomies** (one paper is one node; its cell types become SKOS edges to AIT nodes, with marker-gene diffs and assay/panel depth) → `prompts/extractor-cell-type-ait-mapping.md`. Four passes: index + extract → verify → map → entity cards. This mode emits seven fixed-schema CSVs (`schemas/ait-mapping-columns.json`), not NER JSON. The trust steps are code: `scripts/ait_evidence.py` (lexical evidence check + quarantine), `scripts/ait_taxonomy.py` (taxonomy choice from `data/allen_taxonomies.json`; never a hardcoded list), `scripts/ait_gene_diff.py` (entity cards) and `scripts/ait_tables.py` (`derive` / `review-sheet` / `validate`, which must exit 0). `skos:exactMatch` means same-taxonomy identity only.
    - **ABCD / HBCD variables, models, findings, or cross-paper synthesis** → load `references/abcd-extraction.md` and `prompts/extractor-abcd.md`. This mode has its own verifier and its own hard rules (see rule 16); it is not a variant of NER. Single PDF or a directory in bulk; every run emits JSON + Markdown + Turtle.
@@ -183,7 +183,7 @@ python -m scripts.batch status --manifest <dir>/.structsense/batch.json
 5b. **Identity plan (default for NER)** → `prompts/kg-plan.md`: write `kg_plan.json` before judging — coreference keys and finer classes; evidence-bearing relations when stated; causal chains only when requested — so the kg-keys and claims judges review it. `{}` is a valid plan when the paper gives nothing to add; skipping the step is the exception (`json_to_ttl --no-kg-plan`), not the default. `pipeline.py` writes it unless `--kg-plan-model none`.
 6. **Multiple models for cost?** Use the cheapest capable model for extraction (often a small open model), tools for candidate retrieval plus contextual mapping review, and a fast model for judging. See `references/model-selection.md`.
 6b. **Relations come with the entities.** Every NER prompt asks the extractor for the relations the text states per mention (`relations`, `broader` for hierarchy — CellSubtype → CellType → CellClass, region → region), and the paper's causal claims (`causal_relations`, e.g. genotype → phenotype). `scripts/relations.py` resolves them to extracted entities; the claims judge reviews them; they land in the TTL as RO/BFO edges, `skos:broader` and the causal module.
-7. **Represent (always for NER / resource)** → load `references/ttl-representation.md` + `references/key-normalization.md`. `python -m scripts.json_to_ttl <result.json> --kg-plan kg_plan.json --source <pdf>` → `python -m scripts.validate_ttl <stem>.ttl` (must exit 0). Deliver the validated `.ttl` (entity views only on request). Working-stage JSON remains internal.
+7. **Represent (always for NER / resource)** → load `references/ttl-representation.md` + `references/key-normalization.md`. `python -m scripts.json_to_ttl <result.json> --kg-plan kg_plan.json --source <pdf>` → `python -m scripts.validate_ttl <stem>.ttl` (must exit 0). Deliver the validated `.ttl` (entity views only on request). Working-stage JSON remains internal. A **resource** result needs no kg_plan: `json_to_ttl` detects it and writes the BKR resource KG (`python -m scripts.resource_kg build <result.json> --source <pdf> --map` adds tool concept mapping); `validate_ttl` gates it against `brainkb_resource_shapes.ttl`, reporting a licence the paper never states as a source-silence finding, not a failure. Query it with `cqs/brainkb_resource_ontology_CQs.md` (`run_cqs.py --entail`).
 
 ## Hard rules
 
@@ -320,12 +320,15 @@ The files below are intentionally separated so you only load what the current ta
 - `default_ontology/ttl_config.json` — representation policy: IRI scheme (UUIDv5), generic keys, interventional evidence bases, relation predicates, OBO prefixes and `curie_expansions` (the prefix registry's static part), tiers, statuses.
 - `default_ontology/label_class_map.json` — extractor label → ontology class.
 - `default_ontology/key_synonyms.json` — user overrides for keys only (keys come from the trusted ontologies).
+- `default_ontology/brainkb_resource_ontology.owl` — the BrainKB Resource Ontology (BKR 0.5.6 standalone: core, vocabularies, life-science scope axes, BrainKB/SEPIO and schema.org/SOSA/DataCite bridges, no imports) — the ontology of the resource KG, and the vocabulary `extracted_type → class` is read from.
+- `default_ontology/brainkb_resource_shapes.ttl` — BKR policy shapes (SHACL) for the resource KG.
+- `default_ontology/resource_kg_config.json` — resource KG settings: instance base, concept routing per scope dimension, grounding, source-silence shapes, extraction chunk size.
 
 ### `references/`
 - `pipeline-pattern.md` — multi-stage agent pattern, how to chain stages, when to skip, resume from a saved stage.
 - `ner-extraction.md` — NER methodology: entity types, output keys, edge cases, exhaustive extraction, mask-recall pass, grouped view.
 - `ner-models.md` — HuggingFace + LLM ensemble: model roster, profiles by domain, `source_model` provenance, consensus count, when to skip.
-- `resource-extraction.md` — resource extraction methodology (tools/datasets/models/benchmarks/leaderboards).
+- `resource-extraction.md` — resource extraction → BKR resource KG: two-tier extraction, grounding rules, tool concept mapping, provenance and identity (shared publication node, one resource node across papers), mention stubs, the gate and its source-silence findings, the competency questions, and the legacy-input crosswalk.
 - `structured-extraction.md` — generic schema-driven extraction (PDF → user-supplied JSON schema).
 - `ontology-mapping.md` — BioPortal REST API, OLS REST API, embedding-based hybrid retrieval, LLM-only fallback. Picking and combining backends.
 - `chunking-strategy.md` — sentence-aligned chunking, parallel extraction, merge by stable key, context window math.
@@ -344,7 +347,7 @@ The files below are intentionally separated so you only load what the current ta
 - `extractor-ner-cns-cells.md` — CNS-cell-focused NER (CellClass / CellType / CellSubtype with lineage markers, morphology, ephys, layer, projection, atlas references, profiling method).
 - `mask-recall-pass.md` — **pass-2** that surfaces mentions pass-1 missed. Run on any of the three NER prompts above. Big recall booster (typical +30–80%).
 - `mask-verify-pass.md` — per-item label sanity check via cloze (mask one entity, predict label from context). Optional precision booster.
-- `extractor-resource.md` — research resource extractor (one primary Model/Dataset/Tool/Benchmark per source, with `mentions` for secondaries).
+- `extractor-resource.md` — research resource extractor, BKR profile: deep records for what the document describes, catalogue records with an observed scope for what it uses, `mentions` for the rest; claimed / validated / observed / out-of-scope applicability, assumptions, failure modes, IO, versions, quotes, explicit `not_found_fields`.
 - `extractor-structured.md` — schema-driven extractor (PDF → user-supplied JSON Schema).
 - `alignment.md` — ontology alignment (LLM + concept-mapping tool).
 - `alignment-via-http.md` — turnkey curl + jq pipeline for calling the local hybrid `/map/batch` endpoint directly. Use when you have Bash + network access but no Python client (Claude Code is the common case).
@@ -360,7 +363,8 @@ The files below are intentionally separated so you only load what the current ta
 - `ner-output.schema.json` — JSON Schema for NER output. **Task-agnostic — keep it that way**; cell-specific constraints live in the two files below.
 - `cell-ner-output.schema.json` — per-paper CNS cell NER output. Superset of the generic NER schema: the closed cns-cells label taxonomy (enforced for LLM-extracted items only, since the HF ensemble legitimately emits `Anatomy`/`Gene`/`CellLine`), the `cell_context` block, `specificity`, `coordinated_elements`, and a rule that a `cell_vague` item **must** carry a null `ontology_id`.
 - `cell-ner-corpus.schema.json` — the corpus roll-up written by `scripts/merge_corpus.py`.
-- `resource-output.schema.json` — JSON Schema for resource output.
+- `bkr-resource-extraction.schema.json` — the resource extraction contract (BKR profile, 30 fields per record).
+- `resource-output.schema.json` — the legacy resource shape; still accepted as input and upgraded to BKR records by the ontology's own crosswalk.
 - `aligned-item.schema.json` — fragment schema for any aligned item (adds ontology + provenance fields).
 - `judged-item.schema.json` — fragment schema for any judged item (adds judge_score + remarks + judge_method).
 - `judge-review.schema.json` — one judge's review of one packet.
@@ -373,7 +377,9 @@ The files below are intentionally separated so you only load what the current ta
 - `concept_mapping.py` — **concept mapping from configuration**: trusted-ontology lexicon (`index` → TSV per ontology + SQLite), priority-ordered exact lookup with routing and the abbreviation guard, then local hybrid → BioPortal. CLI: `index` / `show` / `lookup` / `map` / `export-synonyms` / `init-priorities` / `readme`.
 - `prefixes.py` — **the prefix registry** (rule 19). CLI: `show` / `check` / `compact` / `expand` / `canonical`.
 - `json_to_ttl.py` — **result → Turtle** (rule 18): entities, every mention, sentences, sections, annotation versions, tool-verified concepts + mapping decisions, judge reviews, kg_plan edges and the causal module; UUIDv5 IRIs; keys from reviewed identity / source-defined aliases / algorithm. Compact is the default; `--profile full` adds audit records.
-- `validate_ttl.py` — **the gate**: OWL vocabulary + domain/range, SHACL shapes, config policy, prefix consistency, labels, one connected component; `--check-ols` optional.
+- `validate_ttl.py` — **the gate**: OWL vocabulary + domain/range, SHACL shapes, config policy, prefix consistency, labels, one connected component; `--check-ols` optional. A resource KG is recognised and gated against the BKR ontology + shapes instead.
+- `resource_kg.py` — **resource result → resource KG** (BrainKB Resource Ontology): legacy/BKR records → grounding against the source text → tool concept mapping of scope labels → run/paper provenance → `bkr_convert` → `bkr_stubs` → shared `ner:Publication`. `build` and `validate`; `json_to_ttl` and `pipeline --task resource` call it.
+- `bkr_convert.py`, `bkr_stubs.py` — the BKR converter and mention-stub resolver, vendored from bkr-0.5.6 (vocabulary from the bundled OWL; optional global resource keys and publication aliasing).
 - `judge_prepare.py` — deterministic grounding review + one packet per judge.
 - `judge_combine.py` — deterministic aggregation (gates, demotions, fixes, scores) on the raw mentions; `--apply-fixes` for the combiner.
 - `judge_ensemble.py` — framework-mode runner for the panel and the kg_plan (one call per packet).
@@ -421,7 +427,7 @@ The files below are intentionally separated so you only load what the current ta
 ### `examples/`
 - `ttl/` — **end to end on a real open-access paper** (Hu et al. 2026, CC BY 4.0): text, a human-curated reference TTL, the working JSON with 1,039 grounded mentions, kg_plan, `run.sh`, and the validated result `hu2026.ttl` whose entity and concept IRIs equal the curated graph's.
 - `ner-example.md` — end-to-end NER worked example.
-- `resource-example.md` — end-to-end resource extraction worked example.
+- `resource-example.md` — end-to-end resource extraction → BKR resource KG worked example (with `resource-superanimal.{txt,json}`); `resource-bkr-example.json` is the BKR bundle's own extraction record.
 - `reproschema-example.md` — end-to-end PDF → ReproSchema worked example.
 
 ### `connecting/` (how to wire the skill into different LLM platforms)

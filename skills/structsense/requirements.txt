@@ -31,6 +31,10 @@ jsonschema>=4.20,<5
 # default_ontology/), concept_mapping reads Turtle trusted ontologies with it.
 rdflib>=7.0,<8
 pyshacl>=0.26,<1
+# Resource KG competency questions (cqs/run_cqs.py --entail): bkr:hasScope and
+# bkr:appliedToConcept are entailed, never asserted, so the BKR questions query the
+# OWL-RL closure. Only needed for that flag.
+owlrl>=6.0,<8
 
 # --- JSON repair, tier 3 -----------------------------------------------------
 # scripts/json_repair.py has four tiers; tier 3 delegates to this library for

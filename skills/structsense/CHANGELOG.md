@@ -1,5 +1,49 @@
 # Changelog
 
+## Unreleased — Resource extraction delivers a resource KG (BrainKB Resource Ontology)
+
+A resource run now produces a **resource knowledge graph** in the BrainKB Resource
+Ontology (BKR 0.5.6), bundled standalone as
+`default_ontology/brainkb_resource_ontology.owl`, instead of `ner:` entities. Per
+resource the graph records what it is claimed to apply to, shown to apply to, used
+on and ruled out for (four scope classes, each on taxa / anatomy / cell types /
+assays / conditions / tasks), its assumptions, failure modes (silent ones flagged),
+requirements, inputs/outputs, benchmark results, versions, identifiers, access and
+licence — each statement anchored by a verbatim quote and attested by the paper.
+
+- **`scripts/resource_kg.py`**: records (BKR, `{"1": [...]}` or the legacy shape via
+  the ontology's own `bkr:structsenseField` crosswalk) → schema repair (off-vocabulary
+  values removed, never fatal) → **grounding** (identifiers, versions, URLs, licences
+  and every quote must occur in the source; removals go to `not_found_fields` and the
+  report; model offsets dropped; a validated scope without evidence becomes declared;
+  an `llm_judgment` mapping never keeps an IRI) → **tool concept mapping** of scope
+  labels through the same `ConceptMapper` cascade as NER (`concept_routing` per
+  dimension; exact/close tiers accepted, weaker ones proposed and not asserted) →
+  provenance → conversion → mention-stub resolution. `build` and `validate`.
+- **Joins**: the paper is the same `ner:Publication` IRI the paper's NER graph mints;
+  a resource is one node across papers (records, scopes and claims stay per paper).
+  Local file paths never appear in the graph.
+- **`scripts/bkr_convert.py`, `scripts/bkr_stubs.py`**: the BKR converter and stub
+  resolver, vendored; vocabulary read from the bundled OWL; scope assertions only from
+  accepted mappings; a non-IRI licence becomes `bkr:rightsStatement`.
+- **Gate**: `validate_ttl` recognises a resource KG and checks it against
+  `brainkb_resource_shapes.ttl` + the BKR/NER vocabularies + one component. A licence
+  the paper never states, and a scope gap the record declares (`not_found_fields`) or a
+  stub cannot fill, are **source-silence findings**, not failures.
+- **Wiring**: `json_to_ttl` delegates resource results; `pipeline --task resource`
+  reads whole documents (`extraction_chunk_chars`, default 60 000) and grounds/maps
+  in place; `batch` gains a `resource` variant whose roll-up is
+  `corpus_resource_kg.ttl` with stubs resolved across papers.
+- **Prompt and contract**: `prompts/extractor-resource.md` rewritten for the BKR
+  profile (two tiers, scope split, assumptions/failure modes, quotes, explicit
+  absence); `schemas/bkr-resource-extraction.schema.json` added;
+  `references/resource-extraction.md` and `examples/resource-example.md` rewritten.
+- **Queries**: `cqs/brainkb_resource_ontology_CQs.md` (21 BKR competency questions);
+  `run_cqs.py --entail` queries the OWL-RL closure (needs `owlrl`).
+- **Removed**: `scripts/resource_claims.py` (superseded by grounding) and the `ner:`
+  resource branch of `json_to_ttl`; the pipeline no longer aborts on an unsupported
+  identifier — it removes and reports it.
+
 ## 0.12.0 — Cell types to Allen (AIT) taxonomies, with the trust steps in code
 
 New mode: `prompts/extractor-cell-type-ait-mapping.md` extracts a
