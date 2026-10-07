@@ -23,6 +23,12 @@ licence — each statement anchored by a verbatim quote and attested by the pape
 - **Joins**: the paper is the same `ner:Publication` IRI the paper's NER graph mints;
   a resource is one node across papers (records, scopes and claims stay per paper).
   Local file paths never appear in the graph.
+- **Attribution**: every claim on a shared resource names its paper
+  (`bkr:scopeAssertedIn`, `bkr:assumptionStatedIn`, `prov:hadPrimarySource` on
+  benchmarks, failure modes, limitations, IO specs, versions and evidence quotes;
+  `dcterms:references` from a record to what its paper mentions). The publication's
+  title and DOI are plain literals, as the NER graph writes them, so a merged store
+  holds one value, not two.
 - **`scripts/bkr_convert.py`, `scripts/bkr_stubs.py`**: the BKR converter and stub
   resolver, vendored; vocabulary read from the bundled OWL; scope assertions only from
   accepted mappings; a non-IRI licence becomes `bkr:rightsStatement`.

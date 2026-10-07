@@ -179,6 +179,8 @@ class Converter:
         catalogued resource.
         """
         text = str(value).strip()
+        if text in self.documents:  # the record's own work (structsense: its ner:Publication)
+            return self.canonical_document(text)
         if re.match(r"^https?://", text) and "#" not in text:
             node = URIRef(text)
             self.g.add((node, RDF.type, OBO.IAO_0000310))

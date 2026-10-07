@@ -159,7 +159,11 @@
     ".htm": "text/html",
     ".xml": "application/xml",
     ".json": "application/json",
-    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xls": "application/vnd.ms-excel",
+    ".csv": "text/csv",
+    ".tsv": "text/tab-separated-values"
   },
   "iri": {
     "_comment": "Resolved entities have a global deterministic IRI by canonical identity key. Source documents, mentions and relation assertions carry provenance. Local homonyms remain separate until explicit coreference resolves them; never equate entities just because their display labels match.",

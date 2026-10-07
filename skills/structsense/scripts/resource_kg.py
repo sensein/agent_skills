@@ -598,6 +598,32 @@ def attach_provenance(records: list[dict], result: dict, paper_id: str, doi: Opt
             ext.setdefault("model_name", run["extractor_model"])
         if ts and re.match(r"^\d{4}-\d{2}-\d{2}T", str(ts)):
             ext.setdefault("timestamp", str(ts))
+        attribute_claims(rec, work["identifier"])
+
+
+def attribute_claims(rec: dict, paper: str) -> None:
+    """Say which paper states each claim. A resource is one node across papers, so a
+    scope, assumption, benchmark or quote hanging from it would otherwise be
+    unattributable once two papers describe it. BKR has the properties
+    (bkr:scopeAssertedIn, bkr:assumptionStatedIn, prov:hadPrimarySource on a benchmark
+    result and on every evidence mention); default each to this record's paper."""
+    def evidence(items):
+        for ev in items or []:
+            if isinstance(ev, dict):
+                ev.setdefault("document", paper)
+    evidence((rec.get("provenance") or {}).get("field_evidence"))
+    for scopes in (rec.get("applicability") or {}).values():
+        for sc in scopes or []:
+            sc.setdefault("asserted_in", paper)
+            evidence(sc.get("evidence"))
+    for a in rec.get("assumptions") or []:
+        a.setdefault("source", paper)
+        evidence(a.get("evidence"))
+    for f in rec.get("failure_modes") or []:
+        evidence(f.get("evidence"))
+    for b in rec.get("benchmark_evidence") or []:
+        b.setdefault("source", paper)
+        evidence(b.get("evidence"))
 
 
 # ---------------------------------------------------------------------------
@@ -769,8 +795,26 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
         emit_skos=bool(cfg.get("emit_skos", True)),
         resource_key=(lambda rec: norm_name(rec["name"])) if cfg.get("global_resource_key", True) else None,
         documents=documents)
+    PROV_SRC = URIRef("http://www.w3.org/ns/prov#hadPrimarySource")
     for rec in records:
-        conv.convert(rec)
+        res = conv.convert(rec)
+        record = conv.iri(rec["record_id"], "record")
+        # per-paper attribution of what has no "stated in" property of its own: the
+        # versions this paper states, and the resources it mentions (dcterms:references
+        # on its record; stub resolution rewires the object like any other reference)
+        for v in rec.get("versions") or []:
+            conv.g.add((conv.iri(rec["record_id"], "version", v["version"]), PROV_SRC, URIRef(pub_iri)))
+        for m in rec.get("mentions") or []:
+            conv.g.add((record, DCT.references, conv.iri("mentioned", m["name"])))
+        if any(rec.get(f) for f in LOOSE):  # the record-level scope (topics, tasks, modalities, species)
+            conv.g.add((conv.iri(rec["record_id"], "scope", "declared-root"), BKR.scopeAssertedIn, URIRef(pub_iri)))
+        for i, f in enumerate(rec.get("failure_modes") or []):
+            conv.g.add((conv.iri(rec["record_id"], "failure", i), PROV_SRC, URIRef(pub_iri)))
+        for i, _l in enumerate(rec.get("limitations") or []):
+            conv.g.add((conv.iri(rec["record_id"], "limitation", i), PROV_SRC, URIRef(pub_iri)))
+        for direction in ("inputs", "outputs"):
+            for i, _x in enumerate(rec.get(direction) or []):
+                conv.g.add((conv.iri(rec["record_id"], direction[:-1], i), PROV_SRC, URIRef(pub_iri)))
     g = conv.g
     _describe_publication(g, URIRef(pub_iri), result, doi, paper_id)
     merged, n_stubs, unmatched = bkr_stubs.resolve(g, alias)
@@ -798,12 +842,48 @@ def _describe_publication(g: rdflib.Graph, pub: URIRef, result: dict, doi: Optio
     g.add((pub, NER.sourceIdentifier, Literal(display_id(paper_id))))
     title = meta.get("paper_title") or meta.get("title")
     if title:
-        g.add((pub, NER.title, Literal(title, datatype=XSD.string)))
+        g.add((pub, NER.title, Literal(title)))  # plain, as json_to_ttl writes it
         g.add((pub, RDFS.label, Literal(title)))
     if doi:
-        g.add((pub, NER.doi, Literal(doi, datatype=XSD.string)))
+        g.add((pub, NER.doi, Literal(doi)))
+    # what KIND of source this is, so a catalogue mixing papers and curated tables can be
+    # queried by it: a DataCite general type (BKR's resource-type vocabulary) and the media type
+    g.add((pub, DCT.type, URIRef(f"https://brainkb.org/resource/resource-type/{source_kind(meta, doi, paper_id)}")))
+    media = _media_type(str(meta.get("source_path") or paper_id))
+    if media:
+        g.add((pub, BKR.mediaType, Literal(media)))
     g.bind("ner", NER)
     g.bind("kb", Namespace(str(pub).rsplit("/", 1)[0] + "/"))
+
+
+TABLE_SUFFIXES = (".xlsx", ".xls", ".xlsm", ".csv", ".tsv", ".ods")
+_KIND = {"spreadsheet": "Dataset", "table": "Dataset", "curated_table": "Dataset", "dataset": "Dataset",
+         "publication": "JournalArticle", "paper": "JournalArticle", "article": "JournalArticle",
+         "journal_article": "JournalArticle", "preprint": "Preprint", "readme": "Software",
+         "model_card": "Software", "documentation": "Text", "webpage": "Text", "report": "Report"}
+
+
+def source_kind(meta: dict, doi: Optional[str], paper_id: str) -> str:
+    """DataCite resourceTypeGeneral of the SOURCE (not of the resources it lists):
+    JournalArticle / Preprint for a paper, Dataset for a curated resource table, Text
+    otherwise. source_metadata.document_type (or source_type) wins when given."""
+    stated = str(meta.get("document_type") or meta.get("source_type") or "").strip().lower().replace(" ", "_")
+    if stated in _KIND:
+        return _KIND[stated]
+    name = str(meta.get("source_path") or meta.get("source_id") or paper_id).lower()
+    if name.endswith(TABLE_SUFFIXES):
+        return "Dataset"
+    if re.match(r"^10\.1101/", doi or ""):
+        return "Preprint"
+    if doi or meta.get("pmid") or meta.get("journal"):
+        return "JournalArticle"
+    return "Text"
+
+
+def _media_type(path: str) -> Optional[str]:
+    from json_to_ttl import TtlConfig
+    suffix = Path(path).suffix.lower()
+    return (TtlConfig().raw.get("media_types") or {}).get(suffix) if suffix else None
 
 
 # ---------------------------------------------------------------------------

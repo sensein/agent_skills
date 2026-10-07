@@ -136,6 +136,12 @@ scope. A tie between two classes is `ambiguous`, with the candidates named.
   "which papers use Scanpy" is one hop. Its records, scopes, assumptions and quotes
   are per paper (keyed on a hash of the paper id and the record id), so two papers'
   claims never merge. Set `global_resource_key: false` for one node per record.
+- Because a resource is shared, **every claim says which paper made it**:
+  `bkr:scopeAssertedIn` on each scope, `bkr:assumptionStatedIn` on each assumption,
+  `prov:hadPrimarySource` on benchmark results, failure modes, limitations,
+  inputs/outputs, versions and every evidence quote; a paper's mentions are
+  `dcterms:references` from its own record. Two papers' readings of one resource can
+  be compared claim by claim.
 - Instance IRIs are UUIDv5 under `https://brainkb.org/kb/` (the NER base). Output is
   byte-identical across runs; each node keeps its derivation key as
   `dcterms:identifier`. Changing `instance_base` re-keys every instance.

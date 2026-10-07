@@ -205,6 +205,14 @@ def test_one_resource_node_across_papers(tmp_path):
     assert len(set(corpus.objects(node, BKR.hasRecord))) == 2
     assert len(set(corpus.objects(node, DCTERMS.isReferencedBy))) == 2
     assert {str(corpus.value(v, BKR.versionIdentifier)) for v in corpus.objects(node, BKR.hasVersion)} == {"1.9.3", "1.10.0"}
+    # every claim on the shared node says which paper made it
+    PROV = Namespace("http://www.w3.org/ns/prov#")
+    papers = {str(corpus.value(p, NER.doi)): p for p in corpus.subjects(RDF.type, NER.SourceDocument)}
+    by_version = {str(corpus.value(v, BKR.versionIdentifier)): corpus.value(v, PROV.hadPrimarySource)
+                  for v in corpus.objects(node, BKR.hasVersion)}
+    assert by_version == {"1.9.3": papers["10.1/a"], "1.10.0": papers["10.1/b"]}
+    scopes = list(corpus.objects(node, BKR.hasObservedScope))
+    assert {corpus.value(sc, BKR.scopeAssertedIn) for sc in scopes} == {papers["10.1/a"], papers["10.1/b"]}
 
 
 def test_scope_gap_fails_unless_declared(src):
