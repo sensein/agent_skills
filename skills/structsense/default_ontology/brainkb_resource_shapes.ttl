@@ -1,0 +1,415 @@
+@prefix schema: <https://schema.org/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix sosa:    <http://www.w3.org/ns/sosa/> .
+@prefix bkr:     <https://brainkb.org/resource/> .
+
+@prefix bkrsh:   <https://brainkb.org/resource/shapes/> .
+@prefix ner:     <https://brainkb.org/ner/> .
+@prefix bkrls:   <https://brainkb.org/resource/lifesci/> .
+@prefix bkrb:    <https://brainkb.org/resource/bridge/brainkb/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<https://brainkb.org/resource/shapes>
+    a owl:Ontology ;
+    dcterms:title "BrainKB Resource Ontology — catalogue policy shapes (SHACL)"@en ;
+    owl:versionInfo "0.1.0" ;
+    dcterms:description """Catalogue policy, separated from the ontology. The ontology says
+what can be said; these shapes say what a record must say before it is published. Severity is
+graded: sh:Violation for things that make a record unusable or misleading, sh:Warning for
+things a curator should fill in."""@en .
+
+################################################################################
+# Minimum citable metadata on every catalogued resource
+################################################################################
+
+bkrsh:ResourceShape a sh:NodeShape ;
+    sh:targetClass bkr:Resource ;
+    rdfs:label "minimum resource metadata"@en ;
+    sh:or (
+        [ sh:property [ sh:path bkr:resourceName ; sh:minCount 1 ; sh:datatype xsd:string ] ]
+        [ sh:property [ sh:path bkr:hasTitle ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:versionOf ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "Every resource needs a canonical name (bkr:resourceName or a bkr:Title); a version may inherit it through bkr:versionOf." ;
+    sh:severity sh:Violation ;
+    sh:property [
+        sh:path bkr:lifecycleStatus ; sh:minCount 1 ;
+        sh:class skos:Concept ;
+        sh:severity sh:Warning ;
+        sh:message "Give the resource a lifecycle status so consumers know whether to rely on it." ] ;
+    sh:property [
+        sh:path bkr:primaryIdentifier ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "A persistent identifier (DOI, RRID, Handle, ARK) should be recorded." ] ;
+    sh:property [
+        sh:path bkr:hasRecord ; sh:minCount 0 ;
+        sh:severity sh:Warning ;
+        sh:message "Resources published in a catalogue should carry a dcat:CatalogRecord so the metadata has its own provenance." ] .
+
+bkrsh:CitableResourceShape a sh:NodeShape ;
+    sh:targetClass dcat:Dataset , schema:SoftwareApplication , bkr:SoftwareLibrary , bkr:Pipeline ,
+                   bkr:ComputationalModel , bkr:DeviceResource , bkr:Archive , bkr:Schema ,
+                   bkr:OntologyResource , bkrls:Atlas , bkrls:CellTypeTaxonomy ;
+    rdfs:label "DataCite-citable resource"@en ;
+    sh:property [ sh:path bkr:creator ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "DataCite requires at least one creator." ] ;
+    sh:property [ sh:path bkr:publicationYear ; sh:maxCount 1 ; sh:datatype xsd:gYear ;
+        sh:severity sh:Warning ;
+        sh:message "publicationYear should be a single xsd:gYear." ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:license ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:rightsStatement ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:hasAccessCondition ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:versionOf ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A citable resource must state a licence, a rights statement or an access condition (a version may inherit them through bkr:versionOf)." ;
+    sh:severity sh:Violation .
+
+bkrsh:IdentifierShape a sh:NodeShape ;
+    sh:targetClass bkr:Identifier ;
+    sh:property [ sh:path bkr:identifierValue ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:severity sh:Violation ; sh:message "An identifier needs exactly one value." ] ;
+    sh:property [ sh:path bkr:identifierScheme ; sh:minCount 1 ;
+        sh:severity sh:Warning ; sh:message "State the identifier scheme (<https://brainkb.org/resource/identifier-type/DOI>, <https://brainkb.org/resource/identifier-type/RRID>, …)." ] .
+
+################################################################################
+# Tools, models and atlases must say what they apply to
+################################################################################
+
+bkrsh:ScopedResourceShape a sh:NodeShape ;
+    sh:targetClass schema:SoftwareApplication , bkr:SoftwareLibrary , bkr:Pipeline , bkr:Workflow ,
+                   bkr:ComputationalModel , bkr:DeviceResource ,
+                   bkrls:Atlas , bkrls:CellTypeTaxonomy ;
+    rdfs:label "applicability scope required"@en ;
+    sh:or (
+        [ sh:property [ sh:path [ sh:alternativePath (
+              bkr:hasScope bkr:hasDeclaredScope bkr:hasValidatedScope
+              bkr:hasObservedScope bkr:hasExcludedScope ) ] ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:versionOf ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A tool, model, atlas or taxonomy must declare at least one applicability scope: a catalogue entry that does not say which species and material it applies to cannot be reused safely. A version may inherit the scope of its version-independent resource." ;
+    sh:severity sh:Violation .
+
+bkrsh:ApplicabilityScopeShape a sh:NodeShape ;
+    sh:targetClass bkr:ApplicabilityScope ;
+    sh:property [ sh:path bkr:scopeEvidenceLevel ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "Every scope statement must declare its evidence level, so a developer claim is never mistaken for a validated one." ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:appliesToConcept ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path [ sh:alternativePath (
+              bkrls:appliesToTaxon bkrls:appliesToAnatomicalStructure bkrls:appliesToCellType
+              bkrls:appliesToDevelopmentalStage bkrls:appliesToSex bkrls:appliesToAssay
+              bkrls:appliesToDataModality bkrls:appliesToCondition bkrls:appliesToSpecimenType
+              bkr:appliesToMeasurementTechnique bkr:appliesToVariable bkr:appliesToTask ) ] ;
+            sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:scopeStatement ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A scope must pin down at least one dimension — a bkr:appliesToConcept value or one of its domain sub-properties — or carry a prose scope statement." ;
+    sh:severity sh:Violation .
+
+bkrsh:ValidatedScopeShape a sh:NodeShape ;
+    sh:targetClass bkr:ValidatedScope ;
+    sh:or (
+        [ sh:property [ sh:path bkr:scopeValidatedBy ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:scopeEvidence ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A validated scope must cite the validation activity or its result; otherwise it is a declared scope." ;
+    sh:severity sh:Violation .
+
+################################################################################
+# Assumptions
+################################################################################
+
+bkrsh:AssumptionShape a sh:NodeShape ;
+    sh:targetClass bkr:Assumption ;
+    sh:property [ sh:path bkr:assumptionStatement ; sh:minCount 1 ; sh:minLength 10 ;
+        sh:severity sh:Violation ;
+        sh:message "An assumption needs a readable statement of the condition." ] ;
+    sh:property [ sh:path bkr:assumptionCriticality ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "State the criticality: a user cannot triage assumptions without it." ] ;
+    sh:property [ sh:path bkr:assumptionStatus ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "State whether the assumption is stated, verified, untested, violated or disputed." ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:assumptionStatedIn ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:assumptionAssertedBy ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "An assumption must name a source document or the agent asserting it." ;
+    sh:severity sh:Violation .
+
+bkrsh:CriticalAssumptionShape a sh:NodeShape ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:prefixes <https://brainkb.org/resource/shapes> ;
+        sh:select """
+            SELECT ?this WHERE {
+              ?this <https://brainkb.org/resource/assumptionCriticality>
+                    <https://brainkb.org/resource/criticality/critical> .
+            }""" ] ;
+    sh:property [ sh:path bkr:violationConsequence ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A critical assumption must say what goes wrong when it is violated." ] .
+
+################################################################################
+# Concept mappings: no unverifiable IRIs in canonical records
+################################################################################
+
+bkrsh:ConceptMappingDecisionShape a sh:NodeShape ;
+    sh:targetClass ner:ConceptMappingDecision ;
+    rdfs:label "concept mapping decision usable by the catalogue"@en ;
+    sh:property [ sh:path ner:mappingStatus ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A mapping decision must carry ner:mappingStatus (proposed, accepted, rejected, ambiguous, unresolved, skipped, deprecated, superseded)." ] ;
+    sh:property [ sh:path ner:mappingRelationType ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "State the mapping relation (exact, close, broader, narrower, related) — it is the SSSOM predicate." ] ;
+    sh:property [ sh:path ner:conceptIRI ; sh:maxCount 1 ; sh:severity sh:Warning ;
+        sh:message "At most one mapped concept IRI per decision; alternatives belong on ner:ConceptMappingCandidate." ] ;
+    sh:property [ sh:path ner:conceptIdentifier ; sh:maxCount 1 ; sh:severity sh:Warning ;
+        sh:message "At most one mapped concept CURIE per decision." ] ;
+    sh:property [ sh:path ner:conceptIRI ;
+        sh:pattern "^(http://purl\\.obolibrary\\.org/obo/[A-Za-z]+_[A-Za-z]*[0-9]+|https?://identifiers\\.org/.+|https?://purl\\.bioontology\\.org/ontology/.+|https?://www\\.ebi\\.ac\\.uk/ols[0-9]*/.+|https?://w3id\\.org/.+|https?://edamontology\\.org/[A-Za-z]+_[A-Za-z]*[0-9]+|https?://brainkb\\.org/.+|https?://[^ ]+#?[A-Za-z]+_[A-Za-z]*[0-9]+)$" ;
+        sh:severity sh:Violation ;
+        sh:message "A published mapping must use a recognisable ontology term IRI (OBO PURL, identifiers.org, BioPortal, OLS, w3id or <NS>_<LOCAL>, where <LOCAL> may be alphanumeric as in NCIT_C16809); malformed IRIs are demoted, not published." ] .
+
+bkrsh:AcceptedMappingShape a sh:NodeShape ;
+    rdfs:label "an accepted mapping needs a retrieval or review basis"@en ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:select """
+            SELECT ?this WHERE {
+              ?this <https://brainkb.org/ner/mappingStatus>
+                    <https://brainkb.org/ner/mapping-status/accepted> .
+            }""" ] ;
+    sh:property [ sh:path [ sh:alternativePath ( ner:conceptIRI ner:conceptIdentifier ) ] ;
+        sh:minCount 1 ; sh:severity sh:Violation ;
+        sh:message "An accepted mapping must name the concept it resolved to." ] ;
+    sh:sparql [
+        sh:severity sh:Violation ;
+        sh:message "A mapping accepted on the basis of llm_judgment alone must not be published: keep it at mapping-status/proposed until a retrieval method or a human review confirms it. An unverifiable IRI is worse than an honest gap." ;
+        sh:select """
+            SELECT $this WHERE {
+              $this <http://www.w3.org/ns/prov#wasGeneratedBy> ?act .
+              ?act <https://brainkb.org/ner/usedMappingMethod>
+                   <https://brainkb.org/ner/mapping-method/llm_judgment> .
+              FILTER NOT EXISTS {
+                ?act <https://brainkb.org/ner/usedMappingMethod> ?other .
+                FILTER(?other != <https://brainkb.org/ner/mapping-method/llm_judgment>)
+              }
+              FILTER NOT EXISTS { $this <https://brainkb.org/resource/hasReviewDecision> ?rd }
+            }""" ] .
+
+################################################################################
+# Versioning and update discipline
+################################################################################
+
+bkrsh:ResourceVersionShape a sh:NodeShape ;
+    sh:targetClass bkr:ResourceVersion ;
+    sh:property [ sh:path bkr:versionIdentifier ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A version needs exactly one version identifier." ] ;
+    sh:property [ sh:path bkr:versionOf ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Link the version to its version-independent resource with bkr:versionOf." ] ;
+    sh:property [ sh:path bkr:releaseDate ; sh:minCount 1 ; sh:datatype xsd:date ;
+        sh:severity sh:Warning ;
+        sh:message "Record the release date of each version." ] .
+
+bkrsh:DeprecatedResourceShape a sh:NodeShape ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:select """
+            SELECT ?this WHERE {
+              VALUES ?st {
+                <https://brainkb.org/resource/lifecycle-status/deprecated>
+                <https://brainkb.org/resource/lifecycle-status/withdrawn>
+                <https://brainkb.org/resource/lifecycle-status/superseded>
+              }
+              ?this <https://brainkb.org/resource/lifecycleStatus> ?st .
+            }""" ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:isSupersededBy ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:deprecationReason ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:migrationGuidance ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A superseded, deprecated or withdrawn resource must point at its replacement or explain the deprecation; a dead end in the catalogue is a failure of the update layer." ;
+    sh:severity sh:Violation .
+
+bkrsh:ChangeRecordShape a sh:NodeShape ;
+    sh:targetClass ner:ChangeRecord ;
+    rdfs:label "change record (reuses the Named Entity Ontology change model)"@en ;
+    sh:property [ sh:path [ sh:alternativePath ( ner:changedEntity bkr:changeAffectsResource ) ] ;
+        sh:minCount 1 ; sh:severity sh:Violation ;
+        sh:message "A change record must say what it changed." ] ;
+    sh:property [ sh:path ner:changeTrigger ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "State what triggered the change (pipeline_update, model_update, ontology_update, mapping_rerun, source_correction, human_review)." ] ;
+    sh:property [ sh:path prov:generatedAtTime ; sh:minCount 1 ;
+        sh:severity sh:Warning ; sh:message "Timestamp the change with prov:generatedAtTime." ] ;
+    sh:property [ sh:path ner:changeReason ; sh:minCount 1 ;
+        sh:severity sh:Warning ; sh:message "Give a human-readable reason for the change." ] ;
+    sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ;
+        sh:severity sh:Warning ; sh:message "Attribute the change to an agent." ] .
+
+bkrsh:BreakingChangeShape a sh:NodeShape ;
+    rdfs:label "a breaking change must tell consumers what to do"@en ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:select """
+            SELECT ?this WHERE {
+              ?this <https://brainkb.org/resource/isBreakingChange> true .
+            }""" ] ;
+    sh:or (
+        [ sh:property [ sh:path ner:changeReason ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path [ sh:alternativePath ( ner:changedEntity bkr:changeAffectsResource ) ] ;
+            sh:node [ sh:property [ sh:path bkr:migrationGuidance ; sh:minCount 1 ] ] ] ]
+    ) ;
+    sh:message "A breaking change must carry a reason, or the affected resource must carry bkr:migrationGuidance." ;
+    sh:severity sh:Violation .
+
+################################################################################
+# Metadata provenance
+################################################################################
+
+bkrsh:ResourceRecordShape a sh:NodeShape ;
+    sh:targetClass dcat:CatalogRecord ;
+    sh:property [ sh:path bkr:describesResource ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A record describes exactly one resource." ] ;
+    sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A record must name the curation or extraction activity that produced it." ] ;
+    sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A record must be attributed to an agent — a curator, a pipeline, or a harvesting service." ] ;
+    sh:property [ sh:path bkr:hasReviewDecision ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Attach an ner:ReviewDecision so the record's curation state (unreviewed, accepted, corrected, rejected) is explicit." ] .
+
+bkrsh:ResourceAssertionShape a sh:NodeShape ;
+    sh:targetClass bkr:ResourceAssertion ;
+    sh:property [ sh:path bkr:assertionAbout ; sh:minCount 1 ; sh:severity sh:Violation ;
+        sh:message "An assertion must name its subject." ] ;
+    sh:property [ sh:path bkr:assertionMethod ; sh:minCount 1 ; sh:severity sh:Violation ;
+        sh:message "An assertion must record how it was produced." ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:evidencedByMention ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:hasEvidenceLine ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:sourceDocument ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path bkr:verifiedAgainst ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "An assertion needs evidence: an ner:EntityMention anchoring it in text, a SEPIO evidence line, the source document, or the authoritative source it was verified against." ;
+    sh:severity sh:Violation .
+
+bkrsh:AutomatedExtractionShape a sh:NodeShape ;
+    sh:targetClass bkr:AutomatedExtraction ;
+    sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "An extraction run must name the pipeline and model agents that performed it." ] ;
+    sh:property [ sh:path bkr:usedResource ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Record the source documents the extraction read." ] .
+
+################################################################################
+# Access and data use
+################################################################################
+
+bkrsh:AccessConditionShape a sh:NodeShape ;
+    sh:targetClass bkr:AccessCondition ;
+    sh:property [ sh:path bkr:accessLevel ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:severity sh:Violation ; sh:message "An access condition needs exactly one access level." ] .
+
+bkrsh:ControlledAccessShape a sh:NodeShape ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:select """
+            SELECT ?this WHERE {
+              ?this <https://brainkb.org/resource/accessLevel>
+                    <https://brainkb.org/resource/access-level/controlled> .
+            }""" ] ;
+    sh:property [ sh:path bkr:managedByCommittee ; sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "Controlled access requires a named authorising body." ] ;
+    sh:property [ sh:path bkr:accessRequestURL ; sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Give the route by which access is requested." ] .
+
+bkrsh:EmbargoShape a sh:NodeShape ;
+    sh:target [ a sh:SPARQLTarget ;
+        sh:select """
+            SELECT ?this WHERE {
+              ?this <https://brainkb.org/resource/accessLevel>
+                    <https://brainkb.org/resource/access-level/embargoed> .
+            }""" ] ;
+    sh:property [ sh:path bkr:embargoEndDate ; sh:minCount 1 ; sh:datatype xsd:date ;
+        sh:severity sh:Violation ;
+        sh:message "An embargoed resource must state when the embargo ends." ] .
+
+bkrsh:DataUseConditionShape a sh:NodeShape ;
+    sh:targetClass bkrls:DataUseCondition ;
+    sh:property [ sh:path bkrls:hasDataUsePermission ; sh:minCount 1 ; sh:nodeKind sh:IRI ;
+        sh:pattern "^http://purl\\.obolibrary\\.org/obo/DUO_[0-9]+$" ;
+        sh:severity sh:Violation ;
+        sh:message "Data use conditions must carry at least one DUO data use permission term." ] ;
+    sh:property [ sh:path bkrls:hasDataUseModifier ; sh:nodeKind sh:IRI ;
+        sh:pattern "^http://purl\\.obolibrary\\.org/obo/DUO_[0-9]+$" ;
+        sh:severity sh:Violation ;
+        sh:message "Data use modifiers must be DUO terms." ] .
+
+##################################################################
+# Identifier resolution, verification and observation
+##################################################################
+
+bkrsh:IdentifierResolutionShape a sh:NodeShape ;
+    sh:targetClass bkr:IdentifierResolution ;
+    rdfs:label "resolution attempts are dated and attributed"@en ;
+    sh:property [ sh:path bkr:resolutionStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "A resolution attempt must record its status: an attempt with no outcome is not a record of anything." ] ;
+    sh:property [ sh:path bkr:resolutionRoute ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "Record which route resolved the identifier — authoritative repository, DataCite Commons, resolver or manual." ] ;
+    sh:property [ sh:path prov:endedAtTime ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "Record when the resolution was attempted: a resolution without a time cannot be re-checked or expired." ] ;
+    sh:property [ sh:path bkr:resolutionSource ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "Record the registry, repository or resolver that was consulted." ] .
+
+bkrsh:ResolvedIdentifierShape a sh:NodeShape ;
+    sh:targetClass bkr:IdentifierResolution ;
+    rdfs:label "a resolved identifier names what it resolved to"@en ;
+    sh:or (
+        [ sh:not [ sh:property [ sh:path bkr:resolutionStatus ;
+              sh:hasValue <https://brainkb.org/resource/resolution-status/resolved> ] ] ]
+        [ sh:property [ sh:path bkr:resolvedToResource ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A resolution whose status is resolved must say which resource it resolved to." ;
+    sh:severity sh:Violation .
+
+bkrsh:VerificationMismatchShape a sh:NodeShape ;
+    sh:targetClass bkr:ResourceAssertion ;
+    rdfs:label "a mismatch keeps both values"@en ;
+    sh:or (
+        [ sh:not [ sh:property [ sh:path bkr:verificationOutcome ;
+              sh:hasValue <https://brainkb.org/resource/verification-outcome/mismatch> ] ] ]
+        [ sh:property [ sh:path bkr:sourceValue ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "A mismatch must record the authoritative value in bkr:sourceValue alongside the extracted bkr:assertedValue; overwriting the extracted claim loses the disagreement." ;
+    sh:severity sh:Violation .
+
+bkrsh:ResourceObservationShape a sh:NodeShape ;
+    sh:targetClass bkr:ResourceObservation ;
+    rdfs:label "observations are dated, targeted and sourced"@en ;
+    sh:property [ sh:path sosa:hasFeatureOfInterest ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "An observation must name the resource it observed." ] ;
+    sh:property [ sh:path sosa:resultTime ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:dateTime ;
+        sh:message "An observation must carry exactly one sosa:resultTime as an xsd:dateTime: an undated observation cannot take part in a time series." ] ;
+    sh:or (
+        [ sh:property [ sh:path bkr:observationValue ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path sosa:hasResult ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "An observation must carry a value, in bkr:observationValue or sosa:hasResult." ;
+    sh:severity sh:Violation ;
+    sh:property [ sh:path bkr:observationSource ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "Record where the observation was read from, so a disagreeing series can be attributed." ] .

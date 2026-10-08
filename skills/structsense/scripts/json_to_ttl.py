@@ -13,7 +13,7 @@ What goes in (profile "full", the optional audit view):
                sourcePath); ner:NERExtractionActivity (prov:used docv,
                prov:wasAssociatedWith every source model); ner:ExtractionSnapshot
                (prov:hadMember every entity); concept-mapping and judge activities.
-  entities     one ner:NamedEntity per canonical entity / key term / resource,
+  entities     one ner:NamedEntity per canonical entity / key term,
                typed with the most specific class the label licenses
                (default_ontology/label_class_map.json) plus ner:NamedEntity, with
                normalizedEntityKey (the ingestion merge handle), label, mentions,
@@ -43,7 +43,9 @@ Usage:
         [--source paper.pdf] [--out paper.ttl] [--profile full|compact]
         [--paper-slug s41593-026-02429-3] [--report paper.ttl.report.json]
 
-Scope: NER (entities + key terms) and resource results. Structured-extraction
+Scope: NER (entities + key terms). A resource result is handed to
+scripts/resource_kg.py and becomes a resource KG in the BrainKB Resource Ontology
+(default_ontology/brainkb_resource_ontology.owl). Structured-extraction
 output follows a user schema this ontology does not describe, and ABCD/HBCD mode
 writes its own `abcd:` Turtle via abcd_export.py.
 """
@@ -74,7 +76,6 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from group_by_entity import mention_groups, reading_form  # noqa: E402
-from resource_claims import checked_claims  # noqa: E402
 
 SKILL_DIR = _SCRIPTS_DIR.parent
 ONTOLOGY_DIR = SKILL_DIR / "default_ontology"
@@ -122,9 +123,6 @@ class TtlConfig:
         self.method_by_source = _clean(raw.get("mapping_method_by_source"))
         self.relation_by_tier = _clean(raw.get("mapping_relation_by_tier"))
         self.review_status = _clean(raw.get("review_status_by_verdict"))
-        sec = _clean(raw.get("secondary_resource_classes"))
-        self.secondary_default = (raw.get("secondary_resource_classes") or {}).get("_default", "ResearchEntity")
-        self.secondary_classes = sec
         self.media_types = _clean(raw.get("media_types"))
         self.label_max_length = int((raw.get("labels") or {}).get("max_length") or 0)
         self.source_path_mode = raw.get("source_path", "name")
@@ -1640,94 +1638,6 @@ class TurtleBuilder:
                 for r in per_judge + ([combined] if combined is not None else []):
                     self.add(t, NER.hasReviewDecision, r)
 
-    # ---- resources ----------------------------------------------------------
-    def build_resources(self, resources: list[dict]):
-        for res in resources:
-            rtype = res.get("type") or "Tool"
-            gid = f"{res['name']}|{rtype}"
-            grp = {"kind": "entity", "surface": res["name"], "label": rtype, "id": gid,
-                   "surf_key": "name", "items": [res]}
-            plan = self.plan_for(gid)
-            cls, note = self.resolve_class(rtype, "entity", plan)
-            key = plan.get("normalized_key") or normalize_key(res["name"], self.synonyms)
-            slug = self.unique_slug("entity-" + key.replace("_", "-")[:70])
-            ent = {"key": key, "node": self.mint_global("entity", key=key), "slug": slug, "classes": {cls},
-                   "groups": [grp], "from_plan": bool(plan), "notes": [note] if note else [],
-                   "label": plan.get("normalized_label") or res["name"], "plans": [plan]}
-            if key in self.entities_by_key:
-                ent = self.entities_by_key[key]
-                ent["groups"].append(grp)
-                self.emit_resource_claims(ent["node"], res)
-                continue
-            self.entities_by_key[key] = ent
-            self.entity_by_group_id[gid.lower()] = ent
-            # Resource concepts arrive as mapped_target_concept[] rather than
-            # per-mention ontology_id; lift the tool-provenanced ones.
-            if res.get("concept_mapping_provenance") == "tool":
-                for c in res.get("mapped_target_concept") or []:
-                    res.setdefault("_concepts", []).append(c)
-            self.emit_resource(ent, res)
-
-    def emit_resource(self, ent: dict, res: dict):
-        node = ent["node"]
-        self.emit_entity_core(ent)
-        self.emit_resource_claims(node, res)
-        if res.get("description"):
-            self.add(node, RDFS.comment, Literal(f"description: {res['description']}"))
-        url = res.get("url")
-        if isinstance(url, str) and re.match(r"^https?://\S+$", url):
-            self.add(node, RDFS.seeAlso, URIRef(url))
-        m = self.mint("mention", f"{ent['key']}|1")
-        self.add(node, NER.hasMention, m)
-        self.add(m, RDF.type, NER.EntityMention)
-        self.add(m, NER.surfaceForm, self.lit(res["name"], XSD.string))
-        self.label(m, res["name"])
-        self.add(m, NER.partOfDocumentVersion, self.docv)
-        self.source_agent(res.get("source_model"))
-        self.counts["mentions"] += 1
-        emitted = 0
-        for c in res.get("_concepts") or []:
-            ref = concept_ref(str(c.get("id") or ""), c.get("ontology"), self.cfg, self.registry)
-            if not ref:
-                continue
-            if ref[2] == "UNREGISTERED":
-                continue
-            concept = self.concept_node(ref, {"ontology_label": c.get("label")})
-            tier = ent["plans"][0].get("skos_tier") or self.cfg.default_tier
-            tier = _TIER_ALIASES.get(tier, tier) if tier not in MATCH_TIERS else tier
-            self.add(node, NER.resolvedToConcept, concept)
-            self.add(node, MATCH_TIERS.get(tier, MATCH_TIERS[self.cfg.default_tier]), URIRef(ref[0]))
-            emitted += 1
-        if not emitted:
-            self.add(node, RDFS.comment, Literal(
-                f"No tool-verified ontology mapping; checked via {self.mapper_name} on {self.date}."))
-        for kind, names in (res.get("mentions") or {}).items():
-            cls = self.cfg.secondary_classes.get(kind, self.cfg.secondary_default)
-            for name in names or []:
-                other = self.secondary_resource(name, cls)
-                self.add(node, SKOS.related, other)
-
-    def emit_resource_claims(self, node: URIRef, res: dict):
-        """Preserve supported source claims without introducing catalog predicates."""
-        claims, errors = checked_claims(res, self.source_text)
-        self.warnings.extend(errors)
-        for field, value, quote in claims:
-            predicate = DCTERMS.identifier if field == "identifiers" else OWL.versionInfo
-            literal = Literal(value)
-            self.add(node, predicate, literal)
-            local = hashlib.sha256(f"{node}|{field}|{value}|{quote}".encode()).hexdigest()[:16]
-            statement = self.mint("resource-claim", local)
-            self.add(statement, RDF.type, RDF.Statement)
-            self.label(statement, "Resource identifier claim" if field == "identifiers"
-                       else "Resource version claim")
-            self.add(statement, RDF.subject, node)
-            self.add(statement, RDF.predicate, predicate)
-            self.add(statement, RDF.object, literal)
-            self.add(statement, DCTERMS.description, Literal(quote))
-            self.add(statement, PROV.hadPrimarySource, self.pub)
-            self.add(statement, PROV.wasGeneratedBy, self.run)
-            self.counts["resource_claims"] += 1
-
     def emit_entity_core(self, ent: dict):
         node = ent["node"]
         for cls in sorted(ent["classes"]):
@@ -1741,27 +1651,6 @@ class TurtleBuilder:
         for note in dict.fromkeys(ent["notes"]):
             self.add(node, RDFS.comment, Literal(note))
         self.counts["entities"] += 1
-
-    def secondary_resource(self, name: str, cls: str) -> URIRef:
-        key = normalize_key(name, self.synonyms)
-        if key in self.entities_by_key:
-            return self.entities_by_key[key]["node"]
-        slug = self.unique_slug("entity-" + key.replace("_", "-")[:70])
-        ent = {"key": key, "node": self.mint_global("entity", key=key), "slug": slug, "classes": {cls}, "groups": [],
-               "from_plan": False, "notes": ["Mentioned by a primary resource; not itself described."],
-               "label": name, "plans": [{}]}
-        self.entities_by_key[key] = ent
-        self.emit_entity_core(ent)
-        m = self.mint("mention", f"{key}|1")
-        self.add(ent["node"], NER.hasMention, m)
-        self.add(m, RDF.type, NER.EntityMention)
-        self.add(m, NER.surfaceForm, self.lit(name, XSD.string))
-        self.label(m, name)
-        self.add(m, NER.partOfDocumentVersion, self.docv)
-        self.add(ent["node"], RDFS.comment, Literal(
-            f"No tool-verified ontology mapping; checked via {self.mapper_name} on {self.date}."))
-        self.counts["mentions"] += 1
-        return ent["node"]
 
     # ---- kg_plan edges and causal module -------------------------------------
     def by_key(self, key: Optional[str], ctx: str) -> Optional[URIRef]:
@@ -2014,9 +1903,6 @@ class TurtleBuilder:
         self.build_spine()
         groups = build_groups(self.result)
         self.build_entities(groups)
-        resources = _resource_items(self.result)
-        if resources:
-            self.build_resources(resources)
         extracted_causal = self.build_extracted_claims()
         self.build_plan_edges()
         self.build_causal(extracted_causal)
@@ -2027,7 +1913,7 @@ class TurtleBuilder:
             if ns and not ns.startswith(str(OBO)):
                 self.g.bind(re.sub(r"[^A-Za-z0-9_-]", "_", prefix), Namespace(ns))
         if not self.entities_by_key:
-            self.warnings.append("no entities, key terms or resources found in the result")
+            self.warnings.append("no entities or key terms found in the result")
         return self.g
 
 
@@ -2094,7 +1980,16 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
                   media_type: Optional[str] = None,
                   ttl_config: Path = DEFAULT_TTL_CONFIG,
                   variant: Optional[str] = None) -> tuple[str, dict]:
-    """Library entry point. Returns (turtle_text, report)."""
+    """Library entry point. Returns (turtle_text, report).
+
+    A resource result (extracted_resources) is a resource KG, not a NER graph: it is
+    built by scripts/resource_kg.py against the BrainKB Resource Ontology
+    (default_ontology/brainkb_resource_ontology.owl) and the report says so
+    (report["kind"] == "resource_kg")."""
+    from resource_kg import is_resource_result
+    if is_resource_result(result) and not (result.get("entities") or result.get("key_terms")):
+        from resource_kg import build as build_resource_kg
+        return build_resource_kg(result, source_path=Path(source_path) if source_path else None)
     if source_path:
         result = {**result, "source_metadata": {"source_path": str(Path(source_path).resolve()),
                                                 **(result.get("source_metadata") or {})}}
@@ -2183,6 +2078,12 @@ def _main() -> int:
         source_path=args.source, ttl_config=args.ttl_config, variant=args.variant)
     out = args.out or default_ttl_path(args.result)
     out.write_text(ttl)
+    if report.get("kind") == "resource_kg":
+        from resource_kg import _print_build
+        if args.report:
+            args.report.write_text(json.dumps(report, indent=2) + "\n")
+        _print_build(out, report)
+        return 0
     if args.entity_views:  # one TTL per source by default; views on request
         from entity_view import write_entity_views
         report.update(write_entity_views(ttl, out))

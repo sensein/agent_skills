@@ -1,0 +1,418 @@
+{
+  "extracted_resources": [
+    {
+      "record_id": "ctm-001",
+      "extracted_type": "tool",
+      "name": "cell type mapping tool (illustrative)",
+      "description": "Assigns cells in a query transcriptomic dataset to nodes of a reference cell type taxonomy.",
+      "url": "https://example.org/bican/celltypemapper",
+      "license": "https://spdx.org/licenses/BSD-3-Clause",
+      "stable_identifiers": [
+        {
+          "value": "RRID:SCR_000000",
+          "scheme": "RRID"
+        },
+        {
+          "value": "10.0000/illustrative-tool",
+          "scheme": "DOI",
+          "resolves_through": "Zenodo"
+        }
+      ],
+      "topics": [
+        {
+          "label": "cell type annotation",
+          "mapped": [
+            {
+              "concept_id": "EDAM:operation_3460",
+              "concept_iri": "http://edamontology.org/operation_3460",
+              "ontology": "EDAM",
+              "relation": "close",
+              "status": "proposed",
+              "method": "dense_embedding",
+              "provenance_raw": "tool",
+              "confidence": 0.71
+            }
+          ]
+        }
+      ],
+      "tasks": [
+        {
+          "label": "label transfer"
+        }
+      ],
+      "modalities": [
+        {
+          "label": "tabular",
+          "mapped": [
+            {
+              "concept_iri": "https://brainkb.org/resource/modality/tabular",
+              "status": "accepted",
+              "method": "rule_based",
+              "relation": "exact",
+              "provenance_raw": "tool"
+            }
+          ]
+        }
+      ],
+      "species": [
+        {
+          "label": "human",
+          "mapped": [
+            {
+              "concept_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
+              "concept_id": "NCBITaxon:9606",
+              "concept_label": "Homo sapiens",
+              "ontology": "NCBITaxon",
+              "ontology_version": "2025-05-01",
+              "relation": "exact",
+              "status": "accepted",
+              "method": "hybrid_retrieval",
+              "provenance_raw": "tool",
+              "confidence": 0.98
+            }
+          ]
+        },
+        {
+          "label": "mouse",
+          "mapped": [
+            {
+              "concept_iri": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+              "concept_id": "NCBITaxon:10090",
+              "concept_label": "Mus musculus",
+              "ontology": "NCBITaxon",
+              "relation": "exact",
+              "status": "accepted",
+              "method": "hybrid_retrieval",
+              "provenance_raw": "tool",
+              "confidence": 0.97
+            }
+          ]
+        },
+        {
+          "label": "non-human primate",
+          "mapped": [
+            {
+              "concept_iri": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+              "concept_id": "NCBITaxon:9544",
+              "ontology": "NCBITaxon",
+              "relation": "close",
+              "status": "accepted",
+              "method": "llm_judgment",
+              "provenance_raw": "llm_knowledge",
+              "confidence": 0.4
+            }
+          ]
+        }
+      ],
+      "applicability": {
+        "declared": [
+          {
+            "statement": "Supports human and mouse transcriptomic queries against a supplied reference taxonomy.",
+            "target_label": "Mammalian brain",
+            "specific_target_label": "Human, Mouse",
+            "evidence_level": "developer_asserted",
+            "anatomical_structures": [
+              {
+                "label": "brain",
+                "mapped": [
+                  {
+                    "concept_iri": "http://purl.obolibrary.org/obo/UBERON_0000955",
+                    "concept_id": "UBERON:0000955",
+                    "ontology": "UBERON",
+                    "relation": "exact",
+                    "status": "accepted",
+                    "method": "exact_lexical",
+                    "provenance_raw": "tool"
+                  }
+                ]
+              }
+            ],
+            "assays": [
+              {
+                "label": "single-cell RNA sequencing",
+                "mapped": [
+                  {
+                    "concept_iri": "http://purl.obolibrary.org/obo/EFO_0008913",
+                    "concept_id": "EFO:0008913",
+                    "ontology": "EFO",
+                    "relation": "exact",
+                    "status": "accepted",
+                    "method": "normalized_lexical",
+                    "provenance_raw": "tool"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "validated": [
+          {
+            "statement": "Benchmarked on human primary motor cortex data only.",
+            "evidence_level": "benchmarked",
+            "sample_size": 20000,
+            "anatomical_structures": [
+              {
+                "label": "primary motor cortex",
+                "mapped": [
+                  {
+                    "concept_iri": "http://purl.obolibrary.org/obo/UBERON_0001384",
+                    "concept_id": "UBERON:0001384",
+                    "ontology": "UBERON",
+                    "relation": "exact",
+                    "status": "accepted",
+                    "method": "exact_lexical",
+                    "provenance_raw": "tool"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "out_of_scope": [
+          {
+            "statement": "Not applicable to non-mammalian species; untested on non-human primate tissue.",
+            "evidence_level": "developer_asserted"
+          }
+        ]
+      },
+      "requirements": [
+        {
+          "statement": "A released cell type taxonomy must be supplied as the reference.",
+          "type": "reference_resource_requirement"
+        },
+        {
+          "statement": "16 GB RAM for a 100k-cell query.",
+          "type": "hardware_requirement"
+        }
+      ],
+      "assumptions": [
+        {
+          "statement": "The query expression matrix contains raw UMI counts, not normalised values.",
+          "kind": "preprocessing",
+          "criticality": "critical",
+          "status": "stated",
+          "consequence": "Confidence scores are inflated and assignments shift toward abundant types.",
+          "testable_by": "count matrix diagnostic",
+          "source": "documentation",
+          "evidence": [
+            {
+              "quote": "The input matrix must contain raw counts.",
+              "sentence": "The input matrix must contain raw counts.",
+              "document": "cell type mapping tool paper (illustrative)",
+              "sentence_index": 11
+            }
+          ]
+        },
+        {
+          "statement": "Cell type identity is sufficiently conserved between reference and query species.",
+          "kind": "biological",
+          "criticality": "moderate",
+          "status": "violated",
+          "consequence": "Query-specific types are forced onto the nearest reference class."
+        }
+      ],
+      "benchmark_evidence": [
+        {
+          "benchmark": "human M1 held-out set",
+          "metric": "weighted F1 against curated labels",
+          "value": 0.87,
+          "method": "held-out curated subset",
+          "scope_statement": "human primary motor cortex, 10x 3' v3",
+          "evidence": [
+            {
+              "quote": "We obtain a weighted F1 of 0.87 on held-out curated labels.",
+              "document": "cell type mapping tool paper (illustrative)"
+            }
+          ]
+        }
+      ],
+      "usage_examples": [
+        {
+          "description": "Map a 10x h5ad query against taxonomy v2.0.",
+          "code": "ctm map --query query.h5ad --reference taxonomy_v2.0 --out labels.csv",
+          "url": "https://example.org/bican/celltypemapper/docs/quickstart",
+          "scope_statement": "mouse whole-brain query in the quickstart"
+        }
+      ],
+      "limitations": [
+        {
+          "statement": "Confidence scores are not calibrated across taxonomies.",
+          "issue_tracker_item": "https://example.org/bican/issues/42"
+        }
+      ],
+      "failure_modes": [
+        {
+          "statement": "Silently degrades on normalised input.",
+          "condition": "query matrix already log-normalised",
+          "symptom": "plausible labels with uniformly high confidence",
+          "silent": true,
+          "severity": "critical",
+          "mitigation": "run the count matrix diagnostic before mapping; reject non-integer matrices",
+          "detected_by": "count matrix diagnostic",
+          "related_assumption": "The query expression matrix contains raw UMI counts, not normalised values.",
+          "evidence": [
+            {
+              "quote": "Normalised input is not detected and produces over-confident calls.",
+              "document": "cell type mapping tool paper (illustrative)"
+            }
+          ]
+        },
+        {
+          "statement": "Fails loudly when the reference taxonomy version does not match the model.",
+          "condition": "taxonomy version mismatch",
+          "symptom": "KeyError on cluster labels",
+          "silent": false,
+          "severity": "moderate",
+          "mitigation": "pin the taxonomy version recorded in the model card"
+        }
+      ],
+      "owners": [
+        {
+          "name": "tool development team",
+          "agent_type": "research_group",
+          "role": "maintainer"
+        },
+        {
+          "name": "atlasing centre (illustrative)",
+          "agent_type": "organization",
+          "role": "owner"
+        }
+      ],
+      "versions": [
+        {
+          "version": "0.9.0",
+          "release_date": "2024-05-01",
+          "status": "superseded"
+        },
+        {
+          "version": "1.0.0",
+          "release_date": "2025-02-14",
+          "status": "released",
+          "supersedes": "0.9.0",
+          "commit": "0000000000000000000000000000000000000000",
+          "changes": [
+            {
+              "type": "scope_change",
+              "trigger": "pipeline_update",
+              "reason": "Mouse support added; declared scope extended.",
+              "breaking": false
+            },
+            {
+              "type": "modification",
+              "trigger": "source_correction",
+              "reason": "Default normalisation removed; raw counts now required.",
+              "breaking": true,
+              "changed_field": "hasAssumption"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        {
+          "name": "query",
+          "description": "Query expression matrix.",
+          "format": "AnnData (.h5ad)",
+          "schema": "CELLxGENE h5ad conventions",
+          "modality": "tabular",
+          "role": "primary_data",
+          "cardinality": "exactly one",
+          "required": true,
+          "example": "query.h5ad",
+          "constraints": [
+            "Matrix contains raw integer UMI counts.",
+            "Gene identifiers are Ensembl IDs."
+          ]
+        },
+        {
+          "name": "reference",
+          "description": "Reference cell type taxonomy.",
+          "format": "taxonomy bundle",
+          "role": "reference",
+          "cardinality": "exactly one",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "labels",
+          "description": "Per-cell assignment with confidence.",
+          "format": "CSV",
+          "modality": "tabular",
+          "role": "annotation",
+          "cardinality": "one per query cell",
+          "unit": "probability",
+          "example": "labels.csv"
+        },
+        {
+          "name": "qc_report",
+          "description": "Mapping diagnostics.",
+          "format": "HTML",
+          "role": "report",
+          "cardinality": "exactly one"
+        }
+      ],
+      "deposited_in": "Zenodo",
+      "access": {
+        "level": "open"
+      },
+      "mentions": [
+        {
+          "name": "mouse whole-brain cell type taxonomy (illustrative)",
+          "extracted_type": "taxonomy"
+        },
+        {
+          "name": "count matrix diagnostic",
+          "extracted_type": "software_library"
+        }
+      ],
+      "provenance": {
+        "source_documents": [
+          {
+            "title": "cell type mapping tool paper (illustrative)",
+            "identifier": "10.0000/illustrative-paper",
+            "version": "v1"
+          }
+        ],
+        "extraction": {
+          "pipeline": "structsense",
+          "pipeline_version": "0.7.0",
+          "model_name": "example-llm",
+          "model_version": "v1",
+          "model_provider": "illustrative",
+          "timestamp": "2026-01-20T09:00:00Z",
+          "snapshot_id": "snap-ctm-001"
+        },
+        "review": {
+          "status": "accepted",
+          "comment": "Mouse support confirmed against the repository.",
+          "reviewer": "resource curator A",
+          "confidence": 0.95
+        },
+        "field_evidence": [
+          {
+            "field": "species",
+            "quote": "We extend the method to mouse datasets using the whole-brain taxonomy.",
+            "sentence": "We extend the method to mouse datasets using the whole-brain taxonomy.",
+            "document": "cell type mapping tool paper (illustrative)"
+          },
+          {
+            "field": "inputs[0].format",
+            "quote": "Input is provided as an AnnData object.",
+            "document": "cell type mapping tool paper (illustrative)"
+          }
+        ]
+      },
+      "not_found_fields": [
+        "access.data_use_permissions",
+        "inputs[1].format",
+        "benchmark_evidence[0].source"
+      ],
+      "field_completeness": 0.86,
+      "judge": {
+        "score": 0.93,
+        "method": "llm-judge",
+        "remarks": "Type=Tool correct; failure modes well supported by the text."
+      }
+    }
+  ]
+}

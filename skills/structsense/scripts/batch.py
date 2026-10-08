@@ -28,8 +28,11 @@ may run `next --paper <stem>` (or plain `next`) concurrently: a task is claimed
 by a .claim file and not handed out twice while the claim is fresh.
 
 Variants: general, neuroscience, cns-cells (aliases: neuro, cell, cells,
-cell-ner, cns). With one variant the output is --out; with several, each gets
---out/<variant>_output unless --out-map says otherwise.
+cell-ner, cns), and resource (aliases: resources, bkr) — research resources as a
+resource KG in the BrainKB Resource Ontology (prompts/extractor-resource.md ->
+scripts/resource_kg.py; no kg_plan or judge stages; the corpus roll-up is one
+merged resource KG, corpus_resource_kg.ttl). With one variant the output is --out;
+with several, each gets --out/<variant>_output unless --out-map says otherwise.
 """
 from __future__ import annotations
 
@@ -53,7 +56,8 @@ SKILL = _SCRIPTS.parent
 VARIANTS = {"general": "general", "generic": "general",
             "neuroscience": "neuroscience", "neuro": "neuroscience",
             "cns-cells": "cns-cells", "cns_cells": "cns-cells", "cns": "cns-cells", "cell": "cns-cells",
-            "cells": "cns-cells", "cell-ner": "cns-cells", "cell_ner": "cns-cells"}
+            "cells": "cns-cells", "cell-ner": "cns-cells", "cell_ner": "cns-cells",
+            "resource": "resource", "resources": "resource", "bkr": "resource"}
 TEXT_SUFFIXES = {".txt", ".md"}
 INPUT_SUFFIXES = {".pdf", ".txt", ".md", ".xml", ".docx", ".pptx", ".html", ".htm", ".xlsx", ".csv"}
 CLAIM_TTL = 3600
@@ -323,13 +327,13 @@ def ingestion_record(src: Path, tp: Path, text: str, loader: dict) -> dict:
     return rec
 
 
-def chunks_for(job: Job, text: str) -> list[dict]:
+def chunks_for(job: Job, text: str, size: Optional[int] = None) -> list[dict]:
     p = job.f("chunks.json")
     got = read_json(p)
     if isinstance(got, list) and got:
         return got
     from chunking import chunk_by_sentences
-    size = int(job.settings.get("chunk_chars") or 12000)
+    size = int(size or job.settings.get("chunk_chars") or 12000)
     cs = chunk_by_sentences(text, max_chars=size, overlap_sentences=1)
     out = [{"i": i, "start": c["start"], "end": c["start"] + len(c["text"])} for i, c in enumerate(cs)]
     write_json(p, out)
@@ -351,6 +355,19 @@ def check_extraction(obj: Any) -> Optional[str]:
     bad = [e for e in obj["entities"] if not (isinstance(e, dict) and e.get("entity") and e.get("label"))]
     if bad:
         return f"{len(bad)} entities lack `entity` or `label`"
+    return None
+
+
+def check_resource_extraction(obj: Any) -> Optional[str]:
+    if not isinstance(obj, dict) or "extracted_resources" not in obj:
+        return "expected {\"extracted_resources\": [ ... ]} (an empty list if the chunk names no resource)"
+    er = obj["extracted_resources"]
+    recs = [r for g in er.values() for r in (g or [])] if isinstance(er, dict) else er
+    if not isinstance(recs, list):
+        return "`extracted_resources` must be a list of records"
+    bad = [r for r in recs if not (isinstance(r, dict) and r.get("name") and (r.get("extracted_type") or r.get("type")))]
+    if bad:
+        return f"{len(bad)} record(s) lack `name` or `extracted_type`"
     return None
 
 
@@ -503,12 +520,14 @@ def finish(job: Job, result: dict, plan: Optional[dict]) -> dict:
     from json_to_ttl import result_to_ttl
     from validate_ttl import validate_file
     started = job.state.get("started_at") or utc_now()
+    variant = "resource" if job.domain == "resource" else f"ner:{job.domain}"
     result["run_metadata"] = {"started_at": started, "ended_at": utc_now(), "extractor_model": job.model,
-                              "judge_model": job.model if job.settings.get("judges", True) else None,
+                              "judge_model": None if job.domain == "resource" or not job.settings.get("judges", True)
+                              else job.model,
                               "mode": job.state.get("mode") or "host_sequential",
-                              "ner_domain": job.domain, "variant": f"ner:{job.domain}"}
+                              "variant": variant, **({} if job.domain == "resource" else {"ner_domain": job.domain})}
     write_json(job.final_json, result)
-    ttl, conv = result_to_ttl(result, kg_plan=plan, source_path=job.text_path, variant=f"ner:{job.domain}")
+    ttl, conv = result_to_ttl(result, kg_plan=plan, source_path=job.text_path, variant=variant)
     job.ttl.write_text(ttl)
     gate = validate_file(job.ttl)
     if gate["ok"]:
@@ -518,8 +537,12 @@ def finish(job: Job, result: dict, plan: Optional[dict]) -> dict:
             views = write_entity_views(ttl, job.ttl)
         with contextlib.suppress(FileNotFoundError):
             job.ttl.with_suffix(".invalid.ttl").unlink()
-        return {"status": "done", "ttl": str(job.ttl), **views, "triples": conv["triples"],
-                "mentions": conv["counts"].get("mentions", 0), "entities": conv["counts"].get("entities", 0),
+        counts = conv["counts"]
+        extra = ({"resources": counts.get("resources", 0), "records": counts.get("records", 0),
+                  "source_silence_findings": gate.get("source_silence_findings", 0)}
+                 if conv.get("kind") == "resource_kg" else
+                 {"mentions": counts.get("mentions", 0), "entities": counts.get("entities", 0)})
+        return {"status": "done", "ttl": str(job.ttl), **views, "triples": conv["triples"], **extra,
                 "warnings": gate["warning_count"], "ended_at": utc_now()}
     bad = job.ttl.with_suffix(".invalid.ttl")
     job.ttl.replace(bad)
@@ -549,6 +572,8 @@ def advance(job: Job) -> Optional[dict]:
     if not st.get("started_at"):
         job.set(started_at=utc_now(), status="running")
     text = ensure_text(job)
+    if job.domain == "resource":
+        return advance_resource(job, text)
     chunks = chunks_for(job, text)
     domain = job.domain
     extractor = prompt_path(f"extractor-ner-{domain}")
@@ -694,6 +719,65 @@ def advance(job: Job) -> Optional[dict]:
     return None
 
 
+def advance_resource(job: Job, text: str) -> Optional[dict]:
+    """Resource variant: whole-document extraction (resource_kg_config.json
+    extraction_chunk_chars), then deterministic merge -> grounding -> tool concept
+    mapping (resource_kg.prepare) -> resource KG + gate. No kg_plan, no judges."""
+    from resource_kg import load_config, prepare
+    rcfg = load_config()
+    chunks = chunks_for(job, text, size=int(rcfg.get("extraction_chunk_chars", 60000)))
+    for c in chunks:
+        target = job.f("extract", f"part-{c['i']:03d}.json")
+        if accept(target, check_resource_extraction) is not None:
+            continue
+        if claimed(target):
+            continue
+        claim(target)
+        return {"task": "extract", "job": job.key, "paper": job.stem, "variant": "resource",
+                "prompt": prompt_path("extractor-resource"), "read": str(job.f("chunks", f"chunk-{c['i']:03d}.txt")),
+                "chunk": f"{c['i'] + 1}/{len(chunks)}", "write": str(target),
+                "retry_reason": previous_error(target),
+                "instructions": (
+                    "Follow the prompt's System block on this text. Write {\"extracted_resources\": [records]} to "
+                    "`write` (schemas/bkr-resource-extraction.schema.json). Deep records for what the document "
+                    "describes, short catalogue records with an observed scope for what it uses, `mentions` for "
+                    "the rest. Every identifier, version, URL and licence must be written in the text; every "
+                    "quote verbatim; no offsets; concept labels only, no IRIs; list not_found_fields. Skip "
+                    "references, acknowledgements and funding. Chunk 1: also fill source_metadata (paper_title, "
+                    "doi, year, journal) — only what the text states.")}
+    records, meta = [], {}
+    for c in chunks:
+        obj = read_json(job.f("extract", f"part-{c['i']:03d}.json"))
+        if not isinstance(obj, dict):
+            continue
+        er = obj.get("extracted_resources") or []
+        records.extend(r for g in (er.values() if isinstance(er, dict) else [er]) for r in (g or []) if isinstance(r, dict))
+        for k, v in (obj.get("source_metadata") or {}).items():
+            if v and not meta.get(k):
+                meta[k] = v
+    from doc_metadata import harvest, merge
+    meta = merge(meta, harvest(job.input, text))
+    meta.update({"source_path": str(job.input), "text_path": str(job.text_path)})
+    ing = read_json(job.text_path.with_suffix(".ingest.json"))
+    if isinstance(ing, dict):
+        meta["ingestion"] = ing
+    result = {"source_metadata": meta, "task_type": "resource", "extracted_resources": records}
+    from concept_mapping import ConceptMapper
+    cm = ConceptMapper(sources=job.settings.get("mapping_sources") or None,
+                       local_url=job.settings.get("mapper_url") or None, ask_user=None)
+    if not cm.usable_sources():
+        raise RuntimeError("concept mapping is mandatory and tool-only (rule 15) and no source in "
+                           "concept_mapping.json is usable: run `python -m scripts.concept_mapping index` "
+                           "or set BIOPORTAL_API_KEY")
+    prepare(result, text, mapper=cm, cfg=rcfg)
+    res = finish(job, result, None)
+    job.set(**res)
+    if res["status"] == "done" and not job.settings.get("keep_json"):
+        for sub in ("chunks", "extract"):
+            shutil.rmtree(job.f(sub), ignore_errors=True)
+    return None
+
+
 def jobs_in_order(m: dict, manifest: Path, paper: Optional[str]) -> list[Job]:
     out = []
     for p in m["papers"]:  # paper-major: every variant of a paper finishes before the next paper
@@ -740,12 +824,38 @@ def rollup(m: dict) -> None:
     from merge_corpus import build_corpus, render_markdown
     for v, spec in m["variants"].items():
         out = Path(spec["out"])
+        if v == "resource":
+            rollup_resources(out)
+            continue
         finals = sorted(out.glob(".structsense/*/*_final.json"))
         if len(finals) < 2:
             continue
         corpus = build_corpus(finals, include_mentions=False, with_index=True)
         (out / "corpus_synthesis.json").write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n")
         (out / "corpus_synthesis.md").write_text(render_markdown(corpus, top_n=50) + "\n")
+
+
+def rollup_resources(out: Path) -> None:
+    """Corpus resource KG: the union of the per-paper resource KGs (resources are one
+    node across papers already), with mention stubs resolved across papers — a tool
+    one paper only names joins the record another paper wrote. Gated like a paper."""
+    import rdflib
+    import bkr_stubs
+    from resource_kg import print_validation, validate_file as validate_resource
+    ttls = sorted(p for p in out.glob("*.ttl") if not p.name.endswith((".invalid.ttl", ".entities.ttl"))
+                  and p.name != "corpus_resource_kg.ttl")
+    if len(ttls) < 2:
+        return
+    g = rdflib.Graph()
+    for p in ttls:
+        g.parse(p, format="turtle")
+    merged, _, kept = bkr_stubs.resolve(g)
+    dest = out / "corpus_resource_kg.ttl"
+    g.serialize(destination=str(dest), format="turtle")
+    rep = validate_resource(dest)
+    print(f"corpus resource KG: {dest} — {len(ttls)} papers, {len(g)} triples, {merged} cross-paper stub(s) "
+          f"merged, {len(kept)} kept", file=sys.stderr)
+    print_validation(rep)
 
 
 def summary(m: dict) -> dict:
