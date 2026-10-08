@@ -1,87 +1,81 @@
-# Human feedback prompt — apply reviewer edits
+# Human feedback prompt — turn a reviewer's words into review operations
+
+The human-feedback stage of every mode (NER, ABCD/HBCD, AIT) runs after the judge
+(`references/review-loop.md`). The reviewer's corrections are NOT applied by rewriting
+the JSON: they are turned into operations that `scripts/review_loop.py` applies under
+the same rules as the judges' fixes — allowlisted fields, ids only from a mapping tool
+(the trusted ontology files first), nothing new, every change logged.
+
+- Structured reviewers write the ops themselves:
+  `python -m scripts.human_feedback queue ...` → fill `ops` → `... apply ...`.
+- Free text ("item 3 is a covariate, not a predictor") goes through this prompt. In
+  host-model mode you are the model: read the queue, write the ops file, run `apply`.
+  In framework mode `human_feedback.ops_from_text` makes one call with it.
 
 ## System
 
 ```
-You revise a judged extraction by applying human reviewer feedback.
+You translate a human reviewer's feedback into review operations. You do not edit
+the data yourself.
 
 INPUT
-- A judged JSON document (entities/resources/items with judge_score, remarks).
-- A free-text feedback string from a human reviewer.
-- An optional structured modification_context.
+- mode: ner | abcd | ait
+- fixable: per item kind, the fields that may be set and their allowed values
+  ("in_quote" = the value must be copied from the item's evidence quote;
+   "nonempty" = any non-empty string)
+- items: the reviewable items (id, kind, surface, fields, mapping, evidence, why)
+- feedback: the reviewer's text
 
-YOUR JOB
-Apply the reviewer's feedback to the JSON. Common feedback patterns:
-  - "Item N should be label=X, not Y."  → locate item N (by index or content), update.
-  - "All mentions of 'X' should map to <IRI>." → find matching items, update mapping.
-  - "Drop the items in the References section." → filter by paper_location.
-  - "Item N is wrong, remove it."  → drop that item.
+OPERATIONS (one per correction; ids MUST be ids from `items`):
+  {"id":"...","action":"drop","reason":"..."}              remove (wrong / not in the paper)
+  {"id":"...","action":"restore","reason":"..."}           undo a drop (kind "dropped" items only)
+  {"id":"...","action":"set","field":"...","value":...}    field from fixable, value allowed
+  {"id":"...","action":"remap","value":"<search term>"}     re-run the mapping tool
+  {"id":"...","action":"demote","reason":"..."}            remove a wrong mapping, keep the item
+  {"id":"...","action":"approve"}                          reviewer confirms it
+  {"id":"...","action":"note","reason":"..."}              remark only
+  AIT edges only, when the reviewer names the node: {"id":"<mapping_id>","action":
+  "remap","value":{"ait_node_id":"...","ait_cell_type_label":"...","skos_relation":
+  "skos:closeMatch"}} — copy the reviewer's ids exactly; never supply one yourself.
 
-PRESERVE STRUCTURE
-- Same top-level keys.
-- Same item shape (you may drop items, but never rename fields).
-- If feedback is ambiguous or cannot be safely applied, leave items
-  unchanged and append a note to errors[] instead of guessing.
+RULES
+1. Only what the reviewer said. Do not "also fix" items they did not mention.
+2. Never give an ontology id, IRI, CURIE, dictionary variable name or AIT node id that
+   the reviewer did not write. For a mapping, give a search term (remap): the tool
+   decides the id, or finds nothing and the op is reported as refused.
+3. Never add items. "Also extract X" -> errors[] with code "needs_reextraction".
+4. A field outside `fixable`, or a value outside its allowed list -> errors[] with
+   code "not_correctable" (say which field).
+5. Ambiguous ("fix the regions") -> errors[] with code "ambiguous" and the question
+   to ask, instead of guessing.
 
-OUTPUT
-Strict JSON with:
-- The revised top-level structure (entities / resources / etc).
-- A new field `human_feedback_log` (list) appended with one entry describing
-  what you changed (action, items_changed, brief summary).
-- `errors[]` populated for any feedback you couldn't safely apply.
-
-No prose, no markdown fences.
-
-If you cannot comply at all, output {"error": "<one-line reason>"}.
+OUTPUT strict JSON only:
+{"ops":[...], "errors":[{"code":"needs_reextraction|not_correctable|ambiguous|unknown_item",
+                         "feedback":"<the part>", "reason":"..."}]}
 ```
 
 ## User
 
 ```
-JUDGED JSON:
-{judged_structured_information}
-
-REVIEWER FEEDBACK:
-{user_feedback_text}
-
-MODIFICATION CONTEXT (optional):
-{modification_context}
+{"mode": ..., "fixable": ..., "items": [...], "feedback": "<reviewer text>"}
 ```
 
-## What the agent should refuse
+## Examples
 
-Be polite-but-firm about refusing unsafe edits. Add to system prompt:
-
-```
-REFUSE if the feedback would:
-- Add new items not present in the input (the reviewer should re-run extraction).
-- Change field names or types (the schema is fixed).
-- Apply edits the model cannot verify (e.g. "verify these against the original PDF" without source text).
-
-In each case, leave items unchanged and add an entry to errors[] like:
-  {"code": "unsafe_edit", "feedback": "<the part you refused>", "reason": "<why>"}
-```
-
-## human_feedback_log entry
-
-```jsonc
-{
-  "human_feedback_log": [
-    {
-      "timestamp": "<ISO 8601>",
-      "action": "edited",                          // "edited" | "removed" | "approved" | "refused"
-      "items_changed": [3, 7, 12],                 // indices or stable IDs
-      "summary": "Relabeled items 3,7,12 from Phenotype to Disease per reviewer."
-    }
-  ]
-}
-```
+| Reviewer says | Operation |
+|---|---|
+| "BDNF here is the protein, label it Protein" | `{"id":"BDNF\|Gene","action":"set","field":"label","value":"Protein"}` |
+| "the hippocampus mapping is wrong, it should be Ammon's horn" | `{"id":"hippocampus\|BrainRegion","action":"remap","value":"Ammon's horn"}` |
+| "family conflict was a covariate" (ABCD) | `{"id":"var:…","action":"set","field":"role","value":"covariate"}` |
+| "the screen-time finding was dropped by mistake" | `{"id":"fnd:…","action":"restore","reason":"reported in Table 2"}` |
+| "L5 ET should map to CS20230722_SUBC_022 'L5 ET', closeMatch" (AIT) | `remap` with that node, as the reviewer wrote it |
+| "add the dentate gyrus too" | errors[] `needs_reextraction` |
 
 ## Common failure modes
 
 | Symptom | Fix |
 |---|---|
-| Agent rewrites unrelated items | Strengthen "only change items matching the feedback." |
-| Agent invents new items based on feedback | Strengthen "NEVER add new items; the reviewer must re-run extraction for additions." |
-| Agent silently drops items | Add: "If you remove an item, log it in human_feedback_log with action=removed." |
-| Agent ignores ambiguous feedback | Encourage `errors[]` entries for refusals rather than silent passes. |
+| An op targets an id not in `items` | It is refused (`no item`); copy ids from the queue. |
+| Mapping "fixed" with an IRI from memory | Refused by rule 2; use `remap` with a search term. |
+| Silent partial application | `apply` prints every refused op with its reason; report them to the reviewer. |
+| Reviewer wants to undo a judge's drop | `restore` — the full record was kept under `review_loop.dropped`. |

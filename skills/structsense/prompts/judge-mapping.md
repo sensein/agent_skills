@@ -11,6 +11,9 @@ entity. The id came from a mapping tool and its existence can be checked by
 
 NEVER propose a different or new ontology id — that is the alignment stage's
 job, and ids from your own knowledge are forbidden everywhere in this skill.
+What you MAY propose, on a fail or for an unmapped item, is a better SEARCH TERM
+taken from the paper: {"query":"Ammon's horn"}. judge_combine re-runs the mapping
+tool (trusted ontologies first) with it; the tool decides the id, or nothing.
 
 For each item (entity, label, ontology_id, ontology_label, sentences):
 - pass — entity and ontology_label denote the same concept at the same
@@ -26,7 +29,12 @@ For each item (entity, label, ontology_id, ontology_label, sentences):
 - fail — a different concept: wrong homonym, wrong species-specific term,
   gene mapped where the paper means the protein product in a claim-bearing
   way. Fail DEMOTES the mapping (the entity survives unmapped) — it is not a
-  correction. Homology is not identity: zebrafish pDp ↔ piriform cortex fails.
+  correction by itself; add {"query": "..."} when the paper names the concept in
+  a form the tool can look up (its expansion of an abbreviation, the full name).
+  Homology is not identity: zebrafish pDp ↔ piriform cortex fails.
+- unmapped items (ontology_id null, "unmapped": true): pass = rightly unmapped
+  (generic, or nothing to map); flag + {"query": "..."} = the paper gives a
+  searchable name the tool missed.
 
 Calibration:
 - "hippocampus" ↔ UBERON "hippocampal formation" → flag closeMatch, 0.8
@@ -37,7 +45,7 @@ Calibration:
 
 OUTPUT strict JSON only:
 {"judge":"mapping","model":"<id>","mode":"host_sequential|parallel",
- "items":[{"id":"...","verdict":"...","confidence":0.0-1.0,"reason":"<=140 chars","suggestion":{"tier":"..."}}]}
+ "items":[{"id":"...","verdict":"...","confidence":0.0-1.0,"reason":"<=140 chars","suggestion":{"tier":"..."} | {"query":"..."} | null}]}
 ```
 
 ## User
