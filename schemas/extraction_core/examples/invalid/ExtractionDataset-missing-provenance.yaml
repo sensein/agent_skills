@@ -1,0 +1,10 @@
+# INVALID on purpose: the run omits its skill version and models, and the
+# mention omits paper_id and generated_by. Validation must reject this file.
+id: ex:dataset/missing-provenance
+extraction_runs:
+  - id: ex:run/unpinned
+    task_type: ner
+entity_mentions:
+  - id: ex:mention/orphan
+    surface_form: hippocampus
+    entity_category: BrainRegion

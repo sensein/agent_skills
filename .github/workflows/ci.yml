@@ -59,6 +59,27 @@ jobs:
       - name: Test source-backed resource conversion
         run: python -m pytest skills/structsense/scripts/tests/test_resource_catalog.py -q
 
+  extraction-core-schema:
+    name: Extraction Core schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install LinkML
+        run: python -m pip install --quiet 'linkml>=1.9,<2'
+      - name: Lint the schema
+        run: linkml-lint --config schemas/extraction_core/.linkmllint.yaml schemas/extraction_core/extraction_core.yaml
+      - name: Generate JSON Schema and OWL
+        run: |
+          gen-json-schema schemas/extraction_core/extraction_core.yaml > /tmp/extraction_core.schema.json
+          gen-owl schemas/extraction_core/extraction_core.yaml > /tmp/extraction_core.owl.ttl
+      - name: Validate the example dataset
+        run: python schemas/extraction_core/check_dataset.py schemas/extraction_core/examples/ExtractionDataset-*.yaml
+      - name: Schema tests
+        run: python -m unittest tests.test_extraction_core -v
+
   duct-skill-smoke:
     name: duct skill smoke test
     runs-on: ubuntu-latest

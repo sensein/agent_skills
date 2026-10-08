@@ -1,0 +1,262 @@
+# One structsense NER + assertion-evidence run over one paper, showing every
+# universal slot and the run-level provenance that pins skill/model/prompt versions.
+id: ex:dataset/hu2026-demo
+schema_version: 0.1.0
+created_at: "2026-10-08T15:30:00Z"
+description: Demo extraction of a cortical interneuron paper.
+
+skill_versions:
+  - id: ex:skill/structsense/0.12.0
+    label: structsense 0.12.0
+    skill_name: structsense
+    skill_version: 0.12.0
+    repository: https://github.com/sensein/agent_skills
+    commit: d4ab967
+    ontology_version: 2.5.0
+
+model_versions:
+  - id: ex:model/claude-opus-5-5
+    model_name: Claude Opus 5.5
+    model_identifier: claude-opus-5-5
+    model_provider: anthropic
+    model_kind: llm
+  - id: ex:model/en_ner_bionlp13cg_md
+    model_identifier: en_ner_bionlp13cg_md
+    model_version: 0.5.4
+    model_provider: scispacy
+    model_kind: ner_transformer
+
+people:
+  - id: ex:person/curator-1
+    label: Example curator
+
+software_versions:
+  - id: ex:software/pdfplumber/0.11.4
+    software_name: pdfplumber
+    software_version: 0.11.4
+
+prompts:
+  - id: ex:prompt/extractor-ner-neuroscience
+    prompt_path: prompts/extractor-ner-neuroscience.md
+    prompt_sha256: 3f2a9c1e0b7d4a6f8e5c2b1a0d9f8e7c6b5a4d3c2b1a0f9e8d7c6b5a4d3c2b1a
+    prompt_role: extractor
+  - id: ex:prompt/judge-grounding
+    prompt_path: prompts/judge-grounding.md
+    prompt_sha256: 9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b
+    prompt_role: judge
+
+ontology_versions:
+  - id: ex:ontology/cl/2026-09-01
+    ontology_acronym: CL
+    ontology_iri: http://purl.obolibrary.org/obo/cl.owl
+    ontology_version_string: "2026-09-01"
+    release_date: "2026-09-01"
+
+documents:
+  - id: ex:paper/hu2026
+    title: Parvalbumin interneurons gate layer 4 feedforward inhibition
+    document_type: journal_article
+    doi: 10.1234/example.2026.001
+    pmid: "40000001"
+    source_path: inputs/hu2026.pdf
+    media_type: application/pdf
+    content_checksum: sha256:5d41402abc4b2a76b9719d911017c592ae0e7c1b8a3f4d2e1c0b9a8f7e6d5c4b
+    publication_date: "2026-03-14"
+    authors: [Hu, X., Example, Y.]
+    text_extractor: pdfplumber 0.11.4
+
+extraction_runs:
+  - id: ex:run/hu2026-ner-1
+    task_type: ner
+    skill: ex:skill/structsense/0.12.0
+    models: [ex:model/claude-opus-5-5, ex:model/en_ner_bionlp13cg_md]
+    prompts_used: [ex:prompt/extractor-ner-neuroscience]
+    configuration:
+      config_sha256: 0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d
+      temperature: 0.0
+      max_tokens: 8192
+      chunk_size: 6000
+      chunk_overlap: 400
+      output_schema: skills/structsense/schemas/ner-output.schema.json
+    software: [ex:software/pdfplumber/0.11.4]
+    ontology_versions_used: [ex:ontology/cl/2026-09-01]
+    executed_by: ex:person/curator-1
+    extraction_path: api
+    input_documents: [ex:paper/hu2026]
+    started_at: "2026-10-08T15:00:00Z"
+    ended_at: "2026-10-08T15:12:41Z"
+    run_status: completed
+  - id: ex:run/hu2026-ner-1-judge
+    task_type: judging
+    skill: ex:skill/structsense/0.12.0
+    models: [ex:model/claude-opus-5-5]
+    prompts_used: [ex:prompt/judge-grounding]
+    parent_run: ex:run/hu2026-ner-1
+    extraction_path: api
+    run_status: completed
+
+entities:
+  - id: ex:entity/pvalb-interneuron
+    label: parvalbumin-expressing interneuron
+    entity_category: CellType
+    entity_class: ner:CellType
+    identity_key: celltype|pvalb interneuron
+    aliases: [PV interneuron, PV+ cell]
+    species_context: [NCBITaxon:10090]
+    concept_mappings:
+      - mapped_curie: CL:4023018
+        mapped_label: pvalb GABAergic cortical interneuron
+        ontology: ex:ontology/cl/2026-09-01
+        mapping_relation: exact_match
+        mapping_status: accepted
+        alignment_method: ontology_lookup_service
+        mapping_score: 0.93
+  - id: ex:entity/l4-feedforward-inhibition
+    label: layer 4 feedforward inhibition
+    entity_category: NeuralCircuit
+    entity_class: ner:NeuralCircuit
+
+entity_mentions:
+  - id: ex:mention/hu2026/0001
+    paper_id: ex:paper/hu2026
+    surface_form: PV interneurons
+    entity_category: CellType
+    entity_class: ner:CellType
+    mention_specificity: specific
+    refers_to_entity: ex:entity/pvalb-interneuron
+    identity_key: celltype|pvalb interneuron
+    in_assertion: ex:assertion/hu2026/0001
+    assertion: "'PV interneurons' denotes a cell type."
+    source_excerpt: PV interneurons
+    source_location:
+      - section: Results
+        section_type: results
+        page: 4
+        paragraph_index: 12
+        sentence_index: 2
+        char_start: 18234
+        char_end: 18249
+        offset_convention: zero_based_half_open
+        sentence_text: Optogenetic silencing of PV interneurons abolished feedforward inhibition in layer 4.
+    generated_by: ex:run/hu2026-ner-1
+    extracted_by: ex:model/en_ner_bionlp13cg_md
+    extracted_at: "2026-10-08T15:04:10Z"
+    source_score: 0.97
+    evidence_verification: exact
+    record_status: accepted
+    species_context: [NCBITaxon:10090]
+    reviews:
+      - reviewer: ex:model/claude-opus-5-5
+        review_run: ex:run/hu2026-ner-1-judge
+        review_dimension: grounding
+        decision: approve
+        score: 0.95
+
+assertions:
+  - id: ex:assertion/hu2026/0001
+    paper_id: ex:paper/hu2026
+    assertion: PV interneurons are required for feedforward inhibition in mouse barrel cortex layer 4.
+    claim_category: paper_asserted
+    claim_stance: endorsed
+    assertion_type: finding
+    modality: asserted
+    negated: false
+    polarity: positive
+    mentions_entities: [ex:entity/pvalb-interneuron, ex:entity/l4-feedforward-inhibition]
+    source_excerpt: Optogenetic silencing of PV interneurons abolished feedforward inhibition in layer 4.
+    source_location:
+      - section: Results
+        section_type: results
+        page: 4
+        char_start: 18210
+        char_end: 18295
+        offset_convention: zero_based_half_open
+    generated_by: ex:run/hu2026-ner-1
+    extracted_by: ex:model/claude-opus-5-5
+    confidence: 0.9
+    confidence_method: model self-report
+    evidence_verification: exact
+    record_status: verified
+    species_context: [NCBITaxon:10090]
+  - id: ex:assertion/hu2026/0002
+    paper_id: ex:paper/hu2026
+    assertion: Somatostatin interneurons do not contribute to thalamocortical feedforward inhibition.
+    claim_category: reference_only
+    claim_stance: reported
+    cited_source: [DOI:10.1234/earlier.2019.042]
+    source_excerpt: Previous work suggested that SST cells do not participate in thalamocortical feedforward inhibition (Smith et al., 2019).
+    generated_by: ex:run/hu2026-ner-1
+    record_status: candidate
+
+evidence_items:
+  - id: ex:evidence/hu2026/0001
+    paper_id: ex:paper/hu2026
+    assertion: Silencing PV interneurons with ArchT abolished feedforward IPSCs in L4 spiny stellate cells.
+    evidence_type: experimental
+    evidence_code: ECO:0000006
+    method: [optogenetic silencing, whole-cell patch clamp]
+    statistic: "IPSC amplitude reduced by 92%, p < 0.001, n = 14 cells"
+    source_excerpt: Optogenetic silencing of PV interneurons abolished feedforward inhibition in layer 4.
+    source_location:
+      - figure_or_table: Fig. 3B
+        section_type: figure_caption
+    generated_by: ex:run/hu2026-ner-1
+    extracted_by: ex:model/claude-opus-5-5
+
+evidence_relations:
+  - id: ex:bearing/hu2026/0001
+    paper_id: ex:paper/hu2026
+    evidence: ex:evidence/hu2026/0001
+    target_assertion: ex:assertion/hu2026/0001
+    evidential_direction: for
+    evidential_mode: supports
+    evidence_strength: strong
+    applicability_context: adult mouse barrel cortex, acute slices
+    generated_by: ex:run/hu2026-ner-1
+    extracted_by: ex:model/claude-opus-5-5
+
+assertion_relations:
+  - id: ex:assertion-relation/hu2026/0001
+    paper_id: ex:paper/hu2026
+    subject_assertion: ex:assertion/hu2026/0001
+    object_assertion: ex:assertion/hu2026/0002
+    assertion_relation_type: related
+    generated_by: ex:run/hu2026-ner-1
+
+entity_relations:
+  - id: ex:relation/hu2026/0001
+    paper_id: ex:paper/hu2026
+    subject_entity: ex:entity/pvalb-interneuron
+    predicate: RO:0002215
+    object_entity: ex:entity/l4-feedforward-inhibition
+    subject_mention: ex:mention/hu2026/0001
+    relation_type: causal
+    directness: direct
+    modality: asserted
+    negated: false
+    polarity: positive
+    assertion: PV interneurons mediate layer 4 feedforward inhibition.
+    generated_by: ex:run/hu2026-ner-1
+    extracted_by: ex:model/claude-opus-5-5
+
+resource_records:
+  - id: ex:resource/hu2026/0001
+    paper_id: ex:paper/hu2026
+    resource_type: software
+    resource_name: pClamp
+    resource_role: used
+    version_claims:
+      - version_value: "11.2"
+        source_excerpt: pClamp 11.2 (Molecular Devices)
+    identifier_claims:
+      - identifier_scheme: rrid
+        identifier_value: RRID:SCR_011323
+        source_excerpt: RRID:SCR_011323
+    source_excerpt: Data were acquired with pClamp 11.2 (Molecular Devices; RRID:SCR_011323).
+    generated_by: ex:run/hu2026-ner-1
+    evidence_verification: exact
+
+claim_clusters:
+  - id: ex:cluster/l4-ffi-mechanism
+    label: Interneuron basis of L4 feedforward inhibition
+    member_assertions: [ex:assertion/hu2026/0001, ex:assertion/hu2026/0002]
