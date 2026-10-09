@@ -100,6 +100,15 @@ def _mapping_of(g: dict) -> Optional[dict]:
     return None
 
 
+def _label_routes() -> dict:
+    try:
+        cfg = json.loads((SKILL_DIR / "concept_mapping.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return {k: v for k, v in (cfg.get("label_routing") or {}).items()
+            if not k.startswith("_") and isinstance(v, list)}
+
+
 def build_packets(result: dict, text: str, *, kg_plan: Optional[dict], cfg: dict,
                   script_review: dict) -> dict[str, list[dict]]:
     groups = mention_groups(result)
@@ -124,6 +133,14 @@ def build_packets(result: dict, text: str, *, kg_plan: Optional[dict], cfg: dict
         packets["mapping"] = [{"id": g["id"], "entity": g["surface"], "label": g["label"],
                                **_mapping_of(g), "sentences": _sentences(g, k)}
                               for g in groups if _mapping_of(g)]
+        # unmapped entities whose label has an ontology route: the judge may give a
+        # better search term ({"query": ...}) and judge_combine re-runs the tool
+        routes = _label_routes()
+        packets["mapping"] += [{"id": g["id"], "entity": g["surface"], "label": g["label"], "unmapped": True,
+                                "ontology_id": None, "tried": g["items"][0].get("mapping_sources_tried"),
+                                "sentences": _sentences(g, k)}
+                               for g in groups if g["kind"] == "entity" and not _mapping_of(g)
+                               and routes.get(g["label"] or "")]
     # claims the extractor itself stated (per-mention relations, cell_context,
     # causal_relations) are reviewed exactly like kg_plan claims
     from relations import extracted_claims

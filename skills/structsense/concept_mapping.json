@@ -1,12 +1,13 @@
 {
-  "_comment": "Concept-mapping configuration (scripts/concept_mapping.py, references/ontology-mapping.md). Every mapping is still TOOL-ONLY (SKILL.md rule 15): a trusted ontology file is a tool \u2014 a match is a lookup in a curated artifact, never model knowledge. Edit this file, not code.",
+  "_comment": "Concept-mapping configuration (scripts/concept_mapping.py, references/ontology-mapping.md). Every mapping is still TOOL-ONLY (SKILL.md rule 15): a trusted ontology file is a tool — a match is a lookup in a curated artifact, never model knowledge. Edit this file, not code.",
   "version": "1.0.0",
   "sources_priority": [
     "trusted",
     "local_hybrid",
+    "ols",
     "bioportal"
   ],
-  "_sources_priority": "Order in which mapping sources are consulted. An item is sent to the next source only if every earlier one left it unmapped. Allowed: trusted, local_hybrid, bioportal, ols. Remove a source to disable it; put 'trusted' last to use it only as a fallback.",
+  "_sources_priority": "Order in which mapping sources are consulted. An item is sent to the next source only if every earlier one left it unmapped. Default: the trusted ontology files in trusted_ontologes/ first; then the local hybrid mapper if it is running; then OLS through its MCP server (remote.ols_mcp_url, exact label matches only); BioPortal last (needs BIOPORTAL_API_KEY). Allowed: trusted, local_hybrid, ols (MCP), ols_rest (the REST search API), bioportal. Remove a source to disable it.",
   "trusted_ontologies": {
     "directory": "trusted_ontologes",
     "_directory": "Relative to the skill root (or absolute). Every file listed below must live here.",
@@ -57,12 +58,12 @@
     "lexicon_dir": "trusted_ontologes/lexicon",
     "_lexicon_dir": "Where `index` writes <name>.tsv.gz (one flat lexicon per ontology) and lexicon.sqlite (the lookup index). Regenerable; safe to delete.",
     "index_local_name_when_unlabeled": true,
-    "_index_local_name_when_unlabeled": "Some ontologies (SCIO, NEO, BRAIN-COF) name classes only in the IRI (\u2026/AdhesiveRemovalTest). When a class has no label, index its IRI local name as match type 'local_name'.",
+    "_index_local_name_when_unlabeled": "Some ontologies (SCIO, NEO, BRAIN-COF) name classes only in the IRI (…/AdhesiveRemovalTest). When a class has no label, index its IRI local name as match type 'local_name'.",
     "abbreviation_guard": {
       "max_length": 4,
       "require_label_route": true
     },
-    "_abbreviation_guard": "A query of <= max_length alphanumeric characters (PFC, LTP, V1) matches exact synonyms/symbols in many ontologies (FBbt 'prefollicle cell' for PFC). It is only mapped \u2014 and only used to derive a key \u2014 when the item's label has a label_routing entry, so the route decides which ontologies may answer.",
+    "_abbreviation_guard": "A query of <= max_length alphanumeric characters (PFC, LTP, V1) matches exact synonyms/symbols in many ontologies (FBbt 'prefollicle cell' for PFC). It is only mapped — and only used to derive a key — when the item's label has a label_routing entry, so the route decides which ontologies may answer.",
     "exclude_iri_patterns": [
       "^https://identifiers\\.org/brain-bican/vocab/[A-Za-z]+#"
     ],
@@ -196,7 +197,7 @@
     "Percent": [],
     "Law": [],
     "Language": [],
-    "_general_domain": "General-domain labels route to [] \u2014 no trusted (biomedical) ontology may answer for a Person or an Organization; remote sources are still consulted (use a general-domain mapper there, e.g. a Wikidata-backed local service).",
+    "_general_domain": "General-domain labels route to [] — no trusted (biomedical) ontology may answer for a Person or an Organization; remote sources are still consulted (use a general-domain mapper there, e.g. a Wikidata-backed local service).",
     "Software": [
       "SWO",
       "EDAM"
@@ -249,6 +250,15 @@
       "NBO",
       "COGAT",
       "MF"
+    ],
+    "CognitiveConstruct": [
+      "COGAT",
+      "COGPO",
+      "NBO",
+      "MF",
+      "MFOEM",
+      "MFOMD",
+      "HP"
     ]
   },
   "match_type_tiers": {
@@ -265,6 +275,8 @@
   },
   "remote": {
     "local_hybrid_url": "http://localhost:8000",
+    "ols_mcp_url": "https://www.ebi.ac.uk/ols4/api/mcp",
+    "_ols_mcp_url": "OLS MCP server (Streamable HTTP, no key). Its searchClasses tool ranks loosely and returns no synonyms, so only a class whose label equals the query is accepted (scripts/ols_mcp_map.py).",
     "max_results": 5,
     "_max_results": "Hits fetched per remote search; the first one in a representable namespace (prefix registry) is taken, not blindly hit 1.",
     "label_ontologies": {

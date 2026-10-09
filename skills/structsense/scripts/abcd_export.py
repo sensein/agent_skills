@@ -59,6 +59,7 @@ PREFIXES = f"""@prefix abcd:    <{NS}> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix cogat:   <https://www.cognitiveatlas.org/concept/id/> .
 @prefix nbdc:    <https://nbdc-datahub.org/variable/> .
@@ -248,11 +249,13 @@ def paper_markdown(doc: dict) -> str:
         "## Constructs",
         "",
         md_table(
-            ["Construct", "Cognitive Atlas id", "Verbatim in text", "Section", "Quote"],
+            ["Construct", "Cognitive Atlas id", "Ontology (trusted first)", "Verbatim in text", "Section", "Quote"],
             [
                 (
                     c.get("construct_label") or c.get("construct"),
                     c.get("construct_id") or f"— ({c.get('mapping_provenance')})",
+                    (f"{c.get('ontology_label')} ({c.get('ontology_mapping_source')})"
+                     if c.get("ontology_mapping_provenance") == "tool" else "—"),
                     "yes" if (c.get("evidence") or {}).get("label_in_quote") else "no (mapped)",
                     (c.get("evidence") or {}).get("section") or "—",
                     _trunc((c.get("evidence") or {}).get("quote"), 110),
@@ -323,6 +326,27 @@ def paper_markdown(doc: dict) -> str:
             ),
         ]
 
+    loop = doc.get("review_loop") or {}
+    changes = [op for r in loop.get("rounds") or [] for op in r.get("ops") or [] if op.get("applied")]
+    if changes or (doc.get("provenance") or {}).get("judge"):
+        lines += [
+            "",
+            "## Review loop (judge + human feedback)",
+            "",
+            f"- **Judge**: {(doc.get('provenance') or {}).get('judge') or 'not run'}",
+            f"- **Human feedback**: {(doc.get('provenance') or {}).get('human_feedback') or ('applied' if doc.get('human_feedback_applied') else 'none')}",
+            f"- **Escalated to a human**: {len(loop.get('escalated') or [])}",
+            "",
+        ]
+        if changes:
+            lines.append(md_table(
+                ["Actor", "Action", "Item", "Field", "From", "To", "Why"],
+                [(op.get("actor"), op.get("action"), op.get("id"), op.get("field") or "—",
+                  _trunc(json.dumps(op.get("from"), default=str), 40) if "from" in op else "—",
+                  _trunc(json.dumps(op.get("to", op.get("value")), default=str), 40),
+                  _trunc(op.get("reason") or op.get("licensed_by"), 60))
+                 for op in changes]))
+
     prov = doc.get("provenance") or {}
     lines += [
         "",
@@ -345,6 +369,27 @@ def paper_markdown(doc: dict) -> str:
         ),
     ]
     return "\n".join(lines) + "\n"
+
+
+_SKOS_TIERS = ("exactMatch", "closeMatch", "broadMatch", "narrowMatch", "relatedMatch")
+
+
+def review_lines(item: dict) -> List[str]:
+    """The concept-map / judge / human-feedback results on one item: a tool-made
+    ontology mapping (trusted ontology files first) as a SKOS edge at its judged tier,
+    the judge score, and a human verification."""
+    out: List[str] = []
+    iri = item.get("ontology_id")
+    if iri and item.get("ontology_mapping_provenance") == "tool" and str(iri).startswith("http"):
+        tier = item.get("ontology_match_tier") if item.get("ontology_match_tier") in _SKOS_TIERS else "exactMatch"
+        out.append(f"    skos:{tier} <{iri}> ;")
+        if item.get("ontology_mapping_source"):
+            out.append(f"    abcd:ontologyMappingSource {lit(item['ontology_mapping_source'])} ;")
+    if isinstance(item.get("judge_score"), (int, float)):
+        out.append(f'    abcd:judgeScore "{item["judge_score"]}"^^xsd:decimal ;')
+    if item.get("human_verified"):
+        out.append("    abcd:humanVerified true ;")
+    return out
 
 
 def paper_turtle(doc: dict) -> str:
@@ -453,6 +498,7 @@ def paper_turtle(doc: dict) -> str:
             out.append(f"    abcd:mappingProvenance {lit(c.get('mapping_provenance'))} ;")
         out.append(f"    abcd:labelVerbatimInText "
                    f"{'true' if ev.get('label_in_quote') else 'false'} ;")
+        out += review_lines(c)
         out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
@@ -491,6 +537,7 @@ def paper_turtle(doc: dict) -> str:
             out.append(f"    abcd:aboutVariable {lit(name)} ;")
         if f.get("effect_size") or f.get("estimate"):
             out.append(f"    abcd:effect {lit(f.get('effect_size') or f.get('estimate'))} ;")
+        out += review_lines(f)
         out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")

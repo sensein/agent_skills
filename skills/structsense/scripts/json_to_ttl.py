@@ -1528,6 +1528,56 @@ class TurtleBuilder:
             self.add(vr, PROV.wasGeneratedBy, self.judge_run)
             self.add(self.snapshot, NER.hasValidationReport, vr)
 
+    def build_human_feedback_provenance(self):
+        """Each human-feedback round (scripts/human_feedback.py, review_loop.rounds with
+        actor "human") as a ner:HumanReviewActivity, informed by the judge step and
+        associated with a ner:HumanReviewer; every APPLIED operation is a ChangeRecord
+        triggered by it, with the value before and after. Refused operations are
+        counted, not asserted: they changed nothing."""
+        rounds = [r for r in (self.result.get("review_loop") or {}).get("rounds") or []
+                  if r.get("actor") == "human"]
+        cls_for = {("set", "label"): NER.ClassificationChangedChange, ("set", "tier"): NER.MappingChangedChange,
+                   ("remap", None): NER.MappingChangedChange, ("demote", None): NER.MappingRemovedChange,
+                   ("drop", None): NER.MentionRemovedChange}
+        for i, rnd in enumerate(rounds, 1):
+            act = self.mint("run", f"{self.run_id}|human|{i}")
+            self.add(act, RDF.type, NER.HumanReviewActivity)
+            self.label(act, f"human feedback round {i}")
+            self.add(act, NER.runIdentifier, self.lit(f"{self.run_id}-human-{i}", XSD.string))
+            self.add(act, NER.taskType, self.lit("human feedback", XSD.string))
+            self.add(act, PROV.wasInformedBy, self.judge_run)
+            who = rnd.get("by") or "human reviewer"
+            self.add(act, PROV.wasAssociatedWith, self.agent(f"human:{who}", NER.HumanReviewer, who))
+            t = as_datetime(rnd.get("at"))
+            if t is not None:
+                self.add(act, PROV.endedAtTime, t)
+            ops = rnd.get("ops") or []
+            refused = sum(1 for op in ops if not op.get("applied"))
+            status = "approved" if rnd.get("approved") else "skipped" if rnd.get("skipped") else \
+                f"{len(ops) - refused} applied, {refused} refused"
+            self.add(act, RDFS.comment, Literal(f"human feedback: {status}"))
+            for n, op in enumerate(o for o in ops if o.get("applied")):
+                action, field = op.get("action"), op.get("field")
+                cls = cls_for.get((action, field)) or cls_for.get((action, None)) or NER.ChangeRecord
+                cr = self.mint("change", f"{op.get('id')}|human|{i}|{n}")
+                self.add(cr, RDF.type, cls)
+                self.label(cr, f"human {action}")
+                ent = self.entity_by_group_id.get(str(op.get("id")).lower())
+                if ent is not None:
+                    self.add(cr, NER.changedEntity, ent["node"])
+                    self.add(ent["node"], NER.hasChangeRecord, cr)
+                old = op.get("from")
+                new = op.get("to", op.get("value"))
+                for prop, val in ((NER.changedField, field or action), (NER.oldLiteralValue, old),
+                                  (NER.newLiteralValue, new), (NER.changeReason, op.get("reason"))):
+                    if val not in (None, "", []):
+                        self.add(cr, prop, self.lit("; ".join(map(str, val)) if isinstance(val, list) else str(val),
+                                                    XSD.string))
+                self.add(cr, NER.triggeredByActivity, act)
+                if action == "drop":
+                    self.add(cr, PROV.wasDerivedFrom, self.docv)
+                self.counts["change_records"] += 1
+
     def review_node(self, gid: str, rv: dict) -> URIRef:
         """One judge's verdict on one item, as a ner:ReviewDecision: its dimension
         (the judge), status, confidence, reason, the judge agent and the judge's own
@@ -1908,6 +1958,7 @@ class TurtleBuilder:
         self.build_causal(extracted_causal)
         if self.profile == "full":
             self.build_judge_provenance()
+            self.build_human_feedback_provenance()
         for prefix in sorted({self.registry.canonical(a) for a in self.ontology_versions} - {None}):
             ns = self.registry.namespace(prefix)
             if ns and not ns.startswith(str(OBO)):

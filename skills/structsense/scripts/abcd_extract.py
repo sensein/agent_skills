@@ -8,6 +8,9 @@ Pipeline per paper:
       -> merge chunk payloads
       -> STRICT VERIFY (abcd_verify): quote must be findable in THIS paper
       -> dictionary-gate variables (abcd_dictionary) + construct-map (cognitive_atlas)
+      -> concept map constructs (concept_mapping: trusted ontology files first)
+      -> judge panel (record_judge: same judges and gates as NER) -> corrections
+      -> human feedback (optional: --feedback ops file, or --human-feedback interactive)
       -> write <stem>_abcd.{json,md,ttl}
 
 What this deliberately does NOT do: infer variables a paper "probably" used, or
@@ -301,6 +304,94 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
 # CLI
 # --------------------------------------------------------------------------- #
 
+def review_paper(doc: dict, path: Path, a: argparse.Namespace, *, out_dir: Path,
+                 dictionary: Optional[Dictionary], context_index: Optional[Any],
+                 atlas: Optional[CognitiveAtlas], nda: Optional[Any]) -> None:
+    """Concept map (trusted ontologies first), judge, optional human feedback — in place.
+
+    Judge: with --llm-model the panel runs here (framework mode). On the agent path the
+    packets are written to <out>/judge/<stem>/ and the run reports `judge: pending`;
+    write each packet's review_file (prompts/judge-record.md, one judge at a time) and
+    re-run the same command: the reviews are then combined. --no-judge skips it.
+    """
+    from scripts import review_loop as rl
+    from scripts import record_judge as rj
+
+    releases = None
+    if dictionary is not None:
+        releases = abcd_context.releases_for_paper(
+            (doc.get("source_metadata") or {}).get("data_release"),
+            sorted({s["release"] for s in dictionary.snapshots})) or None
+    tools = rl.Tools(dictionary=dictionary, context_index=context_index, atlas=atlas,
+                     gate_kwargs={"releases": releases, "study": a.study, "nda": nda,
+                                  "nda_release": abcd_context.nda_release_for_paper(
+                                      (doc.get("source_metadata") or {}).get("data_release"))},
+                     offline=a.offline_mapping)
+    rl.abcd_records(doc)  # stamp stable review ids
+    try:
+        rl.map_abcd(doc, tools)
+    except Exception as exc:  # no usable mapping source: say so, keep the Atlas ids
+        doc.setdefault("provenance", {})["concept_mapping"] = {"error": f"{type(exc).__name__}: {exc}"}
+        print(f"  [{path.name}] concept mapping unavailable: {exc}", file=sys.stderr)
+
+    status = "skipped (--no-judge)"
+    if not a.no_judge:
+        jdir = out_dir / "judge" / path.stem
+        if a.llm_model and doc["provenance"].get("extraction_path") == "api":
+            from scripts.llm_client import call
+            s = rj.run_panel("abcd", doc, call=call, default_model=a.judge_model or a.llm_model,
+                             combiner_model=a.judge_model or a.llm_model, work_dir=jdir, tools=tools)
+            status = f"done ({s['applied']} correction(s), {s['dropped']} dropped)"
+        else:
+            packets = sorted(jdir.glob("packets/*/part-*.json"))
+            missing = [p for p in packets
+                       if not (jdir / json.loads(p.read_text())["review_file"]).is_file()]
+            if packets and not missing:
+                s = rj.combine("abcd", doc, rj.load_reviews(sorted((jdir / "reviews").glob("*.json"))),
+                               tools=tools)
+                comb = jdir / "combiner.json"
+                if doc["review_loop"]["judge"]["needs_review"] and comb.is_file():
+                    rj.apply_combiner("abcd", doc, json.loads(comb.read_text()), tools)
+                elif doc["review_loop"]["judge"]["needs_review"]:
+                    doc["review_loop"]["escalated"] = [{"id": n["id"], "question": n["conflict"]}
+                                                       for n in doc["review_loop"]["judge"]["needs_review"]]
+                status = f"done ({s['applied']} correction(s), {s['dropped']} dropped)"
+            else:
+                if not packets:
+                    rj.prepare("abcd", doc, jdir)
+                    missing = sorted(jdir.glob("packets/*/part-*.json"))
+                status = (f"pending: {len(missing)} packet(s) under {jdir}/packets — write each review_file "
+                          f"(prompts/judge-record.md), then re-run this command")
+    doc["provenance"]["judge"] = status
+
+    # the reviewer's ops: --feedback, else <out>/feedback/<stem>.feedback.json if it exists
+    # (where `human_feedback queue --mode abcd` puts it), so re-running the same
+    # command is the output loop
+    fb = a.feedback or (out_dir / "feedback" if (out_dir / "feedback").is_dir() else None)
+    if fb is not None:
+        f = fb / f"{path.stem}.feedback.json" if fb.is_dir() else fb
+        if f.is_file():
+            from scripts import human_feedback as hf
+            spec = json.loads(f.read_text())
+            log = hf.apply_feedback("abcd", doc, (spec.get("ops") if isinstance(spec, dict) else spec) or [],
+                                    by=spec.get("by") if isinstance(spec, dict) else None, tools=tools)
+            for e in log:
+                if not e["applied"]:
+                    print(f"  [{path.name}] feedback REJECTED {e.get('action')} {e.get('id')}: "
+                          f"{e['rejected_because']}", file=sys.stderr)
+    if a.human_feedback == "interactive":
+        from scripts import human_feedback as hf
+
+        def _render(d: dict) -> str:
+            return ", ".join(p.name for p in abcd_export.write_all(d, out_dir / f"{path.stem}_abcd",
+                                                                    kind="paper", formats=("json", "md")).values())
+        status = hf.interactive("abcd", doc, out_dir / f"{path.stem}_abcd.json", render=_render,
+                                timeout=a.feedback_timeout or None, tools=tools)
+        doc["provenance"]["human_feedback"] = status
+        if status == "aborted":
+            raise RuntimeError("aborted at human feedback")
+
+
 def _resolve_inputs(target: str, *, download_dir: Optional[Path],
                     email: Optional[str], limit: Optional[int],
                     ignore_dirs: Sequence[Path] = ()):
@@ -380,6 +471,19 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                          "names always, full-text search only for runs of at most "
                          f"{NDA_SEARCH_PAPER_BUDGET} papers, since a large corpus "
                          "would mean thousands of requests. on: always. off: never.")
+    ap.add_argument("--no-judge", action="store_true",
+                    help="skip the judge panel (references/review-loop.md); not recommended")
+    ap.add_argument("--judge-model", default=None,
+                    help="path B: model for the judge panel and combiner (default: --llm-model)")
+    ap.add_argument("--feedback", type=Path, default=None,
+                    help="a reviewer's ops file, or a directory of <stem>.feedback.json "
+                         "(default: <out>/feedback/ when it exists — where "
+                         "`python -m scripts.human_feedback queue --mode abcd` writes them)")
+    ap.add_argument("--human-feedback", choices=["off", "interactive"], default="off",
+                    help="interactive review loop per paper after the judge")
+    ap.add_argument("--feedback-timeout", type=float, default=60.0)
+    ap.add_argument("--offline-mapping", action="store_true",
+                    help="concept-map constructs with the trusted ontology files only")
     a = ap.parse_args(argv)
 
     formats = [f.strip() for f in a.formats.split(",") if f.strip()]
@@ -559,6 +663,14 @@ def _cli(argv: Optional[List[str]] = None) -> int:
             if len(inputs) == 1:
                 return 1
             continue
+        # concept map -> judge -> human feedback: the same loop as NER
+        # (references/review-loop.md), before export and before the synthesis counts it
+        try:
+            review_paper(doc, path, a, out_dir=out_dir, dictionary=dictionary,
+                         context_index=context_index, atlas=atlas, nda=nda)
+        except Exception as exc:  # the review stages must never lose a verified paper
+            doc.setdefault("provenance", {})["review_loop_error"] = f"{type(exc).__name__}: {exc}"
+            print(f"  [{path.name}] review loop failed: {exc}", file=sys.stderr)
         if str(path) in fetch_prov:
             doc["provenance"]["retrieval"] = fetch_prov[str(path)]
         doc["provenance"]["input_detected_as"] = input_summary["detected_as"]

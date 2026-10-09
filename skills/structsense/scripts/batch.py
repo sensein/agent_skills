@@ -164,6 +164,7 @@ def cmd_init(args) -> int:
         m["settings"] = {**(m.get("settings") or {}),
                          "chunk_chars": args.chunk_chars, "recall": not args.no_recall,
                          "judges": not args.no_judges, "keep_json": args.keep_json,
+                         "human_feedback": bool(args.human_feedback),
                          "entity_views": args.entity_views,
                          "mapper_url": args.mapper_url,
                          "mapping_sources": [x.strip() for x in (args.mapping_sources or "").split(",") if x.strip()] or None,
@@ -427,11 +428,18 @@ def build_result(job: Job, text: str, chunks: list[dict]) -> dict:
     return result
 
 
+def job_mapper(job: Job):
+    """The job's mapping cascade (trusted ontology files first). The judge's remaps and
+    the human-feedback loop use the same one as stage 3."""
+    from concept_mapping import ConceptMapper
+    return ConceptMapper(sources=job.settings.get("mapping_sources") or None,
+                         local_url=job.settings.get("mapper_url") or None, ask_user=None)
+
+
 def map_and_normalize(job: Job, result: dict, text: str, n_chunks: int) -> dict:
-    from concept_mapping import ConceptMapper, map_result
+    from concept_mapping import map_result
     from normalize_result import normalize
-    cm = ConceptMapper(sources=job.settings.get("mapping_sources") or None,
-                       local_url=job.settings.get("mapper_url") or None, ask_user=None)
+    cm = job_mapper(job)
     if not cm.usable_sources():
         raise RuntimeError("concept mapping is mandatory and tool-only (rule 15) and no source in "
                            "concept_mapping.json is usable: run `python -m scripts.concept_mapping index` "
@@ -492,6 +500,17 @@ def dedupe_review(obj: dict) -> dict:
             items.append(it)
     obj["items"] = items
     return obj
+
+
+def check_feedback(obj: Any) -> Optional[str]:
+    if not isinstance(obj, dict) or not isinstance(obj.get("ops"), list):
+        return 'expected {"ops": [...]} (prompts/humanfeedback.md); {"ops": []} approves as is'
+    return None
+
+
+def _tools(job: Job):
+    import review_loop as rl
+    return rl.Tools(mapper=job_mapper(job))
 
 
 def check_combiner(obj: Any) -> Optional[str]:
@@ -687,7 +706,7 @@ def advance(job: Job) -> Optional[dict]:
                 r.setdefault("model", f"llm:{job.model}")
                 r.setdefault("mode", job.state.get("mode") or "host_sequential")
                 write_json(rp, r)
-        judged, plan2, report = combine(result, load_reviews(reviews_paths), cfg, plan)
+        judged, plan2, report = combine(result, load_reviews(reviews_paths), cfg, plan, remapper=job_mapper(job))
         if report.get("needs_review"):
             target = jdir / "combiner.json"
             dec = accept(target, check_combiner)
@@ -702,6 +721,31 @@ def advance(job: Job) -> Optional[dict]:
                         "instructions": "Choose among the judges' suggestions only; never invent a fix."}
             judged, plan2, log = apply_combiner(judged, dec, plan2, combiner_model=job.model)
         result, plan = judged, plan2
+
+    # 5b. human feedback (optional, settings.human_feedback): the agent shows the queue
+    # to the user and writes their corrections as ops; {"ops": []} approves as is
+    if job.settings.get("human_feedback"):
+        import human_feedback as hf
+        target = job.f("feedback.ops.json")
+        spec = accept(target, check_feedback)
+        if spec is None:
+            if claimed(target):
+                return None
+            queue = job.f("feedback.json")
+            write_json(queue, hf.template("ner", job.final_json, result))
+            claim(target)
+            return {"task": "human_feedback", "job": job.key, "paper": job.stem, "variant": domain,
+                    "prompt": prompt_path("humanfeedback"), "read": str(queue), "write": str(target),
+                    "retry_reason": previous_error(target),
+                    "instructions": ("Show the user the `queue` in `read` (id, why, surface, evidence) and ask for "
+                                     "corrections. Turn their answer into ops per the prompt and write "
+                                     "{\"ops\": [...]} to `write`; write {\"ops\": []} if they approve as is. "
+                                     "Never invent a correction the user did not give.")}
+        if spec.get("ops"):
+            log = hf.apply_feedback("ner", result, spec["ops"], by=spec.get("by"), tools=_tools(job))
+            job.set(feedback_applied=sum(e["applied"] for e in log),
+                    feedback_rejected=[f"{e.get('action')} {e.get('id')}: {e['rejected_because']}"
+                                       for e in log if not e["applied"]][:20])
 
     # 6. Turtle + gate: this paper is delivered now, not at the end of the batch
     plan = drop_generic_keys(job, plan)
@@ -876,6 +920,9 @@ def fulfil(task: dict, model: str) -> None:
     from json_repair import parse_or_repair
     from llm_client import call
     t = task["task"]
+    if t == "human_feedback":  # headless: no human to ask; logged as skipped
+        write_json(Path(task["write"]), {"ops": [], "skipped": "headless run (batch run)"})
+        return
     read = Path(task["read"]).read_text(encoding="utf-8")
     if t == "recall":
         label_block = system_prompt(str(Path(task["label_set_from"]).relative_to(SKILL)))
@@ -1009,6 +1056,40 @@ def cmd_retry(args) -> int:
     return 0
 
 
+def cmd_feedback(args) -> int:
+    """The output loop: revise a finished paper with a reviewer's ops, then re-render and
+    re-gate its TTL from the kept final JSON (needs --keep-json). Without --ops, writes
+    the review queue next to the TTL."""
+    import human_feedback as hf
+    manifest = Path(args.manifest).expanduser().resolve()
+    m = load_manifest(manifest)
+    keys = [k for k in m["jobs"] if k.split("::")[0] == args.stem and (not args.variant or
+            k.split("::")[1] == VARIANTS.get(args.variant, args.variant))]
+    if not keys:
+        raise SystemExit(f"no job for {args.stem}")
+    for k in keys:
+        stem, v = k.split("::")
+        job = Job(m, manifest, next(p for p in m["papers"] if p["stem"] == stem), v)
+        result = read_json(job.final_json)
+        if not isinstance(result, dict):
+            raise SystemExit(f"{k}: no kept {job.final_json.name} (run with --keep-json to use the output loop)")
+        if not args.ops:
+            q = job.out / f"{stem}.feedback.json"
+            write_json(q, hf.template("ner", job.final_json, result))
+            print(f"{k}: {len(read_json(q)['queue'])} item(s) -> {q}; fill `ops`, then rerun with --ops {q}")
+            continue
+        spec = read_json(Path(args.ops)) or {}
+        log = hf.apply_feedback("ner", result, spec.get("ops") or [], by=args.by, tools=_tools(job))
+        for e in log:
+            if not e["applied"]:
+                print(f"  REJECTED {e.get('action')} {e.get('id')}: {e['rejected_because']}", file=sys.stderr)
+        write_json(job.final_json, result)
+        res = rerender(job)
+        update_job(manifest, k, **res, feedback_applied=sum(e["applied"] for e in log))
+        print(f"{res['status'].upper()} {k}: {res.get('ttl')} ({sum(e['applied'] for e in log)} op(s) applied)")
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1023,6 +1104,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     a.add_argument("--chunk-chars", type=int, default=12000)
     a.add_argument("--no-recall", action="store_true", help="skip the mask-recall pass")
     a.add_argument("--no-judges", action="store_true", help="skip the judge ensemble (not recommended)")
+    a.add_argument("--human-feedback", action="store_true",
+                   help="after the judges, hand out a human_feedback task per paper (the review queue); "
+                        "the user's corrections are applied as review_loop ops before the TTL is written")
     a.add_argument("--keep-json", action="store_true", help="keep chunk/judge work files after a paper is done")
     a.add_argument("--entity-views", action="store_true",
                    help="also write <stem>.entities.json / .entities.ttl (python -m scripts.entity_view makes "
@@ -1050,6 +1134,13 @@ def main(argv: Optional[list[str]] = None) -> int:
                    help="ttl: re-render from kept JSON; map: re-map and re-judge from the kept extraction; "
                         "kg_plan / judge: redo from there; extract/all: from scratch")
     r.set_defaults(fn=cmd_retry)
+    fb = sub.add_parser("feedback", help="output loop: apply a reviewer's ops to a finished paper and re-render")
+    fb.add_argument("stem")
+    fb.add_argument("--manifest", required=True)
+    fb.add_argument("--variant", default=None)
+    fb.add_argument("--ops", default=None, help="ops file; omit to write the review queue")
+    fb.add_argument("--by", default=None, help="reviewer name for the log")
+    fb.set_defaults(fn=cmd_feedback)
     args = ap.parse_args(argv)
     return args.fn(args)
 
