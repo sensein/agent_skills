@@ -1,0 +1,45 @@
+# INVALID on purpose: schema-valid, but breaks the cross-record provenance
+# rules enforced by check_dataset.py.
+id: ex:dataset/broken-references
+skill_versions:
+  - id: ex:skill/structsense/0.12.0
+    skill_name: structsense
+    skill_version: 0.12.0
+model_versions:
+  - id: ex:model/model-a
+    model_identifier: model-a
+  - id: ex:model/model-b
+    model_identifier: model-b
+documents:
+  - id: ex:paper/p1
+extraction_runs:
+  - id: ex:run/r1
+    task_type: ner
+    skill: ex:skill/structsense/0.12.0
+    models: [ex:model/model-a]
+entity_mentions:
+  # paper_id points at a paper that is not defined
+  - id: ex:mention/m1
+    paper_id: ex:paper/missing
+    surface_form: hippocampus
+    entity_category: BrainRegion
+    generated_by: ex:run/r1
+  # extracted_by is not one of run r1's models
+  - id: ex:mention/m2
+    paper_id: ex:paper/p1
+    surface_form: CA1
+    entity_category: BrainRegion
+    generated_by: ex:run/r1
+    extracted_by: ex:model/model-b
+  # ungrounded record marked accepted, plus an unverified accepted mapping
+  - id: ex:mention/m3
+    paper_id: ex:paper/p1
+    surface_form: dentate gyrus
+    entity_category: BrainRegion
+    generated_by: ex:run/r1
+    evidence_verification: not_found
+    record_status: accepted
+    concept_mappings:
+      - mapped_curie: UBERON:0001885
+        mapping_status: accepted
+        alignment_method: model_proposed_unverified

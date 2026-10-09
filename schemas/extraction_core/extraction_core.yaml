@@ -1,0 +1,1699 @@
+id: https://brainkb.org/extraction-core
+name: extraction_core
+title: Extraction Core
+version: 0.1.0
+license: MIT
+description: >-
+  Universal LinkML model for records extracted from scientific papers and other
+  unstructured sources by the skills in this repository (structsense NER,
+  resource, structured/ABCD and Allen cell-type extraction; synthscholar
+  reviews; assertion-evidence curation).
+
+  Two ideas hold the model together:
+
+  1. Every extracted item, whatever its type, is an ExtractionRecord and carries
+     the same universal slots: which paper it came from (paper_id), where in
+     that paper (source_location, source_excerpt), what it asserts (assertion),
+     and how it was produced (generated_by, extracted_by, extracted_at).
+  2. Every ExtractionRun records the exact skill version, model version(s),
+     prompt version(s), configuration and software it used, so any record can be
+     traced back to a reproducible execution.
+
+  Terms are mapped to the Assertion-Evidence ontology (ae:), the StructSense
+  Named Entity ontology (ner:), PROV-O, PAV, SEPIO and SKOS so that data
+  conforming to this schema converts to those graphs without loss.
+see_also:
+  - https://github.com/sensein/assertion-evidence
+  - https://github.com/sensein/agent_skills/blob/main/skills/structsense/default_ontology/named_entity_ontology.owl
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  exc: https://brainkb.org/extraction-core/
+  ae: https://brainkb.org/assertion-evidence/
+  ner: https://brainkb.org/ner/
+  prov: http://www.w3.org/ns/prov#
+  pav: http://purl.org/pav/
+  dcterms: http://purl.org/dc/terms/
+  skos: http://www.w3.org/2004/02/skos/core#
+  schema: http://schema.org/
+  bibo: http://purl.org/ontology/bibo/
+  doco: http://purl.org/spar/doco/
+  doap: http://usefulinc.com/ns/doap#
+  rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  xsd: http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  SEPIO: http://purl.obolibrary.org/obo/SEPIO_
+  IAO: http://purl.obolibrary.org/obo/IAO_
+  ECO: http://purl.obolibrary.org/obo/ECO_
+  ORCID: https://orcid.org/
+  DOI: https://doi.org/
+  PMID: https://pubmed.ncbi.nlm.nih.gov/
+  PMCID: https://www.ncbi.nlm.nih.gov/pmc/articles/
+  NCBITaxon: http://purl.obolibrary.org/obo/NCBITaxon_
+  CL: http://purl.obolibrary.org/obo/CL_
+  UBERON: http://purl.obolibrary.org/obo/UBERON_
+  GO: http://purl.obolibrary.org/obo/GO_
+  CHEBI: http://purl.obolibrary.org/obo/CHEBI_
+  RO: http://purl.obolibrary.org/obo/RO_
+  RRID: https://identifiers.org/RRID/
+  # Placeholder namespace for examples and tests; real data should use a
+  # project namespace.
+  ex: https://example.org/extraction/
+
+default_prefix: exc
+default_range: string
+
+imports:
+  - linkml:types
+
+# ---------------------------------------------------------------------------
+# Classes
+# ---------------------------------------------------------------------------
+classes:
+
+  ExtractionDataset:
+    tree_root: true
+    description: >-
+      A container for one or more extraction runs over one or more source
+      documents, together with every record those runs produced. This is the
+      unit that is written to disk, validated and exchanged.
+    slots:
+      - id
+      - schema_version
+      - created_at
+      - description
+      - skill_versions
+      - model_versions
+      - people
+      - software_versions
+      - prompts
+      - ontology_versions
+      - documents
+      - extraction_runs
+      - entities
+      - entity_mentions
+      - assertions
+      - evidence_items
+      - evidence_relations
+      - assertion_relations
+      - entity_relations
+      - resource_records
+      - claim_clusters
+    slot_usage:
+      id:
+        required: true
+
+  # ---------------------------------------------------------------------
+  # Base classes
+  # ---------------------------------------------------------------------
+  NamedThing:
+    abstract: true
+    description: Anything with a stable identifier and an optional human label.
+    slots:
+      - id
+      - label
+      - description
+
+  ExtractionRecord:
+    abstract: true
+    is_a: NamedThing
+    class_uri: ae:ClaimRecord
+    description: >-
+      Abstract parent of every item extracted from a source. It carries the
+      universal slots shared by all extraction types: where the record came from
+      (paper_id, source_location, source_excerpt), what it asserts (assertion),
+      and how it was produced (generated_by, extracted_by, extracted_at). A
+      record describes content; holding it does not assert that content is true
+      (ae:ClaimRecord semantics).
+    slots:
+      - paper_id
+      - source_location
+      - source_excerpt
+      - assertion
+      - generated_by
+      - extracted_by
+      - extracted_at
+      - confidence
+      - confidence_method
+      - record_status
+      - evidence_verification
+      - reviews
+      - derived_from
+      - supersedes
+      - species_context
+      - notes
+    slot_usage:
+      paper_id:
+        required: true
+      generated_by:
+        required: true
+    exact_mappings:
+      - ner:AnnotationArtifact
+
+  # ---------------------------------------------------------------------
+  # Sources and locations
+  # ---------------------------------------------------------------------
+  SourceDocument:
+    is_a: NamedThing
+    class_uri: ner:SourceDocument
+    description: >-
+      A source of unstructured content: a journal article, preprint, report,
+      web page, transcript or note. The id of this object is the paper_id that
+      every ExtractionRecord points to.
+    slots:
+      - title
+      - document_type
+      - doi
+      - pmid
+      - pmcid
+      - source_uri
+      - source_path
+      - media_type
+      - content_checksum
+      - document_version
+      - publication_date
+      - journal
+      - authors
+      - text_extractor
+    close_mappings:
+      - bibo:AcademicArticle
+      - schema:ScholarlyArticle
+
+  SourceLocation:
+    class_uri: ae:TextLocation
+    description: >-
+      A position or span inside a source document, precise enough to find the
+      extracted text again. Offsets are interpreted using offset_convention and
+      refer to the text identified by the document's content_checksum.
+    slots:
+      - section
+      - section_type
+      - page
+      - paragraph_index
+      - sentence_index
+      - char_start
+      - char_end
+      - offset_convention
+      - sentence_text
+      - prefix_text
+      - suffix_text
+      - figure_or_table
+      - xml_id
+      - xml_path
+    close_mappings:
+      - ner:TextSpan
+      - doco:Sentence
+
+  # ---------------------------------------------------------------------
+  # Provenance: runs, agents, prompts, configuration
+  # ---------------------------------------------------------------------
+  ExtractionRun:
+    is_a: NamedThing
+    class_uri: ae:ExtractionRun
+    description: >-
+      One execution of an extraction workflow over one or more source
+      documents. It pins everything needed to reproduce the output: the skill
+      and its version, the model(s) and their versions, the prompt(s) by
+      content hash, the configuration by content hash, the software and
+      ontology versions consulted, and when it ran.
+    slots:
+      - task_type
+      - skill
+      - models
+      - prompts_used
+      - configuration
+      - software
+      - ontology_versions_used
+      - executed_by
+      - extraction_path
+      - input_documents
+      - parent_run
+      - started_at
+      - ended_at
+      - run_status
+      - errors
+      - notes
+    slot_usage:
+      task_type:
+        required: true
+      skill:
+        required: true
+      models:
+        required: true
+        description: >-
+          Every model that produced or judged output in this run. A run
+          performed by the calling agent itself (no API call) still lists that
+          agent's model here, with extraction_path agent_supplied_payload.
+    exact_mappings:
+      - prov:Activity
+      - ner:NamedEntityProcessingActivity
+
+  Agent:
+    abstract: true
+    is_a: NamedThing
+    class_uri: prov:Agent
+    description: Something that bears responsibility for an extraction or review.
+
+  SkillVersion:
+    is_a: Agent
+    class_uri: ner:PipelineAgent
+    description: >-
+      A specific released version of a skill in this repository (for example
+      structsense 0.12.0). The skill version is the primary reproducibility key:
+      re-running the same skill version with the same models, prompts and
+      configuration over the same document should reproduce the records.
+    slots:
+      - skill_name
+      - skill_version
+      - repository
+      - commit
+      - ontology_version
+    slot_usage:
+      skill_name:
+        required: true
+      skill_version:
+        required: true
+    close_mappings:
+      - prov:SoftwareAgent
+
+  ModelVersion:
+    is_a: Agent
+    class_uri: ae:Extractor
+    description: >-
+      A specific model build used as an extractor, mapper or judge: an LLM
+      (provider + exact model id), a Hugging Face NER model (repo id +
+      revision), a rule-based extractor, or an embedding model.
+    slots:
+      - model_name
+      - model_identifier
+      - model_version
+      - model_provider
+      - model_kind
+      - model_revision
+    slot_usage:
+      model_identifier:
+        required: true
+    narrow_mappings:
+      - ae:LLMModel
+      - ner:LanguageModelAgent
+    close_mappings:
+      - ner:ModelArtifact
+      - prov:SoftwareAgent
+
+  HumanAgent:
+    is_a: Agent
+    class_uri: prov:Person
+    description: A human curator, reviewer or annotator.
+    slots:
+      - orcid
+      - affiliation
+    exact_mappings:
+      - ner:HumanReviewer
+
+  SoftwareVersion:
+    is_a: NamedThing
+    class_uri: ner:SoftwareArtifact
+    description: >-
+      A library, tool or container used by a run (for example pdfplumber,
+      a concept-mapping service, a Docker image).
+    slots:
+      - software_name
+      - software_version
+      - repository
+      - commit
+      - container_digest
+
+  PromptVersion:
+    is_a: NamedThing
+    class_uri: ner:PromptArtifact
+    description: >-
+      A prompt used by a run, identified by its content hash so the exact text
+      is recoverable even when the file is later edited.
+    slots:
+      - prompt_path
+      - prompt_version
+      - prompt_sha256
+      - prompt_role
+    slot_usage:
+      prompt_sha256:
+        required: true
+
+  RunConfiguration:
+    class_uri: ner:ConfigurationArtifact
+    description: >-
+      Settings in effect for a run. config_sha256 hashes the full settings
+      document; the common generation parameters are also broken out.
+    slots:
+      - config_sha256
+      - temperature
+      - max_tokens
+      - random_seed
+      - chunk_size
+      - chunk_overlap
+      - output_schema
+      - extra_settings
+
+  OntologyVersion:
+    is_a: NamedThing
+    class_uri: ner:OntologyVersion
+    description: An external ontology release consulted during extraction or mapping.
+    slots:
+      - ontology_acronym
+      - ontology_iri
+      - ontology_version_string
+      - release_date
+      - source_uri
+
+  # ---------------------------------------------------------------------
+  # Review / judging
+  # ---------------------------------------------------------------------
+  ReviewDecision:
+    class_uri: ner:ReviewDecision
+    description: >-
+      A judgement on one record along one quality dimension, by a model judge
+      or a human. Kept separate from the record so judges and humans can
+      disagree without overwriting the extraction.
+    slots:
+      - reviewer
+      - review_run
+      - review_dimension
+      - decision
+      - score
+      - comment
+      - reviewed_at
+    slot_usage:
+      reviewer:
+        required: true
+      decision:
+        required: true
+
+  # ---------------------------------------------------------------------
+  # Entities and mentions
+  # ---------------------------------------------------------------------
+  EntityMention:
+    is_a: ExtractionRecord
+    class_uri: ae:EntityMention
+    description: >-
+      One occurrence of an entity expression in a source (one item per
+      occurrence; never deduplicated). Its interpretation (category, concept
+      mapping, resolved entity) is recorded alongside, not baked into the span.
+    slots:
+      - surface_form
+      - entity_category
+      - entity_class
+      - mention_specificity
+      - refers_to_entity
+      - identity_key
+      - in_assertion
+      - concept_mappings
+      - normalization_failed
+      - source_score
+    slot_usage:
+      surface_form:
+        required: true
+      entity_category:
+        required: true
+    exact_mappings:
+      - ner:EntityMention
+
+  Entity:
+    is_a: NamedThing
+    class_uri: ae:DomainEntity
+    description: >-
+      A resolved referent with a stable identity across sources. All mentions
+      of the same referent in every paper point to one Entity id.
+    slots:
+      - entity_category
+      - entity_class
+      - identity_key
+      - aliases
+      - concept_mappings
+      - species_context
+      - mention_count
+    close_mappings:
+      - ner:NamedEntity
+
+  ConceptMapping:
+    class_uri: ae:ConceptMapping
+    description: >-
+      A proposed or accepted correspondence between a mention or entity and a
+      term in an external ontology, with the method and evidence that produced
+      it. Only tool-verified IRIs should reach status accepted.
+    slots:
+      - mapped_curie
+      - mapped_iri
+      - mapped_label
+      - ontology
+      - mapping_relation
+      - mapping_status
+      - alignment_method
+      - mapping_score
+      - mapping_rank
+      - mapped_by
+      - mapping_run
+    slot_usage:
+      mapped_curie:
+        required: true
+    close_mappings:
+      - ner:ConceptMappingDecision
+
+  # ---------------------------------------------------------------------
+  # Assertions and evidence
+  # ---------------------------------------------------------------------
+  Assertion:
+    is_a: ExtractionRecord
+    class_uri: SEPIO:0000001
+    description: >-
+      A claim stated in (or attributed by, or inferred from) a source. The
+      universal slot `assertion` holds the claim text. claim_category says
+      whether the paper itself asserts it, merely reports it, or a system
+      inferred it; claim_stance records the paper's attitude toward it.
+    slots:
+      - claim_category
+      - claim_stance
+      - assertion_type
+      - modality
+      - negated
+      - polarity
+      - mentions_entities
+      - attributed_to
+      - cited_source
+      - inferred_from
+      - valid_during
+      - in_claim_clusters
+    slot_usage:
+      assertion:
+        required: true
+      claim_category:
+        required: true
+    close_mappings:
+      - ner:RelationAssertion
+
+  EvidenceItem:
+    is_a: ExtractionRecord
+    class_uri: SEPIO:0000149
+    description: >-
+      An information item reported in a source that can be used to evaluate an
+      assertion: an experimental result, a figure, a statistic, a dataset
+      observation. How it bears on a particular assertion is recorded
+      separately in an EvidenceRelation.
+    slots:
+      - evidence_type
+      - evidence_code
+      - method
+      - experiment
+      - dataset
+      - statistic
+      - observed_during
+      - mentions_entities
+
+  EvidenceRelation:
+    is_a: ExtractionRecord
+    class_uri: ae:EvidenceRelation
+    description: >-
+      A reified evidential bearing of one evidence item on one assertion, with
+      its direction (for/against), mode (supports, contradicts, qualifies…)
+      and ordinal strength kept as separate judgements.
+    slots:
+      - evidence
+      - target_assertion
+      - evidential_direction
+      - evidential_mode
+      - evidence_strength
+      - applicability_context
+    slot_usage:
+      evidence:
+        required: true
+      target_assertion:
+        required: true
+      evidential_direction:
+        required: true
+
+  AssertionRelation:
+    is_a: ExtractionRecord
+    class_uri: ae:AssertionRelation
+    description: >-
+      A reified relation between two assertions: confirmation, conflict,
+      refinement, supersession or an unspecified relation.
+    slots:
+      - subject_assertion
+      - object_assertion
+      - assertion_relation_type
+      - relation_context
+    slot_usage:
+      subject_assertion:
+        required: true
+      object_assertion:
+        required: true
+      assertion_relation_type:
+        required: true
+
+  EntityRelation:
+    is_a: ExtractionRecord
+    class_uri: ae:EntityRelation
+    description: >-
+      A source-stated relation between two entities (or mentions), for example
+      "Pvalb is expressed in layer 4 interneurons" or a causal claim. The
+      predicate should be an ontology property CURIE (RO, ae:, ner:) when one
+      fits; relation_type gives the coarse family.
+    slots:
+      - subject_entity
+      - predicate
+      - object_entity
+      - subject_mention
+      - object_mention
+      - relation_type
+      - directness
+      - modality
+      - negated
+      - polarity
+      - relation_context
+    slot_usage:
+      subject_entity:
+        required: true
+      predicate:
+        required: true
+      object_entity:
+        required: true
+    close_mappings:
+      - ner:RelationAnnotation
+      - ner:CausalRelation
+
+  ResourceRecord:
+    is_a: ExtractionRecord
+    description: >-
+      A dataset, software tool, atlas, model or other research resource the
+      source uses or produces, with the identifiers and versions the source
+      states for it. Each identifier or version is a separate claim so a wrong
+      one can be rejected without losing the resource.
+    slots:
+      - resource_type
+      - resource_name
+      - resource_role
+      - identifier_claims
+      - version_claims
+      - resource_url
+    slot_usage:
+      resource_name:
+        required: true
+      resource_type:
+        required: true
+    close_mappings:
+      - schema:Dataset
+      - schema:SoftwareApplication
+      - ner:DataResource
+
+  IdentifierClaim:
+    description: An identifier the source states for a resource (RRID, DOI, URL, accession).
+    slots:
+      - identifier_scheme
+      - identifier_value
+      - source_excerpt
+      - source_location
+
+  VersionClaim:
+    description: A version the source states for a resource.
+    slots:
+      - version_value
+      - source_excerpt
+      - source_location
+
+  ClaimCluster:
+    is_a: NamedThing
+    class_uri: ae:ClaimCluster
+    description: >-
+      A curated group of assertions assembled for comparison or tracking across
+      sources and time. Membership alone does not imply identity or
+      equivalence.
+    slots:
+      - member_assertions
+      - generated_by
+
+  TemporalContext:
+    class_uri: ae:TemporalContext
+    description: A time interval, optionally with the source's own wording of it.
+    slots:
+      - valid_from
+      - valid_until
+      - time_expression
+
+# ---------------------------------------------------------------------------
+# Slots
+# ---------------------------------------------------------------------------
+slots:
+
+  # --- identity & description -----------------------------------------
+  id:
+    identifier: true
+    range: uriorcurie
+    slot_uri: dcterms:identifier
+    description: >-
+      Stable identifier. Use CURIEs in a project namespace (e.g. ex:run/abc123);
+      ids must be deterministic so re-running a pipeline does not mint new ones
+      for unchanged records.
+  label:
+    slot_uri: rdfs:label
+  description:
+    slot_uri: dcterms:description
+  notes:
+    slot_uri: rdfs:comment
+    multivalued: true
+  schema_version:
+    description: Version of this Extraction Core schema the data conforms to.
+    slot_uri: pav:version
+  created_at:
+    range: datetime
+    slot_uri: pav:createdOn
+
+  # --- dataset collections --------------------------------------------
+  skill_versions:
+    range: SkillVersion
+    multivalued: true
+    inlined_as_list: true
+    description: Skill releases referenced by runs.
+  model_versions:
+    range: ModelVersion
+    multivalued: true
+    inlined_as_list: true
+    description: Model builds referenced by runs, records and reviews.
+  people:
+    range: HumanAgent
+    multivalued: true
+    inlined_as_list: true
+    description: Curators and reviewers referenced by runs and reviews.
+  software_versions:
+    range: SoftwareVersion
+    multivalued: true
+    inlined_as_list: true
+  prompts:
+    range: PromptVersion
+    multivalued: true
+    inlined_as_list: true
+  ontology_versions:
+    range: OntologyVersion
+    multivalued: true
+    inlined_as_list: true
+  documents:
+    range: SourceDocument
+    multivalued: true
+    inlined_as_list: true
+  extraction_runs:
+    range: ExtractionRun
+    multivalued: true
+    inlined_as_list: true
+  entities:
+    range: Entity
+    multivalued: true
+    inlined_as_list: true
+  entity_mentions:
+    range: EntityMention
+    multivalued: true
+    inlined_as_list: true
+  assertions:
+    range: Assertion
+    multivalued: true
+    inlined_as_list: true
+  evidence_items:
+    range: EvidenceItem
+    multivalued: true
+    inlined_as_list: true
+  evidence_relations:
+    range: EvidenceRelation
+    multivalued: true
+    inlined_as_list: true
+  assertion_relations:
+    range: AssertionRelation
+    multivalued: true
+    inlined_as_list: true
+  entity_relations:
+    range: EntityRelation
+    multivalued: true
+    inlined_as_list: true
+  resource_records:
+    range: ResourceRecord
+    multivalued: true
+    inlined_as_list: true
+  claim_clusters:
+    range: ClaimCluster
+    multivalued: true
+    inlined_as_list: true
+
+  # --- universal extraction slots -------------------------------------
+  paper_id:
+    range: SourceDocument
+    inlined: false
+    slot_uri: prov:hadPrimarySource
+    description: >-
+      The source document (paper) the record was extracted from. Required on
+      every record so records stay traceable after they are merged across
+      papers.
+    exact_mappings:
+      - ae:recordedInPaper
+  source_location:
+    range: SourceLocation
+    multivalued: true
+    inlined_as_list: true
+    slot_uri: ae:hasTextLocation
+    description: >-
+      Where in the source the record is grounded. Multivalued because a claim
+      can be supported by several sentences, and a relation by two mentions.
+  source_excerpt:
+    slot_uri: ae:sourceExcerpt
+    description: >-
+      The verbatim source text the record is grounded in, copied exactly so it
+      can be re-found by string match (see evidence_verification).
+  assertion:
+    related_mappings:
+      - ae:hasContent
+    description: >-
+      The statement this record asserts, in one normalized sentence. For an
+      Assertion it is the claim itself; for a mention it is what was recognised
+      (e.g. "'PV interneurons' denotes a cell type"); for a relation it is the
+      relation in words. Distinct from source_excerpt, which is verbatim.
+  generated_by:
+    range: ExtractionRun
+    inlined: false
+    slot_uri: prov:wasGeneratedBy
+    description: >-
+      The extraction run that produced the record. Through the run, every
+      record is linked to the exact skill, model and prompt versions used.
+  extracted_by:
+    range: ModelVersion
+    inlined: false
+    slot_uri: prov:wasAttributedTo
+    description: >-
+      The specific model that surfaced this record when a run uses several
+      (e.g. an NER ensemble). Must be one of the run's models. When absent the
+      run's single model is implied.
+    close_mappings:
+      - ae:sourceModel
+  extracted_at:
+    range: datetime
+    slot_uri: prov:generatedAtTime
+  confidence:
+    range: float
+    minimum_value: 0
+    maximum_value: 1
+    slot_uri: ae:confidence
+    description: >-
+      Producer-reported confidence in [0, 1]. Not a probability unless
+      confidence_method says so.
+  confidence_method:
+    description: How confidence was computed (model self-report, ensemble agreement, calibrated classifier…).
+  record_status:
+    range: RecordStatusEnum
+    description: Lifecycle state of the record in the curation workflow.
+  evidence_verification:
+    range: EvidenceVerificationEnum
+    description: >-
+      Result of checking source_excerpt against the source text in code.
+      Records with not_found must not be promoted to accepted.
+  reviews:
+    range: ReviewDecision
+    multivalued: true
+    inlined_as_list: true
+    slot_uri: ner:hasReviewDecision
+  derived_from:
+    range: uriorcurie
+    multivalued: true
+    slot_uri: prov:wasDerivedFrom
+    description: Records (from this or earlier runs) this record was derived from.
+  supersedes:
+    range: uriorcurie
+    multivalued: true
+    slot_uri: pav:previousVersion
+    description: Earlier versions of this record that it replaces (e.g. after re-extraction).
+  species_context:
+    range: uriorcurie
+    multivalued: true
+    slot_uri: ae:hasSpeciesContext
+    description: NCBITaxon CURIEs for the organism(s) the record is scoped to.
+
+  # --- source document ------------------------------------------------
+  title:
+    slot_uri: dcterms:title
+  document_type:
+    range: DocumentTypeEnum
+  doi:
+    slot_uri: bibo:doi
+    pattern: "^10\\.\\d{4,9}/\\S+$"
+    description: Bare DOI, without the https://doi.org/ prefix.
+  pmid:
+    slot_uri: bibo:pmid
+    pattern: "^\\d+$"
+  pmcid:
+    slot_uri: ae:pmcid
+    pattern: "^PMC\\d+$"
+  source_uri:
+    range: uri
+    slot_uri: ner:sourceURI
+  source_path:
+    slot_uri: ae:sourceFile
+    description: Local path or source-system path of the input file.
+  media_type:
+    slot_uri: dcterms:format
+  content_checksum:
+    slot_uri: ner:checksum
+    description: >-
+      sha256 of the exact text the pipeline read (after PDF-to-text). Offsets in
+      SourceLocation refer to this text.
+  document_version:
+    slot_uri: pav:version
+    description: Version of the document (preprint v2, version of record…).
+  publication_date:
+    range: date
+    slot_uri: dcterms:issued
+  journal:
+    slot_uri: dcterms:bibliographicCitation
+  authors:
+    multivalued: true
+    slot_uri: dcterms:creator
+  text_extractor:
+    description: Tool and version that converted the source to text (e.g. pdfplumber 0.11).
+
+  # --- source location ------------------------------------------------
+  section:
+    slot_uri: ae:appearsInSection
+    description: Section heading as written in the source.
+  section_type:
+    range: SectionTypeEnum
+  page:
+    range: integer
+    minimum_value: 1
+  paragraph_index:
+    range: integer
+    minimum_value: 0
+    slot_uri: ae:paragraphIndex
+  sentence_index:
+    range: integer
+    minimum_value: 0
+    slot_uri: ae:sentenceIndex
+  char_start:
+    range: integer
+    minimum_value: 0
+    slot_uri: ae:charStart
+  char_end:
+    range: integer
+    minimum_value: 0
+    slot_uri: ae:charEnd
+  offset_convention:
+    range: OffsetConventionEnum
+    description: How char_start/char_end are counted; required when offsets are given.
+  sentence_text:
+    slot_uri: ae:mentionSentenceText
+  prefix_text:
+    slot_uri: ner:prefixText
+  suffix_text:
+    slot_uri: ner:suffixText
+  figure_or_table:
+    description: Figure, panel or table label when the location is not running text (e.g. "Fig. 3B").
+  xml_id:
+    slot_uri: ae:xmlId
+  xml_path:
+    slot_uri: ae:xmlPath
+
+  # --- extraction run -------------------------------------------------
+  task_type:
+    range: TaskTypeEnum
+    slot_uri: ner:taskType
+  skill:
+    range: SkillVersion
+    inlined: false
+    slot_uri: prov:wasAssociatedWith
+    description: The skill (name + version) that ran the extraction.
+  models:
+    range: ModelVersion
+    multivalued: true
+    inlined: false
+    slot_uri: ae:usedModel
+  prompts_used:
+    range: PromptVersion
+    multivalued: true
+    inlined: false
+    slot_uri: ner:usedPrompt
+    description: Prompts (by content hash) the run sent to its models.
+  configuration:
+    range: RunConfiguration
+    inlined: true
+    slot_uri: ner:usedConfiguration
+  software:
+    range: SoftwareVersion
+    multivalued: true
+    inlined: false
+    slot_uri: ner:usedSoftware
+  ontology_versions_used:
+    range: OntologyVersion
+    multivalued: true
+    inlined: false
+    slot_uri: ner:usedOntologyVersion
+  executed_by:
+    range: Agent
+    inlined: false
+    description: The person or host agent that launched the run.
+  extraction_path:
+    range: ExtractionPathEnum
+  input_documents:
+    range: SourceDocument
+    multivalued: true
+    inlined: false
+    slot_uri: prov:used
+  parent_run:
+    range: ExtractionRun
+    inlined: false
+    slot_uri: dcterms:isPartOf
+    description: Enclosing run for a sub-step (mapping, judging, combining).
+  started_at:
+    range: datetime
+    slot_uri: prov:startedAtTime
+  ended_at:
+    range: datetime
+    slot_uri: prov:endedAtTime
+  run_status:
+    range: RunStatusEnum
+  errors:
+    multivalued: true
+
+  # --- agents ---------------------------------------------------------
+  skill_name:
+    pattern: "^[a-z0-9][a-z0-9-]*$"
+    description: Skill directory name under skills/ (e.g. structsense).
+  skill_version:
+    slot_uri: pav:version
+    description: Version declared by the skill (SKILL.md metadata / CHANGELOG).
+  repository:
+    range: uri
+    slot_uri: doap:repository
+  commit:
+    pattern: "^[0-9a-f]{7,40}$"
+    description: Git commit the skill or software was run from.
+  ontology_version:
+    description: Version of the skill's bundled ontology (e.g. structsense named-entity ontology 2.5.0).
+  model_name:
+    slot_uri: ner:modelName
+  model_identifier:
+    slot_uri: ner:sourceModelIdentifier
+    description: >-
+      Exact identifier sent to the provider or loaded from the hub, never an
+      alias (e.g. claude-opus-5-5, gpt-4o-2024-08-06, en_ner_bionlp13cg_md).
+  model_version:
+    slot_uri: ner:modelVersion
+  model_provider:
+    slot_uri: ner:modelProvider
+  model_kind:
+    range: ModelKindEnum
+  model_revision:
+    description: Hub revision or weights digest for locally loaded models.
+  orcid:
+    range: uriorcurie
+  affiliation:
+  software_name:
+  software_version:
+    slot_uri: ner:softwareVersion
+  container_digest:
+    slot_uri: ner:containerDigest
+
+  # --- prompts & config -----------------------------------------------
+  prompt_path:
+    description: Path of the prompt file within the skill (e.g. prompts/extractor-ner-general.md).
+  prompt_version:
+    slot_uri: ner:promptVersion
+  prompt_sha256:
+    slot_uri: ae:extractionPromptHash
+    pattern: "^[0-9a-f]{64}$"
+  prompt_role:
+    range: PromptRoleEnum
+  config_sha256:
+    slot_uri: ner:configurationHash
+    pattern: "^[0-9a-f]{64}$"
+  temperature:
+    range: float
+    slot_uri: ner:temperature
+  max_tokens:
+    range: integer
+  random_seed:
+    range: integer
+    slot_uri: ner:randomSeed
+  chunk_size:
+    range: integer
+  chunk_overlap:
+    range: integer
+  output_schema:
+    description: Path or id of the JSON schema the model output was validated against.
+  extra_settings:
+    description: Any other settings, serialized as JSON.
+
+  # --- ontology versions ----------------------------------------------
+  ontology_acronym:
+    slot_uri: ner:ontologyAcronym
+  ontology_iri:
+    range: uri
+    slot_uri: ner:ontologyIRI
+  ontology_version_string:
+    slot_uri: ner:ontologyVersionString
+  release_date:
+    range: date
+    slot_uri: ner:ontologyReleaseDate
+
+  # --- review ---------------------------------------------------------
+  reviewer:
+    range: Agent
+    inlined: false
+  review_run:
+    range: ExtractionRun
+    inlined: false
+  review_dimension:
+    range: ReviewDimensionEnum
+    slot_uri: ner:reviewDimension
+  decision:
+    range: ReviewDecisionEnum
+    slot_uri: ner:reviewStatus
+  score:
+    range: float
+    minimum_value: 0
+    maximum_value: 1
+    slot_uri: ner:reviewConfidence
+  comment:
+    slot_uri: ner:reviewComment
+  reviewed_at:
+    range: datetime
+
+  # --- mentions & entities --------------------------------------------
+  surface_form:
+    slot_uri: ner:surfaceForm
+    description: The mention exactly as written in the source.
+  entity_category:
+    slot_uri: ae:entityType
+    description: >-
+      Extraction label (e.g. CellType, BrainRegion, Gene). Prefer labels in the
+      structsense label_class_map so entity_class can be filled.
+  entity_class:
+    range: uriorcurie
+    description: Ontology class CURIE for the category (e.g. ner:CellType, ae:BrainRegion).
+  mention_specificity:
+    range: MentionSpecificityEnum
+  refers_to_entity:
+    range: Entity
+    inlined: false
+    slot_uri: ner:refersToEntity
+  identity_key:
+    slot_uri: ner:normalizedEntityKey
+    description: Deterministic key used to group mentions of the same referent.
+  in_assertion:
+    range: Assertion
+    inlined: false
+    slot_uri: ae:entityMentionInAssertion
+  concept_mappings:
+    range: ConceptMapping
+    multivalued: true
+    inlined_as_list: true
+  normalization_failed:
+    range: boolean
+    slot_uri: ae:normalizationFailed
+  source_score:
+    range: float
+    description: Raw score reported by the extracting model (not normalized).
+  aliases:
+    multivalued: true
+    slot_uri: skos:altLabel
+  mention_count:
+    range: integer
+    minimum_value: 0
+    slot_uri: ner:mentionCount
+
+  # --- concept mapping ------------------------------------------------
+  mapped_curie:
+    range: uriorcurie
+    slot_uri: ae:mappedToCurie
+    description: Ontology term CURIE, e.g. CL:0000540 or UBERON:0002420.
+  mapped_iri:
+    range: uri
+    slot_uri: ae:mappedToURI
+  mapped_label:
+    slot_uri: skos:prefLabel
+  ontology:
+    range: OntologyVersion
+    inlined: false
+  mapping_relation:
+    range: MappingRelationEnum
+  mapping_status:
+    range: MappingStatusEnum
+  alignment_method:
+    range: AlignmentMethodEnum
+    slot_uri: ae:alignmentMethod
+  mapping_score:
+    range: float
+  mapping_rank:
+    range: integer
+    minimum_value: 1
+  mapped_by:
+    range: Agent
+    inlined: false
+  mapping_run:
+    range: ExtractionRun
+    inlined: false
+
+  # --- assertions -----------------------------------------------------
+  claim_category:
+    range: ClaimCategoryEnum
+    slot_uri: ae:claimCategory
+  claim_stance:
+    range: ClaimStanceEnum
+    slot_uri: ae:claimStance
+  assertion_type:
+    range: AssertionTypeEnum
+  modality:
+    range: ModalityEnum
+    slot_uri: ner:assertionModality
+  negated:
+    range: boolean
+    slot_uri: ner:assertionNegated
+  polarity:
+    range: PolarityEnum
+    slot_uri: ae:contentPolarity
+  mentions_entities:
+    range: Entity
+    multivalued: true
+    inlined: false
+    slot_uri: ae:mentionsEntity
+  attributed_to:
+    multivalued: true
+    slot_uri: ae:attributedClaimAgent
+    description: For reported claims, who the paper credits (cited authors).
+  cited_source:
+    range: uriorcurie
+    multivalued: true
+    slot_uri: dcterms:references
+    description: DOI or other id of the cited work a reported claim comes from.
+  inferred_from:
+    range: Assertion
+    multivalued: true
+    inlined: false
+    slot_uri: ae:inferredFrom
+    description: Premises of a system-inferred assertion.
+  valid_during:
+    range: TemporalContext
+    inlined: true
+    slot_uri: ae:validDuring
+  in_claim_clusters:
+    range: ClaimCluster
+    multivalued: true
+    inlined: false
+    slot_uri: ae:partOfClaimCluster
+  member_assertions:
+    range: Assertion
+    multivalued: true
+    inlined: false
+    slot_uri: ae:clusterHasAssertion
+
+  # --- evidence -------------------------------------------------------
+  evidence_type:
+    range: EvidenceTypeEnum
+  evidence_code:
+    range: uriorcurie
+    description: Evidence & Conclusion Ontology code (e.g. ECO:0000006 experimental evidence).
+  method:
+    multivalued: true
+    slot_uri: ae:generationMethod
+    description: Methods or assays that generated the evidence (names or CURIEs).
+  experiment:
+    description: Free-text or id of the experiment that produced the evidence.
+    slot_uri: ae:evidenceFromExperiment
+  dataset:
+    range: uriorcurie
+    multivalued: true
+    slot_uri: ae:dataInput
+  statistic:
+    description: Reported statistic as written (e.g. "p < 0.01, n = 12").
+  observed_during:
+    range: TemporalContext
+    inlined: true
+    slot_uri: ae:observedDuring
+  evidence:
+    range: EvidenceItem
+    inlined: false
+    slot_uri: ae:relationEvidence
+  target_assertion:
+    range: Assertion
+    inlined: false
+    slot_uri: ae:relationAssertion
+  evidential_direction:
+    range: EvidentialDirectionEnum
+    slot_uri: ae:evidentialDirection
+  evidential_mode:
+    range: EvidentialModeEnum
+    slot_uri: ae:bearingMode
+  evidence_strength:
+    range: EvidenceStrengthEnum
+    slot_uri: ae:bearingStrength
+  applicability_context:
+    slot_uri: ae:applicabilityContext
+    description: Conditions under which the bearing applies (species, region, dose…).
+
+  # --- relations ------------------------------------------------------
+  subject_assertion:
+    range: Assertion
+    inlined: false
+    slot_uri: ae:relationSubject
+  object_assertion:
+    range: Assertion
+    inlined: false
+    slot_uri: ae:relationObject
+  assertion_relation_type:
+    range: AssertionRelationTypeEnum
+  relation_context:
+    description: Context in which the relation holds.
+  subject_entity:
+    range: Entity
+    inlined: false
+    slot_uri: ae:relationSubject
+  object_entity:
+    range: Entity
+    inlined: false
+    slot_uri: ae:relationObject
+  subject_mention:
+    range: EntityMention
+    inlined: false
+  object_mention:
+    range: EntityMention
+    inlined: false
+  predicate:
+    range: uriorcurie
+    description: Relation property CURIE (e.g. RO:0002292 expresses, ae:locatedIn).
+  relation_type:
+    range: RelationTypeEnum
+  directness:
+    range: DirectnessEnum
+
+  # --- resources ------------------------------------------------------
+  resource_type:
+    range: ResourceTypeEnum
+  resource_name:
+    slot_uri: schema:name
+  resource_role:
+    range: ResourceRoleEnum
+  identifier_claims:
+    range: IdentifierClaim
+    multivalued: true
+    inlined_as_list: true
+  version_claims:
+    range: VersionClaim
+    multivalued: true
+    inlined_as_list: true
+  resource_url:
+    range: uri
+    slot_uri: schema:url
+  identifier_scheme:
+    range: IdentifierSchemeEnum
+  identifier_value:
+  version_value:
+
+  # --- time -----------------------------------------------------------
+  valid_from:
+    range: datetime
+    slot_uri: ae:validFrom
+  valid_until:
+    range: datetime
+    slot_uri: ae:validUntil
+  time_expression:
+    slot_uri: ae:timeExpression
+
+# ---------------------------------------------------------------------------
+# Enumerations
+# ---------------------------------------------------------------------------
+enums:
+
+  TaskTypeEnum:
+    description: Kind of extraction a run performs.
+    permissible_values:
+      ner:
+        description: Named-entity recognition with mention-level provenance.
+      relation:
+        description: Source-stated relations between entities, including causal claims.
+      resource:
+        description: Datasets, tools and other research resources with identifier/version claims.
+      structured:
+        description: Extraction into a caller-supplied target JSON schema.
+      abcd_study:
+        description: ABCD/HBCD study variable extraction against data dictionaries.
+      cell_type_taxonomy_mapping:
+        description: Cell-type mentions mapped to Allen Institute (AIT) taxonomies.
+      assertion_evidence:
+        description: Assertions and the evidence bearing on them.
+      systematic_review:
+        description: Screening and data extraction for a systematic review (synthscholar).
+      concept_mapping:
+        description: Ontology concept mapping of previously extracted mentions.
+      judging:
+        description: Model or human review of previously extracted records.
+      other:
+
+  ExtractionPathEnum:
+    description: How the model was invoked.
+    permissible_values:
+      api:
+        description: The pipeline called a model API.
+      agent_supplied_payload:
+        description: The calling agent (e.g. Claude Code, Codex) was the model; no API call was made.
+      host_sequential:
+        description: The host agent processed chunks one after another inside its own session.
+      local_model:
+        description: A locally loaded model (e.g. Hugging Face, Ollama).
+      manual:
+        description: A human curator produced the records.
+
+  RunStatusEnum:
+    permissible_values:
+      running:
+      completed:
+      completed_with_errors:
+      failed:
+
+  RecordStatusEnum:
+    permissible_values:
+      candidate:
+        description: Produced by an extractor, not yet reviewed.
+      verified:
+        description: Grounding verified in code; awaiting or passed review.
+      accepted:
+        description: Accepted by the review process.
+      rejected:
+        description: Rejected by the review process.
+      quarantined:
+        description: Grounding could not be verified; must not be promoted.
+      superseded:
+        description: Replaced by a newer record (see supersedes).
+
+  EvidenceVerificationEnum:
+    description: >-
+      Outcome of checking a record's source_excerpt against the source text,
+      following structsense ait_evidence.py.
+    permissible_values:
+      exact:
+        description: Found verbatim at the recorded offsets.
+      normalized:
+        description: Found after Unicode/whitespace/hyphenation normalization.
+      relocated:
+        description: Found elsewhere in the document; offsets corrected.
+      fuzzy:
+        description: Found by fuzzy alignment (≥ 0.95 similarity).
+      not_found:
+        description: Not found in the source; record is quarantined.
+      not_checked:
+
+  DocumentTypeEnum:
+    permissible_values:
+      journal_article:
+        meaning: bibo:AcademicArticle
+      preprint:
+      review_article:
+      conference_paper:
+      book_chapter:
+      thesis:
+      report:
+      web_page:
+      clinical_note:
+      transcript:
+      dataset_description:
+      other:
+
+  SectionTypeEnum:
+    permissible_values:
+      title:
+      abstract:
+      introduction:
+      methods:
+      results:
+      discussion:
+      conclusion:
+      figure_caption:
+      table:
+      supplement:
+      references:
+      acknowledgements:
+      data_availability:
+      other:
+
+  OffsetConventionEnum:
+    permissible_values:
+      zero_based_half_open:
+        description: 0-based start, exclusive end (Python slicing).
+      one_based_inclusive:
+        description: 1-based start, inclusive end.
+
+  ModelKindEnum:
+    permissible_values:
+      llm:
+      ner_transformer:
+      embedding:
+      rule_based:
+      classifier:
+      other:
+
+  PromptRoleEnum:
+    permissible_values:
+      extractor:
+      judge:
+      combiner:
+      alignment:
+      verification:
+      kg_plan:
+      other:
+
+  ReviewDimensionEnum:
+    description: Quality dimensions used by structsense judges.
+    permissible_values:
+      grounding:
+      labeling:
+      mapping:
+      claims:
+      kg_keys:
+      ensemble_combined:
+      overall:
+
+  ReviewDecisionEnum:
+    permissible_values:
+      approve:
+      reject:
+      revise:
+      uncertain:
+
+  MentionSpecificityEnum:
+    description: How specifically a mention identifies its referent (ae cell-mention subclasses).
+    permissible_values:
+      specific:
+      vague:
+        meaning: ae:VagueCellMention
+      heterogeneous:
+        meaning: ae:HeterogeneousCellMention
+      phenotypic:
+        meaning: ae:CellPhenotypeMention
+      coordinated:
+        meaning: ner:CoordinatedEntityMention
+        description: Part of a coordinated expression ("CA1 and CA3 pyramidal cells").
+
+  MappingRelationEnum:
+    permissible_values:
+      exact_match:
+        meaning: skos:exactMatch
+      close_match:
+        meaning: skos:closeMatch
+      broad_match:
+        meaning: skos:broadMatch
+      narrow_match:
+        meaning: skos:narrowMatch
+      related_match:
+        meaning: skos:relatedMatch
+
+  MappingStatusEnum:
+    permissible_values:
+      candidate:
+      accepted:
+      rejected:
+      deprecated:
+
+  AlignmentMethodEnum:
+    description: How a concept mapping was produced.
+    permissible_values:
+      ontology_lookup_service:
+        description: OLS / BioPortal / other ontology search API.
+      local_index:
+        description: Local lexical or hybrid index over bundled ontologies.
+      embedding_similarity:
+      exact_label:
+      model_proposed_tool_verified:
+        description: Proposed by a model, IRI confirmed by a lookup tool.
+      model_proposed_unverified:
+        description: Proposed by a model without tool confirmation; never accepted.
+      curator:
+
+  ClaimCategoryEnum:
+    description: How a claim relates to the reporting workflow (ae:ClaimCategory).
+    permissible_values:
+      paper_asserted:
+        meaning: ae:PaperAsserted
+        description: Asserted by the source itself (novel or adopted).
+      reference_only:
+        meaning: ae:ReferenceOnly
+        description: Quoted or attributed to another work without endorsement.
+      system_inferred:
+        meaning: ae:SystemInferred
+        description: Inferred by a system or curator from other assertions.
+
+  ClaimStanceEnum:
+    description: Stance recorded toward a claim's content (ae:ClaimStance).
+    permissible_values:
+      endorsed:
+        meaning: ae:Endorsed
+      reported:
+        meaning: ae:Reported
+      disputed:
+        meaning: ae:Disputed
+      unclear:
+        meaning: ae:Unclear
+
+  AssertionTypeEnum:
+    permissible_values:
+      finding:
+        meaning: ae:Finding
+        description: A result or conclusion from the source's own investigation.
+      hypothesis:
+      background:
+      method_claim:
+      interpretation:
+      limitation:
+
+  ModalityEnum:
+    description: Epistemic modality of a claim (ner:CausalModality).
+    permissible_values:
+      asserted:
+      probable:
+      possible:
+      hypothetical:
+      conditional:
+      unspecified:
+
+  PolarityEnum:
+    permissible_values:
+      positive:
+      negative:
+      mixed:
+      neutral:
+      unspecified:
+
+  EvidentialDirectionEnum:
+    permissible_values:
+      for:
+        meaning: ae:For
+      against:
+        meaning: ae:Against
+      neutral:
+        meaning: ae:Neutral
+      non_probative:
+        meaning: ae:NonProbative
+
+  EvidentialModeEnum:
+    permissible_values:
+      supports:
+        meaning: ae:Supports
+      contradicts:
+        meaning: ae:Contradicts
+      weakens:
+        meaning: ae:Weakens
+      qualifies:
+        meaning: ae:Qualifies
+      contextualizes:
+        meaning: ae:Contextualizes
+
+  EvidenceStrengthEnum:
+    description: Ordinal strength scale from the assertion-evidence ontology (rank 1–4).
+    permissible_values:
+      weak:
+        meaning: ae:WeakEvidence
+      moderate:
+        meaning: ae:ModerateEvidence
+      strong:
+        meaning: ae:StrongEvidence
+      conclusive:
+        meaning: ae:ConclusiveEvidence
+
+  EvidenceTypeEnum:
+    permissible_values:
+      experimental:
+        meaning: ECO:0000006
+      computational:
+        meaning: ECO:0007672
+      observational:
+      statistical:
+      literature_citation:
+      figure:
+      dataset:
+      expert_opinion:
+      other:
+
+  AssertionRelationTypeEnum:
+    permissible_values:
+      confirms:
+        meaning: ae:confirms
+      conflicts_with:
+        meaning: ae:conflictsWith
+      refines:
+        meaning: ae:refinesAssertion
+      supersedes:
+        meaning: ae:supersedes
+      related:
+        meaning: ae:relatedAssertion
+
+  RelationTypeEnum:
+    permissible_values:
+      causal:
+        meaning: ner:CausalRelation
+      association:
+        meaning: ner:AssociationRelationMention
+      expression:
+        meaning: ae:expressedIn
+      location:
+        meaning: ae:locatedIn
+      part_of:
+      affects:
+        meaning: ae:affects
+      co_mention:
+        meaning: ae:coMentionedWith
+      other:
+
+  DirectnessEnum:
+    permissible_values:
+      direct:
+      indirect:
+      unspecified:
+
+  ResourceTypeEnum:
+    permissible_values:
+      dataset:
+        meaning: schema:Dataset
+      software:
+        meaning: schema:SoftwareApplication
+      atlas_or_taxonomy:
+        meaning: ner:AtlasReference
+      database:
+      model:
+      protocol:
+      reagent:
+      instrument:
+      other:
+
+  ResourceRoleEnum:
+    permissible_values:
+      used:
+      produced:
+      cited:
+
+  IdentifierSchemeEnum:
+    permissible_values:
+      doi:
+      rrid:
+      url:
+      accession:
+      github:
+      zenodo:
+      other:

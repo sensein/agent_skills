@@ -23,6 +23,14 @@ The list below is kept in alphabetical order by skill name.
 | [`structsense`](./skills/structsense/SKILL.md)               | StructSense Skills transforms unstructured text and PDFs into validated, ontology-grounded structured JSON using a model-agnostic extraction pipeline. |
 | [`synthscholar`](./skills/synthscholar/SKILL.md)             | Set up, run, and query SynthScholar / PRISMA systematic reviews: guided protocol intake, provenance queries over a finished review (full-text vs abstract-only inclusions, retrieval routes, screening audit trail), and bring-your-own-corpus reviews over PDFs the user supplies — with missing papers retrieved from a DOI open access first (Unpaywall/OpenAlex/Semantic Scholar) and through the user's own institutional EZproxy session for what stays paywalled — exported as Markdown and SLR-ontology Turtle. |
 
+## Schemas
+
+Shared data models used across skills live under [`schemas/`](./schemas/).
+
+| Schema | Description |
+| --- | --- |
+| [`extraction_core`](./schemas/extraction_core/README.md) | LinkML "Extraction Core" model. It defines universal slots carried by every extracted record (paper ID, source location, verbatim excerpt, assertion, generating run, extracting model). It also defines run-level provenance that pins the skill version, model version(s), prompt hashes and configuration used, so extractions are reproducible. It merges the assertion-evidence and structsense named-entity ontologies. |
+
 ## Installing Into An Agent
 
 Use [`scripts/install_skills.py`](./scripts/install_skills.py) to copy the flat skill directories into an agent's skills directory:
@@ -49,6 +57,7 @@ The installer refuses to install a skill that contains a nested `SKILL.md`, whic
 
 - **Unit tests:** `uv run python -m unittest discover -s tests`.
 - **Validate skill format:** [`scripts/validate_skills.py`](./scripts/validate_skills.py) checks every skill against the Agent Skills format (flat directory, required `name`/`description` frontmatter, matching name, no nested skills, parseable `agents/openai.yaml`, and that referenced scripts exist) and dry-runs the installer.
+- **Extraction Core schema:** installs LinkML, lints [`schemas/extraction_core`](./schemas/extraction_core/README.md), generates JSON Schema and OWL from it, validates the example dataset with `check_dataset.py`, and runs `tests/test_extraction_core.py`.
 - **`duct` skill smoke test:** installs `con-duct`, captures a real command with `duct`, and summarizes the run with the skill's helper.
 
 ## Utilities
