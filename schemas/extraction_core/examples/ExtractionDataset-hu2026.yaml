@@ -63,7 +63,19 @@ documents:
     content_checksum: sha256:5d41402abc4b2a76b9719d911017c592ae0e7c1b8a3f4d2e1c0b9a8f7e6d5c4b
     publication_date: "2026-03-14"
     authors: [Hu, X., Example, Y.]
+    license: CC-BY-4.0
+    full_text_source: pmc_open_access
     text_extractor: pdfplumber 0.11.4
+    source_files:
+      - id: ex:paper/hu2026/main
+        source_type: main_text
+        identifier: hu2026.pdf
+        retrieved: true
+      - id: ex:paper/hu2026/supp-table-s2
+        source_type: supplementary
+        identifier: mmc2.xlsx
+        retrieved: false
+        retrieval_status: paywalled supplement, not downloaded
 
 extraction_runs:
   - id: ex:run/hu2026-ner-1
@@ -102,7 +114,10 @@ entities:
     entity_class: ner:CellType
     identity_key: celltype|pvalb interneuron
     aliases: [PV interneuron, PV+ cell]
-    species_context: [NCBITaxon:10090]
+    species_context:
+      - taxon: NCBITaxon:10090
+        taxon_label: Mus musculus
+        species_role: experimental
     concept_mappings:
       - mapped_curie: CL:4023018
         mapped_label: pvalb GABAergic cortical interneuron
@@ -111,15 +126,28 @@ entities:
         mapping_status: accepted
         alignment_method: ontology_lookup_service
         mapping_score: 0.93
+        match_confidence: exact
+        basis_for_match: [label_normalized, marker_genes]
+        mapper_type: code
+        mapping_id: ex:mapping/pvalb-interneuron/cl/1
   - id: ex:entity/l4-feedforward-inhibition
     label: layer 4 feedforward inhibition
     entity_category: NeuralCircuit
     entity_class: ner:NeuralCircuit
+    concept_mappings:
+      - mapping_status: no_match
+        match_confidence: none
+        no_match_reason: No circuit-level term in the consulted ontology version.
+        nearest_ancestor: GO:0060080
+        mapper_type: llm
+        mapping_run: ex:run/hu2026-ner-1
 
 entity_mentions:
   - id: ex:mention/hu2026/0001
     paper_id: ex:paper/hu2026
     surface_form: PV interneurons
+    normalized_form: pv interneuron
+    claim_category: paper_asserted
     entity_category: CellType
     entity_class: ner:CellType
     mention_specificity: specific
@@ -129,7 +157,9 @@ entity_mentions:
     assertion: "'PV interneurons' denotes a cell type."
     source_excerpt: PV interneurons
     source_location:
-      - section: Results
+      - source_file: ex:paper/hu2026/main
+        chunk_id: chunk-007
+        section: Results
         section_type: results
         page: 4
         paragraph_index: 12
@@ -143,8 +173,18 @@ entity_mentions:
     extracted_at: "2026-10-08T15:04:10Z"
     source_score: 0.97
     evidence_verification: exact
+    evidence_similarity: 1.0
+    extraction_flags: [ok]
+    field_provenance:
+      - field_name: surface_form
+        provenance_labels: [llm_extract, code_lexical_verify]
+      - field_name: species_context
+        provenance_labels: [code_regex]
     record_status: accepted
-    species_context: [NCBITaxon:10090]
+    species_context:
+      - taxon: NCBITaxon:10090
+        taxon_label: Mus musculus
+        species_role: experimental
     reviews:
       - reviewer: ex:model/claude-opus-5-5
         review_run: ex:run/hu2026-ner-1-judge
@@ -177,7 +217,10 @@ assertions:
     confidence_method: model self-report
     evidence_verification: exact
     record_status: verified
-    species_context: [NCBITaxon:10090]
+    species_context:
+      - taxon: NCBITaxon:10090
+        taxon_label: Mus musculus
+        species_role: experimental
   - id: ex:assertion/hu2026/0002
     paper_id: ex:paper/hu2026
     assertion: Somatostatin interneurons do not contribute to thalamocortical feedforward inhibition.

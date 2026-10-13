@@ -43,3 +43,9 @@ entity_mentions:
       - mapped_curie: UBERON:0001885
         mapping_status: accepted
         alignment_method: model_proposed_unverified
+      # match_confidence contradicts the SKOS relation
+      - mapped_curie: UBERON:0001954
+        mapping_relation: broad_match
+        match_confidence: exact
+      # no_match without a reason
+      - mapping_status: no_match

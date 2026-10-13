@@ -64,6 +64,17 @@ class ExtractionCoreSchemaTest(unittest.TestCase):
         self.assertTrue(self.sv.induced_slot("model_identifier", "ModelVersion").required)
         self.assertTrue(self.sv.induced_slot("prompt_sha256", "PromptVersion").required)
 
+    def test_spreadsheet_provenance_vocabularies_match_ait_code(self):
+        # field_provenance labels and evidence outcomes must stay in step with
+        # the structsense AIT pipeline that writes them.
+        sys.path.insert(0, str(REPO_ROOT / "skills" / "structsense"))
+        from scripts import ait_tables
+
+        labels = self.sv.get_enum("FieldProvenanceLabelEnum").permissible_values
+        self.assertEqual({pv.title for pv in labels.values()}, set(ait_tables.PROVENANCE_LABELS))
+        outcomes = set(self.sv.get_enum("EvidenceVerificationEnum").permissible_values)
+        self.assertLessEqual(set(ait_tables.load_schema()["vocabularies"]["evidence_verified"]), outcomes)
+
     def test_valid_example_passes(self):
         problems = self.checker.check(EXAMPLES / "ExtractionDataset-hu2026.yaml")
         self.assertEqual(problems, [])
@@ -81,6 +92,8 @@ class ExtractionCoreSchemaTest(unittest.TestCase):
         self.assertIn("extracted_by ex:model/model-b is not among the models", text)
         self.assertIn("grounding not_found but record_status is accepted", text)
         self.assertIn("never tool-verified", text)
+        self.assertIn("match_confidence exact does not follow from broad_match", text)
+        self.assertIn("no_match mapping has no no_match_reason", text)
         self.assertFalse(any(p.startswith("schema:") for p in problems), problems)
 
 

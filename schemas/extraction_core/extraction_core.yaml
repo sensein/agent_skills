@@ -136,8 +136,12 @@ classes:
       - extracted_at
       - confidence
       - confidence_method
+      - claim_category
       - record_status
       - evidence_verification
+      - evidence_similarity
+      - extraction_flags
+      - field_provenance
       - reviews
       - derived_from
       - supersedes
@@ -150,6 +154,35 @@ classes:
         required: true
     exact_mappings:
       - ner:AnnotationArtifact
+
+  FieldProvenance:
+    description: >-
+      Which procedures produced or touched one field of a record, e.g.
+      label_verbatim was extracted by an LLM and then lexically verified in
+      code. Mirrors the field_provenance column of the structsense AIT tables
+      (`label_verbatim=llm:extract;code:lexical_verify`).
+    slots:
+      - field_name
+      - provenance_labels
+    slot_usage:
+      field_name:
+        required: true
+      provenance_labels:
+        required: true
+
+  SpeciesContext:
+    class_uri: ae:Species
+    description: >-
+      An organism a record is scoped to, and the role that organism plays in
+      the source. Only experimental species scope a finding; antibody hosts,
+      citation-only species and reference datasets must not.
+    slots:
+      - taxon
+      - taxon_label
+      - species_role
+    slot_usage:
+      taxon:
+        required: true
 
   # ---------------------------------------------------------------------
   # Sources and locations
@@ -175,10 +208,35 @@ classes:
       - publication_date
       - journal
       - authors
+      - corresponding_authors
+      - abstract
+      - license
+      - full_text_source
       - text_extractor
+      - source_files
     close_mappings:
       - bibo:AcademicArticle
       - schema:ScholarlyArticle
+
+  SourceFile:
+    is_a: NamedThing
+    class_uri: ner:SourceArtifact
+    description: >-
+      One retrievable part of a source: the main text, a supplementary file,
+      or a linked deposit (Zenodo, GEO, GitHub…). Recording whether each was
+      retrieved shows what the extraction could and could not see.
+    slots:
+      - source_type
+      - identifier
+      - source_uri
+      - media_type
+      - content_checksum
+      - retrieved
+      - retrieval_status
+      - notes
+    slot_usage:
+      source_type:
+        required: true
 
   SourceLocation:
     class_uri: ae:TextLocation
@@ -187,6 +245,8 @@ classes:
       extracted text again. Offsets are interpreted using offset_convention and
       refer to the text identified by the document's content_checksum.
     slots:
+      - source_file
+      - chunk_id
       - section
       - section_type
       - page
@@ -400,6 +460,7 @@ classes:
       mapping, resolved entity) is recorded alongside, not baked into the span.
     slots:
       - surface_form
+      - normalized_form
       - entity_category
       - entity_class
       - mention_specificity
@@ -438,8 +499,11 @@ classes:
     class_uri: ae:ConceptMapping
     description: >-
       A proposed or accepted correspondence between a mention or entity and a
-      term in an external ontology, with the method and evidence that produced
-      it. Only tool-verified IRIs should reach status accepted.
+      term in an external ontology or taxonomy, with the method and evidence
+      that produced it. Only tool-verified IRIs should reach status accepted.
+      A searched-for term with no acceptable target is recorded with
+      mapping_status no_match, a no_match_reason and optionally the
+      nearest_ancestor, so absence of a mapping is a result, not a gap.
     slots:
       - mapped_curie
       - mapped_iri
@@ -450,11 +514,17 @@ classes:
       - alignment_method
       - mapping_score
       - mapping_rank
+      - match_confidence
+      - basis_for_match
+      - mapping_evidence
+      - no_match_reason
+      - nearest_ancestor
+      - mapping_id
+      - supersedes_mapping
       - mapped_by
+      - mapper_type
       - mapping_run
-    slot_usage:
-      mapped_curie:
-        required: true
+      - field_provenance
     close_mappings:
       - ner:ConceptMappingDecision
 
@@ -470,7 +540,6 @@ classes:
       whether the paper itself asserts it, merely reports it, or a system
       inferred it; claim_stance records the paper's attitude toward it.
     slots:
-      - claim_category
       - claim_stance
       - assertion_type
       - modality
@@ -809,6 +878,25 @@ slots:
     description: >-
       Result of checking source_excerpt against the source text in code.
       Records with not_found must not be promoted to accepted.
+  evidence_similarity:
+    range: float
+    minimum_value: 0
+    maximum_value: 1
+    description: Similarity score from the evidence check (1.0 for exact matches).
+  extraction_flags:
+    range: ExtractionFlagEnum
+    multivalued: true
+    description: Quality flags raised by the extractor or the verification step.
+  field_provenance:
+    range: FieldProvenance
+    multivalued: true
+    inlined_as_list: true
+    description: Per-field record of which procedures produced each value.
+  field_name:
+    description: Name of the slot or column the provenance applies to.
+  provenance_labels:
+    range: FieldProvenanceLabelEnum
+    multivalued: true
   reviews:
     range: ReviewDecision
     multivalued: true
@@ -825,12 +913,50 @@ slots:
     slot_uri: pav:previousVersion
     description: Earlier versions of this record that it replaces (e.g. after re-extraction).
   species_context:
-    range: uriorcurie
+    range: SpeciesContext
     multivalued: true
+    inlined_as_list: true
     slot_uri: ae:hasSpeciesContext
-    description: NCBITaxon CURIEs for the organism(s) the record is scoped to.
+    description: Organisms the record is scoped to, each with its role in the source.
+  taxon:
+    range: uriorcurie
+    description: NCBITaxon CURIE, e.g. NCBITaxon:10090.
+  taxon_label:
+    slot_uri: rdfs:label
+  species_role:
+    range: SpeciesRoleEnum
 
   # --- source document ------------------------------------------------
+  corresponding_authors:
+    multivalued: true
+  abstract:
+    slot_uri: dcterms:abstract
+  license:
+    slot_uri: dcterms:license
+    description: License of the source text (e.g. CC-BY-4.0), which governs reuse of excerpts.
+  full_text_source:
+    range: FullTextSourceEnum
+    description: Where the text the pipeline read came from.
+  source_files:
+    range: SourceFile
+    multivalued: true
+    inlined_as_list: true
+    slot_uri: dcterms:hasPart
+  source_type:
+    range: SourceTypeEnum
+  identifier:
+    description: Accession, DOI or file name identifying the source file.
+  retrieved:
+    range: boolean
+    description: Whether the pipeline obtained and read this file.
+  retrieval_status:
+    description: Why a file was or was not retrieved (e.g. paywalled, 404, too large).
+  source_file:
+    range: SourceFile
+    inlined: false
+    description: Which part of the source (main text, a supplement…) the location is in.
+  chunk_id:
+    description: Identifier of the text chunk the pipeline sent to the model.
   title:
     slot_uri: dcterms:title
   document_type:
@@ -1082,6 +1208,9 @@ slots:
   surface_form:
     slot_uri: ner:surfaceForm
     description: The mention exactly as written in the source.
+  normalized_form:
+    slot_uri: ner:canonicalForm
+    description: The mention after the pipeline's normalization rules (case, plurals, Greek letters…).
   entity_category:
     slot_uri: ae:entityType
     description: >-
@@ -1146,6 +1275,28 @@ slots:
   mapping_rank:
     range: integer
     minimum_value: 1
+  match_confidence:
+    range: MatchConfidenceEnum
+    description: >-
+      Coarse review-queue grade derived from mapping_relation (exactMatch →
+      exact, other SKOS relations → partial, no match → none). Not calibrated.
+  basis_for_match:
+    range: MatchBasisEnum
+    multivalued: true
+  mapping_evidence:
+    description: Text or data supporting the mapping decision.
+  no_match_reason:
+    description: Why no target was accepted when mapping_status is no_match.
+  nearest_ancestor:
+    range: uriorcurie
+    description: Closest broader term that does fit when no exact target exists.
+  mapping_id:
+    description: Stable id of this mapping decision, so later decisions can supersede it.
+  supersedes_mapping:
+    description: mapping_id of an earlier decision this one replaces.
+  mapper_type:
+    range: MapperTypeEnum
+    description: Whether code, a model or a human made the decision.
   mapped_by:
     range: Agent
     inlined: false
@@ -1157,6 +1308,10 @@ slots:
   claim_category:
     range: ClaimCategoryEnum
     slot_uri: ae:claimCategory
+    description: >-
+      Whether the source itself states the content (paper_asserted), only
+      cites it (reference_only), or the extractor inferred it (system_inferred).
+      Required on Assertion; optional on every other record.
   claim_stance:
     range: ClaimStanceEnum
     slot_uri: ae:claimStance
@@ -1390,16 +1545,120 @@ enums:
       following structsense ait_evidence.py.
     permissible_values:
       exact:
-        description: Found verbatim at the recorded offsets.
-      normalized:
-        description: Found after Unicode/whitespace/hyphenation normalization.
-      relocated:
-        description: Found elsewhere in the document; offsets corrected.
+        description: >-
+          Found verbatim (after identical Unicode, quote, dash, hyphenation and
+          whitespace normalisation on both sides) at the recorded offsets, or
+          in the document when no offsets were recorded.
+      exact_offset_corrected:
+        description: Found verbatim elsewhere in the document; offsets rewritten.
       fuzzy:
-        description: Found by fuzzy alignment (≥ 0.95 similarity).
+        description: Found by fuzzy alignment (≥ 0.95 similarity); may support an edge but is reported separately.
       not_found:
-        description: Not found in the source; record is quarantined.
+        description: Not found in the source; the record is quarantined.
       not_checked:
+        description: No code check was run.
+
+  ExtractionFlagEnum:
+    description: Quality flags from the structsense AIT extraction contract.
+    permissible_values:
+      ok:
+      uncertain:
+        description: The extractor was unsure of the value or category.
+      unverified_evidence:
+        description: Every evidence excerpt was not_found; quarantined.
+      generic_phrase:
+        description: The mention is a generic phrase ("these cells"), not a named entity.
+      duplicate_merged:
+        description: The record was merged into another (see derived_from).
+
+  FieldProvenanceLabelEnum:
+    description: >-
+      Procedures that can produce or check a field value. Each value's title
+      is the label used in PROVENANCE_LABELS in
+      skills/structsense/scripts/ait_tables.py (`code:pdf_parse` → code_pdf_parse).
+    permissible_values:
+      code_pdf_parse:
+        title: "code:pdf_parse"
+      code_regex:
+        title: "code:regex"
+      code_lexical_verify:
+        title: "code:lexical_verify"
+      code_ontology_lookup:
+        title: "code:ontology_lookup"
+      code_supplement_table:
+        title: "code:supplement_table"
+      llm_extract:
+        title: "llm:extract"
+      llm_review:
+        title: "llm:review"
+      human_curator:
+        title: "human:curator"
+
+  SpeciesRoleEnum:
+    description: Role a species plays in a source.
+    permissible_values:
+      experimental:
+        description: Organism actually studied; scopes the findings.
+      antibody_host:
+        description: Host species of an antibody (e.g. rabbit anti-GFAP); not a study organism.
+      citation_only:
+        description: Mentioned only through cited work.
+      reference_dataset:
+        description: Species of a reference atlas or dataset used for comparison.
+
+  SourceTypeEnum:
+    permissible_values:
+      main_text:
+      supplementary:
+      zenodo:
+      figshare:
+      dryad:
+      github:
+      geo:
+      sra:
+      nemo:
+      other:
+
+  FullTextSourceEnum:
+    description: Where the full text was obtained.
+    permissible_values:
+      pmc_open_access:
+      publisher:
+      preprint_server:
+      unpaywall:
+      institutional_proxy:
+      user_supplied:
+      abstract_only:
+      other:
+
+  MatchConfidenceEnum:
+    permissible_values:
+      exact:
+      partial:
+      none:
+
+  MatchBasisEnum:
+    description: What a mapping decision rests on (structsense AIT basis_for_match).
+    permissible_values:
+      label_exact:
+      label_normalized:
+      marker_genes:
+      brain_region:
+      species:
+      hierarchy_level:
+      author_statement:
+        description: The source itself states the correspondence.
+      supplementary_mapping:
+        description: A supplementary table in the source gives the correspondence.
+      ontology_definition:
+        description: The target term's definition or synonyms match.
+      other:
+
+  MapperTypeEnum:
+    permissible_values:
+      code:
+      llm:
+      human:
 
   DocumentTypeEnum:
     permissible_values:
@@ -1510,6 +1769,8 @@ enums:
       candidate:
       accepted:
       rejected:
+      no_match:
+        description: The term was looked for and no acceptable target exists.
       deprecated:
 
   AlignmentMethodEnum:
@@ -1528,7 +1789,10 @@ enums:
       curator:
 
   ClaimCategoryEnum:
-    description: How a claim relates to the reporting workflow (ae:ClaimCategory).
+    description: >-
+      How a record's content relates to the source (ae:ClaimCategory). The AIT
+      tables' assertion_type asserted ↔ paper_asserted, inferred ↔
+      system_inferred.
     permissible_values:
       paper_asserted:
         meaning: ae:PaperAsserted

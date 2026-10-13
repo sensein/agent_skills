@@ -11,6 +11,9 @@ rules that make a dataset reproducible:
   - a review's ``review_run`` lists the reviewing model among its ``models``
   - a record whose grounding was ``not_found`` is not ``accepted``
   - an ``accepted`` concept mapping was not ``model_proposed_unverified``
+  - a concept mapping names a target unless it is ``no_match`` (which needs a
+    ``no_match_reason``), and its ``match_confidence`` follows from its SKOS
+    relation (exactMatch -> exact, other matches -> partial, no_match -> none)
 
 Usage:
   python schemas/extraction_core/check_dataset.py DATA.yaml [DATA2.json ...]
@@ -130,10 +133,34 @@ def integrity_problems(instance: dict) -> list[str]:
                     and reviewer not in (rrun.get("models") or []):
                 problems.append(f"{where}: reviewer {reviewer} is not among the models of run {rrun['id']}")
         for mapping in obj.get("concept_mappings") or []:
-            if mapping.get("mapping_status") == "accepted" \
-                    and mapping.get("alignment_method") == "model_proposed_unverified":
-                problems.append(f"{where}: accepted mapping to {mapping.get('mapped_curie')} "
-                                "was never tool-verified")
+            problems += mapping_problems(where, mapping)
+    return problems
+
+
+# skos relation -> match_confidence, as in structsense ait_tables.SKOS_TO_CONFIDENCE
+RELATION_TO_CONFIDENCE = {"exact_match": "exact", "close_match": "partial", "broad_match": "partial",
+                          "narrow_match": "partial", "related_match": "partial"}
+
+
+def mapping_problems(where: str, mapping: dict) -> list[str]:
+    problems = []
+    curie, status = mapping.get("mapped_curie"), mapping.get("mapping_status")
+    if status == "no_match":
+        if curie:
+            problems.append(f"{where}: no_match mapping still names a target {curie}")
+        if not mapping.get("no_match_reason"):
+            problems.append(f"{where}: no_match mapping has no no_match_reason")
+        expected = "none"
+    else:
+        if not curie:
+            problems.append(f"{where}: mapping has no mapped_curie and is not marked no_match")
+        expected = RELATION_TO_CONFIDENCE.get(mapping.get("mapping_relation"))
+    if status == "accepted" and mapping.get("alignment_method") == "model_proposed_unverified":
+        problems.append(f"{where}: accepted mapping to {curie} was never tool-verified")
+    given = mapping.get("match_confidence")
+    if given and expected and given != expected:
+        problems.append(f"{where}: match_confidence {given} does not follow from "
+                        f"{mapping.get('mapping_relation') or status} (expected {expected})")
     return problems
 
 
