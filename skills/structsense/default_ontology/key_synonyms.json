@@ -1,0 +1,23 @@
+{
+  "_comment": "USER OVERRIDES ONLY for normalizedEntityKey (references/key-normalization.md). Keys are derived from the trusted ontologies first: the preferred label of the one class an entity's text denotes (scripts/json_to_ttl.py derive_key, via the trusted lexicon). The full generated variant->canonical table is `python -m scripts.concept_mapping export-synonyms` (trusted_ontologes/lexicon/key_synonyms.tsv.gz) \u2014 regenerated from whatever priority.md lists, never hand-kept. Add an entry here only for a variant no trusted ontology covers, or to redirect one it gets wrong; entries are reviewed and never removed, only redirected. Both sides in folded form (lowercase ASCII, single underscores).",
+  "version": "2.0.0",
+  "synonyms": {},
+  "invariant_words": [
+    "species",
+    "series",
+    "news",
+    "mumps",
+    "rabies",
+    "diabetes",
+    "herpes",
+    "bias",
+    "atlas",
+    "corpus",
+    "calculus",
+    "chaos",
+    "status",
+    "stimulus",
+    "apparatus"
+  ],
+  "_invariant_words": "Words ending in -s that are NOT plurals; the fallback key algorithm never singularizes them."
+}

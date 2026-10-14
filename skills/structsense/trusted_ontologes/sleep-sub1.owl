@@ -1,0 +1,1220 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#"
+     xml:base="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:untitled-ontology-14="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14">
+        <rdfs:comment>The SLEEP ontology aims to facilitate the collection of PGHD related to sleep patterns and behaviors. It was created by organizing sleep-related terms gathered from sleep questionnaires and specialized literature.</rdfs:comment>
+        <rdfs:creator>Hyewon Kim; Hyeoui Kim</rdfs:creator>
+        <rdfs:label>SLEEP2 ontology</rdfs:label>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Concept_name -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Concept_name"/>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SNOMEDCT_ID -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SNOMEDCT_ID"/>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep_ID -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep_ID"/>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#UMLS_CUI -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#UMLS_CUI"/>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#definition -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#definition"/>
+    
+
+
+    <!-- http://www.w3.org/2000/01/rdf-schema#creator -->
+
+    <owl:AnnotationProperty rdf:about="http://www.w3.org/2000/01/rdf-schema#creator"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AbnormalSleepPattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AbnormalSleepPattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern"/>
+        <Concept_name>Abnormal sleep pattern</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10001</Sleep_ID>
+        <UMLS_CUI>C1849174</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10003</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AlcoholConsumption -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AlcoholConsumption">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>Alcohol consumption</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10118</Sleep_ID>
+        <UMLS_CUI>C0001948</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Anxiety -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Anxiety">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor"/>
+        <Concept_name>Anxiety</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10005</Sleep_ID>
+        <UMLS_CUI>C0003467</UMLS_CUI>
+        <definition>Emotional tension or energy characterized by unexplained feelings of apprehension, uneasiness or dread associated to an anticipated, actual or imagined stressor.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+        <Concept_name>Type - attribute; Sleep</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10007</Sleep_ID>
+        <UMLS_CUI>C0332307; C0037313</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Concept_name>Bedtime (qualifier value); Ritual</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10008</Sleep_ID>
+        <UMLS_CUI>C0521112; C2945764</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CaffeinConsumption -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CaffeinConsumption">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>Caffeine consumption</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10117</Sleep_ID>
+        <UMLS_CUI>C0948365</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Hypersomnolence</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10044</Sleep_ID>
+        <UMLS_CUI>C0751229</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralSleepApneaSyndromes -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralSleepApneaSyndromes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedBreathingDisorders"/>
+        <Concept_name>Central sleep apnea syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10009</Sleep_ID>
+        <UMLS_CUI>C3887547</UMLS_CUI>
+        <definition>A broad classification of disorders which includes 6 subtypes (primary central sleep apnea, central sleep apnea due to Cheyne-Stokes breathing pattern, central sleep apnea due to medical condition not Cheyne-Stokes, central sleep apnea due to high-altitude periodic breathing, central sleep apnea due to drug or substance and primary sleep apnea of infancy) that are each characterized by interruptions in breathing while asleep. It is caused by improper signaling from the brainstem to respiratory muscles and is triggered by either hypoventilation or hyperventilation. In adults, this disorder may arise following a stroke, congestive heart failure, trauma, infection or the use of narcotic medications. It is more common in older males and may present as a co-morbid condition to obesity. Clinical signs include snoring, insomnia or hypersomnia, difficulty concentrating and fatigue. Recurrent episodes of hypoxia/hypoxemia have long-term detrimental effects on cardiovascular health.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicInsomniaDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicInsomniaDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Insomnia"/>
+        <Concept_name>Chronic Insomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10010</Sleep_ID>
+        <UMLS_CUI>C0751249</UMLS_CUI>
+        <definition>Insomnia that has persisted at least one month.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicSleepWakeRhythmDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicSleepWakeRhythmDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CircadianRhythmSleepWakeDisorders"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10011</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CircadianRhythmSleepWakeDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CircadianRhythmSleepWakeDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Sleep Disorders, Circadian Rhythm</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10012</Sleep_ID>
+        <UMLS_CUI>C0877792</UMLS_CUI>
+        <definition>Dyssomnias associated with disruption of the normal 24 hour sleep wake cycle secondary to travel (e.g., JET LAG SYNDROME), shift work, or other causes.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Co-Sleeping -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Co-Sleeping">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10098</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DaytimePhysicalActivity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DaytimePhysicalActivity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>Daytime; Physical activity</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10015</Sleep_ID>
+        <UMLS_CUI>C0332169; C0026606</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DepressedMood -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DepressedMood">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor"/>
+        <Concept_name>Depressed mood</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10019</Sleep_ID>
+        <UMLS_CUI>C0344315</UMLS_CUI>
+        <definition>An emotional state characterized by feelings of sadness, emptiness, and/or tearfulness.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectOnDailyFunction -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectOnDailyFunction">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10027</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectOnMood -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectOnMood">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep"/>
+        <Concept_name>Effect; Mood (psychological function)</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10029</Sleep_ID>
+        <UMLS_CUI>C1280500; C0026516</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+        <Concept_name>Effect; Difficulty sleeping</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10030</Sleep_ID>
+        <UMLS_CUI>C1280500; C0235162</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electrocardiography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electrocardiography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography"/>
+        <Concept_name>Electrocardiography</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10031</Sleep_ID>
+        <UMLS_CUI>C1623258</UMLS_CUI>
+        <definition>Recording of the moment-to-moment electromotive forces of the HEART as projected onto various sites on the body&apos;s surface, delineated as a scalar function of time. The recording is monitored by a tracing on slow moving chart paper or by observing it on a cardioscope, which is a CATHODE RAY TUBE DISPLAY.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electroencephalography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electroencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography"/>
+        <Concept_name>Electroencephalography</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10032</Sleep_ID>
+        <UMLS_CUI>C0013819</UMLS_CUI>
+        <definition>Recording of electric currents developed in the brain by means of electrodes applied to the scalp, to the surface of the brain, or placed within the substance of the brain.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electromyography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electromyography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography"/>
+        <Concept_name>Electromyography</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10033</Sleep_ID>
+        <UMLS_CUI>C0013839</UMLS_CUI>
+        <definition>Recording of the changes in electric potential of muscle by means of surface or needle electrodes.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electrooculography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Electrooculography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography"/>
+        <Concept_name>Electrooculography</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10035</Sleep_ID>
+        <UMLS_CUI>C0013854</UMLS_CUI>
+        <definition>Recording of the average amplitude of the resting potential arising between the cornea and the retina in light and dark adaptation as the eyes turn a standard distance to the right and the left. The increase in potential with light adaptation is used to evaluate the condition of the retinal pigment epithelium.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10037</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ExplodingHeadSyndrome -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ExplodingHeadSyndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Exploding head syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10040</Sleep_ID>
+        <UMLS_CUI>C3163857</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Fear -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Fear">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor"/>
+        <Concept_name>Fear (Mental Process)</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10041</Sleep_ID>
+        <UMLS_CUI>C0015726</UMLS_CUI>
+        <definition>The affective response to an actual current external danger which subsides with the elimination of the threatening condition.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#FootBathing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#FootBathing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>Bathing; Foot</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10122</Sleep_ID>
+        <UMLS_CUI>C0150141; C0016504</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#GoodSleepPattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#GoodSleepPattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern"/>
+        <Concept_name>Good sleep pattern</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10042</Sleep_ID>
+        <UMLS_CUI>C2364286</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Humidity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Humidity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Concept_name>Humidity</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10043</Sleep_ID>
+        <UMLS_CUI>C0020167</UMLS_CUI>
+        <definition>Level of moisture in the air, such as high or low humidity.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IdiopathicHypersomnia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IdiopathicHypersomnia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence"/>
+        <Concept_name>idiopathic organic hypersomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10045</Sleep_ID>
+        <UMLS_CUI>C2013972</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Insomnia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Insomnia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Sleeplessness</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10046</Sleep_ID>
+        <UMLS_CUI>C0917801</UMLS_CUI>
+        <definition>Persistent difficulty initiating or maintaining sleep.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#InsufficientPhysicalRecovery -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#InsufficientPhysicalRecovery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10028</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IrregularSleepWakeCycle -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IrregularSleepWakeCycle">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicSleepWakeRhythmDisorder"/>
+        <Concept_name>Irregular sleep/wake cycle</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10048</Sleep_ID>
+        <UMLS_CUI>C5194377</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IrregularSleepWakePattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#IrregularSleepWakePattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern"/>
+        <Concept_name>Irregular sleep-wake pattern</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10049</Sleep_ID>
+        <UMLS_CUI>C0393771</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#KleineLevinSyndrome -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#KleineLevinSyndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence"/>
+        <Concept_name>Kleine-Levin Syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10051</Sleep_ID>
+        <UMLS_CUI>C0206085</UMLS_CUI>
+        <definition>A rare disorder characterized by episodes of excessive sleep and behavioral alterations while awake. It affects predominantly males. The individuals exhibit normal behavior between episodes.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10052</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Lighting -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Lighting">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Concept_name>Light intensity</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10053</Sleep_ID>
+        <UMLS_CUI>C0596836</UMLS_CUI>
+        <definition>Level or amount of energy being emitted by either a natural (e.g. sun) or an artificial source of light.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ListeningToWhiteNoise -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ListeningToWhiteNoise">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>Listening; white noise</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10124</Sleep_ID>
+        <UMLS_CUI>C2584303; C0871956</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LossOfCognitiveFunction -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LossOfCognitiveFunction">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EffectsOfPoorSleep"/>
+        <Concept_name>Effect; Cognitive functions</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10026</Sleep_ID>
+        <UMLS_CUI>C1280500; C0392335</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Massage -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Massage">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>Massage</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10123</Sleep_ID>
+        <UMLS_CUI>C0024875</UMLS_CUI>
+        <definition>The systematic and methodical manipulations of body tissues best performed with the hands for the purpose of affecting the nervous and muscular systems and the general circulation.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#MedicineOrSupplement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#MedicineOrSupplement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAid"/>
+        <Concept_name>Medications; Supplement</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10055</Sleep_ID>
+        <UMLS_CUI>C4284232; C2348609</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Meditation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Meditation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>meditation</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10120</Sleep_ID>
+        <UMLS_CUI>C0150277</UMLS_CUI>
+        <definition>A state of consciousness in which the individual eliminates environmental stimuli from awareness so that the mind can focus on a single thing, producing a state of relaxation and relief from stress. A wide variety of techniques are used to clear the mind of stressful outside interferences. It includes meditation therapy.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NREMRelatedParasomnias -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NREMRelatedParasomnias">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Parasomnias"/>
+        <Concept_name>Non-rapid eye movement parasomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10060</Sleep_ID>
+        <UMLS_CUI>C4476680</UMLS_CUI>
+        <definition>A parasomnia that occurs in non-rapid eye movement (NREM) sleep. This refers to a disorder of arousal that occurs during slow-wave sleep (ie, NREM stage 3 sleep).</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Narcolepsy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Narcolepsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence"/>
+        <Concept_name>Narcolepsy</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10057</Sleep_ID>
+        <UMLS_CUI>C0027404</UMLS_CUI>
+        <definition>An abnormal phenomenon characterized by a classic tetrad of excessive daytime sleepiness with irresistible sleep attacks, cataplexy (sudden bilateral loss of muscle tone), hypnagogic hallucination, and sleep paralysis.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NicotineConsumption -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NicotineConsumption">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>Cigarette consumption</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10119</Sleep_ID>
+        <UMLS_CUI>C0459840</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Noise -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Noise">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Concept_name>Sound intensity</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10099</Sleep_ID>
+        <UMLS_CUI>C2371706</UMLS_CUI>
+        <definition>Level or volume of auditory phenomenon determined by the amount of energy being generated, where high energy levels are perceived as loud sounds and low energy levels as soft sounds.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepStage"/>
+        <Concept_name>Sleep, Slow-Wave</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10058</Sleep_ID>
+        <UMLS_CUI>C0234451</UMLS_CUI>
+        <definition>A stage of sleep characterized by synchronized wave activity as observed in the ELECTROENCEPHALOGRAM; the waves exhibit a frequency of 0.5 to 2 Hz, and a peak-to-peak amplitude greater than 75 microvolts.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NormalSleepWakePattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NormalSleepWakePattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern"/>
+        <Concept_name>Normal sleep-wake patterns</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10059</Sleep_ID>
+        <UMLS_CUI>C0517754</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ObstructiveSleepApneaDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ObstructiveSleepApneaDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedBreathingDisorders"/>
+        <Concept_name>Sleep Apnea, Obstructive</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10061</Sleep_ID>
+        <UMLS_CUI>C0520679</UMLS_CUI>
+        <definition>A disorder characterized by recurrent apneas during sleep despite persistent respiratory efforts. It is due to upper airway obstruction. The respiratory pauses may induce HYPERCAPNIA or HYPOXIA. Cardiac arrhythmias and elevation of systemic and pulmonary arterial pressures may occur. Frequent partial arousals occur throughout sleep, resulting in relative SLEEP DEPRIVATION and daytime tiredness. Associated conditions include OBESITY; ACROMEGALY; MYXEDEMA; micrognathia; MYOTONIC DYSTROPHY; adenotonsilar dystrophy; and NEUROMUSCULAR DISEASES.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherHypersomnias -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherHypersomnias">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CentralDisordersOfHypersomnolence"/>
+        <Concept_name>Other hypersomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10062</Sleep_ID>
+        <UMLS_CUI>C0029637</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Parasomnias"/>
+        <Concept_name>Other parasomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10063</Sleep_ID>
+        <UMLS_CUI>C2875258</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PhysicalFactor"/>
+        <Concept_name>Pain</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10064</Sleep_ID>
+        <UMLS_CUI>C0030193</UMLS_CUI>
+        <definition>An unpleasant sensory and emotional experience associated with actual or potential tissue damage, or described in terms of such damage.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Parasomnias -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Parasomnias">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Parasomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10065</Sleep_ID>
+        <UMLS_CUI>C0030508</UMLS_CUI>
+        <definition>Movements or behaviors associated with sleep, sleep stages, or partial arousals from sleep that may impair sleep maintenance. Parasomnias are generally divided into four groups: arousal disorders, sleep-wake transition disorders, parasomnias of REM sleep, and nonspecific parasomnias.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PeriodicLimbMovementDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PeriodicLimbMovementDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedMovementDisorders"/>
+        <Concept_name>Periodic limb movement sleep disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10066</Sleep_ID>
+        <UMLS_CUI>C1561887</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PhysicalFactor -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PhysicalFactor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10067</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAssessmentTest"/>
+        <Concept_name>Polysomnography</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10068</Sleep_ID>
+        <UMLS_CUI>C0162701</UMLS_CUI>
+        <definition>Simultaneous and continuous monitoring of several parameters during sleep to study normal and abnormal sleep. The study includes monitoring of brain waves, to assess sleep stages, and other physiological variables such as breathing, eye movements, and blood oxygen levels which exhibit a disrupted pattern with sleep disturbances.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PoorSleepPattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PoorSleepPattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern"/>
+        <Concept_name>Poor sleep pattern</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10069</Sleep_ID>
+        <UMLS_CUI>C1277595</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Pruritus -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Pruritus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PhysicalFactor"/>
+        <Concept_name>Pruritus</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10070</Sleep_ID>
+        <UMLS_CUI>C0033774</UMLS_CUI>
+        <definition>An intense itching sensation that produces the urge to rub or scratch the skin to obtain relief.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10071</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PulseOximetry -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PulseOximetry">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Polysomnography"/>
+        <Concept_name>Oximetry, Pulse</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10072</Sleep_ID>
+        <UMLS_CUI>C0034108</UMLS_CUI>
+        <definition>A non-invasive method that provides estimates of arterial oxyhemoglobin saturation by utilizing selected wavelengths of light to determine the saturation of oxyhemoglobin.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#REMRelatedParasomnias -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#REMRelatedParasomnias">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Parasomnias"/>
+        <Concept_name>REM Sleep Parasomnias</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10074</Sleep_ID>
+        <UMLS_CUI>C0752301</UMLS_CUI>
+        <definition>Abnormal behavioral or physiologic events that are associated with REM sleep, including REM SLEEP BEHAVIOR DISORDER.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#RapidEyeMovement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#RapidEyeMovement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepStage"/>
+        <Concept_name>Sleep, REM</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10073</Sleep_ID>
+        <UMLS_CUI>C0037322</UMLS_CUI>
+        <definition>A stage of sleep characterized by rapid movements of the eye and low voltage fast pattern EEG. It is usually associated with dreaming.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#RestlessLegsSyndrome -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#RestlessLegsSyndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedMovementDisorders"/>
+        <Concept_name>Restless Legs Syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10075</Sleep_ID>
+        <UMLS_CUI>C0035258</UMLS_CUI>
+        <definition>A disorder characterized by aching or burning sensations in the lower and rarely the upper extremities that occur prior to sleep or may awaken the patient from sleep.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ShiftWork -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ShiftWork">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>shift work</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10076</Sleep_ID>
+        <UMLS_CUI>C1658633</UMLS_CUI>
+        <definition>System of working in which people work one of a set of usually two 12-hour or three eight-hour shifts in a 24-hour period; designed to make use of the 24 hours of the clock, rather than a standard working day.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ShortTermInsomniaDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ShortTermInsomniaDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Insomnia"/>
+        <Concept_name>Short term insomnia</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10077</Sleep_ID>
+        <UMLS_CUI>C5578099</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAid -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AffectingFactor"/>
+        <Concept_name>Aid to Sleep</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10078</Sleep_ID>
+        <UMLS_CUI>C0718303</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepApnoeaRecording -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepApnoeaRecording">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAssessmentTest"/>
+        <Concept_name>Sleep apnea recording</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10097</Sleep_ID>
+        <UMLS_CUI>C0200140</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAssessmentTest -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAssessmentTest">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10079</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepContinuity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepContinuity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepQuality"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10080</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDepth -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDepth">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepQuality"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10081</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Sleep"/>
+        <Concept_name>Sleep Disorders</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10082</Sleep_ID>
+        <UMLS_CUI>C0851578</UMLS_CUI>
+        <definition>A change from the patient&apos;s baseline sleeping pattern, in the hours slept and/or an alteration/dysfunction in the stages of sleep.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepEnuresis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepEnuresis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Sleep-related enuresis</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10083</Sleep_ID>
+        <UMLS_CUI>C4062596</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepOnsetLatency -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepOnsetLatency">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepQuality"/>
+        <Concept_name>Sleep Onset Latency</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10085</Sleep_ID>
+        <UMLS_CUI>C4505222</UMLS_CUI>
+        <definition>The time it takes to reach REM SLEEP. It is typically measured by POLYSOMNOGRAPHY or EEG as a part of various sleep pattern tests (e.g., multiple sleep latency test).</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepPattern">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep"/>
+        <Concept_name>Sleep behavior finding</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10086</Sleep_ID>
+        <UMLS_CUI>C0474396</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepQuality -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepQuality">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep"/>
+        <Concept_name>Quality of sleep</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10087</Sleep_ID>
+        <UMLS_CUI>C0424563</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedBreathingDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedBreathingDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Breathing-related sleep disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10090</Sleep_ID>
+        <UMLS_CUI>C0236845</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedDissociativeDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedDissociativeDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Sleep-related dissociative disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10091</Sleep_ID>
+        <UMLS_CUI>C1997502</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedEatingDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedEatingDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Sleep-related eating disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10092</Sleep_ID>
+        <UMLS_CUI>C1963717</UMLS_CUI>
+        <definition></definition>
+        <definition>Eating during sleep.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedGroaning -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedGroaning">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Sleep-related groaning</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10093</Sleep_ID>
+        <UMLS_CUI>C1997918</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedHallucinations -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedHallucinations">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#OtherParasomnias"/>
+        <Concept_name>Sleep related hallucinations</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10094</Sleep_ID>
+        <UMLS_CUI>C2919925</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedHypoventilationDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedHypoventilationDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedBreathingDisorders"/>
+        <Concept_name>Sleep hypoventilation</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10095</Sleep_ID>
+        <UMLS_CUI>C2732337</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedMovementDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepRelatedMovementDisorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepDisorder"/>
+        <Concept_name>Sleep related movement disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10096</Sleep_ID>
+        <UMLS_CUI>C2231106</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10089</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepStage -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepStage">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep"/>
+        <Concept_name>Sleep Stages</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10088</Sleep_ID>
+        <UMLS_CUI>C0037319</UMLS_CUI>
+        <definition>Periods of sleep manifested by changes in EEG activity and certain behavioral correlates; they formerly included Stage 1: sleep onset, drowsy sleep; Stage 2: light sleep; Stages 3 and 4: delta sleep, light sleep, deep sleep, telencephalic sleep. In 2007, sleep stages were redefined by The American Academy of Sleep Medicine (AASM) as: N1-N2 (sleep onset - light sleep), N3 (SLOW-WAVE SLEEP), and REM SLEEP.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepingSpace -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepingSpace">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Concept_name>Space - property</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10100</Sleep_ID>
+        <UMLS_CUI>C1883067</UMLS_CUI>
+        <definition>An empty area; an area set apart or available for use</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageI -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageI">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement"/>
+        <Concept_name>N1-Sleep</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10101</Sleep_ID>
+        <UMLS_CUI>C4704916</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageII -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageII">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement"/>
+        <Concept_name>N2-Sleep</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10102</Sleep_ID>
+        <UMLS_CUI>C4704917</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageIII -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageIII">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10103</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageIV -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StageIV">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#NonRapidEyeMovement"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10104</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Stress -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Stress">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#PsychologicalFactor"/>
+        <Concept_name>Stress</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10105</Sleep_ID>
+        <UMLS_CUI>C0038435</UMLS_CUI>
+        <definition>The negative mental, emotional, and physical reactions that occur when environmental stressors are perceived as exceeding the individual&apos;s adaptive capacities.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StretchingExercise -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#StretchingExercise">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>Stretching exercises</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10121</Sleep_ID>
+        <UMLS_CUI>C0600080</UMLS_CUI>
+        <definition>Enlarging or distending a structure, increasing its internal wall stress</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TakingNap -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TakingNap">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#LifestylePattern"/>
+        <Concept_name>taking naps</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10106</Sleep_ID>
+        <UMLS_CUI>C2135953</UMLS_CUI>
+        <definition>A short sleep, usually during normal waking hours.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Temperature -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Temperature">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#EnvironmentalFactor"/>
+        <Concept_name>Temperature</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10107</Sleep_ID>
+        <UMLS_CUI>C0039476</UMLS_CUI>
+        <definition>Degree of heat or cold, such as high and low temperature, normal or extreme temperature.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepAid"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10108</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfFallingAsleep -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfFallingAsleep">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10109</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfGettingOutOfBed -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfGettingOutOfBed">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10110</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfGoingToBed -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfGoingToBed">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10111</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfWakingUp -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TimeOfWakingUp">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepSchedule"/>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10112</Sleep_ID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TotalSleepTime -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TotalSleepTime">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AttributeOfSleep"/>
+        <Concept_name>Total Sleep Time</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10114</Sleep_ID>
+        <UMLS_CUI>C4722414</UMLS_CUI>
+        <definition>The total amount of sleep time from sleep onset to sleep offset, determined by summing the N1 sleep, N2 sleep, N3 sleep, and REM sleep durations.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TransientSleepWakeRhythmDisorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#TransientSleepWakeRhythmDisorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#CircadianRhythmSleepWakeDisorders"/>
+        <Concept_name>Transient sleep-wake rhythm disorder</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10115</Sleep_ID>
+        <UMLS_CUI>C0393769</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#UsingSmartphone -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#UsingSmartphone">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#BedtimeRitual"/>
+        <Concept_name>Use of; Smartphone</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10125</Sleep_ID>
+        <UMLS_CUI>C1524063; C3204335</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AdvancedSleepPhaseSyndrome(ASPS) -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#AdvancedSleepPhaseSyndrome(ASPS)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicSleepWakeRhythmDisorder"/>
+        <Concept_name>Advanced Sleep Phase Syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10002</Sleep_ID>
+        <UMLS_CUI>C0751758</UMLS_CUI>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DelayedSleepPhaseSyndrome(DSPS) -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#DelayedSleepPhaseSyndrome(DSPS)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#ChronicSleepWakeRhythmDisorder"/>
+        <Concept_name>Delayed Sleep Phase Syndrome</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10017</Sleep_ID>
+        <UMLS_CUI>C0393770</UMLS_CUI>
+        <definition>A subtype of circadian rhythm sleep disorder in which the individual exhibits a persistent pattern of late sleep onset and late awakening, which results from an endogenous sleep-wake cycle that is delayed relative to the societal norm.</definition>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#WakeAfterSleepOnset(WASO) -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#WakeAfterSleepOnset(WASO)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/hyewon/ontologies/2024/3/untitled-ontology-14#SleepContinuity"/>
+        <Concept_name>Wake After Sleep Onset</Concept_name>
+        <Sleep_ID rdf:datatype="http://www.w3.org/2001/XMLSchema#decimal">10116</Sleep_ID>
+        <UMLS_CUI>C4744894</UMLS_CUI>
+        <definition>A measurement of the sum of durations of wakefulness episodes throughout the night, not including the wakefulness before sleep onset.</definition>
+    </owl:Class>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi -->
+

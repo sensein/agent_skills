@@ -1,0 +1,133 @@
+{
+ "dropped": [],
+ "demoted": [
+  {
+   "id": "alanine|Chemical",
+   "from": [
+    "http://purl.obolibrary.org/obo/CHEBI_16449"
+   ],
+   "reason": "curated mapping is http://purl.obolibrary.org/obo/CHEBI_16977 (L-alanine), not http://purl.obolibrary.org/obo/CHEBI_16449"
+  },
+  {
+   "id": "serine|Chemical",
+   "from": [
+    "http://purl.obolibrary.org/obo/CHEBI_17822"
+   ],
+   "reason": "curated mapping is http://purl.obolibrary.org/obo/CHEBI_17115 (L-serine), not http://purl.obolibrary.org/obo/CHEBI_17822"
+  },
+  {
+   "id": "histidine|Chemical",
+   "from": [
+    "http://purl.obolibrary.org/obo/CHEBI_27570"
+   ],
+   "reason": "curated mapping is http://purl.obolibrary.org/obo/CHEBI_15971 (L-histidine), not http://purl.obolibrary.org/obo/CHEBI_27570"
+  },
+  {
+   "id": "Dp|BrainRegion",
+   "from": [
+    "http://purl.obolibrary.org/obo/UBERON_8440040"
+   ],
+   "reason": "curated mapping is http://purl.obolibrary.org/obo/ZFA_0000181 (caudal zone of dorsal telencephalon), not http://purl.obolibrary.org/obo/UBERON_8440040"
+  }
+ ],
+ "fixes_applied": [
+  {
+   "id": "neurons|CellType",
+   "field": "normalized_key",
+   "from": "neuron",
+   "to": "neuron_pdp",
+   "licensed_by": "kg-keys",
+   "applied_by": "script"
+  },
+  {
+   "id": "odor discrimination training|Phenomenon",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "autoassociative memory|Phenomenon",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "inhibitory neurons|CellType",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "adult fish|DevelopmentalStage",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "appetitive behavior|Phenotype",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "amino acids|Chemical",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "bile acids|Chemical",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "E|CellType",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "I|CellType",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "excitatory pDp neurons|CellType",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "fluorescein|Chemical",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  },
+  {
+   "id": "superficial inhibitory interneurons of the olfactory bulb|CellType",
+   "field": "tier",
+   "to": "closeMatch",
+   "licensed_by": "mapping",
+   "applied_by": "script"
+  }
+ ],
+ "needs_review": [],
+ "unreviewed": [],
+ "claims": {
+  "dropped": [],
+  "fixed": []
+ }
+}

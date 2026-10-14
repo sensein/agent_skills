@@ -1,0 +1,26 @@
+{
+  "task_type": "resource",
+  "extracted_resources": {
+    "1": [{
+      "name": "Pine Maze Dataset",
+      "description": "A released maze dataset.",
+      "type": "Dataset",
+      "identifiers": [{
+        "scheme": "DANDI",
+        "value": "000123",
+        "evidence": {"quote": "Pine Maze Dataset has identifier DANDI:000123."}
+      }],
+      "mentions": {"tools": ["OldScope"]}
+    }],
+    "2": [{
+      "name": "MazeCheck",
+      "description": "A tool that reads NWB files.",
+      "type": "Tool",
+      "versions": [
+        {"value": "1.4.0", "evidence": {"quote": "MazeCheck version 1.4.0 reads NWB files."}},
+        {"value": "1.5.0", "evidence": {"quote": "Version 1.5.0 of MazeCheck is under development."}}
+      ],
+      "mentions": {"tools": ["OldScope"]}
+    }]
+  }
+}

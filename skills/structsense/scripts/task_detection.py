@@ -46,10 +46,11 @@ DEFAULT_TAXONOMY: Dict[str, str] = {
         "ranked list of key terms."
     ),
     "resource": (
-        "Extract one primary research resource (Model, Dataset, Tool, "
-        "Benchmark, Leaderboard, Paper) plus its mentions of secondary "
-        "resources. Output is a resource object with name, description, "
-        "type, category, target, url, mentions."
+        "Extract the research resources a document describes or uses "
+        "(datasets, software, models, pipelines, archives, schemas, "
+        "ontologies, benchmarks, ...) with applicability scope, assumptions, "
+        "failure modes, versions, identifiers and quoted evidence. Output is "
+        "a resource knowledge graph in the BrainKB Resource Ontology."
     ),
     "structured_extraction": (
         "Extract information into a predefined JSON schema with strict "

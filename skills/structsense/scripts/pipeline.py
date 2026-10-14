@@ -31,6 +31,8 @@ import asyncio
 import concurrent.futures as cf
 import json
 import logging
+import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -87,11 +89,18 @@ def _load_prompt(name: str) -> str:
 # Extraction
 # ---------------------------------------------------------------------------
 
-def extract(text: str, *, model: str, task: str,
+def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
             metadata: Optional[dict] = None,
             chunk_size: int = 2000, max_workers: int = 8) -> dict:
     """Chunk -> extract per chunk in parallel -> reanchor -> merge -> dedup."""
-    system = _load_prompt(f"extractor-{task}")
+    # NER has one prompt per domain (prompts/extractor-ner-<domain>.md); the other
+    # tasks have one prompt each. There is no extractor-ner.md.
+    system = _load_prompt(f"extractor-ner-{ner_domain}" if task == "ner" else f"extractor-{task}")
+    if task == "resource":
+        # one record per resource needs the whole document: the Availability section
+        # names the identifier, Methods the inputs, Limitations the failure modes
+        from resource_kg import load_config as _rkg_config
+        chunk_size = max(chunk_size, int(_rkg_config().get("extraction_chunk_chars", 60000)))
     chunks = chunk_by_sentences(text, max_chars=chunk_size)
     logger.info("extract: %d chunks", len(chunks))
 
@@ -117,8 +126,9 @@ def extract(text: str, *, model: str, task: str,
         if "key_terms" in r:
             key_terms.extend(reanchor_items(r["key_terms"], chunk_start))
         if "extracted_resources" in r:
-            for k, lst in (r["extracted_resources"] or {}).items():
-                resources.extend(lst or [])
+            er = r["extracted_resources"] or []
+            for lst in (er.values() if isinstance(er, dict) else [er]):
+                resources.extend(x for x in (lst or []) if isinstance(x, dict))
 
     out: dict[str, Any] = {}
     if entities or task == "ner":
@@ -130,7 +140,7 @@ def extract(text: str, *, model: str, task: str,
         valid, dropped = validate_all(text, key_terms)
         out["key_terms"] = dedupe(valid, key_fields=("term", "start", "end"))
     if resources:
-        out["extracted_resources"] = {"1": resources}
+        out["extracted_resources"] = resources  # BKR records (resource_kg merges chunk duplicates)
     out["task_type"] = task
     return out
 
@@ -419,7 +429,13 @@ def run(text: str, *, task: str, extractor_model: str,
         ner_ensemble_profile: Optional[str] = None,
         ner_ensemble_models: Optional[list[str]] = None,
         ner_ensemble_device: int = -1,
-        allow_ols_fallback: bool = False) -> dict:
+        allow_ols_fallback: bool = False,
+        judge_mode: str = "ensemble",
+        ner_domain: str = "general",
+        judge_models: Optional[dict] = None,
+        combiner_model: Optional[str] = None,
+        kg_plan_model: Optional[str] = None,
+        work_dir: Optional[Path] = None) -> dict:
     """Full pipeline: ensemble NER + LLM extract -> align -> judge.
 
     Set ``ner_ensemble_profile`` (e.g. ``"biomedical_broad"`` or ``"cns_cells"``)
@@ -431,6 +447,8 @@ def run(text: str, *, task: str, extractor_model: str,
     for the shape.
     """
     started = time.monotonic()
+    import datetime as _dt
+    started_at = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     timings: dict[str, float] = {}
     alignment_meta: dict = {}
     judge_meta: dict = {}
@@ -454,7 +472,7 @@ def run(text: str, *, task: str, extractor_model: str,
 
     # --- 1. LLM extraction ---
     t0 = time.monotonic()
-    extraction = extract(text, model=extractor_model, task=task,
+    extraction = extract(text, model=extractor_model, task=task, ner_domain=ner_domain,
                          chunk_size=chunk_size, max_workers=max_workers)
     timings["extraction"] = round(time.monotonic() - t0, 2)
 
@@ -469,8 +487,23 @@ def run(text: str, *, task: str, extractor_model: str,
         extraction["entities"] = annotate_llm_provenance(
             extraction["entities"], llm_model=extractor_model)
 
-    # --- 2. alignment with mapper cascade ---
-    if mapper_backend:
+    # --- 2. alignment ---
+    # Default: the configured cascade (concept_mapping.json): trusted ontologies in
+    # trusted_ontologes/priority.md order, then local hybrid, then BioPortal.
+    cm = None
+    if mapper_backend == "config":
+        t0 = time.monotonic()
+        from concept_mapping import ConceptMapper, map_result
+        cm = ConceptMapper(local_url=local_mapping_url, ask_user=ask_user)
+        if not cm.usable_sources():
+            raise RuntimeError("concept mapping is mandatory and tool-only (rule 15), and no source in "
+                               "concept_mapping.json sources_priority is usable: index the trusted "
+                               "ontologies (python -m scripts.concept_mapping index), start the local "
+                               "mapper, or set BIOPORTAL_API_KEY")
+        aligned = map_result(extraction, cm)
+        alignment_meta = cm.meta()
+        timings["alignment"] = round(time.monotonic() - t0, 2)
+    elif mapper_backend:
         t0 = time.monotonic()
         try:
             mapper, alignment_meta = build_mapper_with_cascade(
@@ -506,7 +539,11 @@ def run(text: str, *, task: str, extractor_model: str,
 
     # --- 3. judge ---
     t0 = time.monotonic()
-    if judge_model and not skip_judge:
+    ensemble = bool(judge_model) and not skip_judge and judge_mode == "ensemble"
+    if ensemble:
+        judged = aligned  # the panel runs after grouping, below
+        judge_meta = {"method": "ensemble"}
+    elif judge_model and not skip_judge:
         judged = judge(aligned, text, model=judge_model, max_workers=max_workers)
         judge_meta = {"method": "llm", "model": judge_model, "max_workers": max_workers}
     else:
@@ -546,6 +583,32 @@ def run(text: str, *, task: str, extractor_model: str,
         alignment_meta=alignment_meta,
         judge_meta=judge_meta,
     )
+
+    # --- 6. KG plan + judge ensemble (references/judge-ensemble.md) ---
+    kg_plan = None
+    if kg_plan_model and task == "ner":
+        from judge_ensemble import make_kg_plan
+        kg_plan = make_kg_plan(judged, call=llm_call, model=kg_plan_model)
+    if ensemble:
+        from judge_ensemble import run_panel
+        t0 = time.monotonic()
+        wd = Path(work_dir or ".") / ("judge_" + Path(input_path or "input").stem)
+        judged, kg_plan, report = run_panel(
+            judged, text, call=llm_call, default_model=judge_model, judge_models=judge_models,
+            combiner_model=combiner_model, kg_plan=kg_plan, work_dir=wd)
+        judged["stats"].setdefault("elapsed_seconds", {})["judge"] = round(time.monotonic() - t0, 2)
+    if kg_plan is not None:
+        judged["kg_plan"] = kg_plan  # carried to json_to_ttl; not part of the TTL itself
+    if task == "resource":
+        # resource KG (references/resource-extraction.md): drop what the text does not
+        # state, map scope labels with the same tool cascade as NER (never an LLM IRI)
+        from resource_kg import prepare
+        prepare(judged, text, mapper=cm)
+    # WHEN, WHO: recorded, never inferred (ner:NERExtractionActivity prov:startedAtTime ...)
+    judged["run_metadata"] = {
+        "started_at": started_at,
+        "ended_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "extractor_model": extractor_model, "judge_model": judge_model, "mode": "framework"}
     return judged
 
 
@@ -588,10 +651,36 @@ def _main():
                     help="skip the corpus roll-up even with several inputs")
     ap.add_argument("--corpus-out", default=None,
                     help="output stem for the roll-up (default: <out dir>/corpus_synthesis)")
-    ap.add_argument("--extractor", required=True, help="extractor model string")
-    ap.add_argument("--judge", default=None, help="judge model string (omit to auto-approve)")
-    ap.add_argument("--mapper", choices=["ols", "bioportal", "local", "none"], default="local",
-                    help="preferred mapping backend. 'local' is the default cascade: "
+    ap.add_argument("--extractor", default=None,
+                    help="extractor model string. Default inside Claude Code: claude-code (the `claude` "
+                         "CLI, no API key); elsewhere required")
+    ap.add_argument("--judge", default=None,
+                    help="default judge model (omit to auto-approve). With the default --judge-mode "
+                         "ensemble this is every panel member's model unless --judge-models says otherwise")
+    ap.add_argument("--ner-domain", choices=["general", "neuroscience", "cns-cells"], default="general",
+                    help="NER extractor prompt: prompts/extractor-ner-<domain>.md")
+    ap.add_argument("--judge-mode", choices=["ensemble", "single"], default="ensemble",
+                    help="ensemble: independent per-dimension judges + deterministic combine "
+                         "(references/judge-ensemble.md); single: the legacy one-score judge")
+    ap.add_argument("--judge-models", default=None,
+                    help="per-judge models, e.g. 'mapping=openrouter/x,claims=openrouter/y'")
+    ap.add_argument("--combiner", default=None,
+                    help="model for prompts/judge-combiner.md (needs_review only); default --judge")
+    ap.add_argument("--kg-plan-model", default=None,
+                    help="model that writes kg_plan.json (prompts/kg-plan.md) — a default step for NER. "
+                         "Default: --judge, else --extractor. 'none' skips it explicitly")
+    ap.add_argument("--format", choices=["ttl", "json"], default="ttl",
+                    help="ttl (default): <stem>.ttl, validated; the working JSON is transient. "
+                         "json: the legacy <stem>_final.json")
+    ap.add_argument("--entity-views", action="store_true",
+                    help="also write <stem>.entities.json / .entities.ttl next to the TTL")
+    ap.add_argument("--keep-json", action="store_true",
+                    help="with --format ttl, keep the working JSON under <out-dir>/.structsense/")
+    ap.add_argument("--out-dir", default=None, help="where results go (default: beside each input)")
+    ap.add_argument("--mapper", choices=["config", "ols", "bioportal", "local", "none"], default="config",
+                    help="mapping backend. 'config' (default): concept_mapping.json — trusted "
+                         "ontologies in priority.md order, then local hybrid, then BioPortal. "
+                         "'local' is the older cascade: "
                          "local hybrid (http://localhost:8000) → BioPortal → interactive "
                          "prompt for alternative URL → HARD STOP. OLS is NOT in the "
                          "default cascade (no gene coverage); pass --mapper ols to use "
@@ -630,6 +719,17 @@ def _main():
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     mapper = None if args.mapper == "none" else args.mapper
+    # Inside Claude Code the session's own model runs every LLM stage (never
+    # OpenRouter unless a model is named); the judges too, so they are not skipped.
+    from llm_client import default_model
+    host = default_model()
+    if not args.extractor:
+        if not host:
+            raise SystemExit("--extractor is required outside Claude Code (e.g. openrouter/<model>); "
+                             "or run in host-model mode: python -m scripts.batch")
+        args.extractor = host
+        if args.judge is None:
+            args.judge = host
 
     ner_models = (
         [m.strip() for m in args.ner_models.split(",") if m.strip()]
@@ -654,8 +754,12 @@ def _main():
                          "result use the <stem>_final.json convention and set "
                          "--corpus-out for the roll-up")
 
-    written: list[Path] = []
+    written: list[Path] = []          # per-paper JSON (the deliverable with --format json)
+    ttl_written: list[Path] = []
     failed: list[tuple[Path, str]] = []
+    judge_models = dict(kv.split("=", 1) for kv in args.judge_models.split(",")) if args.judge_models else None
+    work_root = (Path(args.out_dir) if args.out_dir else inputs[0].parent) / ".structsense"
+    work_root.mkdir(parents=True, exist_ok=True)
     for i, in_path in enumerate(inputs, 1):
         if len(inputs) > 1:
             print(f"[{i}/{len(inputs)}] {in_path}", file=sys.stderr)
@@ -675,6 +779,14 @@ def _main():
                 ner_ensemble_models=ner_models,
                 ner_ensemble_device=args.ner_device,
                 allow_ols_fallback=args.allow_ols_fallback,
+                judge_mode=args.judge_mode,
+                ner_domain=args.ner_domain,
+                judge_models=judge_models,
+                combiner_model=args.combiner or args.judge,
+                # the KG plan is a default step for NER: its own model, else the judge's,
+                # else the extractor's; only an explicit `--kg-plan-model none` skips it
+                kg_plan_model=None if args.kg_plan_model == "none" else (args.kg_plan_model or args.judge or args.extractor),
+                work_dir=work_root,
             )
         except Exception as exc:
             # One bad paper must not lose the rest of a long batch. Mirrors
@@ -685,9 +797,42 @@ def _main():
             print(f"  FAILED {in_path.name}: {type(exc).__name__}: {exc}", file=sys.stderr)
             continue
 
-        out_path = Path(default_output_path(str(in_path), args.out))
-        out_path.write_text(json.dumps(result, indent=2, default=str))
-        written.append(out_path)
+        out_dir = Path(args.out_dir) if args.out_dir else in_path.parent
+        kg_plan = result.pop("kg_plan", None)
+        if args.format == "json":
+            out_path = Path(default_output_path(str(out_dir / in_path.name), args.out))
+            out_path.write_text(json.dumps(result, indent=2, default=str))
+            written.append(out_path)
+        else:
+            # The deliverable is Turtle (references/ttl-representation.md); the JSON the
+            # stages exchanged is working state, kept under .structsense/ for the corpus
+            # roll-up and removed afterwards unless --keep-json.
+            work_json = work_root / f"{in_path.stem}_final.json"
+            work_json.write_text(json.dumps(result, indent=2, default=str))
+            if kg_plan is not None:
+                (work_root / f"{in_path.stem}_kg_plan.json").write_text(json.dumps(kg_plan, indent=2))
+            from json_to_ttl import result_to_ttl
+            from validate_ttl import validate_file
+            ttl, conv = result_to_ttl(result, kg_plan=kg_plan, source_path=in_path)
+            out_path = Path(args.out) if args.out else out_dir / f"{in_path.stem}.ttl"
+            out_path.write_text(ttl)
+            gate = validate_file(out_path)
+            if not gate["ok"]:
+                # a file that fails the gate is not a deliverable: say so, keep it for
+                # inspection under a name no consumer will pick up
+                bad = out_path.with_suffix(".invalid.ttl")
+                out_path.rename(bad)
+                failed.append((in_path, f"TTL failed validation ({gate['violation_count']} violations): {bad}"))
+                for k, v in list(gate["violations"].items())[:5]:
+                    print(f"  [{k}] {v[:3]}", file=sys.stderr)
+                continue
+            if args.entity_views:
+                from entity_view import write_entity_views
+                write_entity_views(ttl, out_path)
+            written.append(work_json)
+            ttl_written.append(out_path)
+            print(f"  {conv['triples']} triples; gate: VALID ({gate['warning_count']} warning(s))",
+                  file=sys.stderr)
         print(format_summary(result["stats"]), file=sys.stderr)
         print(f"wrote {out_path}", file=sys.stderr)
 
@@ -699,7 +844,7 @@ def _main():
         from merge_corpus import build_corpus, render_markdown
 
         stem = Path(args.corpus_out) if args.corpus_out else \
-            written[0].parent / "corpus_synthesis"
+            (Path(args.out_dir) if args.out_dir else inputs[0].parent) / "corpus_synthesis"
         stem.parent.mkdir(parents=True, exist_ok=True)
         corpus = build_corpus(written, include_mentions=False, with_index=True)
         stem.with_suffix(".json").write_text(
@@ -710,6 +855,11 @@ def _main():
     elif len(written) > 1:
         print("corpus roll-up skipped (--no-synthesize); per-paper files only",
               file=sys.stderr)
+
+    if args.format == "ttl" and not args.keep_json:
+        shutil.rmtree(work_root, ignore_errors=True)
+    elif args.format == "ttl":
+        print(f"working JSON kept under {work_root}", file=sys.stderr)
 
     if failed:
         print(f"{len(failed)} of {len(inputs)} input(s) failed", file=sys.stderr)

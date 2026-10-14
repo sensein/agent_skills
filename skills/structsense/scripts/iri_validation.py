@@ -173,6 +173,11 @@ def validate_item(item: dict, *, strict: bool = True) -> tuple[bool, Optional[st
     # explicit unmapped/skipped — nothing to validate
     if prov in ("unmapped", "skipped") and not oid:
         return True, None
+    if not oid and not prov:
+        # not mapped yet (normalize_result runs before concept mapping in host mode):
+        # nothing to validate, and stamping it "validation_failed" would mislabel an
+        # honest gap once the mapper also finds nothing
+        return True, None
     if not oid:
         return False, "no ontology_id but provenance not unmapped/skipped"
 
@@ -190,8 +195,9 @@ def validate_item(item: dict, *, strict: bool = True) -> tuple[bool, Optional[st
     # cross-ontology lookups legitimately reuse IRIs across ontology sources.
     if strict and not matches_any_known_ontology(oid):
         # If the IRI looks like an OBO PURL or identifiers.org URL of a known
-        # form, accept it even if no per-prefix pattern is registered.
-        if not _looks_like_real_ontology_iri(oid):
+        # form, or lives in a namespace of the prefix registry (a trusted ontology's
+        # own namespace — scripts/prefixes.py), accept it.
+        if not _looks_like_real_ontology_iri(oid) and not _in_prefix_registry(oid):
             return False, (f"ontology_id {oid!r} does not match any known "
                            f"ontology pattern; possibly hallucinated")
     return True, None
@@ -206,6 +212,25 @@ _IDENTIFIERS_ORG  = re.compile(r"^https?://identifiers\.org/[A-Za-z0-9._]+(?:/[A
 _EBI_OLS          = re.compile(r"^https?://www\.ebi\.ac\.uk/[A-Za-z0-9/_-]+/[A-Za-z0-9_]+_[0-9]+$")
 _SEMANTIC_WEB     = re.compile(r"^https?://www\.semanticweb\.org/.+#[A-Za-z0-9_]+$")
 _GENERIC_OWL_IRI  = re.compile(r"^https?://[A-Za-z0-9./_-]+/[A-Za-z0-9._-]+_[0-9]+$")
+
+
+_REGISTRY = None
+
+
+def _in_prefix_registry(iri: str) -> bool:
+    """True when the IRI is in a namespace the prefix registry knows — the same
+    registry the mapper and the TTL writer use, so what one accepts the others do."""
+    global _REGISTRY
+    if _REGISTRY is None:
+        try:
+            import sys
+            from pathlib import Path
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from prefixes import PrefixRegistry
+            _REGISTRY = PrefixRegistry()
+        except Exception:
+            _REGISTRY = False
+    return bool(_REGISTRY) and _REGISTRY.compact(iri.strip()) is not None
 
 
 def _looks_like_real_ontology_iri(iri: str) -> bool:

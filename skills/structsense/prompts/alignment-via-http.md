@@ -1,5 +1,13 @@
 # Alignment via direct HTTP (no Python client needed)
 
+> **Trusted ontologies first.** Before any HTTP mapper, run
+> `python -m scripts.concept_mapping map <result.json>`: it maps every item it can
+> from the trusted ontology files (`trusted_ontologes/priority.md` order), then
+> sends only the rest to the local hybrid service and BioPortal
+> (`concept_mapping.json` → `sources_priority`). Use the calls below for whatever
+> is still `unmapped`, with `--only-unmapped` semantics: never overwrite a
+> trusted-ontology mapping with a remote one.
+
 Use this when:
 - You have a list of extracted entities/key_terms ready to align.
 - The local hybrid mapping service is running and reachable from your runtime

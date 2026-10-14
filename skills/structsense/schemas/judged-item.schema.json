@@ -4,7 +4,9 @@
   "title": "Fragment: judge stage fields",
   "description": "Fields that the judge stage ADDS to any aligned item. Compose into a larger schema with allOf.",
   "type": "object",
-  "required": ["judge_score", "remarks"],
+  "required": [
+    "judge_score"
+  ],
   "properties": {
     "judge_score": {
       "type": "number",
@@ -20,8 +22,12 @@
     },
     "judge_method": {
       "type": "string",
-      "enum": ["llm", "auto_approved"],
-      "description": "How the score was produced. 'auto_approved' = judge stage was skipped."
+      "enum": [
+        "llm",
+        "auto_approved",
+        "ensemble"
+      ],
+      "description": "How the score was produced. 'ensemble' = weak-learner judge panel aggregated by scripts/judge_combine.py (per-judge reviews in the top-level judge_ensemble block); 'llm' = the single-judge fallback; 'auto_approved' = judge stage was skipped."
     }
   },
   "additionalProperties": true

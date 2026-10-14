@@ -4,35 +4,61 @@
   "title": "NER extractor output",
   "description": "paper_title / doi / source_path live ONCE at the top level under source_metadata. They are NOT repeated on every entity. paper_location is per-entity because it varies (different mentions appear in different sections / pages).",
   "type": "object",
-  "required": ["entities", "key_terms"],
+  "required": [
+    "entities",
+    "key_terms"
+  ],
   "properties": {
     "source_metadata": {
       "type": "object",
       "description": "Document-level metadata. Populated ONCE per run, not per item.",
       "properties": {
-        "paper_title": { "type": ["string", "null"] },
-        "doi":         { "type": ["string", "null"] },
-        "source_path": { "type": ["string", "null"] }
+        "paper_title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": true
     },
     "entities": {
       "type": "array",
-      "description": "Raw mentions — one item per occurrence (exhaustive). Each item carries a `source_model` recording which NER model surfaced it (HF model id, or `llm_ner:<llm_model>`).",
-      "items": { "$ref": "#/$defs/Entity" }
+      "description": "Raw mentions \u2014 one item per occurrence (exhaustive). Each item carries a `source_model` recording which NER model surfaced it (HF model id, or `llm_ner:<llm_model>`).",
+      "items": {
+        "$ref": "#/$defs/Entity"
+      }
     },
     "key_terms": {
       "type": "array",
-      "items": { "$ref": "#/$defs/KeyTerm" }
+      "items": {
+        "$ref": "#/$defs/KeyTerm"
+      }
     },
     "entities_grouped": {
       "type": "array",
-      "description": "Per-entity index — mentions collapsed by canonical (entity.lower(), label). Each group lists every contributing source_model, the deduplicated sentences from all locations, and judge_score summaries.",
-      "items": { "$ref": "#/$defs/EntityGroup" }
+      "description": "Per-entity index \u2014 mentions collapsed by canonical (entity.lower(), label). Each group lists every contributing source_model, the deduplicated sentences from all locations, and judge_score summaries.",
+      "items": {
+        "$ref": "#/$defs/EntityGroup"
+      }
     },
     "key_terms_grouped": {
       "type": "array",
-      "items": { "$ref": "#/$defs/EntityGroup" }
+      "items": {
+        "$ref": "#/$defs/EntityGroup"
+      }
     },
     "ensemble_models": {
       "type": "array",
@@ -40,124 +66,503 @@
       "items": {
         "type": "object",
         "properties": {
-          "source_model":    { "type": "string" },
-          "count":           { "type": "integer", "minimum": 0 },
-          "skipped_reason":  { "type": ["string", "null"] }
+          "source_model": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
-    "task_type": { "type": "string", "enum": ["ner"] },
-    "elapsed_time": { "type": "number" },
-    "errors": { "type": "array", "items": { "type": "string" } },
-    "stats": { "type": "object", "additionalProperties": true }
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "ner"
+      ]
+    },
+    "elapsed_time": {
+      "type": "number"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "causal_relations": {
+      "type": "array",
+      "description": "Causal claims THIS paper argues, between extracted mentions (scripts/relations.py).",
+      "items": {
+        "type": "object",
+        "required": [
+          "cause",
+          "effect"
+        ],
+        "properties": {
+          "cause": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          },
+          "mediators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moderators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confounders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string"
+          },
+          "polarity": {
+            "type": "string"
+          },
+          "modality": {
+            "type": "string"
+          },
+          "evidence_basis": {
+            "type": [
+              "string",
+              "array"
+            ]
+          },
+          "hypothetical": {
+            "type": "boolean"
+          },
+          "negated": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "effect_estimate": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
   },
   "additionalProperties": true,
   "$defs": {
     "Entity": {
       "type": "object",
-      "required": ["entity", "label", "sentence", "start", "end"],
+      "required": [
+        "entity",
+        "label",
+        "sentence",
+        "start",
+        "end"
+      ],
       "properties": {
-        "entity": { "type": "string", "minLength": 1 },
+        "entity": {
+          "type": "string",
+          "minLength": 1
+        },
         "label": {
           "type": "string",
           "description": "Entity type. Default taxonomy: Gene, Protein, Species, CellType, BrainRegion, Disease, Method, Chemical, Measurement, Other. Override per task."
         },
-        "sentence": { "type": "string", "minLength": 1 },
-        "start": { "type": "integer", "minimum": 0 },
-        "end":   { "type": "integer", "minimum": 0 },
-        "paper_location": { "type": ["string", "null"] },
-
+        "sentence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "source_model": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Which model surfaced this mention. HF model id (e.g. 'd4data/biomedical-ner-all'), or 'llm_ner:<llm_model>'."
         },
         "source_score": {
-          "type": ["number", "null"],
-          "minimum": 0, "maximum": 1,
-          "description": "The source model's own confidence (0–1) if it emits one (HF NER models do; LLM extractors usually don't)."
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "The source model's own confidence (0\u20131) if it emits one (HF NER models do; LLM extractors usually don't)."
         },
-
-        "ontology_id":    { "type": ["string", "null"] },
-        "ontology_label": { "type": ["string", "null"] },
-        "ontology":       { "type": ["string", "null"] },
+        "ontology_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "concept_mapping_provenance": {
-          "type": ["string", "null"],
-          "enum": ["tool", "llm_knowledge", "unmapped", "skipped", null]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "tool",
+            "llm_knowledge",
+            "unmapped",
+            "skipped",
+            null
+          ]
         },
         "alignment_method": {
-          "type": ["string", "null"],
-          "enum": ["direct_tool_call", "llm_agent", "skipped", null]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "direct_tool_call",
+            "llm_agent",
+            "skipped",
+            "validation_failed",
+            "judge_demoted",
+            "trusted_ontology",
+            "no_match",
+            "remote_error",
+            null
+          ]
         },
-
-        "judge_score":  { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-        "remarks":      { "type": ["string", "null"] },
+        "judge_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "remarks": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "judge_method": {
-          "type": ["string", "null"],
-          "enum": ["llm", "auto_approved", null]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "llm",
+            "auto_approved",
+            "ensemble",
+            null
+          ]
+        },
+        "relations": {
+          "type": "array",
+          "description": "Relations the TEXT states from this mention to another extracted mention (scripts/relations.py resolves the target; the claims judge reviews each).",
+          "items": {
+            "type": "object",
+            "required": [
+              "predicate",
+              "target"
+            ],
+            "properties": {
+              "predicate": {
+                "type": "string",
+                "description": "a short name from default_ontology/ttl_config.json relation_predicates"
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "description": "another extracted mention, exactly as written"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "broader": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The broader extracted mention this one is a kind or part of (in-paper hierarchy, written as skos:broader)."
+        },
+        "referent_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source-local homonym/coreference identity."
+        },
+        "identity_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+          "description": "Reviewed global identity, shared across sources."
         }
       },
       "additionalProperties": true
     },
     "KeyTerm": {
       "type": "object",
-      "required": ["term", "sentence", "start", "end"],
+      "required": [
+        "term",
+        "sentence",
+        "start",
+        "end"
+      ],
       "properties": {
-        "term":     { "type": "string", "minLength": 1 },
-        "sentence": { "type": "string", "minLength": 1 },
-        "start":    { "type": "integer", "minimum": 0 },
-        "end":      { "type": "integer", "minimum": 0 },
-        "paper_location": { "type": ["string", "null"] },
-        "source_model":   { "type": ["string", "null"] },
-        "source_score":   { "type": ["number", "null"] },
-        "ontology_id":    { "type": ["string", "null"] },
-        "ontology_label": { "type": ["string", "null"] },
-        "ontology":       { "type": ["string", "null"] },
-        "concept_mapping_provenance": { "type": ["string", "null"] },
-        "judge_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-        "remarks":     { "type": ["string", "null"] }
+        "term": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sentence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ontology_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concept_mapping_provenance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "judge_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "remarks": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": true
     },
     "EntityGroup": {
       "type": "object",
       "description": "An entity index entry: one canonical (entity, label) with all mentions collapsed.",
-      "required": ["mention_count"],
+      "required": [
+        "mention_count"
+      ],
       "properties": {
-        "entity":         { "type": ["string", "null"] },
-        "term":           { "type": ["string", "null"] },
-        "label":          { "type": ["string", "null"] },
-        "mention_count":  { "type": "integer", "minimum": 1 },
-        "source_models":  { "type": "array", "items": { "type": "string" } },
+        "entity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "term": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mention_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "source_model_counts": {
           "type": "object",
-          "additionalProperties": { "type": "integer", "minimum": 1 }
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
         },
         "consensus_count": {
-          "type": "integer", "minimum": 1,
+          "type": "integer",
+          "minimum": 1,
           "description": "Distinct source_models that surfaced this entity. Useful as a confidence proxy."
         },
-        "ontology_id":    { "type": ["string", "null"] },
-        "ontology_label": { "type": ["string", "null"] },
-        "ontology":       { "type": ["string", "null"] },
-        "concept_mapping_provenance": { "type": ["string", "null"] },
-        "alignment_method":           { "type": ["string", "null"] },
-        "judge_score_max": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-        "judge_score_avg": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-        "judge_score_min": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "ontology_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology_label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concept_mapping_provenance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alignment_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "judge_score_max": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "judge_score_avg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "judge_score_min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
         "sentences": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "text":            { "type": "string" },
-              "paper_locations": { "type": "array", "items": { "type": "string" } }
+              "text": {
+                "type": "string"
+              },
+              "paper_locations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         },
         "mentions": {
           "type": "array",
           "description": "Slim per-occurrence views (offsets, sentence, source_model, judge_score).",
-          "items": { "type": "object", "additionalProperties": true }
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "referent_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source-local homonym/coreference identity."
+        },
+        "identity_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+          "description": "Reviewed global identity, shared across sources."
         }
       },
       "additionalProperties": true

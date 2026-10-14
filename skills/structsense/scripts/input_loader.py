@@ -84,6 +84,17 @@ SUPPORTED_SUFFIXES = DOCLING_SUFFIXES | FALLBACK_SUFFIXES
 # Public entry point
 # ---------------------------------------------------------------------------
 
+# Which backend produced the last text (docling / grobid / pymupdf4llm / pymupdf /
+# pdfminer / csv / plain): provenance for the TTL's DocumentIngestionActivity.
+LAST_BACKEND: Optional[str] = None
+
+
+def _done(backend: str, text: str) -> str:
+    global LAST_BACKEND
+    LAST_BACKEND = backend
+    return text
+
+
 def process_file(
     source_path: Union[str, Path],
     *,
@@ -134,7 +145,7 @@ def process_file(
         if text and text.strip():
             if ext == ".pdf":
                 warn_if_captions_missing(text, f"{p.name} (docling)")
-            return text
+            return _done("docling", text)
         if ext not in FALLBACK_SUFFIXES:
             raise ValueError(
                 f"docling could not read {p.name} and nothing else here can open "
@@ -152,8 +163,8 @@ def process_file(
         return _read_pdf(p, grobid_url=grobid_url, prefer_grobid=prefer_grobid,
                          errors=errors)
     if ext == ".csv":
-        return _read_csv(p)
-    return p.read_text(encoding="utf-8", errors="replace")
+        return _done("csv", _read_csv(p))
+    return _done("plain", p.read_text(encoding="utf-8", errors="replace"))
 
 
 # Caption / table markers, covering every producer: BioC and JATS emit "[FIG]" /
@@ -239,7 +250,7 @@ def _read_pdf(path: Path, *, grobid_url: Optional[str],
         text = _try_grobid(path, grobid_url=grobid_url, errors=errors)
         if text and text.strip():
             warn_if_captions_missing(text, f"{path.name} (grobid)")
-            return text
+            return _done("grobid", text)
 
     # pymupdf4llm before plain PyMuPDF: it is layout-aware and keeps figure captions
     # and table structure, which is the whole difference that matters here, and unlike
@@ -248,17 +259,17 @@ def _read_pdf(path: Path, *, grobid_url: Optional[str],
     text = _try_pymupdf4llm(path, errors=errors)
     if text and text.strip():
         warn_if_captions_missing(text, f"{path.name} (pymupdf4llm)")
-        return text
+        return _done("pymupdf4llm", text)
 
     text = _try_pymupdf(path, errors=errors)
     if text and text.strip():
         warn_if_captions_missing(text, f"{path.name} (pymupdf)")
-        return text
+        return _done("pymupdf", text)
 
     text = _try_pdfminer(path, errors=errors)
     if text and text.strip():
         warn_if_captions_missing(text, f"{path.name} (pdfminer)")
-        return text
+        return _done("pdfminer", text)
 
     raise ValueError(
         f"all PDF extractors failed for {path.name}: " + " | ".join(errors)

@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://structsense.skills/kg-plan.schema.json",
+  "title": "KG plan \u2014 the judgment layer of the TTL representation",
+  "description": "Written by the host model per prompts/kg-plan.md, reviewed by the kg-keys and claims judges, consumed by scripts/json_to_ttl.py. Everything is optional; {} is a valid plan. It never carries an ontology IRI.",
+  "type": "object",
+  "properties": {
+    "entities": {
+      "type": "object",
+      "description": "Keyed by the item id '<entity>|<label>' from entities_grouped / key_terms_grouped.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "normalized_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "normalized_label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The entity's NAME as a reader would write it; an abbreviation may follow in parentheses ('somatostatin-expressing interneuron (SST-IN)'). Never an explanation: that goes in `note`."
+          },
+          "class": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Za-z0-9]*$",
+            "description": "local name of a class declared in the target ontology"
+          },
+          "skos_tier": {
+            "type": "string",
+            "enum": [
+              "exactMatch",
+              "closeMatch",
+              "broadMatch",
+              "narrowMatch",
+              "relatedMatch"
+            ]
+          },
+          "tier_note": {
+            "type": "string"
+          },
+          "relations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "predicate",
+                "target_key",
+                "evidence"
+              ],
+              "properties": {
+                "predicate": {
+                  "type": "string",
+                  "description": "a short name or RO/BFO id listed in default_ontology/ttl_config.json relation_predicates (e.g. part_of, located_in, expresses, has_phenotype, in_taxon, capable_of, develops_from); the converter rejects anything else"
+                },
+                "target_key": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "negated": {
+                  "type": "boolean"
+                },
+                "modality": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "string"
+                },
+                "context": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "broader_key": {
+            "type": "string"
+          },
+          "related_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "see_also_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "uses_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "derived_from_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional explanation or caveat about the entity (written as rdfs:comment, never as its label)."
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "ontology_id"
+              ]
+            },
+            {
+              "required": [
+                "iri"
+              ]
+            }
+          ]
+        },
+        "additionalProperties": false
+      }
+    },
+    "causal_relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "cause_key",
+          "effect_key",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cause_key": {
+            "type": "string"
+          },
+          "effect_key": {
+            "type": "string"
+          },
+          "mediator_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moderator_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confounder_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "activates",
+              "alleviates",
+              "causally_downstream_of",
+              "causally_upstream_of",
+              "causes",
+              "contributes_to",
+              "enables",
+              "exacerbates",
+              "induces",
+              "inhibits",
+              "leads_to",
+              "mediates",
+              "necessary_for",
+              "negatively_regulates",
+              "positively_regulates",
+              "prevents",
+              "promotes",
+              "protects_against",
+              "results_in",
+              "sufficient_for",
+              "suppresses",
+              "triggers"
+            ]
+          },
+          "polarity": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "negative",
+              "neutral",
+              "unspecified"
+            ]
+          },
+          "modality": {
+            "type": "string",
+            "enum": [
+              "asserted",
+              "conditional",
+              "hypothetical",
+              "possible",
+              "probable",
+              "uncertain"
+            ]
+          },
+          "directness": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "indirect",
+              "unspecified"
+            ]
+          },
+          "evidence_basis": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "author_assertion",
+                "computational_model",
+                "dose_response",
+                "experimental_intervention",
+                "genetic_perturbation",
+                "instrumental_variable",
+                "longitudinal",
+                "mechanistic",
+                "mediation_analysis",
+                "mendelian_randomization",
+                "observational_adjusted",
+                "observational_unadjusted",
+                "pharmacological_perturbation",
+                "randomized_intervention",
+                "temporal_precedence"
+              ]
+            }
+          },
+          "hypothetical": {
+            "type": "boolean"
+          },
+          "negated": {
+            "type": "boolean"
+          },
+          "strength": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect_estimate": {
+            "type": "object",
+            "required": [
+              "measure"
+            ],
+            "properties": {
+              "measure": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "p_value": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "sample_size": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ci_lower": {
+                "type": "number"
+              },
+              "ci_upper": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "chains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "relation_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "relation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

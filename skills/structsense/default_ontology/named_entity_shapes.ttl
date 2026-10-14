@@ -1,0 +1,553 @@
+# ============================================================================
+# SHACL shapes for per-paper instance data of the Named Entity Ontology
+# (https://brainkb.org/ner/, named_entity_ontology.owl v2.5.0).
+#
+# The OWL file says what terms exist and their domains/ranges; it cannot say
+# "an entity MUST have a mention" or "an external IRI MUST be backed by a
+# tool-verified concept". These shapes do. They are the contract a structsense
+# TTL file must meet before it is handed to ingestion.
+#
+# Run (the validator does this for you):
+#   python -m scripts.validate_ttl paper.ttl          # OWL checks + these shapes
+#   pyshacl -s default_ontology/named_entity_shapes.ttl \
+#           -e default_ontology/named_entity_ontology.owl -i rdfs paper.ttl
+#
+# Validate WITH the ontology as the extra graph and RDFS inference: entities
+# are typed by their most specific class (ner:Interneuron), and it is the
+# subclass closure that makes sh:targetClass ner:NamedEntity reach them.
+#
+# Severity: sh:Violation = the file is not ingestion-ready. sh:Warning = legal
+# but worth a look (reported, does not fail the gate).
+# ============================================================================
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix ner:  <https://brainkb.org/ner/> .
+@prefix nsh:  <https://brainkb.org/ner/shapes/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+nsh: a owl:Ontology ;
+    rdfs:label "Named Entity Ontology — instance-data SHACL shapes" ;
+    owl:versionInfo "1.1.0" ;
+    rdfs:comment "Targets named_entity_ontology.owl 2.5.0. Validate with the ontology as ont_graph and inference='rdfs'." ;
+    sh:declare [
+        sh:prefix "ner" ; sh:namespace "https://brainkb.org/ner/"^^xsd:anyURI
+    ] , [
+        sh:prefix "skos" ; sh:namespace "http://www.w3.org/2004/02/skos/core#"^^xsd:anyURI
+    ] , [
+        sh:prefix "rdfs" ; sh:namespace "http://www.w3.org/2000/01/rdf-schema#"^^xsd:anyURI
+    ] , [
+        sh:prefix "prov" ; sh:namespace "http://www.w3.org/ns/prov#"^^xsd:anyURI
+    ] .
+
+# ---------------------------------------------------------------------------
+# Document & provenance spine
+# ---------------------------------------------------------------------------
+
+nsh:PublicationShape a sh:NodeShape ;
+    sh:targetClass ner:SourceDocument ;
+    sh:property [
+        sh:path ner:hasDocumentVersion ; sh:minCount 1 ; sh:class ner:DocumentVersion ;
+        sh:message "A Publication needs at least one DocumentVersion — it is the hub every mention points back to." ] ;
+    sh:property [ sh:path ner:title ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path ner:doi ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:pattern "^10\\.[0-9]{4,9}/\\S+$" ;
+        sh:message "ner:doi must be a bare DOI (10.xxxx/...), not a URL." ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:DocumentVersionShape a sh:NodeShape ;
+    sh:targetClass ner:DocumentVersion ;
+    sh:property [ sh:path ner:versionOfDocument ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:SourceDocument ] ;
+    sh:property [ sh:path ner:mediaType ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:checksum ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:ExtractionActivityShape a sh:NodeShape ;
+    sh:targetClass ner:NERExtractionActivity ;
+    sh:property [
+        sh:path prov:used ; sh:minCount 1 ;
+        sh:qualifiedValueShape [ sh:class ner:DocumentVersion ] ; sh:qualifiedMinCount 1 ;
+        sh:message "The extraction activity must prov:used the DocumentVersion it read." ] ;
+    sh:property [
+        sh:path prov:wasAssociatedWith ; sh:minCount 1 ;
+        sh:message "Say which model/agent ran the extraction (prov:wasAssociatedWith)." ] ;
+    sh:property [ sh:path ner:runIdentifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:taskType ; sh:minCount 1 ; sh:datatype xsd:string ] .
+
+nsh:ExtractionSnapshotShape a sh:NodeShape ;
+    sh:targetClass ner:ExtractionSnapshot ;
+    sh:property [ sh:path ner:snapshotOfDocumentVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:DocumentVersion ] ;
+    sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+nsh:AgentShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntityProcessingAgent ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ;
+        sh:message "Every agent needs an rdfs:label (the model id or tool name)." ] .
+
+# ---------------------------------------------------------------------------
+# Named entities
+# ---------------------------------------------------------------------------
+
+nsh:NamedEntityShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:property [
+        sh:path ner:hasMention ; sh:minCount 1 ; sh:class ner:EntityMention ;
+        sh:message "Every NamedEntity must carry at least one EntityMention: an entity nobody wrote is not an extraction." ] ;
+    sh:property [
+        sh:path ner:normalizedEntityKey ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:pattern "^[a-z0-9]+(_[a-z0-9]+)*$" ;
+        sh:message "normalizedEntityKey is the ingestion merge handle: exactly one, lowercase ASCII, single underscores (references/key-normalization.md)." ] ;
+    # The too-generic key list is policy, not structure: it lives in
+    # default_ontology/ttl_config.json (generic_keys) and validate_ttl.py checks it.
+    sh:property [ sh:path ner:normalizedEntityLabel ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [
+        sh:path prov:hadPrimarySource ; sh:minCount 1 ; sh:class ner:SourceDocument ;
+        sh:message "Every entity links to its Publication (prov:hadPrimarySource) — the one-hop provenance shortcut." ] ;
+    sh:property [ sh:path ner:resolvedToConcept ; sh:class ner:OntologyConcept ] .
+
+# An external match IRI must be backed by a tool-verified OntologyConcept on the
+# same entity. This is the "no IRIs from model knowledge" rule, made checkable:
+# a skos:*Match whose object is not the conceptIRI of one of the entity's own
+# resolvedToConcept nodes has no provenance, so it cannot stay.
+nsh:MatchBackedByConceptShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "External match {?iri} has no ner:resolvedToConcept with that conceptIRI — an IRI without tool provenance (SKILL.md rule 15)." ;
+        sh:select """
+            SELECT $this ?iri WHERE {
+                $this ?p ?iri .
+                FILTER (?p IN (skos:exactMatch, skos:closeMatch, skos:broadMatch, skos:narrowMatch, skos:relatedMatch))
+                FILTER NOT EXISTS {
+                    $this ner:resolvedToConcept ?c .
+                    ?c ner:conceptIRI ?ciri .
+                    FILTER (STR(?ciri) = STR(?iri))
+                }
+            }""" ] .
+
+# The converse: a resolved concept must say how strong the identity is.
+nsh:ConceptHasTierShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Resolved concept {?c} has no skos match tier on the entity — state the identity strength (exact/close/broad/narrow/related)." ;
+        sh:select """
+            SELECT $this ?c WHERE {
+                $this ner:resolvedToConcept ?c .
+                ?c ner:conceptIRI ?ciri .
+                FILTER NOT EXISTS {
+                    $this ?p ?iri .
+                    FILTER (?p IN (skos:exactMatch, skos:closeMatch, skos:broadMatch, skos:narrowMatch, skos:relatedMatch))
+                    FILTER (STR(?iri) = STR(?ciri))
+                }
+            }""" ] .
+
+# Homology/analogy is rdfs:seeAlso, never identity; one IRI cannot be both an
+# exact match and a weaker tier on the same entity.
+nsh:SingleTierShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "{?iri} is asserted at two match tiers on the same entity — pick the honest one." ;
+        sh:select """
+            SELECT $this ?iri WHERE {
+                $this ?p1 ?iri . $this ?p2 ?iri .
+                FILTER (?p1 IN (skos:exactMatch, skos:closeMatch, skos:broadMatch, skos:narrowMatch, skos:relatedMatch))
+                FILTER (?p2 IN (skos:exactMatch, skos:closeMatch, skos:broadMatch, skos:narrowMatch, skos:relatedMatch))
+                FILTER (STR(?p1) < STR(?p2))
+            }""" ] .
+
+# An unmapped entity should say so — which authority was checked, and when.
+nsh:HonestGapShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:severity sh:Warning ;
+        sh:message "Unmapped entity has no rdfs:comment naming the gap (authority checked + date)." ;
+        sh:select """
+            SELECT $this WHERE {
+                FILTER NOT EXISTS { $this ner:resolvedToConcept ?c }
+                FILTER NOT EXISTS { $this rdfs:comment ?note }
+            }""" ] .
+
+# ---------------------------------------------------------------------------
+# Mentions and document parts
+# ---------------------------------------------------------------------------
+
+nsh:EntityMentionShape a sh:NodeShape ;
+    sh:targetClass ner:EntityMention ;
+    sh:property [ sh:path ner:surfaceForm ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [
+        sh:path ner:partOfDocumentVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:DocumentVersion ;
+        sh:message "A mention must point at the DocumentVersion it was read from." ] ;
+    sh:property [
+        sh:path [ sh:inversePath ner:hasMention ] ; sh:minCount 1 ;
+        sh:message "Orphan mention: no NamedEntity lists it via ner:hasMention." ] ;
+    sh:property [ sh:path ner:documentStartOffset ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path ner:documentEndOffset ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path ner:inSentence ; sh:maxCount 1 ; sh:class ner:Sentence ] ;
+    sh:property [ sh:path ner:inSection ; sh:maxCount 1 ; sh:class ner:Section ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "documentEndOffset ({?e}) must be greater than documentStartOffset ({?s})." ;
+        sh:select """
+            SELECT $this ?s ?e WHERE {
+                $this ner:documentStartOffset ?s ; ner:documentEndOffset ?e .
+                FILTER (?e <= ?s)
+            }""" ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Offsets span {?len} characters but surfaceForm has {?slen} — the span does not select the surface form." ;
+        sh:select """
+            SELECT $this ?len ?slen WHERE {
+                $this ner:documentStartOffset ?s ; ner:documentEndOffset ?e ; ner:surfaceForm ?sf .
+                BIND ((?e - ?s) AS ?len)
+                BIND (STRLEN(?sf) AS ?slen)
+                FILTER (?len != ?slen)
+            }""" ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:severity sh:Warning ;
+        sh:message "surfaceForm does not occur in its linked Sentence text (allowed for spans that cross a context window, but worth a look)." ;
+        sh:select """
+            SELECT $this WHERE {
+                $this ner:surfaceForm ?sf ; ner:inSentence ?sent .
+                ?sent ner:sentenceText ?t .
+                FILTER (!CONTAINS(LCASE(STR(?t)), LCASE(STR(?sf))))
+            }""" ] .
+
+nsh:SentenceShape a sh:NodeShape ;
+    sh:targetClass ner:Sentence ;
+    sh:property [ sh:path ner:sentenceText ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path ner:partOfDocumentVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:DocumentVersion ] .
+
+nsh:SectionShape a sh:NodeShape ;
+    sh:targetClass ner:Section ;
+    sh:property [ sh:path ner:sectionLabel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:partOfDocumentVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:DocumentVersion ] .
+
+# ---------------------------------------------------------------------------
+# Annotation layer (Web Annotation-style versioning of each mention's reading)
+# ---------------------------------------------------------------------------
+
+nsh:EntityAnnotationVersionShape a sh:NodeShape ;
+    sh:targetClass ner:EntityAnnotationVersion ;
+    sh:property [ sh:path ner:annotationOfMention ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:EntityMention ] ;
+    sh:property [ sh:path ner:refersToNormalizedEntity ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:revisionNumber ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path ner:inSnapshot ; sh:maxCount 1 ; sh:class ner:ExtractionSnapshot ] ;
+    sh:property [
+        sh:path prov:wasAttributedTo ; sh:minCount 1 ;
+        sh:message "Which model surfaced this mention? (source_model provenance, SKILL.md rule 11)" ] .
+
+nsh:EntityClassificationShape a sh:NodeShape ;
+    sh:targetClass ner:EntityClassification ;
+    sh:property [ sh:path ner:classifiedAsClass ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path ner:classificationLabelRaw ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:classificationConfidence ; sh:maxCount 1 ; sh:datatype xsd:decimal ;
+                  sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ner:hasSpecificityCategory ; sh:maxCount 1 ; sh:class ner:SpecificityCategory ] .
+
+# ---------------------------------------------------------------------------
+# Ontology concepts and mapping decisions
+# ---------------------------------------------------------------------------
+
+nsh:OntologyConceptShape a sh:NodeShape ;
+    sh:targetClass ner:OntologyConcept ;
+    sh:property [ sh:path ner:conceptIRI ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ;
+                  sh:pattern "^https?://\\S+$" ] ;
+    sh:property [ sh:path ner:conceptIdentifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^[A-Za-z][A-Za-z0-9_.-]*:\\S+$" ;
+                  sh:message "conceptIdentifier is a CURIE (PREFIX:LOCAL), e.g. CL:4023017." ] ;
+    # a concept node is GLOBAL (one per IRI across papers) while each paper records the
+    # ontology version it saw, so a merged store legitimately holds several versions
+    sh:property [ sh:path ner:conceptInOntologyVersion ; sh:minCount 1 ; sh:class ner:OntologyVersion ] ;
+    sh:property [ sh:path ner:preferredLabel ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:OntologyVersionShape a sh:NodeShape ;
+    sh:targetClass ner:OntologyVersion ;
+    sh:property [ sh:path ner:versionOfOntology ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:ExternalOntology ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:ExternalOntologyShape a sh:NodeShape ;
+    sh:targetClass ner:ExternalOntology ;
+    sh:property [ sh:path ner:ontologyAcronym ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:ontologyIRI ; sh:maxCount 1 ; sh:datatype xsd:anyURI ] .
+
+nsh:ConceptMappingDecisionShape a sh:NodeShape ;
+    sh:targetClass ner:ConceptMappingDecision ;
+    sh:property [ sh:path ner:decisionForNormalizedEntity ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:mappingRelationType ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:MappingRelationType ] ;
+    sh:property [ sh:path ner:mappingStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:MappingStatus ] ;
+    sh:property [
+        sh:path ner:conceptMappingProvenanceRaw ; sh:minCount 1 ;
+        sh:pattern "^tool$" ;
+        sh:message "Only tool-produced mappings may be materialised; llm_knowledge is forbidden (SKILL.md rule 15)." ] ;
+    sh:property [ sh:path ner:selectedCandidate ; sh:maxCount 1 ; sh:class ner:ConceptMappingCandidate ] .
+
+nsh:ConceptMappingCandidateShape a sh:NodeShape ;
+    sh:targetClass ner:ConceptMappingCandidate ;
+    sh:property [ sh:path ner:candidateConcept ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:OntologyConcept ] ;
+    sh:property [ sh:path ner:candidateForNormalizedEntity ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] .
+
+# ---------------------------------------------------------------------------
+# Judge / review provenance
+# ---------------------------------------------------------------------------
+
+nsh:ReviewDecisionShape a sh:NodeShape ;
+    sh:targetClass ner:ReviewDecision ;
+    sh:property [ sh:path ner:reviewStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( <https://brainkb.org/ner/review-status/accepted> <https://brainkb.org/ner/review-status/corrected>
+                          <https://brainkb.org/ner/review-status/rejected> <https://brainkb.org/ner/review-status/unreviewed> ) ] ;
+    sh:property [ sh:path ner:reviewerDecisionRaw ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ;
+                  sh:message "A review must say which judge produced it." ] ;
+    sh:property [ sh:path [ sh:inversePath ner:hasReviewDecision ] ; sh:minCount 1 ;
+                  sh:message "Orphan review: nothing points at it via ner:hasReviewDecision." ] .
+
+# ---------------------------------------------------------------------------
+# Causal module
+# ---------------------------------------------------------------------------
+
+nsh:CausalRelationShape a sh:NodeShape ;
+    sh:targetClass ner:CausalRelation ;
+    sh:property [ sh:path ner:hasCause ; sh:minCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:hasEffect ; sh:minCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:hasMediator ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:hasModerator ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:hasConfounder ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:hasCurrentCausalRelationVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:CausalRelationVersion ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [ sh:path prov:hadPrimarySource ; sh:minCount 1 ; sh:class ner:SourceDocument ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Cause and effect are the same entity ({?x})." ;
+        sh:select """
+            SELECT $this ?x WHERE { $this ner:hasCause ?x ; ner:hasEffect ?x . }""" ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "The current version {?v} does not point back via ner:versionOfCausalRelation." ;
+        sh:select """
+            SELECT $this ?v WHERE {
+                $this ner:hasCurrentCausalRelationVersion ?v .
+                FILTER NOT EXISTS { ?v ner:versionOfCausalRelation $this }
+            }""" ] .
+
+nsh:CausalRelationVersionShape a sh:NodeShape ;
+    sh:targetClass ner:CausalRelationVersion ;
+    sh:property [ sh:path ner:versionOfCausalRelation ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:CausalRelation ] ;
+    sh:property [ sh:path ner:relationRevisionNumber ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path ner:causalNegated ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path ner:causalHypothetical ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path ner:causalRelationType ; sh:maxCount 1 ; sh:class ner:CausalRelationType ] ;
+    sh:property [ sh:path ner:causalPolarity ; sh:maxCount 1 ; sh:class ner:CausalPolarity ] ;
+    sh:property [ sh:path ner:causalModality ; sh:maxCount 1 ; sh:class ner:CausalModality ] ;
+    sh:property [ sh:path ner:causalDirectness ; sh:maxCount 1 ; sh:class ner:CausalDirectness ] ;
+    sh:property [ sh:path ner:causalEvidenceBasis ; sh:class ner:CausalEvidenceBasis ] ;
+    sh:property [ sh:path ner:causalStrength ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path rdfs:comment ; sh:minCount 1 ;
+                  sh:message "State the evidence for the claim in rdfs:comment (quote fragment or result)." ] ;
+    # causalHypothetical false requires an interventional evidence basis; which
+    # bases count is policy (ttl_config.json interventional_evidence_bases), checked
+    # by validate_ttl.py.
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:EffectEstimateShape a sh:NodeShape ;
+    sh:targetClass ner:EffectEstimate ;
+    sh:property [ sh:path ner:effectMeasure ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ner:effectValue ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
+    sh:property [ sh:path ner:pValue ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ; sh:maxInclusive 1 ] ;
+    sh:property [ sh:path ner:sampleSize ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ] ;
+    sh:property [ sh:path ner:confidenceIntervalLower ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
+    sh:property [ sh:path ner:confidenceIntervalUpper ; sh:maxCount 1 ; sh:datatype xsd:decimal ] ;
+    sh:property [ sh:path [ sh:inversePath ner:hasEffectEstimate ] ; sh:minCount 1 ;
+                  sh:message "An EffectEstimate must be attached to a CausalRelationVersion." ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Confidence interval lower bound ({?lo}) exceeds upper bound ({?hi})." ;
+        sh:select """
+            SELECT $this ?lo ?hi WHERE {
+                $this ner:confidenceIntervalLower ?lo ; ner:confidenceIntervalUpper ?hi .
+                FILTER (?lo > ?hi)
+            }""" ] .
+
+nsh:CausalChainShape a sh:NodeShape ;
+    sh:targetClass ner:CausalChain ;
+    sh:property [ sh:path ner:hasChainRelation ; sh:minCount 1 ; sh:class ner:CausalRelation ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+# ---------------------------------------------------------------------------
+# v2.4 provenance: when, which version, with which settings, what changed
+# ---------------------------------------------------------------------------
+
+nsh:ActivityTimeShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntityProcessingActivity ;
+    sh:property [ sh:path prov:startedAtTime ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path prov:endedAtTime ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path ner:runIdentifier ; sh:maxCount 1 ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Activity ended ({?e}) before it started ({?s})." ;
+        sh:select """
+            SELECT $this ?s ?e WHERE {
+                $this prov:startedAtTime ?s ; prov:endedAtTime ?e .
+                FILTER (?e < ?s)
+            }""" ] .
+
+nsh:AgentVersionShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntitySoftwareAgent ;
+    sh:property [ sh:path ner:agentVersion ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:message "One agentVersion per agent: a different model version is a different agent." ] .
+
+nsh:ConfigurationArtifactShape a sh:NodeShape ;
+    sh:targetClass ner:ConfigurationArtifact ;
+    sh:property [ sh:path ner:configurationHash ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^sha256:[0-9a-f]{64}$" ;
+                  sh:message "A configuration is identified by its content hash (sha256:<64 hex>)." ] .
+
+nsh:PromptArtifactShape a sh:NodeShape ;
+    sh:targetClass ner:PromptArtifact ;
+    sh:property [ sh:path ner:promptHash ; sh:maxCount 1 ; sh:datatype xsd:string ;
+                  sh:pattern "^sha256:[0-9a-f]{64}$" ] ;
+    sh:property [ sh:path [ sh:inversePath ner:usedPrompt ] ; sh:minCount 1 ;
+                  sh:message "A prompt artifact no activity used." ] .
+
+nsh:SnapshotTimeShape a sh:NodeShape ;
+    sh:targetClass ner:ExtractionSnapshot ;
+    sh:property [ sh:path prov:generatedAtTime ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] .
+
+nsh:PublicationDateShape a sh:NodeShape ;
+    sh:targetClass ner:SourceDocument ;
+    sh:property [ sh:path ner:publicationDate ; sh:maxCount 1 ; sh:datatype xsd:date ] .
+
+nsh:ChangeRecordShape a sh:NodeShape ;
+    sh:targetClass ner:ChangeRecord ;
+    sh:property [ sh:path ner:triggeredByActivity ; sh:minCount 1 ;
+                  sh:message "A change must say which activity made it." ] ;
+    sh:property [ sh:path ner:changedField ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:CausalVersionTimeShape a sh:NodeShape ;
+    sh:targetClass ner:CausalRelationVersion ;
+    sh:property [ sh:path ner:validFrom ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:property [ sh:path ner:validUntil ; sh:maxCount 1 ; sh:datatype xsd:dateTime ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "validUntil ({?u}) precedes validFrom ({?f})." ;
+        sh:select """
+            SELECT $this ?f ?u WHERE { $this ner:validFrom ?f ; ner:validUntil ?u . FILTER (?u < ?f) }""" ] .
+
+# ---------------------------------------------------------------------------
+# Paper-stated relations and hierarchy between entities
+# (extraction `relations` / cell_context / kg_plan; reviewed by the claims judge)
+# Which predicates are allowed, and what their targets should be, is policy in
+# ttl_config.json (relation_predicates, relation_range_hints), checked by
+# validate_ttl.py. These shapes hold the structure, for ANY RO/BFO predicate.
+# ---------------------------------------------------------------------------
+
+nsh:RelationEndpointShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Relation {?p} points at {?o}, which is not an extracted entity: paper-stated relations run between ner:NamedEntity nodes (an external term belongs in a skos:*Match via a resolved concept)." ;
+        sh:select """
+            SELECT $this ?p ?o WHERE {
+                $this ?p ?o .
+                FILTER (STRSTARTS(STR(?p), "http://purl.obolibrary.org/obo/RO_")
+                     || STRSTARTS(STR(?p), "http://purl.obolibrary.org/obo/BFO_")
+                     || ?p = skos:broader)
+                FILTER NOT EXISTS { ?o a ner:NamedEntity }
+            }""" ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Entity relates to itself via {?p}." ;
+        sh:select """
+            SELECT $this ?p WHERE {
+                $this ?p $this .
+                FILTER (STRSTARTS(STR(?p), "http://purl.obolibrary.org/obo/RO_")
+                     || STRSTARTS(STR(?p), "http://purl.obolibrary.org/obo/BFO_")
+                     || ?p = skos:broader || ?p = skos:related || ?p = rdfs:seeAlso)
+            }""" ] .
+
+nsh:HierarchyAcyclicShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "In-paper hierarchy is cyclic: skos:broader leads back to this entity (subtype -> type -> class must terminate)." ;
+        sh:select """
+            SELECT $this WHERE { $this skos:broader+ $this . }""" ] ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Part-of is cyclic: BFO:0000050 leads back to this entity." ;
+        sh:select """
+            SELECT $this WHERE { $this <http://purl.obolibrary.org/obo/BFO_0000050>+ $this . }""" ] .
+
+nsh:CausalEndpointShape a sh:NodeShape ;
+    sh:targetClass ner:CausalRelation ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "A mediator ({?m}) cannot also be the cause or the effect of the same claim." ;
+        sh:select """
+            SELECT $this ?m WHERE {
+                $this ner:hasMediator ?m .
+                { $this ner:hasCause ?m } UNION { $this ner:hasEffect ?m }
+            }""" ] .
+
+# Entity identity is global; uniqueness and evidence are checked per source.
+nsh:UniqueEntityPerSourceShape a sh:NodeShape ;
+    sh:targetClass ner:NamedEntity ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "Two entity nodes share one normalized identity key in this source." ;
+        sh:select """SELECT $this WHERE {
+            $this ner:normalizedEntityKey ?key ; prov:hadPrimarySource ?source .
+            ?other ner:normalizedEntityKey ?key ; prov:hadPrimarySource ?source .
+            FILTER ($this != ?other)
+        }""" ] .
+
+nsh:MentionOwnerShape a sh:NodeShape ;
+    sh:targetClass ner:EntityMention ;
+    sh:property [ sh:path [ sh:inversePath ner:hasMention ] ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ;
+        sh:message "A mention belongs to exactly one normalized entity; repetitions are separate occurrences." ] ;
+    sh:property [ sh:path ner:refersToEntity ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "Mention owner and refersToEntity disagree." ;
+        sh:select """SELECT $this WHERE {
+            ?owner ner:hasMention $this . $this ner:refersToEntity ?entity .
+            FILTER (?owner != ?entity)
+        }""" ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "Duplicate mention for the same entity, document version and character span." ;
+        sh:select """SELECT $this WHERE {
+            ?entity ner:hasMention $this, ?other .
+            $this ner:partOfDocumentVersion ?doc ; ner:documentStartOffset ?a ; ner:documentEndOffset ?b .
+            ?other ner:partOfDocumentVersion ?doc ; ner:documentStartOffset ?a ; ner:documentEndOffset ?b .
+            FILTER ($this != ?other)
+        }""" ] .
+
+nsh:RelationAssertionShape a sh:NodeShape ;
+    sh:targetClass ner:RelationAssertion ;
+    sh:property [ sh:path ner:assertionSubject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:assertionObject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:assertionPredicate ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path ner:evidenceText ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path prov:hadPrimarySource ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:SourceDocument ] ;
+    sh:property [ sh:path ner:assertionNegated ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path ner:assertionModality ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "The evidence mention must belong to the subject and the assertion's source." ;
+        sh:select """SELECT $this WHERE {
+            $this ner:assertionSubject ?subject ; prov:hadPrimarySource ?source ; ner:hasEvidenceMention ?mention .
+            FILTER NOT EXISTS {
+                ?subject ner:hasMention ?mention .
+                ?mention ner:partOfDocumentVersion/ner:versionOfDocument ?source .
+            }
+        }""" ] .

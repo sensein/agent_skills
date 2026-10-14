@@ -1,6 +1,6 @@
 # Ontology mapping (concept alignment)
 
-Map free-text terms to ontology IRIs + labels. Four backends are useful; pick by cost, quality, and infra constraints.
+Map free-text terms to ontology IRIs + labels. The trusted ontologies in `trusted_ontologes/` are consulted first (below); four remote backends cover the rest.
 
 | Backend | Setup | Quality | Speed | Cost |
 |---|---|---|---|---|
@@ -11,18 +11,77 @@ Map free-text terms to ontology IRIs + labels. Four backends are useful; pick by
 
 **Rule of thumb:** prefer **tool-based** mapping (BioPortal/OLS/local) and use the LLM only to choose between candidates or fill obvious gaps. Mark every output with `concept_mapping_provenance`: `"tool"` or `"llm_knowledge"`.
 
-## Recommended cascade (production default)
+## Recommended cascade (production default) — trusted ontologies first
 
-The reference pipeline (`scripts/pipeline.py`) uses this order by default:
+Everything below is configuration: `concept_mapping.json` (sources, match
+properties, routing, tiers) and `trusted_ontologes/priority.md` (which ontology
+files, in what priority). Nothing about a particular ontology is in code.
 
-1. **Local hybrid service** at `http://localhost:8000` (the [search_hybrid](https://github.com/sensein/search_hybrid) reference implementation). Verify it's up by visiting **`http://localhost:8000/docs`** — every FastAPI-based deployment serves the interactive OpenAPI page there. The pipeline health-checks `/health` then `/docs`.
-2. **BioPortal** (if `BIOPORTAL_API_KEY` is set). Triggered automatically if the local service is unreachable.
-3. **Ask the user** for an alternative local URL. Deployments often use non-default ports (8001, 9000, behind a reverse proxy at `/concept-map/`, etc.) — the cascade prompts for an override and retries the local backend with the user-provided URL.
-4. **Skip alignment entirely** with `concept_mapping_provenance: "skipped"` on every item, only if the user declines to provide a URL. The run still completes; only ontology fields are unpopulated.
+`sources_priority` (default `["trusted", "local_hybrid", "bioportal"]`) is walked in
+order; an item goes to the next source only if every earlier one left it unmapped,
+and an unavailable source is skipped, not fatal:
+
+1. **Trusted ontologies** — the files in `trusted_ontologes/`, in
+   [priority.md](../trusted_ontologes/priority.md) order (1 = first; `off` disables
+   a row). `python -m scripts.concept_mapping index` streams each file once into a
+   flat lexicon (`lexicon/<name>.tsv.gz`) and one indexed `lexicon.sqlite`; a
+   lookup is a single query, and priority is applied at query time, so editing
+   priority.md never needs a rebuild. Matching is **exact on a normalised form**
+   (case, dashes, whitespace, Greek letters, CamelCase, optional singular) against
+   the annotation properties in `match_properties` — label, exact synonym, symbol,
+   and (for classes with no label) the IRI local name; never fuzzy. Two classes
+   tying for the best match is *ambiguous*: not mapped, candidates recorded
+   (`trusted_ambiguous`), and the item falls through.
+2. **Local hybrid service** at `remote.local_hybrid_url` (default
+   `http://localhost:8000`, the [search_hybrid](https://github.com/sensein/search_hybrid)
+   reference implementation). Health-checked at `/health`, then `/docs`.
+3. **BioPortal** (if `BIOPORTAL_API_KEY` is set) — the fallback when no trusted
+   ontology and no local service has the term.
+4. **Ask the user** for an alternative local URL (interactive runs), then stop:
+   concept mapping is mandatory and tool-only (SKILL.md rule 15).
+
+```bash
+python -m scripts.concept_mapping show                         # effective order, routes, index state
+python -m scripts.concept_mapping lookup "SST interneuron" --label CellType --all
+python -m scripts.concept_mapping map work/paper_final.json    # host-model mode: map in place
+```
+
+**Routing (`label_routing`) is a filter, never a reordering.** A label may list the
+id prefixes it can map into (`BrainRegion → UBERON`, `Species → NCBITaxon`); a term
+in any other prefix is not accepted for that label, whichever file it is in
+(`always_allowed_prefixes` exempts e.g. BKE). General-domain labels (Person,
+Organization, Location, …) route to `[]` — no biomedical trusted ontology answers
+for them. The same route is passed to the remote mappers as their ontology filter.
+
+**Abbreviation guard.** A short query (≤ `abbreviation_guard.max_length`, default 4)
+is only mapped when its label has a route: "PFC" is prefrontal cortex in UBERON and
+"prefollicle cell" in FBbt, and without a route nothing says which one the paper meant.
+
+**Prefix consistency.** A term's prefix is decided by its namespace, never by the
+file it came from: OBO PURLs keep their OBO prefix (cl.owl's UBERON terms are
+UBERON); a namespace registered in `default_ontology/ttl_config.json`
+(`curie_expansions`) keeps that prefix; a file's own namespace (priority.md
+`Namespace`, else its dominant one) takes the row's CURIE prefix; anything else is
+indexed but *unregistered* and never mapped. `python -m scripts.prefixes check`
+must report 0 conflicts. The validator, the IRI validator and the TTL writer all
+read the same registry.
+
+Every mapping records its source: `alignment_method` (`trusted_ontology` /
+`direct_tool_call`), `mapping_source` (`trusted:cl`, `local_hybrid`, `bioportal`),
+`ontology_match_type`, and `match_tier` — the skos tier the match type implies
+(`match_type_tiers`: label/exact synonym → exactMatch, local name → closeMatch,
+narrow synonym → broadMatch, …), which the mapping judge may override.
+
+An **exact label is still not proof of meaning**: in the worked example
+(examples/ttl/) "alanine" matches CHEBI's stereo-unspecified alanine while the paper
+means L-alanine, and the mapping judge demotes it. Existence is the tool's job;
+meaning is the judge's (references/judge-ensemble.md).
+
+The older single-backend cascade (`pipeline.py --mapper local|bioportal|ols`,
+`build_mapper_with_cascade`) is kept for compatibility; `--mapper config` (the
+default) is the cascade above.
 
 When this skill is used inside an LLM agent (Claude Code, GPT custom action, etc.), the agent should **ask the user via natural language** if the cascade exhausts its defaults — the port/host varies enough across deployments that a default-only check is not enough. Example: "I couldn't reach a concept-mapping service at http://localhost:8000. What URL is your local service running on, or should I fall back to BioPortal?"
-
-The cascade builder is `scripts/pipeline.py::build_mapper_with_cascade`. Use `ask_user=stdin_ask_callback` for CLI use, or pass your own `ask_user(prompt: str) -> Optional[str]` callable to route the prompt through your UI.
 
 ## Output format (every backend produces this)
 

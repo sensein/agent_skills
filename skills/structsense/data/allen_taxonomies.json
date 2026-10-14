@@ -1,0 +1,206 @@
+{
+  "source": "The brain-map.org taxonomy page given in each entry's url",
+  "snapshot_date": "2026-10-01",
+  "notes": [
+    "This catalog is deliberately limited to these eight taxonomies. Add a taxonomy here, not in a prompt.",
+    "ait_ids are the Allen Institute Taxonomy numbers shown on each taxonomy's brain-map.org page; ait_ids_by_species gives the per-species number for multi-species taxonomies.",
+    "regions holds anatomical terms only; scripts/ait_taxonomy.py matches them against a paper's regions.",
+    "Not re-confirmed against brain-map.org on the snapshot date: the Comparative LGN CCN (null), the Whole Mouse Brain Consensus publication line, and the mapmycells flags other than those of the Whole Mouse Brain Consensus and Cross-Species Basal Ganglia taxonomies."
+  ],
+  "taxonomies": [
+    {
+      "ait_ids": [
+        "AIT33"
+      ],
+      "title": "Whole Mouse Brain Consensus (AIT33)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/whole-mouse-brain-consensus",
+      "taxonomy_name": "20251030_BICCN-Adult_Mouse_WholeBrain_consensus",
+      "ccn": "CCN202510310",
+      "species": [
+        "mouse"
+      ],
+      "regions": [
+        "whole brain"
+      ],
+      "hierarchy": "9 neighborhoods / 43 classes / 414 subclasses / 1,386 supertypes / 6,721 clusters; integrates the Allen Institute scRNA-seq (AIT21) and Broad Institute snRNA-seq whole mouse brain taxonomies",
+      "publication": "Allen Institute / BICCN consensus release (2025)",
+      "mapmycells": true
+    },
+    {
+      "ait_ids": [
+        "AIT19.5",
+        "AIT11.9",
+        "AIT101"
+      ],
+      "ait_ids_by_species": {
+        "human": "AIT19.5",
+        "macaque": "AIT11.9",
+        "marmoset": "AIT101"
+      },
+      "title": "Cross-Species Basal Ganglia Taxonomy (AIT19.5, AIT11.9, AIT101)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/cross-species-basal-ganglia-taxonomy",
+      "taxonomy_name": "08072025_HMBA-BICAN_CrossSpecies_BasalGanglia_10XMultiome",
+      "ccn": "CCN20250428",
+      "species": [
+        "human",
+        "macaque",
+        "marmoset"
+      ],
+      "regions": [
+        "basal ganglia",
+        "caudate",
+        "putamen",
+        "nucleus accumbens",
+        "striatum",
+        "globus pallidus",
+        "GPe",
+        "GPi",
+        "ventral pallidum",
+        "subthalamic nucleus",
+        "substantia nigra"
+      ],
+      "hierarchy": ">2M nuclei, 10x multiome + ATAC + spatial + morphology/ephys; ~60 homologous types aligned to mouse and human whole-brain atlases; refined MSN/GABAergic taxonomy",
+      "publication": "Johansen N.J., Fu Y., Schmitz M. et al., Cross-species consensus atlas of the primate basal ganglia, bioRxiv (2025) doi:10.64898/2025.12.15.694496",
+      "mapmycells": true
+    },
+    {
+      "ait_ids": [
+        "AIT15.3"
+      ],
+      "title": "Human MTG SMART-Seq Taxonomy (AIT15.3)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/human-mtg-smart-seq-taxonomy",
+      "taxonomy_name": "20190821_Adult_Human_MTG_SMARTseq",
+      "ccn": "CCN201908210",
+      "species": [
+        "human"
+      ],
+      "regions": [
+        "middle temporal gyrus",
+        "MTG",
+        "cortex"
+      ],
+      "hierarchy": "15,928 nuclei, 8 donors; 75 transcriptomic cell types",
+      "publication": "Hodge R.D., Bakken T.E. et al., Nature 573:61-68 (2019)",
+      "mapmycells": false
+    },
+    {
+      "ait_ids": [
+        "AIT102",
+        "AIT103",
+        "AIT104"
+      ],
+      "ait_ids_by_species": {
+        "human": "AIT102",
+        "macaque": "AIT103",
+        "mouse": "AIT104"
+      },
+      "title": "Comparative Lateral Geniculate Nucleus Taxonomy (AIT102, AIT103, AIT104)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/comparative-lateral-geniculate-nucleus-taxonomy",
+      "taxonomy_name": "20181231_Adult_CrossSpecies_LGN_SMARTseq",
+      "ccn": null,
+      "species": [
+        "human",
+        "macaque",
+        "mouse"
+      ],
+      "regions": [
+        "lateral geniculate nucleus",
+        "LGN",
+        "thalamus",
+        "visual thalamus"
+      ],
+      "hierarchy": "Cross-species SMART-seq dLGN taxonomy; 1,209 human nuclei, 2,157 macaque nuclei, 2,190 mouse cells",
+      "publication": "Bakken T.E., van Velthoven C., Menon V. et al., eLife 10:e64875 (2021)",
+      "mapmycells": false
+    },
+    {
+      "ait_ids": [],
+      "title": "Mammalian Primary Motor Cortex Taxonomy",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/mammalian-primary-motor-cortex-taxonomy",
+      "taxonomy_name": "BICCN_M1_cross_species",
+      "ccn": "CCN202002270 (cross-species); CCN201912131 (human); CCN201912132 (marmoset); CCN202002013 (mouse)",
+      "species": [
+        "human",
+        "marmoset",
+        "mouse"
+      ],
+      "regions": [
+        "primary motor cortex",
+        "M1",
+        "cortex"
+      ],
+      "hierarchy": ">3M cells profiled across modalities and species (BICCN flagship)",
+      "publication": "BICCN, Nature (2021) — Bakken T.E. et al. and companion papers",
+      "mapmycells": false
+    },
+    {
+      "ait_ids": [
+        "AIT105"
+      ],
+      "title": "Human Neocortex Taxonomy (AIT105)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/human-neocortex-taxonomy",
+      "taxonomy_name": "20191012_Adult_Human_Neocortex_SMARTseq",
+      "ccn": "CCN201910121",
+      "species": [
+        "human"
+      ],
+      "regions": [
+        "neocortex",
+        "multiple cortical areas",
+        "cortex",
+        "middle temporal gyrus",
+        "anterior cingulate cortex",
+        "primary visual cortex",
+        "primary motor cortex",
+        "primary somatosensory cortex",
+        "primary auditory cortex"
+      ],
+      "hierarchy": "49,495 SMART-seq nuclei across MTG, ACC, V1C, M1C, S1C, A1C; 24 consistent subclasses",
+      "publication": "Jorstad N.L. et al., Science 382 (2023) doi:10.1126/science.adf6812",
+      "mapmycells": false
+    },
+    {
+      "ait_ids": [
+        "AIT2.1.1"
+      ],
+      "title": "Mouse V1 & ALM Taxonomy (AIT2.1.1)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/mouse-v1-alm-taxonomy",
+      "taxonomy_name": "20181031_Adult_Mouse_VISp-ALM_SMARTseq",
+      "ccn": "CCN201810310",
+      "species": [
+        "mouse"
+      ],
+      "regions": [
+        "primary visual cortex",
+        "VISp",
+        "V1",
+        "anterior lateral motor cortex",
+        "ALM"
+      ],
+      "hierarchy": "133 SMART-seq t-types",
+      "publication": "Tasic B. et al., Nature 563:72-78 (2018)",
+      "mapmycells": false
+    },
+    {
+      "ait_ids": [
+        "AIT5.1"
+      ],
+      "title": "Mouse Isocortex & Hippocampal Formation Taxonomy (AIT5.1)",
+      "url": "https://brain-map.org/our-research/cell-type-taxonomies/mouse-isocortex-hippocampal-formation-taxonomy",
+      "taxonomy_name": "20210616_Adult_Mouse_Cortex-Hippocampus_SMARTseq",
+      "ccn": "CCN202106160",
+      "species": [
+        "mouse"
+      ],
+      "regions": [
+        "isocortex",
+        "cortex",
+        "hippocampal formation",
+        "hippocampus"
+      ],
+      "hierarchy": "388 transcriptomic types (364 neuronal) from ~1.3M cells profiled with 10x and SMART-seq",
+      "publication": "Yao Z. et al., Cell 184:3222-3241 (2021)",
+      "mapmycells": false
+    }
+  ]
+}

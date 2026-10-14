@@ -37,8 +37,65 @@ Output shape per group:
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 from statistics import mean
 from typing import Any, Iterable, Optional
+
+
+_WRAP = re.compile(r"([A-Za-z]+)[-\u00ad][ \t]*\n[ \t]*([A-Za-z]+)")
+_WRAP_KEEP = re.compile(r"(\w)-[ \t]*\n[ \t]*(\w)")
+_WORD = re.compile(r"[a-z]+(?:-[a-z]+)*")
+
+
+def document_vocab(texts) -> set[str]:
+    """Lowercase words and hyphenated compounds as the document writes them where it
+    does NOT wrap: the evidence reading_form uses to undo a line-wrap hyphen."""
+    vocab: set[str] = set()
+    for t in texts:
+        if t:
+            vocab.update(_WORD.findall(re.sub(r"[-\u00ad][ \t]*\n", "\u0000", str(t).lower())))
+    return vocab
+
+
+_VOCAB_CTX: set = set()
+
+
+def use_vocab(vocab: set) -> None:
+    """Set the document vocabulary reading_form consults when none is passed."""
+    global _VOCAB_CTX
+    _VOCAB_CTX = set(vocab or ())
+
+
+def vocab_of_items(items: Iterable[dict]) -> set:
+    return document_vocab(t for it in items if isinstance(it, dict)
+                          for t in (it.get("sentence"), it.get("entity"), it.get("term")))
+
+
+def reading_form(surface: str, vocab: Optional[set] = None) -> str:
+    """The surface as a reader sees it, for names, grouping and keys — never for
+    offsets (surfaceForm stays byte-exact). A hyphen at a PDF line break is either a
+    split word ("neu-\nrons") or a compound broken at its hyphen ("fast-\nspiking").
+    The document decides: the joined word elsewhere in it -> join; the hyphenated
+    compound elsewhere -> keep the hyphen; no evidence -> join a fragment ("neu"),
+    keep the hyphen between two full words (both >= 4 letters). Soft hyphens go,
+    whitespace collapses."""
+    s = (surface or "").replace("\u00ad", "")
+    vocab = vocab if vocab is not None else _VOCAB_CTX
+
+    def fix(m):
+        a, b = m.group(1), m.group(2)
+        joined, hyph = (a + b).lower(), f"{a}-{b}".lower()
+        if vocab:
+            if joined in vocab and hyph not in vocab:
+                return a + b
+            if hyph in vocab:
+                return f"{a}-{b}"
+        if len(a) >= 4 and len(b) >= 4 or not b[:1].islower():
+            return f"{a}-{b}"
+        return a + b
+    s = _WRAP.sub(fix, s)
+    s = _WRAP_KEEP.sub(r"\1-\2", s)
+    return " ".join(s.split())
 
 
 def _canonical_key(entity: str, label: Optional[str]) -> tuple[str, str]:
@@ -49,7 +106,7 @@ def _canonical_key(entity: str, label: Optional[str]) -> tuple[str, str]:
     Different labels (e.g. 'Pvalb' as Gene vs as LineageMarker) intentionally
     do NOT collapse — they're semantically different.
     """
-    return ((entity or "").strip().lower(), (label or "").strip())
+    return (reading_form(entity).lower(), (label or "").strip())
 
 
 def _pick_canonical_surface(surfaces: list[str]) -> str:
@@ -97,16 +154,18 @@ def group_mentions_by_entity(
 
     Returns a list of grouped dicts (see module docstring for shape).
     """
+    items = list(items)
+    use_vocab(vocab_of_items(items))
     buckets: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for it in items:
         if not it.get(surface_key):
             continue
-        k = _canonical_key(it[surface_key], it.get(label_key))
+        k = (*_canonical_key(it[surface_key], it.get(label_key)), it.get("referent_id") or it.get("identity_key") or "")
         buckets[k].append(it)
 
     out: list[dict] = []
-    for (lower_form, label), mentions in buckets.items():
-        canonical = _pick_canonical_surface([m[surface_key] for m in mentions])
+    for (lower_form, label, referent), mentions in buckets.items():
+        canonical = reading_form(_pick_canonical_surface([reading_form(m[surface_key]) for m in mentions]))
         best = _pick_best_alignment(mentions)
 
         # merge sentences by exact text; aggregate the locations they appear in.
@@ -136,6 +195,8 @@ def group_mentions_by_entity(
                 "judge_score":    m.get("judge_score"),
                 "concept_mapping_provenance": m.get("concept_mapping_provenance"),
                 "alignment_method":           m.get("alignment_method"),
+                "relations": m.get("relations", []),
+                "cell_context": m.get("cell_context"),
             }
             for m in mentions
         ]
@@ -154,6 +215,7 @@ def group_mentions_by_entity(
             surface_key:    canonical,
             label_key:      label or None,
             "mention_count": len(mentions),
+            "referent_id": referent or None,
 
             "source_models":   source_models,
             "source_model_counts": dict(source_counts),
@@ -223,6 +285,8 @@ def unify_ontology_across_entities(entities: list[dict],
 
     Mutates the list in place and returns it.
     """
+    entities = list(entities) if not isinstance(entities, list) else entities
+    use_vocab(vocab_of_items(entities))
     best: dict[tuple, dict] = {}
 
     for ent in entities:
@@ -230,8 +294,8 @@ def unify_ontology_across_entities(entities: list[dict],
             continue
         surface = (ent.get(surface_key) or ent.get("term")
                    or ent.get("name") or "")
-        key = (str(surface).lower().strip(),
-               str(ent.get("label") or "").lower().strip())
+        key = (reading_form(str(surface)).lower(),
+               str(ent.get("label") or "").lower().strip(), ent.get("referent_id") or ent.get("identity_key") or "")
         if not key[0]:
             continue
         s = _ontology_score(ent)
@@ -243,20 +307,73 @@ def unify_ontology_across_entities(entities: list[dict],
             continue
         surface = (ent.get(surface_key) or ent.get("term")
                    or ent.get("name") or "")
-        key = (str(surface).lower().strip(),
-               str(ent.get("label") or "").lower().strip())
+        key = (reading_form(str(surface)).lower(),
+               str(ent.get("label") or "").lower().strip(), ent.get("referent_id") or ent.get("identity_key") or "")
         if key in best:
             ent.update(best[key])
 
     return entities
 
 
-def attach_grouped_views(result: dict, *, unify_ontology: bool = True) -> dict:
+def item_id(surface: str, label: Optional[str], kind: str = "entity", referent_id: str = "") -> str:
+    """The join key shared by the judges, kg_plan.json and json_to_ttl: "<entity>|<label>".
+
+    A key term without a label is "<term>|KeyTerm" rather than "<term>|None".
+    """
+    if kind == "key_term" and not label:
+        label = "KeyTerm"
+    return f"{surface}|{label}" + (f"|referent={referent_id}" if referent_id else "")
+
+
+def mention_groups(result: dict) -> list[dict]:
+    """Raw mentions bucketed by the same canonical key as `entities_grouped`, but
+    keeping the FULL raw items (not the slim grouped view), so callers can edit
+    them in place. Each group: {kind, surface, label, id, surf_key, items}.
+
+    Falls back to the grouped view's mentions when a result carries no raw list.
+    Ordered by first occurrence in the document, so ids and IRIs are stable.
+    """
+    use_vocab(vocab_of_items((result.get("entities") or []) + (result.get("key_terms") or [])))
+    buckets: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+    for kind, raw_key, grp_key, surf in (("entity", "entities", "entities_grouped", "entity"),
+                                          ("key_term", "key_terms", "key_terms_grouped", "term")):
+        raw = result.get(raw_key)
+        if raw:
+            items = [it for it in raw if it.get(surf)]
+        else:
+            items = []
+            for g in result.get(grp_key) or []:
+                for m in g.get("mentions") or [{}]:
+                    it = {k: v for k, v in g.items() if k not in ("mentions", "sentences")}
+                    it.update({k: v for k, v in m.items() if v is not None})
+                    if it.get(surf):
+                        items.append(it)
+        for it in items:
+            buckets[(kind,) + _canonical_key(it[surf], it.get("label")) + (it.get("referent_id") or it.get("identity_key") or "",)].append(it)
+
+    def first_start(items: list[dict]) -> int:
+        s = items[0].get("start")
+        return s if isinstance(s, int) else 10 ** 12
+
+    groups = []
+    for (kind, _lower, label, referent), items in buckets.items():
+        surf = "entity" if kind == "entity" else "term"
+        items.sort(key=lambda i: i.get("start") if isinstance(i.get("start"), int) else 10 ** 12)
+        canonical = reading_form(_pick_canonical_surface([reading_form(i[surf]) for i in items]))
+        groups.append({"kind": kind, "surface": canonical, "label": label or None,
+                       "id": item_id(canonical, label or None, kind, referent),
+                       "referent_id": referent or None,
+                       "surf_key": surf, "items": items})
+    groups.sort(key=lambda g: (first_start(g["items"]), g["id"]))
+    return groups
+
+
+def attach_grouped_views(result: dict, *, unify_ontology: bool = False) -> dict:
     """Mutate ``result`` to add `entities_grouped` and `key_terms_grouped`.
 
     The original `entities` / `key_terms` lists (raw, one-per-mention) are
-    preserved as the authoritative record. When ``unify_ontology=True`` (the
-    default), we first normalize ontology fields across mentions of the same
+    preserved as the authoritative record. Mapping decisions stay contextual by
+    default. With explicit legacy ``unify_ontology=True``, normalize fields across
     (entity, label) so all occurrences share one consistent mapping (best one
     wins — tool-mapped beats LLM, real IRI beats placeholders).
     """

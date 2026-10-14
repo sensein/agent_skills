@@ -1,0 +1,2745 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://sbmi.uth.tmc.edu/ontology/VEO#"
+     xml:base="http://sbmi.uth.tmc.edu/ontology/VEO"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:obo="http://purl.obolibrary.org/obo/"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:foaf="http://xmlns.com/foaf/0.1/"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:terms="http://purl.org/dc/terms/"
+     xmlns:protege="http://protege.stanford.edu/plugins/owl/protege#"
+     xmlns:oboInOwl="http://www.geneontology.org/formats/oboInOwl#"
+     xmlns:ace_lexicon="http://attempto.ifi.uzh.ch/ace_lexicon#">
+    <owl:Ontology rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO">
+        <owl:imports rdf:resource="http://purl.obolibrary.org/obo/MFOEM.owl"/>
+        <dc:description>Visual Emotion Ontology (VEO) is an ontology that links visualizations with specific emotions from the Ortony, Clore, and Collins&apos; description of human emotions.</dc:description>
+        <terms:creator>Cui Tao</terms:creator>
+        <terms:creator>Muhammad &quot;Tuan&quot; Amith</terms:creator>
+        <terms:creator>Rebecca Lin</terms:creator>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/description -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/description"/>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/source -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/elements/1.1/source"/>
+    
+
+
+    <!-- http://purl.org/dc/terms/abstract -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/terms/abstract"/>
+    
+
+
+    <!-- http://purl.org/dc/terms/creator -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.org/dc/terms/creator"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+        <dc:description>an emotion concerns the actions of an agent</dc:description>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+        <dc:description>an emotion concerns the aspect of an object</dc:description>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+        <dc:description>an emotion concerns the consequence of an event</dc:description>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#confirms -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#confirms">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+        <owl:propertyDisjointWith rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hasColor -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor">
+        <rdfs:domain>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Lines"/>
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Shape"/>
+                </owl:unionOf>
+            </owl:Class>
+        </rdfs:domain>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hasCompositeVisualization -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hasCompositeVisualization">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hasLines -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Lines"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hasShape -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shape"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo -->
+
+    <owl:ObjectProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo">
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+        <rdfs:range rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines -->
+
+    <owl:DatatypeProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Lines"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#int"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#has_an_image -->
+
+    <owl:DatatypeProperty rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#has_an_image">
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
+        <rdfs:domain rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/GO_0007610 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/GO_0007610">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000001 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000001">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000009 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000009">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Anger"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000019 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000019">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disgust"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000026 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000026">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Fear"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000032 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000032">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Surprise"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000033 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000033">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Interest"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000035 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000035">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pleased"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000041 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000041">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pride"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000042 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000042">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000051 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000051">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disappointment"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000055 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000055">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shame"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000056 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000056">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000177 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000177">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Hope"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000211 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000211">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/MFOEM_000212 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/MFOEM_000212">
+        <owl:equivalentClass rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion"/>
+    </rdf:Description>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Action -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Action">
+        <obo:IAO_0000115>something done or performed; act; deed</obo:IAO_0000115>
+        <obo:IAO_0000119>http://www.dictionary.com/browse/action</obo:IAO_0000119>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Other_Agent -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Other_Agent">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+        <obo:IAO_0000115>something done or performed by another person</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Self_Agent -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Self_Agent">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+        <obo:IAO_0000115>something done or performed by oneself</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+        <obo:IAO_0000115>an effect, result, or outcome that did happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Admiration -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Admiration">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Approving"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Other_Agent"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>approving of someone else&apos;s action</obo:IAO_0000115>
+        <dc:description>pink circle surrounded by curved red lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=14OMyADQ0sQ4VpW7_pKDBGg8OTle5JFUT4fg1xNekJ9w</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Anger -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Anger">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Reproach"/>
+        <obo:IAO_0000115>reproach about an action and distress about a related consequence</obo:IAO_0000115>
+        <dc:description>red triangle pointing down surrounded by double sharp black lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1COGqrwCvnrr70KY45CC84t0c77pRNgwjfDRLdnP71h4</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Approving -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Approving">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being positive about an action (of an agent)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Aspect -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect">
+        <obo:IAO_0000115>nature; quality; character</obo:IAO_0000115>
+        <obo:IAO_0000119>http://www.dictionary.com/browse/aspect</obo:IAO_0000119>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Black -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Black_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Black"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Black_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Black"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Black"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Black"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Blue -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Blue"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Blue"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Blue"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Blue"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Brown -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Brown">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Brown"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Sharp_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Sharp_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Brown"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Circle">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shape"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Color -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Color">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#confirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Desirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Desirable_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#confirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Desirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Undesirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Undesirable_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#confirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Undesirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence">
+        <obo:IAO_0000115>the effect, result, or outcome of something occurring earlier</obo:IAO_0000115>
+        <obo:IAO_0000119>http://www.dictionary.com/browse/consequence</obo:IAO_0000119>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Desirable_For_Other -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Desirable_For_Other">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+        <obo:IAO_0000115>a good effect, result, or outcome that did happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Undesirable_For_Other -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Undesirable_For_Other">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+        <obo:IAO_0000115>a bad effect, result, or outcome that did happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines"/>
+                        <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</owl:hasValue>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Lines"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines"/>
+                        <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</owl:hasValue>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disappointment -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disappointment">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Desirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>distress about the disconfirmation of a prospective desirable consequence</obo:IAO_0000115>
+        <dc:description>red triangle pointing down surrounded by sharp blue lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1B1MFhQxQkzKEBJeDdx7G5sxlXcugbiRzaUC4tmoQcZ0</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disapproving -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disapproving">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being negative about an action (of an agent)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Desirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Desirable_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Desirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Undesirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Undesirable_Consequence">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#disconfirms"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Undesirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disgust -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disgust">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disliking"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Unfamiliar_Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>disliking an unfamiliar aspect (of an object)</obo:IAO_0000115>
+        <dc:description>green triangle pointing down surrounded by double sharp brown lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1fHTHEwUv2VcmBhLbOooBdPllAhF1BkelqHhji1Q4VfA</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Disliking -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disliking">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being negative about an aspect (of an object)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Displeased -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Displeased">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being negative about a consequence (of an event)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Distress -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Displeased"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being displeased about an actual consequence (of an event)</obo:IAO_0000115>
+        <dc:description>blue triangle pointing down surrounded by double sharp purple lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1FMOB3FRZ57jOzckqfKPMQPYH0Ku4GjrqUvLknZatDyo</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Triangle"/>
+        <owl:disjointWith rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Upward_Pointing_Triangle"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Emotion -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion">
+        <obo:IAO_0000115>an affective state of consciousness</obo:IAO_0000115>
+        <obo:IAO_0000119>http://www.dictionary.com/browse/emotion</obo:IAO_0000119>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Familiar_Aspect -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Familiar_Aspect">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+        <obo:IAO_0000115>characteristic of a well-known object</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Fear -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Fear">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Displeased"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being displeased about a prospective consequence (of an event)</obo:IAO_0000115>
+        <dc:description>black triangle pointing down surrounded by double sharp purple lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=16aRMCe6wQHnxtdE1X8i9yuLgIEVGgzDh8cu2agpfNSc</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Fears_Confirmed -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Fears_Confirmed">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Undesirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>distress about the confirmation of a prospective undesirable consequence</obo:IAO_0000115>
+        <dc:description>black triangle pointing down surrounded by sharp purple lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1Kc2WsRZIbkjHQFR02guhe0q5OZJqUtnneftwCeC1sAU</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Gloating -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Gloating">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Undesirable_For_Other"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>joy about a consequence (of an event) presumed to be undesirable for someone else</obo:IAO_0000115>
+        <dc:description>purple circle surrounded by curved black lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1AFRTmWHYvXB3YIxBh33ZVdEAVkCVgf9SFLvjZ-VivdI</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Gratification -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Gratification">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pride"/>
+        <obo:IAO_0000115>pride about an action and joy about a related consequence</obo:IAO_0000115>
+        <dc:description>yellow circle surrounded by curved purple lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1IxWn4kTWjO17kTiZshyVDMTCvfwjzlGgS8Gvi9n40G4</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Gratitude -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Gratitude">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Admiration"/>
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+        <dc:description>Yellow circle surrounded by curved pink lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1Q18Qb_aVcRG5PxzajfIXdHhzBVIe4PjmJ-riFVXZf9Y</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Green -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Green_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Green"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Green_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Green"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Grey -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Grey">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Grey"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Grey"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Happy_For -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Happy_For">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Desirable_For_Other"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>joy about a consequence (of an event) presumed to be desirable for someone else</obo:IAO_0000115>
+        <dc:description>yellow circle surrounded by curved orange lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1umUPYC1lmfX_0dcinA_L_BFqBP14LLDUZcuKVViFNA4</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Hate -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Hate">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disliking"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Familiar_Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>disliking a familiar aspect (of an object)</obo:IAO_0000115>
+        <dc:description>black triangle pointing down surrounded by sharp red lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1oQq1xXqvQQmxf7nX9ngJcZWtHbGkY0K3sUJ9zj2w9JI</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Hope -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Hope">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pleased"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being pleased about a prospective consequence (of an event)</obo:IAO_0000115>
+        <dc:description>white circle surrounded by curved yellow lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1ZroClB5MXNcxZS8Blk_8Db6QJNKJPHWbyPZQxRmDm_k</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Interest -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Interest">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Liking"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Unfamiliar_Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>liking an unfamiliar aspect (of an object)</obo:IAO_0000115>
+        <dc:description>orange circle surrounded by curved yellow lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1fWji5_lGwPFAVNaRdU-1pQeTkZjh91QrZs8Z8TWe-vA</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Joy -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pleased"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Actual_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being pleased about an actual consequence (of an event)</obo:IAO_0000115>
+        <dc:description>yellow circle surrounded by double curved orange lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1c0ybAzh2QXH8BsoZSiYNneQIaXiHkCHpEgnvPfXcaMo</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Liking -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Liking">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being positive about an aspect (of an object)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Lines -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Lines">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Love -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Love">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Liking"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsAspect"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Familiar_Aspect"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>liking a familiar aspect (of an object)</obo:IAO_0000115>
+        <dc:description>red circle surrounded by curved pink lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=15akfIdJzzv01u7KVCpSfrW2liX-r4mMLW-is57B-amA</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Negative_Emotion">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+        <obo:IAO_0000115>valenced reaction (to &quot;something&quot;)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Orange -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Orange"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Orange"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Orange"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Lines_Doubled"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pink -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pink"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pink"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pity -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pity">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Undesirable_For_Other"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>distress about a consequence (of an event) presumed to be undesirable for someone else</obo:IAO_0000115>
+        <dc:description>brown triangle pointing down surrounded by sharp blue lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1Iy4Is6iFTsP1EoetPOwI_0xKMzPH-hWGOFZE7EHTR_o</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pleased -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pleased">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>being positive about a consequence (of an event)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Positive_Emotion">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+        <obo:IAO_0000115>valenced reaction (to &quot;something&quot;)</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Pride -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pride">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Approving"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Self_Agent"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>approving of one&apos;s own action</obo:IAO_0000115>
+        <dc:description>purple circle surrounded by curved yellow lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1bFyJFV-VbNwlIAzaXI5Q6OvcPsOjpoUTXvwLL-tEANw</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+        <obo:IAO_0000115>an effect, result, or outcome that could happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Desirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Desirable_Consequence">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+        <obo:IAO_0000115>a good effect, result, or outcome that could happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Undesirable_Consequence -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Undesirable_Consequence">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Prospective_Consequence"/>
+        <obo:IAO_0000115>a bad effect, result, or outcome that could happen</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Purple -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Purple"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Purple"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Purple"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Purple"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Red -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Red_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Red"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Red_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Red"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Red_Downward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Downward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Red"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Downward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Red_Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Red"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Relief -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Relief">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Undesirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>joy about the disconfirmation of a prospective undesirable consequence</obo:IAO_0000115>
+        <dc:description>green circle surrounded by curved blue lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1zXrDMfL6IqYz8CJ7paXa7601sARfCZWPRPjoINAbOl0</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Remorse -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Remorse">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shame"/>
+        <dc:description>Blue triangle pointing down surrounded by sharp grey lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1C4vWt3h1EKp2RQkMSD3FJi5nBJeetIwQXilO3CuM8_g</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Reproach -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Reproach">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disapproving"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Other_Agent"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>disapproving of someone else&apos;s action</obo:IAO_0000115>
+        <dc:description>green triangle pointing down surrounded by sharp black lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1BVNln9ST9TXKhu-Pyd1P-hhA_qgolrpHsJOU-tcFPck</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Resentment -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Resentment">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence_Desirable_For_Other"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>distress about a consequence (of an event) presumed to be desirable for someone else</obo:IAO_0000115>
+        <dc:description>blue triangle pointing down surrounded by sharp black lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1NJ4IZwQSakkp5K5FsJrieHNueWwA__65srhL5SCUIvk</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Satisfaction -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Satisfaction">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Confirmed_Desirable_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>joy about the confirmation of a prospective desirable consequence</obo:IAO_0000115>
+        <dc:description>green circle surrounded by curved yellow lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=1eC79XtPUGO6kNku0DNdRi0aCKxVh72AsIgAJiYRh9N8</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Shame -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Shame">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Disapproving"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsActionsOf"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Action_Of_Self_Agent"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>disapproving of one&apos;s own action</obo:IAO_0000115>
+        <dc:description>grey triangle pointing down surrounded by sharp blue lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=19sT-Kkavn-6Y4vCyOFprqzWjtZYC0T7C7rrBejMC8ZI</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Shape -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Shape">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines"/>
+                        <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</owl:hasValue>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Lines"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines_Doubled">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Sharp_Lines"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasNumberOfLines"/>
+                        <owl:hasValue rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</owl:hasValue>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Surprise -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Surprise">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#concernsConsequence"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disconfirmed_Consequence"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <obo:IAO_0000115>joy or distress about the disconfirmation of a prospective consequence</obo:IAO_0000115>
+        <dc:description>yellow triangle pointing up surrounded by double sharp blue lines</dc:description>
+        <dc:source>https://drive.google.com/open?id=169Smnp0Uqqcb3wzECXUejpWBqtbyr9-qdLmmD-nY1w0</dc:source>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Triangle">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shape"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Unfamiliar_Aspect -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Unfamiliar_Aspect">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+        <obo:IAO_0000115>characteristic of a not well-known object</obo:IAO_0000115>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Upward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Upward_Pointing_Triangle">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Triangle"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Visualization -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#White -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#White">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#White_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#White_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#White"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Yellow -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow">
+        <rdfs:subClassOf rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Color"/>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Circle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasLines"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Curved_Line"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Upward_Pointing_Triangle -->
+
+    <owl:Class rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Upward_Pointing_Triangle">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Composite_Visualization"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasColor"/>
+                        <owl:someValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#hasShape"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Upward_Pointing_Triangle"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#admiration_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#admiration_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Circle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Curved_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Admiration"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#anger_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#anger_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Lines_Doubled"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Anger"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#disappointment_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#disappointment_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disappointment"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#disgust_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#disgust_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Sharp_Lines_Doubled"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Disgust"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#distress_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#distress_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Downward_Pointing_Triangle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Lines_Doubled"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Distress"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#fear_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#fear_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Downward_Pointing_Triangle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Lines_Doubled"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Fear"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#fears-confirmed_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#fears-confirmed_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Downward_Pointing_Triangle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Sharp_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Fears_Confirmed"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#gloating_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#gloating_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Gloating"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#gratification_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#gratification_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Gratification"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#gratitude_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#gratitude_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Gratitude"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#happy-for_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#happy-for_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Happy_For"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hate_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hate_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Downward_Pointing_Triangle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Sharp_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Hate"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#hope_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#hope_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#White_Circle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Hope"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#interest_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#interest_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Circle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Interest"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#joy_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#joy_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Orange_Curved_Lines_Doubled"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Joy"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#love_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#love_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Pink_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Red_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Love"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#pity_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#pity_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Brown_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pity"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#pride_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#pride_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Purple_Circle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Pride"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#relief_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#relief_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Circle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Relief"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#remorse_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#remorse_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Downward_Pointing_Triangle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Sharp_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Remorse"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#reproach_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#reproach_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Reproach"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#resentment_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#resentment_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Black_Sharp_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Resentment"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#satisfaction_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#satisfaction_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Green_Circle"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Curved_Line"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Satisfaction"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#shame_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#shame_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Curved_Line"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Grey_Downward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Shame"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://sbmi.uth.tmc.edu/ontology/VEO#surprise_visualization -->
+
+    <owl:NamedIndividual rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#surprise_visualization">
+        <rdf:type>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Blue_Sharp_Lines_Doubled"/>
+                            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Yellow_Upward_Pointing_Triangle"/>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#isEmotionallyLinkedTo"/>
+                        <owl:allValuesFrom rdf:resource="http://sbmi.uth.tmc.edu/ontology/VEO#Surprise"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdf:type>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // General axioms
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Action"/>
+            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Aspect"/>
+            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Consequence"/>
+            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Emotion"/>
+            <rdf:Description rdf:about="http://sbmi.uth.tmc.edu/ontology/VEO#Visualization"/>
+        </owl:members>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi -->
+

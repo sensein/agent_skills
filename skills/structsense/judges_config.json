@@ -1,0 +1,56 @@
+{
+  "_comment": "Judge ensemble panel (references/judge-ensemble.md). Each judge reviews ONE dimension, independently. `critical` judges are gates, not votes: one fail drops the item (grounding) or the claim (claims). `weight` only shapes judge_score. `kg_mode_only` judges run only when a kg_plan.json exists (TTL relations/keys). `script` judges are deterministic (scripts/judge_prepare.py) and need no model. `suggested_model` is advice for framework mode; in host-model mode you are every judge.",
+  "version": "1.0.0",
+  "judges": {
+    "grounding_script": {
+      "critical": true,
+      "weight": 1.0,
+      "script": true,
+      "prompt": null,
+      "dimension": "surface form exists in the source text; offsets anchor it"
+    },
+    "grounding": {
+      "critical": true,
+      "weight": 2.0,
+      "prompt": "prompts/judge-grounding.md",
+      "suggested_model": "small/cheap",
+      "dimension": "the items the script could not verify are textually real"
+    },
+    "labeling": {
+      "critical": false,
+      "weight": 1.0,
+      "prompt": "prompts/judge-labeling.md",
+      "suggested_model": "small/cheap",
+      "dimension": "entity-type label fits the referent"
+    },
+    "mapping": {
+      "critical": false,
+      "weight": 1.5,
+      "prompt": "prompts/judge-mapping.md",
+      "suggested_model": "mid",
+      "dimension": "tool mapping means the same thing; honest skos tier"
+    },
+    "kg-keys": {
+      "critical": false,
+      "weight": 1.0,
+      "prompt": "prompts/judge-kg-keys.md",
+      "suggested_model": "small/cheap",
+      "kg_mode_only": true,
+      "dimension": "normalizedEntityKey follows key-normalization.md"
+    },
+    "claims": {
+      "critical": true,
+      "weight": 2.0,
+      "prompt": "prompts/judge-claims.md",
+      "suggested_model": "mid",
+      "kg_mode_only": false,
+      "dimension": "relations, hierarchy links and causal claims \u2014 from the extractor or kg_plan \u2014 are stated by THIS paper"
+    }
+  },
+  "combiner": {
+    "prompt": "prompts/judge-combiner.md",
+    "suggested_model": "strong"
+  },
+  "batch_size": 60,
+  "sentences_per_item": 3
+}

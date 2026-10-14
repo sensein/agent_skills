@@ -210,3 +210,7 @@ __marimo__/
 # let skills/structsense/.idea/ get committed.
 .idea/
 skills/*.zip
+skills/structsense/cqs/named_entity_ontology_CQs.md
+/skills/brainkb/diagrams
+/skills/structsense/diagrams
+/skills/synthscholar/diagrams

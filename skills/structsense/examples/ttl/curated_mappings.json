@@ -1,0 +1,230 @@
+{
+ "adult fish|DevelopmentalStage": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0007023",
+  "ontology_label": "adult organism",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "alanine|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_16977",
+  "ontology_label": "L-alanine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Ala|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_16977",
+  "ontology_label": "L-alanine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "AC|NervousSystemPart": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0000935",
+  "ontology_label": "anterior commissure",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "anterior commissure|NervousSystemPart": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0000935",
+  "ontology_label": "anterior commissure",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Arg|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_16467",
+  "ontology_label": "L-arginine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "associative learning|Phenomenon": {
+  "ontology_id": "http://purl.obolibrary.org/obo/GO_0008306",
+  "ontology_label": "associative learning",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "E|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000679",
+  "ontology_label": "glutamatergic neuron",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "excitatory pDp neurons|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000679",
+  "ontology_label": "glutamatergic neuron",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "fluorescein|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_31624",
+  "ontology_label": "fluorescein (lactone form)",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "GCA|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_17687",
+  "ontology_label": "glycocholic acid",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "histidine|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_15971",
+  "ontology_label": "L-histidine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "His|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_15971",
+  "ontology_label": "L-histidine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "superficial inhibitory interneurons of the olfactory bulb|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000498",
+  "ontology_label": "inhibitory interneuron",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "inhibitory neurons|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000617",
+  "ontology_label": "GABAergic neuron",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "I|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000617",
+  "ontology_label": "GABAergic neuron",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "juvenile fish|DevelopmentalStage": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0034919",
+  "ontology_label": "juvenile stage",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "autoassociative memory|Phenomenon": {
+  "ontology_id": "http://purl.obolibrary.org/obo/GO_0007613",
+  "ontology_label": "memory",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "mitral cells|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_1001502",
+  "ontology_label": "mitral cell",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "neurons|CellType": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CL_0000540",
+  "ontology_label": "neuron",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "odor discrimination training|Phenomenon": {
+  "ontology_id": "http://purl.obolibrary.org/obo/GO_0008355",
+  "ontology_label": "olfactory learning",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "appetitive behavior|Phenotype": {
+  "ontology_id": "http://purl.obolibrary.org/obo/NBO_0000323",
+  "ontology_label": "olfactory behavior",
+  "tier": "closeMatch",
+  "note": null
+ },
+ "olfactory bulb|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0002264",
+  "ontology_label": "olfactory bulb",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "OB|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0002264",
+  "ontology_label": "olfactory bulb",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "whole-cell current and voltage clamp recordings|Method": {
+  "ontology_id": "http://purl.obolibrary.org/obo/OBI_0002178",
+  "ontology_label": "whole-cell patch clamp assay",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "telencephalic area pDp|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/ZFA_0000181",
+  "ontology_label": "caudal zone of dorsal telencephalon",
+  "tier": "exactMatch",
+  "note": "Teleost homolog of piriform cortex (see homologyTo ex:entity-piriform-cortex); ZFA:0000181 lists 'Dp' and 'posterior zone of dorsal telencephalic area' as exact synonyms."
+ },
+ "Dp|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/ZFA_0000181",
+  "ontology_label": "caudal zone of dorsal telencephalon",
+  "tier": "exactMatch",
+  "note": "Teleost homolog of piriform cortex (see homologyTo ex:entity-piriform-cortex); ZFA:0000181 lists 'Dp' and 'posterior zone of dorsal telencephalic area' as exact synonyms."
+ },
+ "Phe|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_17295",
+  "ontology_label": "L-phenylalanine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "piriform cortex|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0004725",
+  "ontology_label": "piriform cortex",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "serine|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_17115",
+  "ontology_label": "L-serine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Ser|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_17115",
+  "ontology_label": "L-serine",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "TCA|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_28865",
+  "ontology_label": "taurocholic acid",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "TDCA|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_9410",
+  "ontology_label": "taurodeoxycholic acid",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Tel|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0001893",
+  "ontology_label": "telencephalon",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "telencephalon|BrainRegion": {
+  "ontology_id": "http://purl.obolibrary.org/obo/UBERON_0001893",
+  "ontology_label": "telencephalon",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Trp|Chemical": {
+  "ontology_id": "http://purl.obolibrary.org/obo/CHEBI_16828",
+  "ontology_label": "L-tryptophan",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "zebrafish|Species": {
+  "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+  "ontology_label": "Danio rerio",
+  "tier": "exactMatch",
+  "note": null
+ },
+ "Danio rerio|Species": {
+  "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+  "ontology_label": "Danio rerio",
+  "tier": "exactMatch",
+  "note": null
+ }
+}

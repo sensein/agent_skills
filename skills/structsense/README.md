@@ -1,8 +1,12 @@
 # StructSense Skills
 
-**Current version: 0.6.1** (see [CHANGELOG.md](CHANGELOG.md)).
+**Current version: 0.9.0** (see [CHANGELOG.md](CHANGELOG.md)).
 
-A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with optional ontology mapping (BioPortal / OLS / local hybrid), quality scoring, and human-in-the-loop review.
+A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with ontology mapping, a judge ensemble, and human-in-the-loop review.
+
+Since 0.9.0 the result of a NER run is **Turtle — one validated `<stem>.ttl` per paper**, instances of the bundled Named Entity Ontology (v2.4) with deterministic UUIDv5 IRIs, so the same entity in two papers is the same node. Concepts are mapped against the bundled **trusted ontologies first**, in the order you set in [`trusted_ontologes/priority.md`](trusted_ontologes/priority.md), then a local hybrid service, then BioPortal. Quality comes from a **judge ensemble** — independent grounding / labeling / mapping / key / claim judges plus a deterministic combiner — and every judge step, verdict and change is recorded as provenance in the Turtle. See [Turtle output](#turtle-output-09) and [Trusted ontologies](#trusted-ontologies-09).
+
+A **resource** run (datasets, software, models, pipelines, archives, schemas, benchmarks, …) delivers a **resource knowledge graph** in the bundled **BrainKB Resource Ontology** (`default_ontology/brainkb_resource_ontology.owl`): per resource, what it is claimed to apply to vs shown to apply to vs used on, its assumptions, failure modes, inputs/outputs, versions and identifiers, each tied to a verbatim quote and to the paper's `ner:Publication` — the same node the paper's NER graph uses. See [Resource knowledge graph](#resource-knowledge-graph).
 
 Since 0.5.0 it also does **ABCD / HBCD extraction and cross-paper synthesis** — which variables a study used (resolved against the NBDC data dictionary, with `nda_or_nbdc_table` and `nbdc_domain`), the constructs behind them (Cognitive Atlas), the models specified, and the findings reported — under strict quote-level verification, for one PDF or a whole corpus. See [ABCD / HBCD extraction](#abcd--hbcd-extraction).
 
@@ -19,6 +23,19 @@ structsense/
 ├── SKILL.md                 ← entry point with name + description + version frontmatter (load this first)
 ├── README.md                ← you are here
 ├── CHANGELOG.md             ← what changed in each version
+├── concept_mapping.json     ← mapping sources + order, match properties, label routing, tiers
+├── judges_config.json       ← the judge panel: dimensions, weights, critical judges, prompts
+├── default_ontology/        ← the target ontology and its representation policy
+│   ├── named_entity_ontology.owl   ← Named Entity Ontology 2.4.0 (https://brainkb.org/ner/)
+│   ├── named_entity_shapes.ttl     ← SHACL shapes for instance data
+│   ├── ttl_config.json             ← IRI scheme (UUIDv5), guardrails, predicates, prefix registry (static part)
+│   ├── label_class_map.json        ← extractor label → ontology class
+│   └── key_synonyms.json           ← user overrides for keys (keys come from the trusted ontologies)
+├── trusted_ontologes/       ← the trusted ontology files (OWL/TTL)
+│   ├── priority.md                 ← THE priority table (edit to reorder / enable / add)
+│   ├── README.md                   ← generated list of the ontologies
+│   ├── sources.json                ← acquisition log
+│   └── lexicon/                    ← generated index (TSV per ontology + SQLite; gitignored)
 ├── connecting/              ← integration guides per platform
 │   ├── claude-code.md
 │   ├── claude-desktop.md
@@ -36,27 +53,50 @@ structsense/
 │   ├── json-output-discipline.md
 │   ├── model-selection.md
 │   ├── human-feedback.md
+│   ├── judge-ensemble.md                  ← the judge panel and its aggregation semantics
+│   ├── ttl-representation.md              ← the Turtle deliverable: IRIs, prefixes, provenance, the gate
+│   ├── key-normalization.md               ← normalizedEntityKey, the cross-paper merge handle
 │   └── abcd-extraction.md                 ← ABCD/HBCD mode: verification, provenance, synthesis
 ├── prompts/                 ← copy-paste-ready system + user prompts
 │   ├── extractor-ner-general.md           ← Person / Org / Location / Product / Event / …
-│   ├── extractor-ner-neuroscience.md      ← BrainRegion / Gene / Protein / Drug / Method / …
+│   ├── extractor-ner-neuroscience.md      ← BrainRegion / Gene / Protein / Drug / Method / phenotypes by level …
 │   ├── extractor-ner-cns-cells.md         ← CellType / CellSubtype / LineageMarker / Ephys / …
+│   │                                        (all three also emit relations, hierarchy, causal claims)
 │   ├── extractor-abcd.md                  ← ABCD/HBCD variables / constructs / models / findings
+│   ├── extractor-cell-type-ait-mapping.md ← cell types → AIT taxonomy (SKOS edges)
 │   ├── mask-recall-pass.md                ← pass-2: catch mentions pass-1 missed
 │   ├── mask-verify-pass.md                ← per-item cloze label check
-│   ├── extractor-resource.md              ← Model / Dataset / Tool / Benchmark / …
+│   ├── extractor-resource.md              ← research resources → BrainKB Resource Ontology KG
 │   ├── extractor-structured.md            ← user-supplied JSON Schema
 │   ├── alignment.md                       ← ontology mapping
-│   ├── judge.md                           ← per-item quality scoring
+│   ├── judge-grounding.md / judge-labeling.md / judge-mapping.md /
+│   │   judge-kg-keys.md / judge-claims.md ← the ensemble's judges, one dimension each
+│   ├── judge-combiner.md                  ← settles judge disagreements only
+│   ├── kg-plan.md                         ← keys, classes, paper-stated relations, causal claims
+│   ├── judge.md                           ← legacy single-score judge (on request)
 │   └── humanfeedback.md                   ← apply reviewer edits
 ├── schemas/                 ← JSON Schemas for outputs (drop into structured-outputs APIs)
 │   ├── ner-output.schema.json
-│   ├── resource-output.schema.json
+│   ├── bkr-resource-extraction.schema.json ← the resource extraction contract (BKR profile)
+│   ├── resource-output.schema.json        ← legacy resource shape (still accepted as input)
 │   ├── aligned-item.schema.json
 │   ├── judged-item.schema.json
+│   ├── judge-review.schema.json           ← one judge's review of one packet
+│   ├── kg-plan.schema.json                ← kg_plan.json
 │   ├── abcd-paper.schema.json             ← ABCD per-paper result (+ rejected[], verification)
-│   └── abcd-synthesis.schema.json         ← cross-paper consensus / divergence / roles
+│   ├── abcd-synthesis.schema.json         ← cross-paper consensus / divergence / roles
+│   └── ait-mapping-columns.json           ← AIT mapping: 7-table CSV column contract
 ├── scripts/                 ← pure-Python runnable helpers
+│   ├── concept_mapping.py   ← trusted-ontology lexicon (index / lookup / map), priority,
+│   │                          routing, then local hybrid → BioPortal
+│   ├── prefixes.py          ← the one prefix registry (show / check / compact / expand)
+│   ├── relations.py         ← resolves the extractor's relations / hierarchy / causal claims
+│   │                          (and cns-cells cell_context) to extracted entities
+│   ├── json_to_ttl.py       ← judged result + kg_plan → Turtle (UUIDv5 IRIs, full provenance)
+│   ├── validate_ttl.py      ← the gate: OWL vocabulary, SHACL, policy, prefixes, connectivity
+│   ├── judge_prepare.py     ← deterministic grounding review + one packet per judge
+│   ├── judge_combine.py     ← deterministic aggregation (gates, demotions, fixes, scores)
+│   ├── judge_ensemble.py    ← headless runner for the panel and the kg_plan
 │   ├── chunking.py
 │   ├── json_repair.py
 │   ├── span_validator.py
@@ -94,12 +134,19 @@ structsense/
 │   ├── abcd_extract.py      ← driver: one argument, auto-detected. --prepare/--payload
 │   │                          when you are the model; --llm-model when a framework calls
 │   ├── abcd_synthesize.py   ← cross-paper consensus/divergence + role consistency
-│   └── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
+│   ├── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
+│   ├── ait_taxonomy.py      ← AIT taxonomy catalog: list / rank / show
+│   ├── ait_evidence.py      ← AIT Pass 2a: lexical evidence check + quarantine
+│   ├── ait_tables.py        ← AIT column contract: init / derive / review-sheet / validate
+│   └── ait_gene_diff.py     ← AIT Pass 4: entity cards + marker-gene diff
 ├── data/
-│   └── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
-│                              539,781 variables in 8.6 MB gzipped (self-contained)
+│   ├── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
+│   │                          539,781 variables in 8.6 MB gzipped (self-contained)
+│   └── allen_taxonomies.json ← the 8 supported Allen (AIT) cell type taxonomies
 ├── requirements.txt         ← core deps; -llm / -ner / -dev for the optional paths
 └── examples/                ← worked end-to-end examples
+    ├── ttl/                 ← a real open-access paper (Hu et al. 2026, CC BY 4.0) end to end
+    │                          to a validated hu2026.ttl — run.sh, curated reference, text
     ├── ner-example.md
     ├── resource-example.md
     └── reproschema-example.md
@@ -142,20 +189,26 @@ It's **idempotent** — safe to run on already-canonical files. It also runs aut
 | Entities + key terms from general text | `prompts/extractor-ner-general.md` |
 | Entities + key terms from neuroscience text | `prompts/extractor-ner-neuroscience.md` |
 | CNS cell-typing extraction (atlases, patch-seq, scRNA-seq) | `prompts/extractor-ner-cns-cells.md` |
-| Pull tools / datasets / models / benchmarks from a paper | `prompts/extractor-resource.md` |
+| Map a paper's cell types to Allen Institute (AIT) taxonomies | `prompts/extractor-cell-type-ait-mapping.md` |
+| Pull resources (datasets, software, models, pipelines, archives, …) from a paper as a resource KG | `prompts/extractor-resource.md` |
 | Convert a PDF to a target JSON schema (e.g. ReproSchema) | `prompts/extractor-structured.md` |
 
 ### 2. Run pass-1, then pass-2 (mask-recall) for exhaustive yield
 
 For NER, **always run mask-recall on top of pass-1** unless cost is critical. Typical recovery on neuroscience text: **+30–80% mentions**. See `references/ner-extraction.md` → "Two-pass strategy: mask-mode".
 
-### 3. (Optional) align, judge, review
+### 3. Map, judge, represent
 
-| Stage | Prompt |
+| Stage | How |
 |---|---|
-| Ontology alignment | `prompts/alignment.md` (or skip the LLM and call the mapping helper directly — see `scripts/bioportal_map.py`, `ols_map.py`, `local_hybrid_map.py`) |
-| Quality scoring | `prompts/judge.md` |
-| Human review | `prompts/humanfeedback.md` |
+| Ontology mapping | `python -m scripts.concept_mapping map <result.json>` — trusted ontologies in `priority.md` order, then local hybrid, then BioPortal (tool-only; no IRI from model knowledge) |
+| Relations (in extraction) | the extractor emits per-mention `relations` / `broader` and document `causal_relations`; `scripts/relations.py` resolves them to extracted entities (see [Relations, hierarchy and causal claims](#relations-hierarchy-and-causal-claims-09)) |
+| KG plan (NER, default step) | `prompts/kg-plan.md` → `kg_plan.json`: coreference keys, finer classes, cross-sentence relations and chains extraction could not state |
+| Judge ensemble | `scripts/judge_prepare.py` → one judge at a time per `prompts/judge-*.md` → `scripts/judge_combine.py` (→ `prompts/judge-combiner.md` only for disagreements) |
+| Turtle | `python -m scripts.json_to_ttl <result.json> --kg-plan kg_plan.json --source paper.pdf` → `python -m scripts.validate_ttl <stem>.ttl` (must report 0 violations) |
+| Human review | `prompts/humanfeedback.md` (escalations from the combiner) |
+
+The whole chain on a real paper: `examples/ttl/run.sh`.
 
 ---
 
@@ -452,9 +505,142 @@ mediator in every paper *and* an outcome in every paper is contested.
 
 ---
 
+## Corpus runs: many papers, one or more NER variants (0.10)
+
+Ask for it in plain words ("extract neuroscience and cell NER from ~/papers, save to
+~/out") and the skill runs `scripts/batch.py`:
+
+```bash
+python -m scripts.batch init --input ~/papers --variants neuroscience,cns-cells --out ~/out --model <id>
+python -m scripts.batch next --manifest ~/out/.structsense/batch.json     # host mode, repeat until "done"
+python -m scripts.batch run  --manifest ~/out/.structsense/batch.json     # headless (claude-code in Claude Code)
+python -m scripts.batch status --manifest ~/out/.structsense/batch.json
+```
+
+- One output folder per variant (`~/out/neuroscience_output`, `~/out/cns_cells_output`,
+  or your own via `--out-map`), one validated `<stem>.ttl` per paper, written the
+  moment that paper is done, plus `corpus_synthesis.{json,md}` at the end.
+- Progressive: the agent gets one small task at a time (a chunk, a masked chunk for
+  recall, the kg_plan, one judge packet), so a 200-paper run never needs a paper in
+  context. The manifest is saved after every step; stop and restart at will;
+  `retry <stem>` redoes one paper; parallel agents take `next --paper <stem>`.
+- Extraction names each surface once; `scripts/expand_mentions.py` finds every
+  occurrence with exact offsets, robust to PDF line wraps and hyphenation, and skips
+  references, acknowledgements and funding text.
+
+## Resource knowledge graph
+
+`--task resource` (pipeline), a `resource` batch variant, or any result JSON with
+`extracted_resources` handed to `json_to_ttl` produces a resource KG in the BrainKB
+Resource Ontology (BKR 0.5.6, bundled standalone as
+`default_ontology/brainkb_resource_ontology.owl`, shapes in
+`brainkb_resource_shapes.ttl`):
+
+```bash
+python -m scripts.pipeline --task resource --input paper.txt --mapper config
+python -m scripts.batch init --input ~/papers --variants resource --out ~/out --model <id>
+python -m scripts.resource_kg build result_final.json --source paper.pdf --map
+python -m scripts.validate_ttl paper.ttl                     # recognises a resource KG
+python cqs/run_cqs.py ~/out --cqs cqs/brainkb_resource_ontology_CQs.md \
+    --with-ontology default_ontology/brainkb_resource_ontology.owl --entail
+```
+
+- **Scope, four ways**: declared / validated (must cite its evidence) / observed in
+  use / out of scope, each on taxa, anatomy, cell types, assays, conditions, tasks.
+- **Assumptions and failure modes** (criticality, consequence, silent failures),
+  requirements, inputs/outputs, benchmark results, versions with change records,
+  identifiers, access and licence.
+- **Grounded**: identifiers, versions, URLs, licences and every quote must occur in
+  the source; what does not is removed and listed in `not_found_fields`. Scope labels
+  are mapped by the same tool cascade as NER — never an LLM IRI.
+- **Joined**: a resource is one node across papers; each paper's record and claims
+  stay separate and point at the paper's `ner:Publication`, the node its NER graph
+  shares. The batch roll-up writes `corpus_resource_kg.ttl` with mention stubs
+  resolved across papers.
+- **Gated**: BKR SHACL + vocabulary + one component. A licence the paper never states
+  is a *finding about the source*, not a failure. See
+  [references/resource-extraction.md](references/resource-extraction.md).
+
+## Turtle output (0.9)
+
+One validated `<stem>.ttl` per paper — N papers, N files. Everything is an instance of
+`default_ontology/named_entity_ontology.owl` (v2.4) under `kb:<uuid5>` IRIs:
+
+- **Entities** keyed by `normalizedEntityKey` (`entity|<key>`), **concepts** by IRI and
+  **ontology hubs** by acronym share one IRI across papers, so loading several files
+  into one store merges them by plain union; everything paper-specific (mentions,
+  reviews, runs) is scoped by DOI. The scheme reproduces the BrainKB graph's IRIs.
+- **Grounding**: every mention with verbatim surface, character offsets, sentence and
+  section; the model that surfaced it.
+- **Alignment**: only tool-verified mappings become IRIs, at an honest skos tier, each
+  with its decision record (candidate, rank, confidence, the source and method that
+  decided it).
+- **Claims**: paper-stated RO/BFO edges (incl. has_phenotype), in-paper hierarchies
+  (`skos:broader`: subtype → type → class), and causal relations with versions,
+  evidence basis and effect estimates — stated by the extractor itself for every
+  NER domain (plus kg_plan), resolved to entities and reviewed by the claims judge.
+- **Provenance**: run start/end (recorded, never inferred), agent versions, a
+  configuration hash, and the judges as data — one activity per judge with its model
+  version and prompt hash, every verdict as a `ReviewDecision` (dimension, confidence),
+  an ensemble-combined decision derived from them, and a `ChangeRecord` for every
+  relabel, tier change, key rename, demoted mapping and dropped item.
+
+`scripts/validate_ttl.py` gates each file: declared OWL vocabulary and domain/range,
+the SHACL shapes (`default_ontology/named_entity_shapes.ttl`), config policy, prefix
+consistency, labels and one connected component. See
+[references/ttl-representation.md](references/ttl-representation.md).
+
+## Relations, hierarchy and causal claims (0.9)
+
+Entities are half of what a paper says; the extractor states the other half with
+them, for every NER domain:
+
+- **per mention** — `relations`: `{predicate, target}` with the target another
+  extracted mention as written, predicate from the closed list in
+  `default_ontology/ttl_config.json` (`part_of`, `located_in`, `expresses`,
+  `has_phenotype` RO:0002200, `in_taxon`, `capable_of`, `develops_from`, …); and
+  `broader`: the in-paper hierarchy (CellSubtype → CellType → CellClass, region →
+  larger region, drug → drug class);
+- **cns-cells** — the existing `cell_context` becomes edges: marker → `expresses`,
+  region/layer → `located_in`, species → `in_taxon`, ephys → `has_phenotype`;
+- **per document** — `causal_relations`: cause → effect (genotype / intervention /
+  drug → phenotype or measurement), with mediators, polarity, evidence basis,
+  `hypothetical` (false only for this paper's own intervention) and effect size.
+
+`scripts/relations.py` resolves each target to an extracted mention of the same
+paper (unresolvable ones are reported, never invented); the claims judge reviews
+every claim; survivors become RO/BFO edges, `skos:broader`, and the causal module
+in the Turtle. SHACL requires both ends to be extracted entities, no self-loops, and
+acyclic hierarchies; the validator rejects predicates outside the config and warns
+when a target is the wrong kind (`relation_range_hints`).
+
+## Trusted ontologies (0.9)
+
+The ontology files in `trusted_ontologes/` are consulted before any remote mapper.
+`trusted_ontologes/priority.md` is the only place that says which files are used and in
+what order (1 first; `off` disables a row); `trusted_ontologes/README.md` lists them.
+
+```bash
+python -m scripts.concept_mapping index      # once, ~2 min, no network: TSV lexicon per ontology + SQLite
+python -m scripts.concept_mapping show       # effective order, routing, index state
+python -m scripts.concept_mapping lookup "SST interneuron" --label CellType
+python -m scripts.prefixes check             # must report 0 conflicts after adding an ontology
+python -m scripts.concept_mapping readme     # regenerate the ontology list
+```
+
+Matching is exact on a normalised form (never fuzzy), routed by label (a filter, never
+a reordering), guarded against bare abbreviations, and ambiguity is reported rather
+than resolved. A term keeps the prefix of its namespace whichever file it came from.
+Keys come from the ontologies too: without a kg_plan key, an entity's
+`normalizedEntityKey` is the preferred label of the one class its text denotes. See
+[references/ontology-mapping.md](references/ontology-mapping.md) and
+[references/key-normalization.md](references/key-normalization.md).
+
+---
+
 ## Running the reference pipeline end-to-end
 
-`scripts/pipeline.py` wires together: (optional) HF NER ensemble + LLM extraction → mask-recall → ontology-mapping cascade → judging → grouping → stats. Standalone, no framework:
+`scripts/pipeline.py` wires together: (optional) HF NER ensemble + LLM extraction → ontology mapping (trusted ontologies → local → BioPortal) → KG plan → judge ensemble → Turtle + gate. Standalone, no framework:
 
 ```bash
 export OPENROUTER_API_KEY=sk-or-v1-...
@@ -464,11 +650,11 @@ python -m scripts.pipeline \
     --input paper.txt \
     --extractor openrouter/anthropic/claude-sonnet-4-6 \
     --judge openrouter/openai/gpt-4o-mini \
-    --mapper local \
-    --mapper-url http://localhost:8000 \
+    --ner-domain neuroscience \
     --ner-profile biomedical_broad \
     --chunk-size 2000 --max-workers 8
-# writes paper_final.json (the input stem + _final.json) and prints stats to stderr.
+# writes paper.ttl (validated) and prints stats to stderr; --format json for the old
+# paper_final.json, --keep-json to keep the working JSON under .structsense/.
 ```
 
 ### Flags
@@ -476,10 +662,18 @@ python -m scripts.pipeline \
 | Flag | Default | Description |
 |---|---|---|
 | `--task` | `ner` | `ner` / `resource` / `structured`. Picks the matching `extractor-*.md` prompt. |
+| `--ner-domain` | `general` | NER prompt: `general` / `neuroscience` / `cns-cells` (`prompts/extractor-ner-<domain>.md`). |
 | `--input` | (required) | Path to a `.txt` input. |
 | `--extractor` | (required) | Model string for LLM extraction (e.g. `openrouter/anthropic/claude-sonnet-4-6`). |
-| `--judge` | none = auto-approve | Model string for the judge stage. Omit to auto-approve (saves cost). |
-| `--mapper` | `local` | Preferred concept-mapping backend: `local` / `bioportal` / `ols` / `none`. With `local`, the cascade is **local → BioPortal → ask user for URL → skip**. |
+| `--judge` | none = auto-approve | Default judge model. With `--judge-mode ensemble` (default) every panel member uses it unless `--judge-models` says otherwise. |
+| `--judge-mode` | `ensemble` | `ensemble` (independent judges + deterministic combine) or `single` (legacy one-score judge). |
+| `--judge-models` | none | Per-judge models, e.g. `mapping=openrouter/x,claims=openrouter/y`. |
+| `--combiner` | `--judge` | Model for `prompts/judge-combiner.md` (disagreements only). |
+| `--kg-plan-model` | `--judge`, else `--extractor` | Model that writes `kg_plan.json` — a default step for NER; `none` skips it explicitly. |
+| `--format` | `ttl` | `ttl`: one validated `<stem>.ttl` per input (a failing file is renamed `.invalid.ttl`); `json`: the legacy `<stem>_final.json`. |
+| `--keep-json` | off | With `--format ttl`, keep the working JSON under `<out-dir>/.structsense/`. |
+| `--out-dir` | beside each input | Where results go. |
+| `--mapper` | `config` | `config`: the `concept_mapping.json` cascade (trusted ontologies → local hybrid → BioPortal → ask user). `local` / `bioportal` / `ols` / `none`: the older single-backend paths. |
 | `--mapper-url` | `http://localhost:8000` | Local hybrid service URL. Verify it's up at `/docs`. |
 | `--non-interactive` | off | Disable the user prompt when the mapper cascade fails. Fail fast instead. |
 | `--ner-profile` | none | Enable the HF ensemble: `biomedical_broad` / `cns_cells` / `pharmacology` / `genetic` / `clinical` / `minimal` / `all`. Requires `pip install transformers torch`. |
@@ -487,11 +681,13 @@ python -m scripts.pipeline \
 | `--ner-device` | `-1` (CPU) | CUDA device index for HF models. |
 | `--chunk-size` | `2000` | Characters per chunk for parallel extraction. |
 | `--max-workers` | `8` | Parallel workers. |
-| `--out` | `<input>_final.json` | Output JSON path. Defaults to `<input_stem>_final.json` (e.g. `paper.pdf` → `paper_final.json`). |
+| `--out` | `<input_stem>.ttl` | Output path for a single input. |
 
 ### What you get in the output
 
-The pipeline always writes a `<input_stem>_final.json` containing:
+The deliverable is `<input_stem>.ttl` ([Turtle output](#turtle-output-09)). The working
+JSON the stages exchange (kept with `--keep-json`, or written with `--format json`) is
+`<input_stem>_final.json`:
 
 ```jsonc
 {
@@ -547,10 +743,10 @@ See `examples/ner-example.md`, `examples/resource-example.md`, and `examples/rep
 Declared in requirements files, split by who needs them:
 
 ```bash
-pip install -r requirements.txt          # core: HTTP, JSON repair + validation, PDF, xlsx
+pip install -r requirements.txt          # core: HTTP, JSON repair + validation, PDF, xlsx, rdflib + pyshacl (TTL)
 pip install -r requirements-llm.txt      # provider SDKs — only when a framework calls an API
 pip install -r requirements-ner.txt      # HuggingFace NER ensemble (heavy: torch)
-pip install -r requirements-dev.txt      # rdflib/pandas, for validating output while developing
+pip install -r requirements-dev.txt      # pandas, for inspecting output while developing
 ```
 
 `requirements.txt` alone runs every mode with the calling agent as the model,
@@ -608,11 +804,13 @@ None of the scripts depend on `structsense` or `crewai` — they're standalone.
 6. **Don't invent placeholders.** Pipe stage outputs verbatim — extractor JSON → alignment, alignment JSON → judge.
 7. **Validate before returning.** Parse JSON; repair-then-retry on failure; validate against the schema in `schemas/`.
 8. **Always emit a `stats` block** at the top level (totals, label/source_model histograms, alignment provenance, judge score buckets, timings).
-9. **Final-result filename:** `<input_stem>_final.json` (e.g. `paper.pdf` → `paper_final.json`). Honor `--out` only when the user provides one.
-10. **Mapping cascade:** local hybrid (`http://localhost:8000`, verify at `/docs`) → BioPortal → **ask the user** for an alternative URL → skip alignment only if they decline. Don't hardcode the URL.
+9. **The deliverable is `<input_stem>.ttl`**, one per paper, validated (0 violations). The JSON between stages is working state. Honor `--out` only when the user provides one.
+10. **Mapping cascade:** trusted ontologies (`trusted_ontologes/priority.md` order) → local hybrid (`http://localhost:8000`, verify at `/docs`) → BioPortal → **ask the user** for an alternative URL. All of it is `concept_mapping.json`; don't hardcode URLs or ontologies.
 11. **Document metadata at top, not per entity.** `paper_title` / `doi` / `source_path` go ONCE in `source_metadata`. `paper_location` stays per-entity because it varies.
 12. **Always emit both `entities[]` (raw) and `entities_grouped[]` (per-entity index).** The raw list is one-per-occurrence; the grouped list collapses by canonical (entity, label) with merged sentences + every contributing `source_model`.
-13. **ABCD/HBCD mode: verification is the feature.** The paper is the only source of what a study used; a quote must be findable in that paper or the item is rejected with a reason; a string is only called a variable when a real dictionary release contains it; construct ids come from a Cognitive Atlas lookup, never from the model; and provenance records where in the paper each claim came from. See rule 16 in `SKILL.md`.
+13. **Judge with the ensemble.** Independent judges, one dimension each; critical judges (grounding, claims) are gates, not votes; the combiner only chooses among judges' suggestions.
+14. **One prefix means one namespace**, everywhere (`scripts/prefixes.py`), and **identity is deterministic** (UUIDv5 from key / IRI / acronym).
+15. **ABCD/HBCD mode: verification is the feature.** The paper is the only source of what a study used; a quote must be findable in that paper or the item is rejected with a reason; a string is only called a variable when a real dictionary release contains it; construct ids come from a Cognitive Atlas lookup, never from the model; and provenance records where in the paper each claim came from. See rule 16 in `SKILL.md`.
 
 ---
 

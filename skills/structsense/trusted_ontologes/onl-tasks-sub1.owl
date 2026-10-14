@@ -1,0 +1,410 @@
+<?xml version="1.0"?>
+
+
+<!DOCTYPE rdf:RDF [
+    <!ENTITY owl "http://www.w3.org/2002/07/owl#" >
+    <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#" >
+    <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#" >
+    <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#" >
+]>
+
+
+<rdf:RDF xmlns="http://www.w3.org/2002/07/owl#"
+     xml:base="http://www.w3.org/2002/07/owl"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <Ontology rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Alternate_category_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Alternate_category_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Amthauer’s_Structure_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Amthauer’s_Structure_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#general_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Attention_Network_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Attention_Network_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Auditory_Verbal_Learning_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Auditory_Verbal_Learning_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Card_Rotations -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Card_Rotations">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#fluid_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Color-Word_Interference_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Color-Word_Interference_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Corsi_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Corsi_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Cue_detection -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Cue_detection">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Design_Fluency_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Design_Fluency_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Digit_Span_forward_and_backward_measures -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Digit_Span_forward_and_backward_measures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Divided_attention_tasks -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Divided_attention_tasks">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Dual_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Dual_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Fluency_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Fluency_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Go-no-go_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Go-no-go_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Guilford-Sulliven_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Guilford-Sulliven_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#social-emotional_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Letter–Number_Sequencing_Subtest -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Letter–Number_Sequencing_Subtest">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Logical_Memory_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Logical_Memory_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Mayer-Solovey_Emotional_Intelligence -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Mayer-Solovey_Emotional_Intelligence">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#social-emotional_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Multiple_Errands_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Multiple_Errands_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#episodic_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Oddball_paradigm -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Oddball_paradigm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Ongoing_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Ongoing_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Operation-span_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Operation-span_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#fluid_intelligence_test"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Raven’s_Progressive_Matrices -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Raven’s_Progressive_Matrices">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#fluid_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Rey_complex_figure -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Rey_complex_figure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Rivermead_Behavioral_Memory_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Rivermead_Behavioral_Memory_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#episodic_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Serial_list_picture_memory -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Serial_list_picture_memory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Serial_list_verbal_memory -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Serial_list_verbal_memory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Stanford–Binet_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Stanford–Binet_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#general_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Stroop_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Stroop_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Trail_Making_Test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Trail_Making_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Traveling_Salesman_Problem_Task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Traveling_Salesman_Problem_Task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Verbal_Paired_Associates -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Verbal_Paired_Associates">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Wechsler_Adult_Intelligence_Scale -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Wechsler_Adult_Intelligence_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#general_intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Wisconsin_card_sorting_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#Wisconsin_card_sorting_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#attention_systems_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#subject_data_acquisition_instrument"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#episodic_memory_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#episodic_memory_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#short-term_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#fluid_intelligence_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#fluid_intelligence_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#general_intelligence_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#general_intelligence_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#intelligence_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#intelligence_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#subject_data_acquisition_instrument"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#memory_systems_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#memory_systems_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#subject_data_acquisition_instrument"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#n-back_task -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#n-back_task">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#short-term_memory_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#short-term_memory_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#memory_systems_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#social-emotional_intelligence_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#social-emotional_intelligence_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#intelligence_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#spatial_memory_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#short-term_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#subject_data_acquisition_instrument -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#subject_data_acquisition_instrument"/>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#verbal_memory_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#short-term_memory_test"/>
+    </Class>
+    
+
+
+    <!-- http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test -->
+
+    <Class rdf:about="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#working_memory_test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/bakaev/ontologies/2020/3/untitled-ontology-25#memory_systems_test"/>
+    </Class>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 3.4.2) http://owlapi.sourceforge.net -->
+

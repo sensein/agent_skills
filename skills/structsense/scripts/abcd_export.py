@@ -26,10 +26,35 @@ if __package__ in (None, ""):  # executed as a file, not as part of the package
 
 import json
 import re
+import uuid
 from pathlib import Path
+from pathlib import Path as _Path
 from typing import Any, Dict, Iterable, List, Optional
 
-NS = "https://structsense.skills/abcd/"
+NS = "https://structsense.skills/abcd/"   # the ABCD vocabulary (classes, properties)
+
+
+def _iri_config() -> tuple[str, "uuid.UUID"]:
+    """Instance IRIs follow the same scheme as the NER Turtle (default_ontology/
+    ttl_config.json `iri`): <base><uuid5(uuid5(NAMESPACE_URL, seed), name)>."""
+    cfg_path = Path(__file__).resolve().parent.parent / "default_ontology" / "ttl_config.json"
+    iri = {}
+    try:
+        iri = json.loads(cfg_path.read_text()).get("iri") or {}
+    except Exception:
+        pass
+    base = iri.get("base", "https://brainkb.org/kb/")
+    return base, uuid.uuid5(uuid.NAMESPACE_URL, iri.get("namespace_seed", base))
+
+
+def node(kind: str, *parts: Any) -> str:
+    """A mandatory-UUID instance IRI: kb:<uuid5("abcd-<kind>|<parts…>")>, deterministic."""
+    name = "|".join([f"abcd-{kind}"] + [str(p) for p in parts])
+    return f"kb:{uuid.uuid5(_KB_SEED, name)}"
+
+
+_KB_BASE, _KB_SEED = _iri_config()
+
 PREFIXES = f"""@prefix abcd:    <{NS}> .
 @prefix prov:    <http://www.w3.org/ns/prov#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
@@ -37,6 +62,7 @@ PREFIXES = f"""@prefix abcd:    <{NS}> .
 @prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 @prefix cogat:   <https://www.cognitiveatlas.org/concept/id/> .
 @prefix nbdc:    <https://nbdc-datahub.org/variable/> .
+@prefix kb:      <{_KB_BASE}> .
 """
 
 _SLUG = re.compile(r"[^A-Za-z0-9]+")
@@ -57,6 +83,14 @@ def esc(value: Any) -> str:
 
 def lit(value: Any) -> str:
     return f'"{esc(value)}"'
+
+
+def dt_line(pred: str, value: Any, end: str) -> str:
+    """`pred "value"^^xsd:dateTime<end>`, or a comment when there is no time:
+    an empty xsd:dateTime literal is ill-typed."""
+    if not value:
+        return f"    # {pred}: no timestamp recorded" + ("\n    ." if end == " ." else "")
+    return f"    {pred} {lit(value)}^^xsd:dateTime{end}"
 
 
 def md_escape(value: Any) -> str:
@@ -315,7 +349,7 @@ def paper_markdown(doc: dict) -> str:
 
 def paper_turtle(doc: dict) -> str:
     pid = slug(doc.get("paper_id") or (doc.get("source_metadata") or {}).get("source_path"))
-    paper = f"abcd:paper-{pid}"
+    paper = node("paper", pid)
     meta = doc.get("source_metadata") or {}
     prov = doc.get("provenance") or {}
     out = [PREFIXES, ""]
@@ -326,11 +360,11 @@ def paper_turtle(doc: dict) -> str:
     if meta.get("doi"):
         out.append(f"    dcterms:identifier {lit(meta['doi'])} ;")
     if meta.get("source_path"):
-        out.append(f"    abcd:sourcePath {lit(meta['source_path'])} ;")
+        out.append(f"    abcd:sourcePath {lit(Path(str(meta['source_path'])).name)} ;")
     if meta.get("data_release"):
         out.append(f"    abcd:statedDataRelease {lit(meta['data_release'])} ;")
     out.append(f"    abcd:extractedBy {lit(prov.get('llm_model'))} ;")
-    out.append(f"    prov:generatedAtTime {lit(prov.get('run_at'))}^^xsd:dateTime .")
+    out.append(dt_line("prov:generatedAtTime", prov.get("run_at"), " ."))
     out.append("")
 
     def evidence_block(node: str, ev: dict, indent: str = "    ") -> List[str]:
@@ -350,15 +384,15 @@ def paper_turtle(doc: dict) -> str:
 
     # model_id -> node, so a role can point at the analysis that assigned it
     # instead of floating free on the variable.
-    model_node = {m.get("model_id") or f"M{j + 1}": f"abcd:model-{pid}-{j}"
+    model_node = {m.get("model_id") or f"M{j + 1}": node("model", pid, j)
                   for j, m in enumerate(doc.get("models", []))}
     role_rows: List[str] = []
 
     for i, v in enumerate(doc.get("variables", [])):
-        node = f"abcd:var-{pid}-{i}-{slug(v.get('name'))}"
+        node_ = node("variable-use", pid, i, v.get("name"))
         ev = v.get("evidence") or {}
         dm = v.get("dictionary_match") or {}
-        out.append(f"{node} a abcd:VariableUse ;")
+        out.append(f"{node_} a abcd:VariableUse ;")
         out.append(f"    abcd:variableName {lit(v.get('name'))} ;")
         out.append(f"    abcd:mentionAsWritten "
                    f"{lit(v.get('mention_as_written') or v.get('name'))} ;")
@@ -389,17 +423,17 @@ def paper_turtle(doc: dict) -> str:
             out.append(f"    abcd:roleBasis {lit(v['role_basis'])} ;")
         if v.get("role_varies_by_analysis"):
             out.append("    abcd:roleVariesByAnalysis true ;")
-        out += evidence_block(node, ev)
+        out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
         for k, a in enumerate(v.get("role_assignments") or []):
             target = model_node.get(a.get("model_id"))
             if not target:
                 continue
-            rnode = f"abcd:roleassign-{pid}-{i}-{k}"
+            rnode = node("role-assignment", pid, i, k)
             role_rows += [
                 f"{rnode} a abcd:RoleAssignment ;",
-                f"    abcd:ofVariable {node} ;",
+                f"    abcd:ofVariable {node_} ;",
                 f"    abcd:inAnalysis {target} ;",
                 f"    abcd:role {lit(a.get('role'))} ;",
                 f"    abcd:mentionAsWritten {lit(a.get('as_written'))} ;",
@@ -408,9 +442,9 @@ def paper_turtle(doc: dict) -> str:
             ]
 
     for i, c in enumerate(doc.get("constructs", [])):
-        node = f"abcd:construct-{pid}-{i}-{slug(c.get('construct'))}"
+        node_ = node("construct-use", pid, i, c.get("construct"))
         ev = c.get("evidence") or {}
-        out.append(f"{node} a abcd:ConstructMention ;")
+        out.append(f"{node_} a abcd:ConstructMention ;")
         out.append(f"    rdfs:label {lit(c.get('construct_label') or c.get('construct'))} ;")
         if c.get("construct_id"):
             out.append(f"    abcd:cognitiveAtlasConcept cogat:{c['construct_id']} ;")
@@ -419,14 +453,14 @@ def paper_turtle(doc: dict) -> str:
             out.append(f"    abcd:mappingProvenance {lit(c.get('mapping_provenance'))} ;")
         out.append(f"    abcd:labelVerbatimInText "
                    f"{'true' if ev.get('label_in_quote') else 'false'} ;")
-        out += evidence_block(node, ev)
+        out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
 
     for i, m in enumerate(doc.get("models", [])):
-        node = f"abcd:model-{pid}-{i}"
+        node_ = node("model", pid, i)
         ev = m.get("evidence") or {}
-        out.append(f"{node} a abcd:StatisticalModel ;")
+        out.append(f"{node_} a abcd:StatisticalModel ;")
         out.append(f"    abcd:modelId {lit(m.get('model_id') or f'M{i + 1}')} ;")
         out.append(f"    rdfs:label {lit(m.get('specification') or m.get('name'))} ;")
         if m.get("kind"):
@@ -440,14 +474,14 @@ def paper_turtle(doc: dict) -> str:
                           ("covariates", "abcd:hasCovariate")):
             for name in m.get(key) or []:
                 out.append(f"    {pred} {lit(name)} ;")
-        out += evidence_block(node, ev)
+        out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
 
     for i, f in enumerate(doc.get("findings", [])):
-        node = f"abcd:finding-{pid}-{i}"
+        node_ = node("finding", pid, i)
         ev = f.get("evidence") or {}
-        out.append(f"{node} a abcd:Finding ;")
+        out.append(f"{node_} a abcd:Finding ;")
         out.append(f"    abcd:statement {lit(f.get('statement'))} ;")
         out.append(f"    abcd:direction {lit(f.get('direction'))} ;")
         out.append(f"    abcd:role {lit(f.get('role'))} ;")
@@ -457,22 +491,22 @@ def paper_turtle(doc: dict) -> str:
             out.append(f"    abcd:aboutVariable {lit(name)} ;")
         if f.get("effect_size") or f.get("estimate"):
             out.append(f"    abcd:effect {lit(f.get('effect_size') or f.get('estimate'))} ;")
-        out += evidence_block(node, ev)
+        out += evidence_block(node_, ev)
         out.append(f"    prov:wasDerivedFrom {paper} .")
         out.append("")
 
     out += role_rows
 
     for d in (prov.get("dictionaries") or []):
-        node = f"abcd:dd-{slug(d.get('study'), d.get('dd_release'))}"
-        out.append(f"{node} a abcd:DataDictionary ;")
+        node_ = node("dictionary", d.get("study"), d.get("dd_release"))
+        out.append(f"{node_} a abcd:DataDictionary ;")
         out.append(f"    abcd:study {lit(d.get('study'))} ;")
         out.append(f"    abcd:ddRelease {lit(d.get('dd_release'))} ;")
         out.append(f"    abcd:variableCount {int(d.get('variable_count') or 0)} ;")
         out.append(f"    abcd:retrievalMethod {lit(d.get('method'))} ;")
         if d.get("source"):
             out.append(f"    prov:hadPrimarySource {lit(d['source'])} ;")
-        out.append(f"    prov:generatedAtTime {lit(d.get('retrieved_at'))}^^xsd:dateTime .")
+        out.append(dt_line("prov:generatedAtTime", d.get("retrieved_at"), " ."))
         out.append("")
 
     return "\n".join(out)
@@ -778,21 +812,20 @@ def _dirpapers(construct: dict, direction: str) -> str:
 def synthesis_turtle(doc: dict) -> str:
     out = [PREFIXES, ""]
     sid = slug(doc.get("synthesis_id") or "synthesis")
-    node = f"abcd:synthesis-{sid}"
+    node_ = node("synthesis", sid)
     tot = doc.get("totals") or {}
-    out.append(f"{node} a abcd:CrossPaperSynthesis ;")
+    out.append(f"{node_} a abcd:CrossPaperSynthesis ;")
     out.append(f"    abcd:paperCount {int(tot.get('papers') or 0)} ;")
-    out.append(f"    prov:generatedAtTime {lit((doc.get('provenance') or {}).get('run_at'))}"
-               f"^^xsd:dateTime ;")
+    out.append(dt_line("prov:generatedAtTime", (doc.get("provenance") or {}).get("run_at"), " ;"))
     for p in doc.get("papers", []):
-        out.append(f"    prov:used abcd:paper-{slug(p.get('paper_id'))} ;")
+        out.append(f"    prov:used {node('paper', slug(p.get('paper_id')))} ;")
     out.append("    rdfs:label \"ABCD cross-paper synthesis\" .")
     out.append("")
 
     # Each paper's dataset, so a triple store can answer "which release, which
     # sample" without going back to the JSON.
     for p in doc.get("papers", []):
-        pn = f"abcd:paper-{slug(p.get('paper_id'))}"
+        pn = node("paper", slug(p.get("paper_id")))
         ds = p.get("dataset") or {}
         out.append(f"{pn} a abcd:Paper ;")
         if p.get("doi"):
@@ -813,11 +846,11 @@ def synthesis_turtle(doc: dict) -> str:
             out.append(f"    abcd:timepoint {lit(tp)} ;")
         for rel in (p.get("dictionary") or {}).get("dd_releases_of_resolved_variables") or []:
             out.append(f"    abcd:ddRelease {lit(rel)} ;")
-        out.append(f"    prov:wasUsedBy {node} .")
+        out.append(f"    prov:wasUsedBy {node_} .")
         out.append("")
 
     for claim in doc.get("claims", []):
-        cn = f"abcd:claim-{sid}-{slug(claim.get('claim_id') or claim.get('construct_label'))}"
+        cn = node("claim", sid, claim.get("claim_id") or claim.get("construct_label"))
         out.append(f"{cn} a abcd:SynthesisClaim ;")
         out.append(f"    rdfs:label {lit(_trunc(claim.get('claim'), 400))} ;")
         if claim.get("construct_id"):
@@ -825,17 +858,17 @@ def synthesis_turtle(doc: dict) -> str:
         out.append(f"    abcd:verdict {lit(claim.get('verdict'))} ;")
         out.append(f"    abcd:paperCount {int(claim.get('paper_count') or 0)} ;")
         for pid in sorted({e.get("paper_id") for e in claim.get("evidence") or []}):
-            out.append(f"    abcd:supportedBy abcd:paper-{slug(pid)} ;")
+            out.append(f"    abcd:supportedBy {node('paper', slug(pid))} ;")
         for pid in sorted({e.get("paper_id")
                            for e in claim.get("contradictions") or []}):
-            out.append(f"    abcd:contradictedBy abcd:paper-{slug(pid)} ;")
+            out.append(f"    abcd:contradictedBy {node('paper', slug(pid))} ;")
         for c in claim.get("caveats") or []:
             out.append(f"    abcd:caveat {lit(c)} ;")
-        out.append(f"    prov:wasGeneratedBy {node} .")
+        out.append(f"    prov:wasGeneratedBy {node_} .")
         out.append("")
 
     for c in doc.get("constructs", []):
-        cn = f"abcd:consensus-{sid}-{slug(c.get('construct_id') or c.get('construct_label'))}"
+        cn = node("consensus", sid, c.get("construct_id") or c.get("construct_label"))
         out.append(f"{cn} a abcd:ConstructConsensus ;")
         if c.get("construct_id"):
             out.append(f"    abcd:aboutConstruct cogat:{c['construct_id']} ;")
@@ -845,14 +878,14 @@ def synthesis_turtle(doc: dict) -> str:
         out.append(f"    abcd:agreement {float(c.get('agreement') or 0):.3f} ;")
         out.append(f"    abcd:verdict {lit(c.get('verdict'))} ;")
         for m in c.get("measured_by") or []:
-            out.append(f"    abcd:measuredBy abcd:variable-{sid}-{slug(m.get('variable'))} ;")
+            out.append(f"    abcd:measuredBy {node('variable', sid, m.get('variable'))} ;")
         for pid in sorted({e.get("paper_id") for e in c.get("evidence") or []}):
-            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(pid)} ;")
-        out.append(f"    prov:wasGeneratedBy {node} .")
+            out.append(f"    prov:wasDerivedFrom {node('paper', slug(pid))} ;")
+        out.append(f"    prov:wasGeneratedBy {node_} .")
         out.append("")
 
     for v in doc.get("variables", []):
-        vn = f"abcd:variable-{sid}-{slug(v.get('variable'))}"
+        vn = node("variable", sid, v.get("variable"))
         out.append(f"{vn} a abcd:VariableRoleProfile ;")
         out.append(f"    abcd:variableName {lit(v.get('variable'))} ;")
         if v.get("dictionary_variable"):
@@ -872,8 +905,8 @@ def synthesis_turtle(doc: dict) -> str:
         out.append(f"    abcd:verdict {lit(v.get('verdict'))} ;")
         for pid in sorted({u.get("paper_id")
                            for u in v.get("paper_evidence") or []}):
-            out.append(f"    prov:wasDerivedFrom abcd:paper-{slug(pid)} ;")
-        out.append(f"    prov:wasGeneratedBy {node} .")
+            out.append(f"    prov:wasDerivedFrom {node('paper', slug(pid))} ;")
+        out.append(f"    prov:wasGeneratedBy {node_} .")
         out.append("")
     return "\n".join(out)
 

@@ -1,0 +1,562 @@
+{
+  "_comment": "Concept-mapping configuration (scripts/concept_mapping.py, references/ontology-mapping.md). Every mapping is still TOOL-ONLY (SKILL.md rule 15): a trusted ontology file is a tool \u2014 a match is a lookup in a curated artifact, never model knowledge. Edit this file, not code.",
+  "version": "1.0.0",
+  "sources_priority": [
+    "trusted",
+    "local_hybrid",
+    "bioportal"
+  ],
+  "_sources_priority": "Order in which mapping sources are consulted. An item is sent to the next source only if every earlier one left it unmapped. Allowed: trusted, local_hybrid, bioportal, ols. Remove a source to disable it; put 'trusted' last to use it only as a fallback.",
+  "trusted_ontologies": {
+    "directory": "trusted_ontologes",
+    "_directory": "Relative to the skill root (or absolute). Every file listed below must live here.",
+    "priority_file": "trusted_ontologes/priority.md",
+    "_priority_file": "The editable priority table (Priority | Name | File | CURIE prefix | Labels | Notes). It is the ONLY place trusted ontologies and their order are defined.",
+    "strategy": "priority",
+    "_strategy": "'priority': the highest-priority ontology (trusted_ontologes/priority.md) with ANY accepted match wins; label_routing order breaks ties inside one file. 'best_match': the strongest match type across all eligible ontologies wins; priority breaks ties.",
+    "match_on": [
+      "label",
+      "exact_synonym",
+      "symbol",
+      "local_name"
+    ],
+    "_match_on": "Which OWL annotations count as a match, strongest first. Add related_synonym / narrow_synonym / broad_synonym to widen recall; their tiers are set in match_type_tiers, so a weaker match is never written as exactMatch.",
+    "singularize_query": true,
+    "include_deprecated": false,
+    "match_properties": {
+      "_comment": "Annotation property IRIs that feed each match type. Add your ontology's properties here (e.g. skos:altLabel) rather than in code.",
+      "label": [
+        "http://www.w3.org/2000/01/rdf-schema#label",
+        "http://www.w3.org/2004/02/skos/core#prefLabel"
+      ],
+      "exact_synonym": [
+        "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+      ],
+      "symbol": [
+        "http://purl.obolibrary.org/obo/IAO_0000028"
+      ],
+      "related_synonym": [
+        "http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym",
+        "http://www.w3.org/2004/02/skos/core#altLabel"
+      ],
+      "narrow_synonym": [
+        "http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym"
+      ],
+      "broad_synonym": [
+        "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"
+      ]
+    },
+    "deprecated_property": "http://www.w3.org/2002/07/owl#deprecated",
+    "entity_types": [
+      "http://www.w3.org/2002/07/owl#Class",
+      "http://www.w3.org/2004/02/skos/core#Concept"
+    ],
+    "_entity_types": "rdf:type values that make a node a mappable term.",
+    "split_camel_case": true,
+    "_split_camel_case": "Also index 'ParcellationTerm' as 'parcellation term' (LinkML/schema-style labels).",
+    "lexicon_dir": "trusted_ontologes/lexicon",
+    "_lexicon_dir": "Where `index` writes <name>.tsv.gz (one flat lexicon per ontology) and lexicon.sqlite (the lookup index). Regenerable; safe to delete.",
+    "index_local_name_when_unlabeled": true,
+    "_index_local_name_when_unlabeled": "Some ontologies (SCIO, NEO, BRAIN-COF) name classes only in the IRI (\u2026/AdhesiveRemovalTest). When a class has no label, index its IRI local name as match type 'local_name'.",
+    "abbreviation_guard": {
+      "max_length": 4,
+      "require_label_route": true
+    },
+    "_abbreviation_guard": "A query of <= max_length alphanumeric characters (PFC, LTP, V1) matches exact synonyms/symbols in many ontologies (FBbt 'prefollicle cell' for PFC). It is only mapped \u2014 and only used to derive a key \u2014 when the item's label has a label_routing entry, so the route decides which ontologies may answer.",
+    "exclude_iri_patterns": [
+      "^https://identifiers\\.org/brain-bican/vocab/[A-Za-z]+#"
+    ],
+    "_exclude_iri_patterns": "Regexes over candidate IRIs that are never mapping targets: terms a trusted file declares that are not domain concepts. BKE's '<Enum>#<value>' IRIs (AbbreviationEntityType#gene, AuthorityType#NCBI, ANATOMICALDIRECTION#..., Region#...) are schema permissible values; matching them maps the generic word 'gene' to an enum value. Applied at query time, no re-index.",
+    "fallback_match_on": [
+      "narrow_synonym",
+      "broad_synonym",
+      "related_synonym"
+    ],
+    "_fallback_match_on": "Weaker synonym types tried only when no label/exact synonym matches in any eligible ontology; graded by match_type_tiers (broad_synonym -> narrowMatch, narrow_synonym -> broadMatch, related_synonym -> relatedMatch) and reviewed by the mapping judge. Remove to require identity-strength matches only."
+  },
+  "label_routing": {
+    "_comment": "Extractor label -> id prefixes acceptable for that label, in preference order. A FILTER, never a reordering of trusted ontologies (priority.md decides that): a candidate under a listed prefix, or under the trusted row's own CURIE prefix, is accepted. Labels absent here accept any prefix. The same list is passed to remote mappers as their ontology filter.",
+    "CellType": [
+      "CL",
+      "PCL"
+    ],
+    "CellClass": [
+      "CL",
+      "PCL"
+    ],
+    "CellSubtype": [
+      "PCL",
+      "CL"
+    ],
+    "CellOntologyTerm": [
+      "CL",
+      "PCL"
+    ],
+    "CellLine": [
+      "CLO",
+      "BTO"
+    ],
+    "BrainRegion": [
+      "UBERON"
+    ],
+    "CorticalLayer": [
+      "UBERON"
+    ],
+    "NervousSystemPart": [
+      "UBERON"
+    ],
+    "NeuralCircuit": [
+      "UBERON"
+    ],
+    "Anatomy": [
+      "UBERON"
+    ],
+    "CellularStructure": [
+      "GO",
+      "UBERON"
+    ],
+    "Synapse": [
+      "GO"
+    ],
+    "Species": [
+      "NCBITaxon"
+    ],
+    "DevelopmentalStage": [
+      "UBERON",
+      "MmusDv",
+      "HsapDv"
+    ],
+    "Disease": [
+      "MONDO",
+      "DOID"
+    ],
+    "Phenotype": [
+      "HP",
+      "MP"
+    ],
+    "Chemical": [
+      "CHEBI"
+    ],
+    "Drug": [
+      "CHEBI",
+      "DRON"
+    ],
+    "Neurotransmitter": [
+      "CHEBI"
+    ],
+    "Neuropeptide": [
+      "CHEBI",
+      "PR"
+    ],
+    "Protein": [
+      "PR"
+    ],
+    "IonChannel": [
+      "PR"
+    ],
+    "Gene": [
+      "HGNC",
+      "NCBIGene"
+    ],
+    "LineageMarker": [
+      "HGNC",
+      "NCBIGene",
+      "PR"
+    ],
+    "Method": [
+      "OBI",
+      "EFO"
+    ],
+    "ProfilingMethod": [
+      "OBI",
+      "EFO"
+    ],
+    "BehavioralAssay": [
+      "OBI",
+      "NBO",
+      "COGAT",
+      "COGPO"
+    ],
+    "Phenomenon": [
+      "GO",
+      "NBO",
+      "COGAT"
+    ],
+    "always_allowed_prefixes": [
+      "BKE"
+    ],
+    "Person": [],
+    "Organization": [],
+    "Location": [],
+    "Product": [],
+    "Event": [],
+    "Date": [],
+    "Time": [],
+    "Money": [],
+    "Percent": [],
+    "Law": [],
+    "Language": [],
+    "_general_domain": "General-domain labels route to [] \u2014 no trusted (biomedical) ontology may answer for a Person or an Organization; remote sources are still consulted (use a general-domain mapper there, e.g. a Wikidata-backed local service).",
+    "Software": [
+      "SWO",
+      "EDAM"
+    ],
+    "Tool": [
+      "SWO",
+      "EDAM",
+      "OBI"
+    ],
+    "Dataset": [
+      "IAO",
+      "EDAM"
+    ],
+    "StatisticalMethod": [
+      "STATO",
+      "OBI"
+    ],
+    "Algorithm": [
+      "SWO",
+      "EDAM",
+      "STATO"
+    ],
+    "ModelSystem": [
+      "NCIT",
+      "SCIO"
+    ],
+    "ComputationalModel": [
+      "SWO",
+      "EDAM",
+      "OBI",
+      "SCIO"
+    ],
+    "MorphologicalPhenotype": [
+      "HP",
+      "MP",
+      "PATO"
+    ],
+    "CellularPhenotype": [
+      "HP",
+      "MP",
+      "PATO"
+    ],
+    "ClinicalPhenotype": [
+      "HP",
+      "MP",
+      "PATO"
+    ],
+    "CognitivePhenotype": [
+      "HP",
+      "NBO",
+      "COGAT",
+      "MF"
+    ]
+  },
+  "match_type_tiers": {
+    "_comment": "Honest skos tier implied by HOW the tool matched, used when no judge or kg_plan set one. A narrow synonym of T names something narrower than T, so T is BROADER than the entity.",
+    "label": "exactMatch",
+    "exact_synonym": "exactMatch",
+    "related_synonym": "relatedMatch",
+    "narrow_synonym": "broadMatch",
+    "broad_synonym": "narrowMatch",
+    "symbol": "exactMatch",
+    "local_name": "closeMatch",
+    "bioportal_label": "exactMatch",
+    "bioportal_synonym": "closeMatch"
+  },
+  "remote": {
+    "local_hybrid_url": "http://localhost:8000",
+    "max_results": 5,
+    "_max_results": "Hits fetched per remote search; the first one in a representable namespace (prefix registry) is taken, not blindly hit 1.",
+    "label_ontologies": {
+      "_comment": "Remote-only routes (BioPortal acronyms) for labels label_routing leaves open, so a search never spans all of BioPortal. Does not affect trusted-ontology filtering.",
+      "Measurement": [
+        "STATO",
+        "PATO",
+        "OBI",
+        "NCIT",
+        "EFO"
+      ],
+      "StatisticalMethod": [
+        "STATO",
+        "OBI",
+        "NCIT"
+      ],
+      "Device": [
+        "OBI",
+        "NCIT",
+        "EFO"
+      ],
+      "Instrument": [
+        "OBI",
+        "NCIT",
+        "EFO"
+      ],
+      "Software": [
+        "SWO",
+        "EDAM",
+        "NCIT"
+      ],
+      "Tool": [
+        "SWO",
+        "EDAM",
+        "OBI"
+      ],
+      "Dataset": [
+        "IAO",
+        "EDAM",
+        "NCIT"
+      ],
+      "Stimulus": [
+        "CHEBI",
+        "OBI",
+        "NCIT",
+        "NBO"
+      ],
+      "ExperimentalCondition": [
+        "EFO",
+        "OBI",
+        "NCIT"
+      ],
+      "ImagingModality": [
+        "FBbi",
+        "OBI",
+        "NCIT",
+        "RADLEX"
+      ],
+      "Assay": [
+        "OBI",
+        "EFO",
+        "BAO"
+      ],
+      "Population": [
+        "NCIT",
+        "EFO",
+        "OBI"
+      ],
+      "StudyCohort": [
+        "NCIT",
+        "EFO",
+        "OBI"
+      ],
+      "CognitivePhenotype": [
+        "COGAT",
+        "HP",
+        "NBO",
+        "MF"
+      ],
+      "Phenotype": [
+        "HP",
+        "MP",
+        "PATO"
+      ],
+      "ElectrophysiologicalFeature": [
+        "NCIT",
+        "OBI",
+        "PATO",
+        "GO"
+      ],
+      "EphysProperty": [
+        "NCIT",
+        "OBI",
+        "PATO",
+        "GO"
+      ],
+      "Organism": [
+        "NCBITAXON"
+      ],
+      "Species": [
+        "NCBITAXON"
+      ],
+      "LineageMarker": [
+        "PR",
+        "NCIT"
+      ],
+      "Protein": [
+        "PR",
+        "NCIT"
+      ],
+      "CellType": [
+        "CL",
+        "EFO"
+      ]
+    },
+    "default_ontologies": [
+      "NCIT",
+      "OBI",
+      "EFO",
+      "GO",
+      "UBERON",
+      "CL",
+      "CHEBI",
+      "PATO",
+      "MONDO",
+      "HP",
+      "STATO",
+      "IAO",
+      "NBO",
+      "COGAT"
+    ],
+    "_default_ontologies": "Remote search scope for a label with no route at all (KeyTerm, Other, invented labels): well-curated ontologies the TTL can represent. Empty list = unrestricted (not recommended: LOINC/SNOMED/CRISP noise).",
+    "not_in_bioportal": [
+      "BKE",
+      "HGNC",
+      "NCBIGene",
+      "PCL",
+      "MmusDv",
+      "HsapDv"
+    ]
+  },
+  "curated_mappings": {
+    "_comment": "User-curated overrides, consulted before every other source: '<term>|<label>' or '<term>' -> mapping. Only for terms the ontology files systematically get wrong (NCBITaxon puts the common names 'mice'/'rats' under the genus). Edit freely; each hit is recorded as mapping_source 'curated'.",
+    "human|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
+      "ontology_label": "Homo sapiens",
+      "ontology": "NCBITaxon"
+    },
+    "humans|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
+      "ontology_label": "Homo sapiens",
+      "ontology": "NCBITaxon"
+    },
+    "mouse|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+      "ontology_label": "Mus musculus",
+      "ontology": "NCBITaxon"
+    },
+    "mice|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+      "ontology_label": "Mus musculus",
+      "ontology": "NCBITaxon"
+    },
+    "house mouse|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+      "ontology_label": "Mus musculus",
+      "ontology": "NCBITaxon"
+    },
+    "laboratory mouse|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+      "ontology_label": "Mus musculus",
+      "ontology": "NCBITaxon"
+    },
+    "rat|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+      "ontology_label": "Rattus norvegicus",
+      "ontology": "NCBITaxon"
+    },
+    "rats|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+      "ontology_label": "Rattus norvegicus",
+      "ontology": "NCBITaxon"
+    },
+    "laboratory rat|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+      "ontology_label": "Rattus norvegicus",
+      "ontology": "NCBITaxon"
+    },
+    "macaque|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+      "ontology_label": "Macaca mulatta",
+      "ontology": "NCBITaxon"
+    },
+    "macaques|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+      "ontology_label": "Macaca mulatta",
+      "ontology": "NCBITaxon"
+    },
+    "rhesus macaque|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+      "ontology_label": "Macaca mulatta",
+      "ontology": "NCBITaxon"
+    },
+    "rhesus monkey|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+      "ontology_label": "Macaca mulatta",
+      "ontology": "NCBITaxon"
+    },
+    "rhesus monkeys|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9544",
+      "ontology_label": "Macaca mulatta",
+      "ontology": "NCBITaxon"
+    },
+    "marmoset|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9483",
+      "ontology_label": "Callithrix jacchus",
+      "ontology": "NCBITaxon"
+    },
+    "marmosets|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9483",
+      "ontology_label": "Callithrix jacchus",
+      "ontology": "NCBITaxon"
+    },
+    "common marmoset|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9483",
+      "ontology_label": "Callithrix jacchus",
+      "ontology": "NCBITaxon"
+    },
+    "chimpanzee|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9598",
+      "ontology_label": "Pan troglodytes",
+      "ontology": "NCBITaxon"
+    },
+    "chimpanzees|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9598",
+      "ontology_label": "Pan troglodytes",
+      "ontology": "NCBITaxon"
+    },
+    "zebrafish|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+      "ontology_label": "Danio rerio",
+      "ontology": "NCBITaxon"
+    },
+    "fruit fly|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7227",
+      "ontology_label": "Drosophila melanogaster",
+      "ontology": "NCBITaxon"
+    },
+    "fruit flies|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7227",
+      "ontology_label": "Drosophila melanogaster",
+      "ontology": "NCBITaxon"
+    },
+    "drosophila|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_7227",
+      "ontology_label": "Drosophila melanogaster",
+      "ontology": "NCBITaxon"
+    },
+    "c. elegans|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_6239",
+      "ontology_label": "Caenorhabditis elegans",
+      "ontology": "NCBITaxon"
+    },
+    "caenorhabditis elegans|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_6239",
+      "ontology_label": "Caenorhabditis elegans",
+      "ontology": "NCBITaxon"
+    },
+    "ferret|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9669",
+      "ontology_label": "Mustela putorius furo",
+      "ontology": "NCBITaxon"
+    },
+    "ferrets|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9669",
+      "ontology_label": "Mustela putorius furo",
+      "ontology": "NCBITaxon"
+    },
+    "pig|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9823",
+      "ontology_label": "Sus scrofa",
+      "ontology": "NCBITaxon"
+    },
+    "pigs|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9823",
+      "ontology_label": "Sus scrofa",
+      "ontology": "NCBITaxon"
+    },
+    "sheep|species": {
+      "ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9940",
+      "ontology_label": "Ovis aries",
+      "ontology": "NCBITaxon"
+    }
+  }
+}

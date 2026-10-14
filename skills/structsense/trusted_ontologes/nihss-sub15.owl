@@ -1,0 +1,2066 @@
+<?xml version="1.0"?>
+<!DOCTYPE rdf:RDF [
+    <!ENTITY bibo "http://purl.org/ontology/bibo/">
+    <!ENTITY cc "http://creativecommons.org/ns#">
+    <!ENTITY dc "http://purl.org/dc/elements/1.1/">
+    <!ENTITY dcterms "http://purl.org/dc/terms/">
+    <!ENTITY dscl "https://mre.zcu.cz/ontology/dscl.owl#">
+    <!ENTITY ds "https://mre.zcu.cz/ontology/dasta.owl#">
+    <!ENTITY foaf "http://xmlns.com/foaf/0.1/">
+    <!ENTITY form "https://mre.zcu.cz/ontology/form.owl#">
+    <!ENTITY mod "https://w3id.org/mod#">
+    <!ENTITY nfo "http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#">
+    <!ENTITY nihss "https://mre.zcu.cz/ontology/nihss.owl#">
+    <!ENTITY orcid "https://orcid.org/">
+    <!ENTITY org "http://www.w3.org/ns/org#">
+    <!ENTITY owl "http://www.w3.org/2002/07/owl#">
+    <!ENTITY pav "http://purl.org/pav/">
+    <!ENTITY prov "http://www.w3.org/ns/prov#">
+    <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#">
+    <!ENTITY schema "https://schema.org/">
+    <!ENTITY skos "http://www.w3.org/2004/02/skos/core#">
+    <!ENTITY stroke "https://mre.zcu.cz/ontology/stroke.owl#">
+    <!ENTITY vaem "http://www.linkedmodel.org/schema/vaem#">
+    <!ENTITY vann "http://purl.org/vocab/vann/">
+    <!ENTITY vs "http://www.w3.org/2003/06/sw-vocab-status/ns#">
+    <!ENTITY xml "http://www.w3.org/XML/1998/namespace">
+    <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#">
+]>
+<rdf:RDF xmlns="https://mre.zcu.cz/ontology/nihss.owl#"
+     xml:base="https://mre.zcu.cz/ontology/nihss.owl"
+     xmlns:bibo="http://purl.org/ontology/bibo/"
+     xmlns:cc="http://creativecommons.org/ns#"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:dcterms="http://purl.org/dc/terms/"
+     xmlns:dscl="https://mre.zcu.cz/ontology/dscl.owl#"
+     xmlns:ds="https://mre.zcu.cz/ontology/dasta.owl#"
+     xmlns:foaf="http://xmlns.com/foaf/0.1/"
+     xmlns:form="https://mre.zcu.cz/ontology/form.owl#"
+     xmlns:nfo="http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#"
+     xmlns:mod="https://w3id.org/mod#"
+     xmlns:nihss="https://mre.zcu.cz/ontology/nihss.owl#"
+     xmlns:orcid="https://orcid.org/"
+     xmlns:org="http://www.w3.org/ns/org#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:pav="http://purl.org/pav/"
+     xmlns:prov="http://www.w3.org/ns/prov#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:schema="https://schema.org/"
+     xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+     xmlns:stroke="https://mre.zcu.cz/ontology/stroke.owl#"
+     xmlns:vaem="http://www.linkedmodel.org/schema/vaem#"
+     xmlns:vann="http://purl.org/vocab/vann/"
+     xmlns:vs="http://www.w3.org/2003/06/sw-vocab-status/ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#">
+    <owl:Ontology rdf:about="https://mre.zcu.cz/ontology/nihss.owl">
+        <owl:versionInfo>2024/06</owl:versionInfo>
+        <owl:versionIRI rdf:resource="https://mre.zcu.cz/ontology/2024/06/nihss.owl"/>
+        <owl:priorVersion rdf:resource="https://mre.zcu.cz/ontology/2024/01/nihss.owl"/>
+        <owl:backwardCompatibleWith rdf:resource="https://mre.zcu.cz/ontology/2024/01/nihss.owl"/>
+        
+        <dc:creator rdf:resource="https://orcid.org/0000-0003-4415-790X"/>
+        <dc:contributor rdf:resource="https://orcid.org/0000-0003-4415-790X"/>
+        <dc:publisher rdf:resource="https://ror.org/040t43x18"/>
+        <dc:rights xml:lang="cs">Petr Včelák</dc:rights> 
+
+        <dc:title>Stroke Scale Ontology</dc:title>
+        <dc:title xml:lang="cs">Deficit pacienta s iktem</dc:title>
+        <dc:title xml:lang="en">Stroke Scale Ontology</dc:title>
+
+        <skos:prefLabel>Stroke Scale Ontology</skos:prefLabel>
+        <skos:prefLabel xml:lang="cs">Deficit pacienta s iktem</skos:prefLabel>
+        <skos:prefLabel xml:lang="en">Stroke Scale Ontology</skos:prefLabel>
+        <skos:definition xml:lang="en">Describe the standardized neurological examination of stroke patients according to the National Institutes of Health Stroke Scale (NIHSS).</skos:definition>
+        <skos:definition xml:lang="cs">Popis standardizovaného neurologického vyšetření pacientů s iktem dle National Institutes of Health Stroke Scale (NIHSS).</skos:definition>
+
+
+        <dc:abstract xml:lang="en">Domain ontology for describing the standardized neurological examination of stroke patients according to the National Institutes of Health Stroke Scale (NIHSS). The ontology is intended for describing the assessment of a patient after a stroke. A patient with more limitations is evaluated with more points (worse condition). An evaluation (score) with a value of 0 (zero) indicates a normal state.</dc:abstract>
+
+        <dc:abstract xml:lang="cs">Doménová ontologie pro popis standardizovaného neurologického vyšetření pacientů s iktem dle National Institutes of Health Stroke Scale (NIHSS). Ontologie je určena pro popis ohodnocení pacienta po mozkové mrtvici. Pacient s více omezeními je ohodnocen více body (horší stav). Ohodnocení (skóre) s hodnotou 0 (nula) značí normální stav.
+
+        [1] Mikulík, Dufek, Goldemund, Reif. Pokyny k vyplňování NIHSS škály. I. Neurologická klinika FN u sv. Anny, Brno. Verze 10/2003. Dostupné z https://www.cmp.cz/nihhs a https://www.cmp.cz/_files/ugd/abe1ab_70a734ce5f81470db23e145eee63d2b2.pdf (PDF). [cit. 2024-01-29].
+        [2] Mikulík, Dufek, Goldemund, Reif. Formulář k vyplňování NIHSS. Online. I. Neurologická klinika FN u sv. Anny, Brno. Verze 10/2003. Dostupné z https://www.cmp.cz/_files/ugd/abe1ab_0964fa3c33784c57aa92b1a868c1f2c4.pdf. [cit. 2024-01-29].
+        [3] Mikulík, Dufek, Goldemund, Reif. Příloha k NIHSS - vyšetřování řečových funkcí. Online. I. Neurologická klinika FN u sv. Anny, Brno. Verze 10/2003. Dostupné z https://www.cmp.cz/_files/ugd/abe1ab_f08275d7ec754f549d84c8cbb1cf9a47.pdf. [cit. 2024-01-29].
+</dc:abstract>
+
+        <dc:description xml:lang="en">Domain ontology for describing the standardized neurological examination of stroke patients according to the National Institutes of Health Stroke Scale (NIHSS). The ontology is intended for describing the assessment of a patient after a stroke. A patient with more limitations is evaluated with more points (worse condition). An evaluation (score) with a value of 0 (zero) indicates a normal state.</dc:description>
+        <dc:description xml:lang="cs">Doménová ontologie pro popis standardizovaného neurologického vyšetření pacientů s iktem dle National Institutes of Health Stroke Scale (NIHSS). Ontologie je určena pro popis ohodnocení pacienta po mozkové mrtvici. Pacient s více omezeními je ohodnocen více body (horší stav). Ohodnocení (skóre) s hodnotou 0 (nula) značí normální stav.</dc:description>
+
+        <dc:source xml:lang="cs">https://www.cmp.cz/nihhs</dc:source>
+        <dc:source xml:lang="cs">https://www.cmp.cz/_files/ugd/abe1ab_70a734ce5f81470db23e145eee63d2b2.pdf</dc:source>
+        <dc:source xml:lang="cs">https://www.cmp.cz/_files/ugd/abe1ab_0964fa3c33784c57aa92b1a868c1f2c4.pdf</dc:source>
+        <dc:source xml:lang="cs">https://www.cmp.cz/_files/ugd/abe1ab_f08275d7ec754f549d84c8cbb1cf9a47.pdf</dc:source>
+
+
+        <cc:license rdf:resource="https://creativecommons.org/licenses/by-nc/4.0/"/>
+        <dcterms:license rdf:resource="https://creativecommons.org/licenses/by-nc/4.0/"/>
+
+        <!-- <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2014-01-26</dcterms:created>-->
+        <dcterms:created rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2024-06-25</dcterms:created>
+        <dcterms:modified rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2024-06-25</dcterms:modified>
+        <dcterms:issued rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2024-06-25</dcterms:issued>
+        <dcterms:bibliographicCitation>Vcelak, P. (2024). Stroke Scale Ontology. Ontology. Version 2024/06. https://mre.zcu.cz/ontology/nihss.owl</dcterms:bibliographicCitation>
+
+        <bibo:doi>https://doi.org/10.25504/FAIRsharing.jprvcd</bibo:doi>
+        <bibo:status rdf:resource="http://purl.org/ontology/bibo/status/published"/>
+        <bibo:status>Published document, stable release</bibo:status>
+        <mod:status>Published document, stable release</mod:status>
+
+        <vs:term_status>deprecated</vs:term_status>
+
+        <!-- <schema:logo></schema:logo> -->
+        <!-- <schema:citation xml:lang="en">Vcelak, P. (2024). Stroke Scale Ontology. Ontology. Version 2024/06. https://mre.zcu.cz/ontology/nihss.owl</schema:citation> -->
+
+        <vann:preferredNamespacePrefix xml:lang="en">nihss</vann:preferredNamespacePrefix>
+        <vann:preferredNamespaceUri>https://mre.zcu.cz/ontology/nihss.owl</vann:preferredNamespaceUri>
+
+        <rdfs:seeAlso>https://www.ninds.nih.gov/health-information/public-education/know-stroke/health-professionals/nih-stroke-scale</rdfs:seeAlso>
+        <rdfs:seeAlso>https://www.ninds.nih.gov/sites/default/files/documents/NIH_Stroke_Scale_508C_2.pdf</rdfs:seeAlso>
+        <rdfs:seeAlso>https://catalog.ninds.nih.gov/sites/default/files/publications/nih-stroke-scale_0.pdf</rdfs:seeAlso>
+        <rdfs:seeAlso>https://www.cmp.cz/</rdfs:seeAlso>
+        <rdfs:seeAlso>https://www.manual-cmp.cz/nihss/</rdfs:seeAlso>
+        <rdfs:comment>2024-06-21: v2024/06 enriched with metadata according to FAIR principles.</rdfs:comment>
+        <rdfs:comment>2024-01-29: v2024/01 with updated links and references (rdfs:seeAlso).</rdfs:comment>
+        <rdfs:comment>2019-06-01: v2019/06 uses HTTPS schema in URIs.</rdfs:comment>
+        <rdfs:comment>2016-09-26: New datatype property onlyTotalScoreAvailable.</rdfs:comment>
+        <rdfs:comment>2016-09-26: Namespace base changed to mre.zcu.cz.</rdfs:comment>
+    </owl:Ontology>
+      
+
+  <rdf:Description rdf:about="https://orcid.org/0000-0003-4415-790X">
+    <foaf:name xml:lang="en">Petr Vcelak</foaf:name>
+    <foaf:name xml:lang="cs">Petr Včelák</foaf:name>
+    <foaf:name>Petr Včelák</foaf:name>
+    <org:memberOf rdf:resource="https://ror.org/040t43x18"/>
+  </rdf:Description>
+
+  <rdf:Description rdf:about="https://ror.org/040t43x18">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#NamedIndividual"/>
+    <rdf:type rdf:resource="http://xmlns.com/foaf/0.1/Organization"/>
+    <foaf:homepage rdf:datatype="http://www.w3.org/2001/XMLSchema#string">https://www.zcu.cz/</foaf:homepage>
+    <foaf:name xml:lang="cs" rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Západočeská univerzita v Plzni</foaf:name>
+    <foaf:name xml:lang="en" rdf:datatype="http://www.w3.org/2001/XMLSchema#string">University of West Bohemia</foaf:name>
+    <foaf:name rdf:datatype="http://www.w3.org/2001/XMLSchema#string">University of West Bohemia</foaf:name>
+  </rdf:Description>
+  
+  <rdf:Description rdf:about="http://purl.org/ontology/bibo/status/published">
+    <dc:title>Published document, stable release</dc:title>
+    <dc:title xml:lang="en">Published document, stable release</dc:title>
+    <dc:title xml:lang="cs">Publikovaný dokument, stabilní vydání</dc:title>
+  </rdf:Description>
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#itemScore -->
+
+    <owl:AnnotationProperty rdf:about="&nihss;itemScore">
+        <rdfs:label>instance score</rdfs:label>
+        <rdfs:label xml:lang="cs">skóre</rdfs:label>
+        <rdfs:label xml:lang="en">score</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>instance score</skos:prefLabel>
+        <rdfs:domain rdf:resource="&nihss;BestGaze"/>
+        <rdfs:domain rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:domain rdf:resource="&nihss;Commands"/>
+        <rdfs:domain rdf:resource="&nihss;Consciousness"/>
+        <rdfs:domain rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:domain rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:domain rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:domain rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:domain rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:domain rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:domain rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:domain rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:domain rdf:resource="&nihss;Questions"/>
+        <rdfs:domain rdf:resource="&nihss;Sensory"/>
+        <rdfs:domain rdf:resource="&nihss;Visual"/>
+        <rdfs:range rdf:resource="&xsd;int"/>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#order -->
+
+    <owl:AnnotationProperty rdf:about="&nihss;order">
+        <rdfs:label>order</rdfs:label>
+        <rdfs:label xml:lang="cs">pořadí</rdfs:label>
+        <rdfs:label xml:lang="en">order</rdfs:label>
+        <skos:prefLabel>order</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;BestGaze"/>
+        <rdfs:domain rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:domain rdf:resource="&nihss;Commands"/>
+        <rdfs:domain rdf:resource="&nihss;Consciousness"/>
+        <rdfs:domain rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:domain rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:domain rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:domain rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:domain rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:domain rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:domain rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:domain rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:domain rdf:resource="&nihss;Questions"/>
+        <rdfs:domain rdf:resource="&nihss;Sensory"/>
+        <rdfs:domain rdf:resource="&nihss;Visual"/>
+        <rdfs:range rdf:resource="&xsd;int"/>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://purl.org/dc/elements/1.1/description -->
+
+    <owl:AnnotationProperty rdf:about="&dc;description"/>
+    
+
+
+    <!-- http://www.w3.org/2004/02/skos/core#prefLabel -->
+
+    <owl:AnnotationProperty rdf:about="&skos;prefLabel"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#bestGaze -->
+
+    <owl:ObjectProperty rdf:about="&nihss;bestGaze">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>best gaze</rdfs:label>
+        <rdfs:label xml:lang="cs">okulomotorika</rdfs:label>
+        <rdfs:label xml:lang="en">best gaze</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>best gaze</skos:prefLabel>
+        <rdfs:range rdf:resource="&nihss;BestGaze"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#bestLanguage -->
+
+    <owl:ObjectProperty rdf:about="&nihss;bestLanguage">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>best language</rdfs:label>
+        <rdfs:label xml:lang="cs">řeč</rdfs:label>
+        <rdfs:label xml:lang="en">best language</rdfs:label>
+        <skos:prefLabel>best language</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#commands -->
+
+    <owl:ObjectProperty rdf:about="&nihss;commands">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>commands</rdfs:label>
+        <rdfs:label xml:lang="cs">vyhovění výzvám</rdfs:label>
+        <rdfs:label xml:lang="en">commands</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>commands</skos:prefLabel>
+        <rdfs:range rdf:resource="&nihss;Commands"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#consciousness -->
+
+    <owl:ObjectProperty rdf:about="&nihss;consciousness">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>consciosness</rdfs:label>
+        <rdfs:label xml:lang="cs">úroveň vědomí</rdfs:label>
+        <rdfs:label xml:lang="en">consciosness</rdfs:label>
+        <skos:prefLabel>consciosness</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;Consciousness"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#dysarthria -->
+
+    <owl:ObjectProperty rdf:about="&nihss;dysarthria">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>dysarthria</rdfs:label>
+        <rdfs:label xml:lang="cs">dysartrie</rdfs:label>
+        <rdfs:label xml:lang="en">dysarthria</rdfs:label>
+        <skos:prefLabel>dysarthria</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#extinctionAndInattention -->
+
+    <owl:ObjectProperty rdf:about="&nihss;extinctionAndInattention">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>extinction and inattention</rdfs:label>
+        <rdfs:label xml:lang="cs">neglect syndrom a fenomén extinkce</rdfs:label>
+        <rdfs:label xml:lang="en">extinction and inattention</rdfs:label>
+        <skos:prefLabel>extinction and inattention</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#facialPalsy -->
+
+    <owl:ObjectProperty rdf:about="&nihss;facialPalsy">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>facial palsy</rdfs:label>
+        <rdfs:label xml:lang="cs">faciální paresa</rdfs:label>
+        <rdfs:label xml:lang="en">facial palsy</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>facial palsy</skos:prefLabel>
+        <rdfs:range rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#limbAtaxia -->
+
+    <owl:ObjectProperty rdf:about="&nihss;limbAtaxia">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label xml:lang="cs">ataxie</rdfs:label>
+        <rdfs:label>limb ataxia</rdfs:label>
+        <rdfs:label xml:lang="en">limb ataxia</rdfs:label>
+        <skos:prefLabel>limb ataxia</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#motorArmLeft -->
+
+    <owl:ObjectProperty rdf:about="&nihss;motorArmLeft">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>motor left arm</rdfs:label>
+        <rdfs:label xml:lang="cs">motorika levé ruky</rdfs:label>
+        <rdfs:label xml:lang="en">motor left arm</rdfs:label>
+        <skos:prefLabel>motor left arm</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#motorArmRight -->
+
+    <owl:ObjectProperty rdf:about="&nihss;motorArmRight">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>motor right arm</rdfs:label>
+        <rdfs:label xml:lang="cs">motorika pravé ruky</rdfs:label>
+        <rdfs:label xml:lang="en">motor right arm</rdfs:label>
+        <skos:prefLabel>motor right arm</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#motorLegLeft -->
+
+    <owl:ObjectProperty rdf:about="&nihss;motorLegLeft">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>motor left leg</rdfs:label>
+        <rdfs:label xml:lang="cs">motorika levé nohy</rdfs:label>
+        <rdfs:label xml:lang="en">motor left leg</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>motor left leg</skos:prefLabel>
+        <rdfs:range rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#motorLegRight -->
+
+    <owl:ObjectProperty rdf:about="&nihss;motorLegRight">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>motor right leg</rdfs:label>
+        <rdfs:label xml:lang="cs">motorika pravé nohy</rdfs:label>
+        <rdfs:label xml:lang="en">motor right leg</rdfs:label>
+        <skos:prefLabel>motor right leg</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:range rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#questions -->
+
+    <owl:ObjectProperty rdf:about="&nihss;questions">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label xml:lang="cs">odpovědi na otázky</rdfs:label>
+        <rdfs:label>questions</rdfs:label>
+        <rdfs:label xml:lang="en">questions</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>questions</skos:prefLabel>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&nihss;Questions"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#sensory -->
+
+    <owl:ObjectProperty rdf:about="&nihss;sensory">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>sensory</rdfs:label>
+        <rdfs:label xml:lang="cs">senzitivita</rdfs:label>
+        <rdfs:label xml:lang="en">sensory</rdfs:label>
+        <skos:prefLabel>sensory</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&nihss;Sensory"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#timepoint -->
+
+    <owl:ObjectProperty rdf:about="&nihss;timepoint">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label xml:lang="cs">období</rdfs:label>
+        <rdfs:label>timepoint</rdfs:label>
+        <rdfs:label xml:lang="en">timepoint</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>timepoint</skos:prefLabel>
+        <rdfs:range rdf:resource="&nihss;Interval"/>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#visual -->
+
+    <owl:ObjectProperty rdf:about="&nihss;visual">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>visual</rdfs:label>
+        <rdfs:label xml:lang="cs">zorné pole</rdfs:label>
+        <rdfs:label xml:lang="en">visual</rdfs:label>
+        <skos:prefLabel>visual</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&nihss;Visual"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#onlyTotalScoreAvailable -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;onlyTotalScoreAvailable">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>only total score available</rdfs:label>
+        <rdfs:label xml:lang="cs">dostupné pouze celkové skóre</rdfs:label>
+        <rdfs:label xml:lang="en">only total score available</rdfs:label>
+        <skos:prefLabel>only total score available</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;boolean"/>
+    </owl:DatatypeProperty>
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#avg -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;avg">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>computed average score</rdfs:label>
+        <rdfs:label xml:lang="cs">vypočítané průměrné skóre</rdfs:label>
+        <rdfs:label xml:lang="en">computed average score</rdfs:label>
+        <skos:prefLabel>computed average score</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;float"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#datetimeExam -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;datetimeExam">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>exam date and time</rdfs:label>
+        <rdfs:label xml:lang="cs">datum a čas vyšetření</rdfs:label>
+        <rdfs:label xml:lang="en">exam date and time</rdfs:label>
+        <skos:prefLabel>exam date and time</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;dateTime"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#explain -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;explain">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>explain</rdfs:label>
+        <rdfs:label xml:lang="cs">vysvětlení</rdfs:label>
+        <rdfs:label xml:lang="en">explain</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>explain</skos:prefLabel>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#patientID -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;patientID">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label xml:lang="cs">identifikátor pacienta</rdfs:label>
+        <rdfs:label>patient ID</rdfs:label>
+        <rdfs:label xml:lang="en">patient ID</rdfs:label>
+        <skos:prefLabel>patient ID</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;string"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#score -->
+
+    <owl:DatatypeProperty rdf:about="&nihss;score">
+        <rdf:type rdf:resource="&owl;FunctionalProperty"/>
+        <rdfs:label>score</rdfs:label>
+        <rdfs:label xml:lang="cs">skóre</rdfs:label>
+        <rdfs:label xml:lang="en">score</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>score</skos:prefLabel>
+        <rdfs:domain rdf:resource="&nihss;NIHStrokeScale"/>
+        <rdfs:range rdf:resource="&xsd;int"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestGaze -->
+
+    <owl:Class rdf:about="&nihss;BestGaze">
+        <rdfs:label>2 - Best Gaze</rdfs:label>
+        <rdfs:label xml:lang="cs">2 - okulomotorika</rdfs:label>
+        <rdfs:label xml:lang="en">2 - Best Gaze</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <skos:prefLabel>2 - Best Gaze</skos:prefLabel>
+        <order>4</order>
+        <dc:description xml:lang="cs">Testují se jen horizontální pohyby bulbů (volní či vyvolané okulocefalické reflexy). Neprovádí se kalorické testování.
+
+ - Izolovaná paresa okohybného nervu či deviace, kterou lze překonat okulocefalickým manévrem jsou hodnoceny 1.
+ - Deviace bulbů, kterou nelze překonat OC manévry, hodnotíme 2.
+
+U afatických či amentních pacientů je vhodné navodit oční kontakt a pak se pohybovat kolem lůžka a sledovat reakce pacienta. V tomto bodě platí výjimka z pravidla o hodnocení první odpovědi a zákazu dopomoci. Hodnotí se nejlepší odpověď.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description xml:lang="en">Only horizontal eye movements will be tested. Voluntary or reflexive (oculocephalic) eye movements will be scored, but caloric testing is not done. If the patient has a conjugate deviation of the eyes that can be overcome by voluntary or reflexive activity, the score will be 1. If a patient has an isolated peripheral nerve paresis (CN III, IV or VI), score a 1. Gaze is testable in all aphasic patients. Patients with ocular trauma, bandages, pre-existing blindness, or other disorder of visual acuity or fields should be tested with reflexive movements, and a choice made by the investigator. Establishing eye contact and then moving about the patient from side to side will occasionally clarify the presence of a partial gaze palsy.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage -->
+
+    <owl:Class rdf:about="&nihss;BestLanguage">
+        <rdfs:label>9 - Best Language</rdfs:label>
+        <rdfs:label xml:lang="cs">9 - řeč</rdfs:label>
+        <rdfs:label xml:lang="en">9 - Best Language</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <order>13</order>
+        <skos:prefLabel>9 - Best Language</skos:prefLabel>
+        <dc:description xml:lang="cs">Mnoho informací o řečových funkcích získáme již během předchozího vyšetřování. Řeč vyšetřujeme tím, že pacient popisuje, co se děje na přiloženém obrázku, dále pojmenovává předměty a čte věty na dalších dvou přiložených listech. Žádejte, aby pacient přečetl všechny věty a pojmenoval všechny předměty. V případě, že porucha zraku znemožňuje toto vyšetření, nechte pacienta pojmenovat předměty vložené do ruky, nechte jej opakovat slova a spontánně produkovat řeč. Intubovaní pacienti mohou psát.
+
+Pacient v komatu je skórován 3. Vyšetřující se musí rozhodnout, jak skórovat pacienta ve stuporu či s omezenou spoluprácí, ale 3 dostává jen pacient zcela bez slovní produkce, který nesplní žádný z vyšetřovaných úkolů.
+
+Pozn. přiložené listy papíru mají potvrdit informace získané již z předešlého vyšetření. Přesto je nutné toto vyšetření provést tak, jak je předepsáno. Lehká afázie dostává skóre 1. Skóre 2 dostává pacient, který nevyjmenuje či nepřečte více než 2/3 předmětů a vět.</dc:description>
+        <dc:description xml:lang="en">A great deal of information about comprehension will be obtained during the preceding sections of the examination. For this scale item, the patient is asked to describe what is happening in the attached picture, to name the items on the attached naming sheet and to read from the attached list of sentences. Comprehension is judged from responses here, as well as to all of the commands in the preceding general neurological exam. If visual loss interferes with the tests, ask the patient to identify objects placed in the hand, repeat, and produce speech. The intubated patient should be asked to write. The patient in a coma (item 1a=3) will automatically score 3 on this item. The examiner must choose a score for the patient with stupor or limited cooperation, but a score of 3 should be used only if the patient is mute and follows no one-step commands.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Commands -->
+
+    <owl:Class rdf:about="&nihss;Commands">
+        <rdfs:label>1c - Level of Consciousness Commands</rdfs:label>
+        <rdfs:label xml:lang="cs">1c - vyhovění výzvám</rdfs:label>
+        <rdfs:label xml:lang="en">1c - Level of Consciousness Commands</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <order>3</order>
+        <skos:prefLabel>1c - Level of Consciousness Commands</skos:prefLabel>
+        <dc:description xml:lang="cs">Pacient je požádán o otevření a zavření očí a potom o sevření a otevření neparetické ruky. Úkoly lze modifikovat dle možností pacienta (např. v případě kvadruparesy) a použít jiný úkol. Opět zaznamenáváme první pokus pacienta. Úkol je možno pantomimou předvést. Dle situace můžeme měnit pořadí příkazů a hodnotí se pouze druhá odpověď. Např. v případě, že má zavřené oči, požádáme ho, aby oči nejprve otevřel a potom zavřel a hodnotí se pouze jejich zavření.</dc:description>
+        <dc:description xml:lang="en">The patient is asked to open and close the eyes and then to grip and release the non-paretic hand. Substitute another one step command if the hands cannot be used. Credit is given if an unequivocal attempt is made but not completed due to weakness. If the patient does not respond to command, the task should be demonstrated to him or her (pantomime), and the result scored (i.e., follows none, one or two commands). Patients with trauma, amputation, or other physical impediments should be given suitable one-step commands. Only the first attempt is scored.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness -->
+
+    <owl:Class rdf:about="&nihss;Consciousness">
+        <rdfs:label>1a - Level of Consciousness</rdfs:label>
+        <rdfs:label xml:lang="cs">1a - úroveň vědomí</rdfs:label>
+        <rdfs:label xml:lang="en">1a - Level of Consciousness</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>1a - Level of Consciousness</skos:prefLabel>
+        <order>1</order>
+        <dc:description xml:lang="cs">Vyšetření provádíme na základě předchozího kontaktu s pacientem, odebírání anamnesy, atd. Hodnotíme za všech okolností (včetně OTI, orotracheální poranění, apod.). Skóre 3 hodnotíme pouze, pokud pacient reaguje pouze na bolestivé stimuly a to reflexně či nereaguje vůbec. Tážeme se pacienta 2-3 otázkami na okolnosti přijetí do nemocnice, dále se ptáme na anamnézu, předchozí medikaci.</dc:description>
+        <dc:description xml:lang="en">The investigator must choose a response if a full evaluation is prevented by such obstacles as an endotracheal tube, language barrier, orotracheal trauma/bandages. A 3 is scored only if the patient makes no movement (other than reflexive posturing) in response to noxious stimulation.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria -->
+
+    <owl:Class rdf:about="&nihss;Dysarthria">
+        <rdfs:label>10 - Dysarthria</rdfs:label>
+        <rdfs:label xml:lang="cs">10 - dysartrie</rdfs:label>
+        <rdfs:label xml:lang="en">10 - Dysarthria</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>14</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>10 - Dysarthria</skos:prefLabel>
+        <dc:description xml:lang="cs">Je možné, že lehká dysartrie může být opomenuta při předchozím rozhovoru. Proto k testování použijeme přiložený list papíru, z kterého pacient přečte předepsaná slova.
+
+Skóre 1 dostává pacient, který je dysartrický, ale kterému je rozumět.
+Skóre 2 dostává pacient, kterému pro dysartrii není rozumět nebo který je mutistický.
+Afatičtí pacienti a pacienti, kteří nemohou či neumí číst, mohou být skórováni na základě jejich spontánní slovní produkce nebo opakování lékařem nahlas přečtených slov. Jen pokud je pacient intubovaný, či je přítomna jiná fyzická překážka k produkci řeči, je skórován 9 a vyšetřující musí jasně definovat příčinu. Nesdělujte pacientovi, za jakým účelem je testován.
+</dc:description>
+        <dc:description xml:lang="en">If patient is thought to be normal, an adequate sample of speech must be obtained by asking patient to read or repeat words from the attached list. If the patient has severe aphasia, the clarity of articulation of spontaneous speech can be rated. Only if the patient is intubated or has other physical barriers to producing speech, the examiner should record the score as untestable (UN), and clearly write an explanation for this choice. Do not tell the patient why he or she is being tested.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#ExtinctionAndInattention -->
+
+    <owl:Class rdf:about="&nihss;ExtinctionAndInattention">
+        <rdfs:label>11 - Extinction and Inattention</rdfs:label>
+        <rdfs:label xml:lang="cs">11 - neglect syndrom a fenomén extinkce</rdfs:label>
+        <rdfs:label xml:lang="en">11 - Extinction and Inattention</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <dc:description xml:lang="cs">Dostatečné informace k rozpoznání neglect syndromu mohou být získány během provedeného předchozího vyšetření. K testování použijeme simultánní stimulaci zrakovou a sensitivní, popř. jinou kvalitou.
+
+V případě izolované poruchy nebo anosognoze skórujeme 1, v případě extinkce pro více než 1 kvalitu, skórujeme 2. Pokud má pacient hemianopsii a jinak nic nesvědčí pro neglect (např. testování kožní citlivosti), skórujeme 0. Podobně pokud při afázii reaguje na obě strany, skórujeme 0.
+
+Tento bod skórujeme jen v případě jasně prokazatelného deficitu a proto nemůže být netestovatelný.
+</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:comment>Formerly Neglect.</rdfs:comment>
+        <skos:prefLabel>11 - Extinction and Inattention</skos:prefLabel>
+        <order>15</order>
+        <dc:description xml:lang="en">Sufficient information to identify neglect may be obtained during the prior testing. If the patient has a severe visual loss preventing visual double simultaneous stimulation, and the cutaneous stimuli are normal, the score is normal. If the patient has aphasia but does appear to attend to both sides, the score is normal. The presence of visual spatial neglect or anosagnosia may also be taken as evidence of abnormality. Since the abnormality is scored only if present, the item is never untestable.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy -->
+
+    <owl:Class rdf:about="&nihss;FacialPalsy">
+        <rdfs:label>4 - Facial Palsy</rdfs:label>
+        <rdfs:label xml:lang="cs">4 - faciální paresa</rdfs:label>
+        <rdfs:label xml:lang="en">4 - Facial Palsy</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>6</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>4 - Facial Palsy</skos:prefLabel>
+        <dc:description xml:lang="cs">Hodnotíme mimiku v klidu, dále pacienta požádáme, aby vycenil zuby, pevně zavřel oči a pokrčil obočí. U pacientů s poruchou vědomí, afázií či amencí hodnotíme symetričnost bolestivé grimasy při algické stimulaci.
+
+Jasnou centrální paresu n.VII hodnotíme 2, drobnou asymetrii (např. nasolabiální rýhy) hodnotíme 1, pacienty v hlubokém kómatu bez reakce
+na algické stimuly, pacienty s bilaterální paresou n.VII či periferní paresou nervu hodnotíme 3.</dc:description>
+        <dc:description xml:lang="en">Ask – or use pantomime to encourage – the patient to show teeth or raise eyebrows and close eyes. Score symmetry of grimace in response to noxious stimuli in the poorly responsive or non-comprehending patient. If facial trauma/bandages, orotracheal tube, tape or other physical barriers obscure the face, these should be removed to the extent possible.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Instruction -->
+
+    <owl:Class rdf:about="&nihss;Instruction">
+        <rdfs:label xml:lang="cs">Instrukce k hodnocení NIHSS</rdfs:label>
+        <rdfs:label>NIHSS Instruction</rdfs:label>
+        <rdfs:label xml:lang="en">NIHSS Instruction</rdfs:label>
+        <skos:prefLabel>NIHSS Instruction</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Interval -->
+
+    <owl:Class rdf:about="&nihss;Interval">
+        <rdfs:label>Interval</rdfs:label>
+        <rdfs:label xml:lang="cs">Časový interval</rdfs:label>
+        <rdfs:label xml:lang="en">Interval</rdfs:label>
+        <skos:prefLabel>Interval</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia -->
+
+    <owl:Class rdf:about="&nihss;LimbAtaxia">
+        <rdfs:label>7 - Limb Ataxia</rdfs:label>
+        <rdfs:label xml:lang="cs">7 - ataxie</rdfs:label>
+        <rdfs:label xml:lang="en">7 - Limb Ataxia</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <skos:prefLabel>7 - Limb Ataxia</skos:prefLabel>
+        <order>11</order>
+        <dc:description xml:lang="cs">Cílem je diagnostikovat jednostrannou cerebelární lezi. Pacient má otevřené oči, v případě poruchy zorného vyšetřujeme v intaktním zorném poli. Testujeme pokus prst-nos-prst a koleno-pata. Vyšetření je možno pacientovi předvést.
+
+ - Ataxii hodnotíme jen pokud je přítomna, a to disproporčně k přítomné parese. U afatických či plegických pacientů hodnotíme 0.
+ - V případě amputace, ankylózy apod. hodnotíme 9 (uvedeme důvod).
+ - Pokud má pacient paresu a lehkou ataxii a nelze určit, že ataxie není proporční k parese, hodnotíme 0.
+</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description xml:lang="en">This item is aimed at finding evidence of a unilateral cerebellar lesion. Test with eyes open. In case of visual defect, ensure testing is done in intact visual field. The finger-nose-finger and heel-shin tests are performed on both sides, and ataxia is scored only if present out of proportion to weakness. Ataxia is absent in the patient who cannot understand or is paralyzed. Only in the case of amputation or joint fusion, the examiner should record the score as untestable (UN), and clearly write the explanation for this choice. In case of blindness, test by having the patient touch nose from extended arm position.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft -->
+
+    <owl:Class rdf:about="&nihss;MotorArmLeft">
+        <rdfs:label>5b - Motor Arm - left</rdfs:label>
+        <rdfs:label xml:lang="cs">5b - motorika horních končetin - levá</rdfs:label>
+        <rdfs:label xml:lang="en">5b - Motor Arm - left</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>8</order>
+        <skos:prefLabel>5b - Motor Arm - left</skos:prefLabel>
+        <dc:description xml:lang="cs">Končetiny vyšetřujeme izolovaně a začínáme na neparetických končetinách. Nastavíme HKK do 90 st. v sedě resp. 45 st. vleže (dlaně dolů), DKK do 30 st. Počítat začínáme v okamžiku puštění pacientovi končetiny, odečítáme nahlas a na prstech, tak aby je pacient dobře viděl.
+
+Jako instabilitu či kolísání (1) hodnotíme pokles HK do 10 sekund a DK do 5 s (nepočítáme iniciální skles končetiny po jejím puštění). Při sklesu až na podložku hodnotíme 2. Posun po podlozce nebo minimální hybnost hodnotíme 3 a plegii 4. V případě amputace či ankylózy hodnotíme 9 a je nutno důvod uvést.
+
+Lze užít zvýšeného hlasu či pantomimy, při hodnocení však neužíváme algické stimuly.</dc:description>
+        <dc:description xml:lang="en">The limb is placed in the appropriate position: extend the arms (palms down) 90 degrees (if sitting) or 45 degrees (if supine). Drift is scored if the arm falls before 10 seconds. The aphasic patient is encouraged using urgency in the voice and pantomime, but not noxious stimulation. Each limb is tested in turn, beginning with the non-paretic arm. Only in the case of amputation or joint fusion at the shoulder, the examiner should record the score as untestable (UN), and clearly write the explanation for this choice.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight -->
+
+    <owl:Class rdf:about="&nihss;MotorArmRight">
+        <rdfs:label>5a - Motor Arm - right</rdfs:label>
+        <rdfs:label xml:lang="cs">5a - motorika horních končetin - pravá</rdfs:label>
+        <rdfs:label xml:lang="en">5a - Motor Arm - right</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>7</order>
+        <skos:prefLabel>5a - Motor Arm - right</skos:prefLabel>
+        <dc:description xml:lang="cs">Končetiny vyšetřujeme izolovaně a začínáme na neparetických končetinách. Nastavíme HKK do 90 st. v sedě resp. 45 st. vleže (dlaně dolů), DKK do 30 st. Počítat začínáme v okamžiku puštění pacientovi končetiny, odečítáme nahlas a na prstech, tak aby je pacient dobře viděl.
+
+Jako instabilitu či kolísání (1) hodnotíme pokles HK do 10 sekund a DK do 5 s (nepočítáme iniciální skles končetiny po jejím puštění). Při sklesu až na podložku hodnotíme 2. Posun po podlozce nebo minimální hybnost hodnotíme 3 a plegii 4. V případě amputace či ankylózy hodnotíme 9 a je nutno důvod uvést.
+
+Lze užít zvýšeného hlasu či pantomimy, při hodnocení však neužíváme algické stimuly.</dc:description>
+        <dc:description xml:lang="en">The limb is placed in the appropriate position: extend the arms (palms down) 90 degrees (if sitting) or 45 degrees (if supine). Drift is scored if the arm falls before 10 seconds. The aphasic patient is encouraged using urgency in the voice and pantomime, but not noxious stimulation. Each limb is tested in turn, beginning with the non-paretic arm. Only in the case of amputation or joint fusion at the shoulder, the examiner should record the score as untestable (UN), and clearly write the explanation for this choice.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft -->
+
+    <owl:Class rdf:about="&nihss;MotorLegLeft">
+        <rdfs:label>6b - Motor Leg - left</rdfs:label>
+        <rdfs:label xml:lang="cs">6b - motorika dolních končetin - levá</rdfs:label>
+        <rdfs:label xml:lang="en">6b - Motor Leg - left</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <skos:prefLabel>6b - Motor Leg - left</skos:prefLabel>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <order>10</order>
+        <dc:description xml:lang="cs">Končetiny vyšetřujeme izolovaně a začínáme na neparetických končetinách. Nastavíme HKK do 90 st. v sedě resp. 45 st. vleže (dlaně dolů), DKK do 30 st. Počítat začínáme v okamžiku puštění pacientovi končetiny, odečítáme nahlas a na prstech, tak aby je pacient dobře viděl.
+
+Jako instabilitu či kolísání (1) hodnotíme pokles HK do 10 sekund a DK do 5 s (nepočítáme iniciální skles končetiny po jejím puštění). Při sklesu až na podložku hodnotíme 2. Posun po podlozce nebo minimální hybnost hodnotíme 3 a plegii 4. V případě amputace či ankylózy hodnotíme 9 a je nutno důvod uvést.
+
+Lze užít zvýšeného hlasu či pantomimy, při hodnocení však neužíváme algické stimuly.</dc:description>
+        <dc:description xml:lang="en">The limb is placed in the appropriate position: hold the leg at 30 degrees (always tested supine). Drift is scored if the leg falls before 5 seconds. The aphasic patient is encouraged using urgency in the voice and pantomime, but not noxious stimulation. Each limb is tested in turn, beginning with the non-paretic leg. Only in the case of amputation or joint fusion at the hip, the examiner should record the score as untestable (UN), and clearly write the explanation for this choice.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight -->
+
+    <owl:Class rdf:about="&nihss;MotorLegRight">
+        <rdfs:label>6a - Motor Leg - right</rdfs:label>
+        <rdfs:label xml:lang="cs">6a - motorika dolních končetin - pravá</rdfs:label>
+        <rdfs:label xml:lang="en">6a - Motor Leg - right</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <skos:prefLabel>6a - Motor Leg - right</skos:prefLabel>
+        <order>9</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description xml:lang="cs">Končetiny vyšetřujeme izolovaně a začínáme na neparetických končetinách. Nastavíme HKK do 90 st. v sedě resp. 45 st. vleže (dlaně dolů), DKK do 30 st. Počítat začínáme v okamžiku puštění pacientovi končetiny, odečítáme nahlas a na prstech, tak aby je pacient dobře viděl.
+
+Jako instabilitu či kolísání (1) hodnotíme pokles HK do 10 sekund a DK do 5 s (nepočítáme iniciální skles končetiny po jejím puštění). Při sklesu až na podložku hodnotíme 2. Posun po podlozce nebo minimální hybnost hodnotíme 3 a plegii 4. V případě amputace či ankylózy hodnotíme 9 a je nutno důvod uvést.
+
+Lze užít zvýšeného hlasu či pantomimy, při hodnocení však neužíváme algické stimuly.</dc:description>
+        <dc:description xml:lang="en">The limb is placed in the appropriate position: hold the leg at 30 degrees (always tested supine). Drift is scored if the leg falls before 5 seconds. The aphasic patient is encouraged using urgency in the voice and pantomime, but not noxious stimulation. Each limb is tested in turn, beginning with the non-paretic leg. Only in the case of amputation or joint fusion at the hip, the examiner should record the score as untestable (UN), and clearly write the explanation for this choice.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#NIHStrokeScale -->
+
+    <owl:Class rdf:about="&nihss;NIHStrokeScale">
+        <rdfs:label>NIHSS Report</rdfs:label>
+        <rdfs:label xml:lang="cs">Hodnocení dle NIHSS</rdfs:label>
+        <rdfs:label xml:lang="en">NIHSS Report</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:comment xml:lang="cs">NIH Stroke Scale je standardizované neurologické vyšetření sloužící k popsání deficitu u pacientů s iktem. Cílem této škály je, aby různí vyšetřující hodnotili pacienty obdobně a výsledky tak byly srovnatelné. Nejlepší způsob testování je diskutabilní a dle této škály může být odlišný od klinické praxe. Pacient tak může být vyšetřen dvěma způsoby za cenu vysoké reprodukovatelnosti výsledků.
+
+Zde jsou 4 základní principy hodnocení NIHSS:
+
+1. Vždy hodnotíme první odpověď. Znamená to, že pokud např. pacient na otázku týkající se jeho věku odpoví nejprve špatně a potom se opraví, je nutno hodnotit odpověď jako nesprávnou. Toto je zásadní, protože jinak není možné zohlednit všechny způsoby verbální a nonverbální nápovědy a zajistit reprodukovatelnost.
+
+2. Nikdy pacientovi při vyšetření nepomáháme a neradíme, pokud není v instrukcích výslovně uvedeno. Při vyšetření tak neškálujeme jeho nejlepší výkon.
+
+3. Některé položky jsou hodnoceny, jen pokud jsou přítomny. Např. ataxie je u plegického pacienta hodnocena jako nepítomna.
+
+4. Hodnotíme jen to, co pacient v danou chvíli dokáže, ne to co si myslíme, že by dokázat mohl. Skóruje se i starší deficit s výjimkou poruchy sense.
+
+Skóre by mělo být zapsáno ihned po ukončení vyšetření.</rdfs:comment>
+        <skos:prefLabel>NIHSS Report</skos:prefLabel>
+        <owl:hasKey rdf:parseType="Collection">
+            <rdf:Description rdf:about="&nihss;datetimeExam"/>
+            <rdf:Description rdf:about="&nihss;patientID"/>
+        </owl:hasKey>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Questions -->
+
+    <owl:Class rdf:about="&nihss;Questions">
+        <rdfs:label>1b - Level of Consciousness Questions</rdfs:label>
+        <rdfs:label xml:lang="cs">1b - odpovědi na otázky</rdfs:label>
+        <rdfs:label xml:lang="en">1b - Level of Consciousness Questions</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>2</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <skos:prefLabel>1b - Level of Consciousness Questions</skos:prefLabel>
+        <dc:description xml:lang="cs">Ptáme se na věk pacienta a jaký je nyní měsíc v roce. Počítá se pouze první a pouze zcela správná odpověď. Vyloučena je verbální či nonverbální nápověda nebo výběr z nabídnutých možností. Pacienti, kteří nemohou mluvit, mohou odpověď napsat.
+
+ - pacient s afázií či v komatu ­ 2
+ - pacienti neschopní mluvit pro bariéru (OTI, trauma, jazyková bariéra, těžká dysartrie) ­ 1
+</dc:description>
+        <dc:description xml:lang="en">The patient is asked the month and his/her age. The answer must be correct - there is no partial credit for being close. Aphasic and stuporous patients who do not comprehend the questions will score 2. Patients unable to speak because of endotracheal intubation, orotracheal trauma, severe dysarthria from any cause, language barrier, or any other problem not secondary to aphasia are given a 1. It is important that only the initial answer be graded and that the examiner not &quot;help&quot; the patient with verbal or non-verbal cues.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Sensory -->
+
+    <owl:Class rdf:about="&nihss;Sensory">
+        <rdfs:label>8 - Sensory</rdfs:label>
+        <rdfs:label xml:lang="cs">8 - senzitivita</rdfs:label>
+        <rdfs:label xml:lang="en">8 - Sensory</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>12</order>
+        <skos:prefLabel>8 - Sensory</skos:prefLabel>
+        <dc:description xml:lang="cs">U pacienta posuzujeme grimasu či kvantitu vjemu při bodnutí ostřejším předmětem (špendlík), či reakci na bolestivý stimulus u pacienta utlumeného. Hodnotí se jen postižení senzitivity vzniklé v důsledku mozkové příhody a testujeme dostatečné množství partií k validnímu posouzení rozsahu postižení ­ pozor na testování aker vzhledem k možnosti senzitivní neuropatie a tudíž falešné pozitivitě.
+
+Skórujeme 2 body při jasně prokazatelné těžké či úplné ztrátě citlivosti. Z toho dvodu budou pacienti stuporózní či afatičtí většinou skórováni 1 či 0.
+Pacient s bilaterální ztrátou sense při kmenovém infarktu je skórován 2.
+Pacient v kómatu je skórován 2.
+
+Pozn. Netestujte akra končetin, protože výsledky mohou být zkresleny možnou polyneuropatií. Nevyšetřujte přes oděv.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description xml:lang="en">Sensation or grimace to pinprick when tested, or withdrawal from noxious stimulus in the obtunded or aphasic patient. Only sensory loss attributed to stroke is scored as abnormal and the examiner should test as many body areas (arms [not hands], legs, trunk, face) as needed to accurately check for hemisensory loss. A score of 2, “severe or total sensory loss,” should only be given when a severe or total loss of sensation can be clearly demonstrated. Stuporous and aphasic patients will, therefore, probably score 1 or 0. The patient with brainstem stroke who has bilateral loss of sensation is scored 2. If the patient does not respond and is quadriplegic, score 2. Patients in a coma (item 1a=3) are automatically given a 2 on this item.</dc:description>
+    </owl:Class>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual -->
+
+    <owl:Class rdf:about="&nihss;Visual">
+        <rdfs:label>3 - Visual</rdfs:label>
+        <rdfs:label xml:lang="cs">3 - zorné pole</rdfs:label>
+        <rdfs:label xml:lang="en">3 - Visual</rdfs:label>
+        <rdfs:subClassOf rdf:resource="&nihss;Instruction"/>
+        <order>5</order>
+        <skos:prefLabel>3 - Visual</skos:prefLabel>
+        <dc:description xml:lang="cs">Používáme simultánní stimulace pohybujícími se prsty (nebo jejich počítání) v obou zorných polích zvlášť v horním a dolním kvadrantu.
+
+Skórujeme 1, pokud je jasná asymetrie, včetně kvadrantové hemianopsie.
+Skórujeme 2 v případě kompletní hemianopsie.
+Skórujeme 3 v případě slepoty (včetně kortikální). V případě enukleace či monokulární slepoty hodnotíme zorné pole na zdravém oku.
+Zorné pole vyšetřujeme i simultánně a v případě extinkce hodnotíme 1 a odpověď použijeme též u bodu 11.</dc:description>
+        <dc:description xml:lang="en">Visual fields (upper and lower quadrants) are tested by confrontation, using finger counting or visual threat, as appropriate. Patients may be encouraged, but if they look at the side of the moving fingers appropriately, this can be scored as normal. If there is unilateral blindness or enucleation, visual fields in the remaining eye are scored. Score 1 only if a clear-cut asymmetry, including quadrantanopia, is found. If patient is blind from any cause, score 3. Double simultaneous stimulation is performed at this point. If there is extinction, patient receives a 1, and the results are used to respond to item 11.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#AFTER_02H -->
+
+    <owl:NamedIndividual rdf:about="&nihss;AFTER_02H">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>2 hours post treatment</rdfs:label>
+        <rdfs:label xml:lang="cs">po 2 hodinách od léčby</rdfs:label>
+        <rdfs:label xml:lang="en">2 hours post treatment</rdfs:label>
+        <order>2</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#AFTER_03M -->
+
+    <owl:NamedIndividual rdf:about="&nihss;AFTER_03M">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>3 months</rdfs:label>
+        <rdfs:label xml:lang="cs">po 3 měsících</rdfs:label>
+        <rdfs:label xml:lang="en">3 months</rdfs:label>
+        <order>5</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#AFTER_07D -->
+
+    <owl:NamedIndividual rdf:about="&nihss;AFTER_07D">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>7-10 days</rdfs:label>
+        <rdfs:label xml:lang="cs">po 7-10 dnech</rdfs:label>
+        <rdfs:label xml:lang="en">7-10 days</rdfs:label>
+        <order>4</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#AFTER_24H -->
+
+    <owl:NamedIndividual rdf:about="&nihss;AFTER_24H">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>24 hours post onset of symptoms</rdfs:label>
+        <rdfs:label xml:lang="cs">po 24 hodinách od příznaků</rdfs:label>
+        <rdfs:label xml:lang="en">24 hours post onset of symptoms</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <order>3</order>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BASELINE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BASELINE">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>baseline</rdfs:label>
+        <rdfs:label xml:lang="cs">příjem</rdfs:label>
+        <rdfs:label xml:lang="en">baseline</rdfs:label>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <order>1</order>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestGaze -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestGaze">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70187-0"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestGaze_FORCED_DEVIATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestGaze_FORCED_DEVIATION">
+        <rdf:type rdf:resource="&nihss;BestGaze"/>
+        <rdfs:label xml:lang="en">2 Forced deviation</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <dc:description>Forced deviation, or total gaze paresis not overcome by the oculocephalic maneuver.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestGaze_NORMAL -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestGaze_NORMAL">
+        <rdf:type rdf:resource="&nihss;BestGaze"/>
+        <rdfs:label xml:lang="en">0 Normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestGaze_PARCIAL_GAZE_PALSY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestGaze_PARCIAL_GAZE_PALSY">
+        <rdf:type rdf:resource="&nihss;BestGaze"/>
+        <rdfs:label xml:lang="en">1 Partial gaze palsy</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Gaze is abnormal in one or both eyes, but forced deviation or total gaze paresis is not present.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestLanguage">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70194-6"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage_GLOBAL_APHASIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestLanguage_GLOBAL_APHASIA">
+        <rdf:type rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:label xml:lang="en">3 Mute, global aphasia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>No usable speech or auditory comprehension.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage_MILD_TO_MODERATE_APHASIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestLanguage_MILD_TO_MODERATE_APHASIA">
+        <rdf:type rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:label xml:lang="en">1 Mild-to-moderate aphasia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Some obvious loss of fluency or facility of comprehension, without significant limitation on ideas expressed or form of expression. Reduction of speech and/or comprehension, however, makes conversation about provided materials difficult or impossible. For example, in conversation about provided materials, examiner can identify picture or naming card content from patient’s response.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage_NO_APHASIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestLanguage_NO_APHASIA">
+        <rdf:type rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:label xml:lang="en">0 No aphasia; normal.</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#BestLanguage_SEVERE_APHASIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;BestLanguage_SEVERE_APHASIA">
+        <rdf:type rdf:resource="&nihss;BestLanguage"/>
+        <rdfs:label xml:lang="en">2 Severe aphasia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <dc:description>All communication is through fragmentary expression; great need for inference, questioning, and guessing by the listener. Range of information that can be exchanged is limited; listener carries burden of communication. Examiner cannot identify materials provided from patient response.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Commands -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Commands">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70186-2"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Commands_Both -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Commands_Both">
+        <rdf:type rdf:resource="&nihss;Commands"/>
+        <rdfs:label xml:lang="en">0 Performs both tasks correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Commands_NEITHER -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Commands_NEITHER">
+        <rdf:type rdf:resource="&nihss;Commands"/>
+        <rdfs:label xml:lang="en">2 Performs neither task correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Commands_ONE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Commands_ONE">
+        <rdf:type rdf:resource="&nihss;Commands"/>
+        <rdfs:label xml:lang="en">1 Performs one task correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Consciousness">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70184-7"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness_ALERT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Consciousness_ALERT">
+        <rdf:type rdf:resource="&nihss;Consciousness"/>
+        <rdfs:label xml:lang="en">0 Alert</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <dc:description>Keenly responsive.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness_NOT_ALERT_MINOR_BY_MINOR_STIMULATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Consciousness_NOT_ALERT_MINOR_BY_MINOR_STIMULATION">
+        <rdf:type rdf:resource="&nihss;Consciousness"/>
+        <rdfs:label xml:lang="en">1 Not alert, but arousable by minor stimulation to obey, answer, or respond.</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Not alert, but arousable by minor stimulation to obey, answer, or respond.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness_NOT_ALERT_REQUIRES_REPEATED_STIMULATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Consciousness_NOT_ALERT_REQUIRES_REPEATED_STIMULATION">
+        <rdf:type rdf:resource="&nihss;Consciousness"/>
+        <rdfs:label xml:lang="en">2 Not alert, but requires repeated stimulation to attend, or is obtunded and requires strong or painful stimulation to make movements (not stereotyped).</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Not alert, but requires repeated stimulation to attend, or is obtunded and requires strong or painful stimulation to make movements (not stereotyped).</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Consciousness_UNRESPONSIVE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Consciousness_UNRESPONSIVE">
+        <rdf:type rdf:resource="&nihss;Consciousness"/>
+        <rdfs:label xml:lang="en">3 Unresponsive-coma</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>Responds only with reflex motor or autonomic effects or totally unresponsive, flaccid, and areflexic.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Dysarthria">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70195-3"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria_INTUBATED -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Dysarthria_INTUBATED">
+        <rdf:type rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:label>9 Intubated or other physical barrier. Needs to explain</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria_MILD_TO_MODERATE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Dysarthria_MILD_TO_MODERATE">
+        <rdf:type rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:label xml:lang="en">1 Mild-to-moderate dysarthria</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <dc:description>Patient slurs at least some words and, at worst, can be understood with some difficulty.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria_NORMAL -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Dysarthria_NORMAL">
+        <rdf:type rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:label xml:lang="en">0 Normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Dysarthria_SEVERE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Dysarthria_SEVERE">
+        <rdf:type rdf:resource="&nihss;Dysarthria"/>
+        <rdfs:label xml:lang="en">2 Near unintelligible or unable to speak</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Patient&apos;s speech is so slurred as to be unintelligible in the absence of or out of proportion to any dysphasia, or is mute/anarthric.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#ExtinctionAndInattention -->
+
+    <owl:NamedIndividual rdf:about="&nihss;ExtinctionAndInattention">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70196-1"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#ExtinctionAndInattention_HEMI_INATTENATION_OR_EXTINCTION_TO_MORE_THAN_ONE_MODALITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;ExtinctionAndInattention_HEMI_INATTENATION_OR_EXTINCTION_TO_MORE_THAN_ONE_MODALITY">
+        <rdf:type rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:label xml:lang="en">2 Profound hemi-inattention or extinction to more than one modality</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Does not recognize own hand or orients to only one side of space.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#ExtinctionAndInattention_INATTENTION_OR_EXTINCTION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;ExtinctionAndInattention_INATTENTION_OR_EXTINCTION">
+        <rdf:type rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:label xml:lang="en">1 Inattention or extinction to bil. simultaneous stimulation in one of the sensory modalities</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#ExtinctionAndInattention_NO_EXTINCTION_AND_INATTENTION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;ExtinctionAndInattention_NO_EXTINCTION_AND_INATTENTION">
+        <rdf:type rdf:resource="&nihss;ExtinctionAndInattention"/>
+        <rdfs:label xml:lang="en">0 No abnormality</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy -->
+
+    <owl:NamedIndividual rdf:about="&nihss;FacialPalsy">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70189-6"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy_COMPLETE_PARALYSIS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;FacialPalsy_COMPLETE_PARALYSIS">
+        <rdf:type rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:label xml:lang="en">3 Complete paralysis of one or both sides</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>Absence of facial movement in the upper and lower face.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy_MINOR_PARALYSIS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;FacialPalsy_MINOR_PARALYSIS">
+        <rdf:type rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:label xml:lang="en">1 Minor paralysis</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Flattened nasolabial fold, asymmetry on smiling.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy_NORMAL_SYMMETRICAL_MOVEMENTS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;FacialPalsy_NORMAL_SYMMETRICAL_MOVEMENTS">
+        <rdf:type rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:label xml:lang="en">0 Normal symmetrical movements</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#FacialPalsy_PARTIAL_PARALYSIS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;FacialPalsy_PARTIAL_PARALYSIS">
+        <rdf:type rdf:resource="&nihss;FacialPalsy"/>
+        <rdfs:label xml:lang="en">2 Partial paralysis</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Total or near-total paralysis of lower face.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Instruction -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Instruction">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/MTHU000270"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Interval -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Interval">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70183-9"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia -->
+
+    <owl:NamedIndividual rdf:about="&nihss;LimbAtaxia">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70192-0"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia_ABSENT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;LimbAtaxia_ABSENT">
+        <rdf:type rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:label xml:lang="en">0 Absent</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia_AMPUTATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;LimbAtaxia_AMPUTATION">
+        <rdf:type rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:label>Amputation or joint fusion</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:comment>Needs to explain.</rdfs:comment>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia_PRESENT_IN_ONE_LIMB -->
+
+    <owl:NamedIndividual rdf:about="&nihss;LimbAtaxia_PRESENT_IN_ONE_LIMB">
+        <rdf:type rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:label xml:lang="en">1 Present in one limb</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#LimbAtaxia_PRESENT_IN_TWO_LIMBS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;LimbAtaxia_PRESENT_IN_TWO_LIMBS">
+        <rdf:type rdf:resource="&nihss;LimbAtaxia"/>
+        <rdfs:label xml:lang="en">2 Present in two limbs</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70190-4"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_AMPUTATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_AMPUTATION">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">9 Untestable (joint fused or limb amputated)</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <dc:description>Needs to explain.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">1 Drift</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Limb holds 90 (or 45) degrees, but drifts down before full 10 seconds; does not hit bed or other support.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_NO_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_NO_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">0 Right arm normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Limb holds 90 (or 45) degrees for full 10 seconds.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_NO_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_NO_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">3 No effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Limb falls.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_NO_MOVEMENT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_NO_MOVEMENT">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">4 No movement</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">4</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmLeft_SOME_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmLeft_SOME_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorArmLeft"/>
+        <rdfs:label xml:lang="en">2 Some effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <dc:description>Limb cannot get to or maintain (if cued) 90 (or 45) degrees, drifts down to bed, but has some effort against gravity.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70967-5"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_AMPUTATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_AMPUTATION">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">9 Untestable (joint fused or limb amputated)</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <dc:description>Needs to explain.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">1 Drift</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Limb holds 90 (or 45) degrees, but drifts down before full 10 seconds; does not hit bed or other support.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_NO_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_NO_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">0 Right arm normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Limb holds 90 (or 45) degrees for full 10 seconds.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_NO_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_NO_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">3 No effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>Limb falls.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_NO_MOVEMENT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_NO_MOVEMENT">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">4 No movement</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">4</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorArmRight_SOME_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorArmRight_SOME_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorArmRight"/>
+        <rdfs:label xml:lang="en">2 Some effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <dc:description>Limb cannot get to or maintain (if cued) 90 (or 45) degrees, drifts down to bed, but has some effort against gravity.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70191-2"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_AMPUTATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_AMPUTATION">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">9 Amputation or joint fusion</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <rdfs:comment>Needs to explain details.</rdfs:comment>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">1 Drift</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Leg falls by the end of the 5-second period but does not hit bed.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_NO_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_NO_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">0 Right leg normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Leg holds 30-degree position for full 5 seconds.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_NO_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_NO_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">3 No effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Leg falls to bed immediately.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_NO_MOVEMENT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_NO_MOVEMENT">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">4 No movement</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">4</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegLeft_SOME_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegLeft_SOME_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorLegLeft"/>
+        <rdfs:label xml:lang="en">2 Some effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <dc:description>Leg falls to bed by 5 seconds, but has some effort against gravity.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70968-3"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_AMPUTATION -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_AMPUTATION">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">9 Amputation or joint fusion</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:comment>Needs to explain details.</rdfs:comment>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">1 Drift</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <dc:description>Leg falls by the end of the 5-second period but does not hit bed.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_NO_DRIFT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_NO_DRIFT">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">0 Right leg normal</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Leg holds 30-degree position for full 5 seconds.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_NO_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_NO_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">3 No effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>Leg falls to bed immediately.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_NO_MOVEMENT -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_NO_MOVEMENT">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">4 No movement</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">4</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#MotorLegRight_SOME_EFFORT_AGAINST_GRAVITY -->
+
+    <owl:NamedIndividual rdf:about="&nihss;MotorLegRight_SOME_EFFORT_AGAINST_GRAVITY">
+        <rdf:type rdf:resource="&nihss;MotorLegRight"/>
+        <rdfs:label xml:lang="en">2 Some effort against gravity</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Leg falls to bed by 5 seconds, but has some effort against gravity.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#NIHStrokeScale -->
+
+    <owl:NamedIndividual rdf:about="&nihss;NIHStrokeScale">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70182-1"/>
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/SNOMEDCT/450743008"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#OTHER -->
+
+    <owl:NamedIndividual rdf:about="&nihss;OTHER">
+        <rdf:type rdf:resource="&nihss;Interval"/>
+        <rdfs:label>other</rdfs:label>
+        <rdfs:label xml:lang="cs">jiný</rdfs:label>
+        <rdfs:label xml:lang="en">other</rdfs:label>
+        <order>6</order>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Questions -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Questions">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70185-4"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Questions_ANSWERS_BOTH -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Questions_ANSWERS_BOTH">
+        <rdf:type rdf:resource="&nihss;Questions"/>
+        <rdfs:label xml:lang="en">0 Answers both questions correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Questions_ANSWERS_NEITHER -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Questions_ANSWERS_NEITHER">
+        <rdf:type rdf:resource="&nihss;Questions"/>
+        <rdfs:label xml:lang="en">2 Answers neither question correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Questions_ANSWERS_ONE -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Questions_ANSWERS_ONE">
+        <rdf:type rdf:resource="&nihss;Questions"/>
+        <rdfs:label xml:lang="en">1 Answers one question correctly</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Sensory -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Sensory">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70193-8"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Sensory_MILD_TO_MODERATE_SENSORY_LOSS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Sensory_MILD_TO_MODERATE_SENSORY_LOSS">
+        <rdf:type rdf:resource="&nihss;Sensory"/>
+        <rdfs:label xml:lang="en">1 Mild-to-moderate sensory loss</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <dc:description>Patient feels pinprick is less sharp or is dull on the affected side; or there is a loss of superficial pain with pinprick, but patient is aware of being touched.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Sensory_NO_SENSORY_LOSS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Sensory_NO_SENSORY_LOSS">
+        <rdf:type rdf:resource="&nihss;Sensory"/>
+        <rdfs:label xml:lang="en">0 No sensory loss</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <dc:description>Normal</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Sensory_SEVERAL_TO_TOTAL_SENSORY_LOSS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Sensory_SEVERAL_TO_TOTAL_SENSORY_LOSS">
+        <rdf:type rdf:resource="&nihss;Sensory"/>
+        <rdfs:label xml:lang="en">2 Severe to total sensory loss</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+        <dc:description>Patient is not aware of being touched in the face, arm, and leg.</dc:description>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Visual">
+        <owl:sameAs rdf:resource="http://purl.bioontology.org/ontology/LNC/70188-8"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual_BILATERAL_HEMIANOPIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Visual_BILATERAL_HEMIANOPIA">
+        <rdf:type rdf:resource="&nihss;Visual"/>
+        <rdfs:label xml:lang="en">3 Bilateral hemianopia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">3</itemScore>
+        <dc:description>Blind including cortical blindness.</dc:description>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual_COMPLETE_HEMIANOPIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Visual_COMPLETE_HEMIANOPIA">
+        <rdf:type rdf:resource="&nihss;Visual"/>
+        <rdfs:label xml:lang="en">2 Complete hemianopia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">2</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual_NO_VISUAL_LOSS -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Visual_NO_VISUAL_LOSS">
+        <rdf:type rdf:resource="&nihss;Visual"/>
+        <rdfs:label xml:lang="en">0 No visual loss</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">0</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- https://mre.zcu.cz/ontology/nihss.owl#Visual_PARTIAL_HEMIANOPIA -->
+
+    <owl:NamedIndividual rdf:about="&nihss;Visual_PARTIAL_HEMIANOPIA">
+        <rdf:type rdf:resource="&nihss;Visual"/>
+        <rdfs:label xml:lang="en">1 Partial hemianopia</rdfs:label>
+        <itemScore rdf:datatype="&xsd;int">1</itemScore>
+        <rdfs:isDefinedBy>https://mre.zcu.cz/ontology/nihss.owl</rdfs:isDefinedBy>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/MTHU000270 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/MTHU000270"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70182-1 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70182-1"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70183-9 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70183-9"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70184-7 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70184-7"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70185-4 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70185-4"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70186-2 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70186-2"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70187-0 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70187-0"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70188-8 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70188-8"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70189-6 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70189-6"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70190-4 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70190-4"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70191-2 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70191-2"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70192-0 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70192-0"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70193-8 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70193-8"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70194-6 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70194-6"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70195-3 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70195-3"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70196-1 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70196-1"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70967-5 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70967-5"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/LNC/70968-3 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/LNC/70968-3"/>
+    
+
+
+    <!-- http://purl.bioontology.org/ontology/SNOMEDCT/450743008 -->
+
+    <owl:NamedIndividual rdf:about="http://purl.bioontology.org/ontology/SNOMEDCT/450743008"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // General axioms
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description>
+        <rdf:type rdf:resource="&owl;AllDisjointProperties"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="&nihss;avg"/>
+            <rdf:Description rdf:about="&nihss;datetimeExam"/>
+            <rdf:Description rdf:about="&nihss;explain"/>
+            <rdf:Description rdf:about="&nihss;patientID"/>
+            <rdf:Description rdf:about="&nihss;score"/>
+        </owl:members>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="&owl;AllDisjointProperties"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="&nihss;bestGaze"/>
+            <rdf:Description rdf:about="&nihss;bestLanguage"/>
+            <rdf:Description rdf:about="&nihss;commands"/>
+            <rdf:Description rdf:about="&nihss;consciousness"/>
+            <rdf:Description rdf:about="&nihss;dysarthria"/>
+            <rdf:Description rdf:about="&nihss;extinctionAndInattention"/>
+            <rdf:Description rdf:about="&nihss;facialPalsy"/>
+            <rdf:Description rdf:about="&nihss;limbAtaxia"/>
+            <rdf:Description rdf:about="&nihss;motorArmLeft"/>
+            <rdf:Description rdf:about="&nihss;motorArmRight"/>
+            <rdf:Description rdf:about="&nihss;motorLegLeft"/>
+            <rdf:Description rdf:about="&nihss;motorLegRight"/>
+            <rdf:Description rdf:about="&nihss;questions"/>
+            <rdf:Description rdf:about="&nihss;sensory"/>
+            <rdf:Description rdf:about="&nihss;timepoint"/>
+            <rdf:Description rdf:about="&nihss;visual"/>
+        </owl:members>
+    </rdf:Description>
+</rdf:RDF>

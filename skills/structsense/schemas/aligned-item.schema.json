@@ -4,29 +4,97 @@
   "title": "Fragment: ontology alignment fields",
   "description": "Fields that the alignment stage ADDS to any extracted item (entity, key_term, or resource). Compose into a larger schema with allOf.",
   "type": "object",
-  "required": ["ontology_id", "ontology_label", "ontology", "concept_mapping_provenance"],
+  "required": [
+    "ontology_id",
+    "ontology_label",
+    "ontology",
+    "concept_mapping_provenance"
+  ],
   "properties": {
     "ontology_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Ontology IRI (or CURIE) returned by the mapping tool, e.g. 'http://purl.obolibrary.org/obo/UBERON_0002421' or 'NCBITaxon:10090'."
     },
     "ontology_label": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Preferred label of the matched concept."
     },
     "ontology": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Ontology shortname, e.g. UBERON, CL, NCBITaxon, MONDO, CHEBI, BTO."
     },
     "concept_mapping_provenance": {
       "type": "string",
-      "enum": ["tool", "llm_knowledge", "unmapped", "skipped"],
+      "enum": [
+        "tool",
+        "llm_knowledge",
+        "unmapped",
+        "skipped"
+      ],
       "description": "Where the mapping came from. 'tool' = concept-mapping tool returned this. 'llm_knowledge' = LLM filled it in. 'unmapped' = no match found. 'skipped' = alignment stage was disabled."
     },
     "alignment_method": {
-      "type": ["string", "null"],
-      "enum": ["direct_tool_call", "llm_agent", "skipped", null],
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "direct_tool_call",
+        "llm_agent",
+        "skipped",
+        "validation_failed",
+        "judge_demoted",
+        "trusted_ontology",
+        "no_match",
+        "remote_error",
+        null
+      ],
       "description": "How the alignment stage was run. Useful for debugging unexpected mappings."
+    },
+    "mapping_tier": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "exactMatch",
+        "closeMatch",
+        "broadMatch",
+        "narrowMatch",
+        "relatedMatch",
+        null
+      ],
+      "description": "Honest identity strength of a tool mapping, set by the mapping judge (pass -> exactMatch). json_to_ttl writes the skos edge at this tier; absent -> closeMatch."
+    },
+    "mapping_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Which source produced the mapping: 'trusted:<name>' (a row of trusted_ontologes/priority.md), 'local_hybrid', 'bioportal', 'ols'."
+    },
+    "ontology_match_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "How a trusted ontology matched: label, exact_synonym, symbol, local_name, related_synonym, narrow_synonym, broad_synonym (concept_mapping.json match_properties)."
+    },
+    "match_tier": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "skos tier implied by the match type (concept_mapping.json match_type_tiers); a judge's mapping_tier overrides it."
     }
   },
   "additionalProperties": true
