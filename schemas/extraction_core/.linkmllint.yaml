@@ -1,0 +1,11 @@
+# linkml-lint configuration for the Extraction Core schema.
+extends: recommended
+rules:
+  # Self-explanatory slots and enums (title, page, started_at...) carry no
+  # description on purpose; every class and every non-obvious slot does.
+  recommended:
+    level: disabled
+  # Prefixes resolve to the namespaces the source ontologies (assertion-evidence,
+  # structsense named-entity ontology) actually use, not the identifiers.org forms.
+  canonical_prefixes:
+    level: disabled
