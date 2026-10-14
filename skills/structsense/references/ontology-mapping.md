@@ -5,7 +5,8 @@ Map free-text terms to ontology IRIs + labels. The trusted ontologies in `truste
 | Backend | Setup | Quality | Speed | Cost |
 |---|---|---|---|---|
 | **BioPortal REST API** | API key | High (curated) | ~1 req/sec (rate-limited) | Free + your time |
-| **OLS REST API** (EBI) | None | High (EBI-curated) | Fast | Free |
+| **OLS MCP server** (EBI, `https://www.ebi.ac.uk/ols4/api/mcp`) | None | High (EBI-curated); exact label matches only | Fast | Free |
+| **OLS REST API** (EBI, `ols_rest`, opt-in) | None | High (EBI-curated) | Fast | Free |
 | **Local hybrid BM25 + dense retrieval** | Self-host a service (e.g. [search_hybrid](https://github.com/sensein/search_hybrid)) | Tunable, very high if re-ranked | Fastest (batched) | Infra |
 | **LLM-only (no tool)** | Just prompting | Hallucinates IRIs | Fast | LLM tokens |
 
@@ -17,7 +18,7 @@ Everything below is configuration: `concept_mapping.json` (sources, match
 properties, routing, tiers) and `trusted_ontologes/priority.md` (which ontology
 files, in what priority). Nothing about a particular ontology is in code.
 
-`sources_priority` (default `["trusted", "local_hybrid", "bioportal"]`) is walked in
+`sources_priority` (default `["trusted", "local_hybrid", "ols", "bioportal"]`) is walked in
 order; an item goes to the next source only if every earlier one left it unmapped,
 and an unavailable source is skipped, not fatal:
 
@@ -35,9 +36,16 @@ and an unavailable source is skipped, not fatal:
 2. **Local hybrid service** at `remote.local_hybrid_url` (default
    `http://localhost:8000`, the [search_hybrid](https://github.com/sensein/search_hybrid)
    reference implementation). Health-checked at `/health`, then `/docs`.
-3. **BioPortal** (if `BIOPORTAL_API_KEY` is set) — the fallback when no trusted
-   ontology and no local service has the term.
-4. **Ask the user** for an alternative local URL (interactive runs), then stop:
+3. **OLS via its MCP server** at `remote.ols_mcp_url` (default
+   `https://www.ebi.ac.uk/ols4/api/mcp`; `scripts/ols_mcp_map.py`). JSON-RPC over
+   Streamable HTTP (initialize → `tools/call searchClasses`, filtered per route
+   ontology). The server ranks loosely ("hippocampus" in UBERON returns "CA1 field
+   of hippocampus" first) and returns no synonyms, so a hit is accepted only when a
+   class label equals the query; anything weaker stays unmapped for the mapping
+   judge, which may suggest a better search term. Only representable namespaces
+   (the prefix registry) are accepted, as for BioPortal.
+4. **BioPortal** (if `BIOPORTAL_API_KEY` is set) — last.
+5. **Ask the user** for an alternative local URL (interactive runs), then stop:
    concept mapping is mandatory and tool-only (SKILL.md rule 15).
 
 ```bash
@@ -77,9 +85,12 @@ An **exact label is still not proof of meaning**: in the worked example
 means L-alanine, and the mapping judge demotes it. Existence is the tool's job;
 meaning is the judge's (references/judge-ensemble.md).
 
-The older single-backend cascade (`pipeline.py --mapper local|bioportal|ols`,
-`build_mapper_with_cascade`) is kept for compatibility; `--mapper config` (the
-default) is the cascade above.
+`pipeline.py --mapper local|bioportal|ols` now means the trusted files, then only
+that backend — no backend skips the trusted ontologies. `--mapper config` (the
+default) is the cascade above. The same cascade maps ABCD constructs and AIT
+entities (`python -m scripts.review_loop map --mode abcd|ait`, label routes
+`CognitiveConstruct` / CellType / Gene / Species / BrainRegion), and re-runs for a
+judge's or a reviewer's search term (`remap`, references/review-loop.md).
 
 When this skill is used inside an LLM agent (Claude Code, GPT custom action, etc.), the agent should **ask the user via natural language** if the cascade exhausts its defaults — the port/host varies enough across deployments that a default-only check is not enough. Example: "I couldn't reach a concept-mapping service at http://localhost:8000. What URL is your local service running on, or should I fall back to BioPortal?"
 

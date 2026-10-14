@@ -737,9 +737,16 @@ class ConceptMapper:
                     client = BioPortalMapper()
                 self.history.append(f"bioportal:{'ok' if client else 'skipped, BIOPORTAL_API_KEY not set'}")
             elif name == "ols":
+                # the OLS MCP server (remote.ols_mcp_url); exact label matches only
+                from ols_mcp_map import OLS_MCP_URL, OlsMcpMapper
+                url = (self.cfg.get("remote") or {}).get("ols_mcp_url") or OLS_MCP_URL
+                c = OlsMcpMapper(url=url)
+                client = c if c.health() else None
+                self.history.append(f"ols_mcp@{url}:{'ok' if client else 'unreachable'}")
+            elif name == "ols_rest":
                 from ols_map import OlsMapper
                 client = OlsMapper()
-                self.history.append("ols:ok")
+                self.history.append("ols_rest:ok")
             else:
                 raise ValueError(f"unknown mapping source {name!r} in sources_priority")
         except ImportError as e:
@@ -825,7 +832,7 @@ class ConceptMapper:
                     if not uniq:
                         continue
                 try:
-                    kw = {"accept": self.representable} if source == "bioportal" else {}
+                    kw = {"accept": self.representable} if source in ("bioportal", "ols") else {}
                     results = client.map_batch(uniq, ontologies=route, max_results=self.max_results, **kw)
                 except Exception as e:  # one failing source must not lose the batch
                     self.history.append(f"{source}:error {type(e).__name__}")

@@ -10,6 +10,10 @@ and optionally kg_plan.json. Applies, per item, in order:
   2. mapping fail    -> demote to unmapped (ontology fields nulled,
                      concept_mapping_provenance "unmapped", alignment_method
                      "judge_demoted"). The item survives; the IRI does not.
+                     With suggestion.query (a better SEARCH TERM, never an id) the
+                     mapping tool runs again — trusted ontologies first — and its
+                     hit, if any, becomes the mapping ("judge_remapped"). The same
+                     for an unmapped item the judge gave a query.
   3. mapping tier    mapping `pass` -> mapping_tier "exactMatch"; a `flag` with
                      suggestion.tier -> that tier. json_to_ttl writes the skos
                      edge at this tier.
@@ -26,7 +30,8 @@ the authoritative record, and the grouped views and stats are rebuilt from them 
 so re-running normalize_result cannot resurrect a dropped item. Each raw mention
 gets judge_score / judge_method="ensemble" / remarks; the full per-judge reviews
 live once, under the top-level `judge_ensemble` block that json_to_ttl turns into
-ner:ReviewDecision nodes.
+ner:ReviewDecision nodes. Dropped mentions are kept whole under `review_loop.dropped`,
+so the human-feedback loop (scripts/human_feedback.py) can restore a wrong drop.
 
 Usage:
   python -m scripts.judge_combine result.json --reviews judge/reviews/*.json \
@@ -132,8 +137,29 @@ def _plan_entry(plan: Optional[dict], gid: str) -> Optional[dict]:
     return None
 
 
+def _remap(items: list[dict], query: str, label: Optional[str], remapper) -> Optional[dict]:
+    """Re-run the mapping TOOL with the judge's search term. The tool decides the id
+    (trusted ontologies first, then the configured cascade); None if it finds nothing."""
+    probe = {"term": query, "label": label}
+    remapper.map_items([probe], "term")
+    if probe.get("concept_mapping_provenance") != "tool" or not probe.get("ontology_id"):
+        return None
+    for it in items:
+        for f in ("ontology_id", "ontology_label", "ontology", "mapping_source", "match_tier",
+                  "ontology_match_type"):
+            if probe.get(f) is not None:
+                it[f] = probe[f]
+        it["concept_mapping_provenance"] = "tool"
+        it["alignment_method"] = "judge_remapped"
+        it["mapping_query"] = query
+        it.pop("mapping_tier", None)  # the new mapping is unjudged: the human queue lists it
+    return probe
+
+
 def combine(result: dict, reviews: dict[str, dict], cfg: dict,
-            kg_plan: Optional[dict] = None) -> tuple[dict, Optional[dict], dict]:
+            kg_plan: Optional[dict] = None, remapper=None) -> tuple[dict, Optional[dict], dict]:
+    """`remapper`: a concept_mapping.ConceptMapper. When given, a mapping judge's
+    {"query": ...} re-runs the tool instead of only demoting."""
     result = copy.deepcopy(result)
     plan = copy.deepcopy(kg_plan) if kg_plan else None
     judges_cfg = cfg["judges"]
@@ -142,7 +168,7 @@ def combine(result: dict, reviews: dict[str, dict], cfg: dict,
     if unknown:
         raise InputError(f"reviews from judges not in the config: {unknown}")
 
-    report: dict[str, Any] = {"dropped": [], "demoted": [], "fixes_applied": [],
+    report: dict[str, Any] = {"dropped": [], "demoted": [], "fixes_applied": [], "remapped": [],
                               "needs_review": [], "unreviewed": [],
                               "claims": {"dropped": [], "fixed": []}}
     reviews_out: dict[str, list[dict]] = {}
@@ -168,6 +194,10 @@ def combine(result: dict, reviews: dict[str, dict], cfg: dict,
                                       "offsets": [[it.get("start"), it.get("end")] for it in items][:50],
                                       "reason": revs[crit[0]].get("reason")})
             reviews_out[gid] = rev_list  # kept: the provenance of the drop
+            # the full mentions, so the human-feedback loop can `restore` a wrong drop
+            result.setdefault("review_loop", {"rounds": [], "dropped": {}}).setdefault("dropped", {})[gid] = {
+                "mode": "ner", "key": "entities" if g["kind"] == "entity" else "key_terms",
+                "items": copy.deepcopy(items), "by": crit}
             continue
 
         final_id = gid
@@ -179,6 +209,12 @@ def combine(result: dict, reviews: dict[str, dict], cfg: dict,
                 for it in items:
                     _demote(it)
                 report["demoted"].append({"id": gid, "from": removed, "reason": mp.get("reason")})
+                query = (mp.get("suggestion") or {}).get("query")
+                if query and remapper is not None:
+                    hit = _remap(items, query, g["label"], remapper)
+                    report["remapped"].append({"id": gid, "query": query, "from": removed,
+                                               "to": hit.get("ontology_id") if hit else None,
+                                               "source": hit.get("mapping_source") if hit else None})
             else:
                 tier = (mp.get("suggestion") or {}).get("tier")
                 if mp["verdict"] == "flag" and tier not in TIERS:
@@ -195,6 +231,13 @@ def combine(result: dict, reviews: dict[str, dict], cfg: dict,
                         _mark_fix(rev_list, "mapping")
                         report["fixes_applied"].append({"id": gid, "field": "tier", "to": tier,
                                                         "licensed_by": "mapping", "applied_by": "script"})
+
+        elif mp and not mapped and (mp.get("suggestion") or {}).get("query") and remapper is not None:
+            query = mp["suggestion"]["query"]
+            hit = _remap(items, query, g["label"], remapper)
+            report["remapped"].append({"id": gid, "query": query, "from": None,
+                                       "to": hit.get("ontology_id") if hit else None,
+                                       "source": hit.get("mapping_source") if hit else None})
 
         lab = revs.get("labeling")
         new_label = ((lab or {}).get("suggestion") or {}).get("label")
@@ -274,6 +317,7 @@ def combine(result: dict, reviews: dict[str, dict], cfg: dict,
                       "models": {j: r.get("model") for j, r in reviews.items()},
                       "dropped": len(report["dropped"]), "demoted": len(report["demoted"]),
                       "fixes_applied": len(report["fixes_applied"]),
+                      "remapped": sum(1 for r in report["remapped"] if r["to"]),
                       "needs_review": len(report["needs_review"]),
                       "unreviewed": len(report["unreviewed"])}
     _refresh_stats(result)
@@ -488,6 +532,10 @@ def _main() -> int:
     ap.add_argument("--combiner-model", help="model id that wrote the combiner output (provenance)")
     ap.add_argument("-o", "--output", type=Path, help="default: overwrite the result in place")
     ap.add_argument("--report", type=Path, help="also write the aggregation report here")
+    ap.add_argument("--no-remap", action="store_true",
+                    help="do not re-run the mapping tool for a mapping judge's {'query': ...}; only demote")
+    ap.add_argument("--offline", action="store_true",
+                    help="remap with the trusted ontology files only (no local/OLS/BioPortal)")
     args = ap.parse_args()
 
     try:
@@ -507,10 +555,14 @@ def _main() -> int:
             if not args.reviews:
                 raise InputError("--reviews required (or --apply-fixes)")
             cfg = json.loads(args.config.read_text())
-            out, plan_out, report = combine(result, load_reviews(args.reviews), cfg, plan)
+            remapper = None
+            if not args.no_remap:
+                from concept_mapping import ConceptMapper
+                remapper = ConceptMapper(sources=["trusted"] if args.offline else None)
+            out, plan_out, report = combine(result, load_reviews(args.reviews), cfg, plan, remapper=remapper)
             print(f"judges: {', '.join(sorted(out['judge_ensemble']['judges']))} | "
                   f"dropped={len(report['dropped'])} demoted={len(report['demoted'])} "
-                  f"fixes={len(report['fixes_applied'])} needs_review={len(report['needs_review'])} "
+                  f"fixes={len(report['fixes_applied'])} remapped={sum(1 for r in report['remapped'] if r['to'])} needs_review={len(report['needs_review'])} "
                   f"unreviewed={len(report['unreviewed'])} claims_dropped={len(report['claims']['dropped'])}",
                   file=sys.stderr)
             if args.report:

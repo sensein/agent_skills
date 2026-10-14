@@ -58,7 +58,6 @@ from ner_models import (
 from normalize_result import (
     lift_doc_metadata, tag_missing_source_model,
 )
-from resource_claims import require_supported_claims
 
 logger = logging.getLogger("pipeline")
 
@@ -97,6 +96,11 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
     # NER has one prompt per domain (prompts/extractor-ner-<domain>.md); the other
     # tasks have one prompt each. There is no extractor-ner.md.
     system = _load_prompt(f"extractor-ner-{ner_domain}" if task == "ner" else f"extractor-{task}")
+    if task == "resource":
+        # one record per resource needs the whole document: the Availability section
+        # names the identifier, Methods the inputs, Limitations the failure modes
+        from resource_kg import load_config as _rkg_config
+        chunk_size = max(chunk_size, int(_rkg_config().get("extraction_chunk_chars", 60000)))
     chunks = chunk_by_sentences(text, max_chars=chunk_size)
     logger.info("extract: %d chunks", len(chunks))
 
@@ -122,8 +126,9 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
         if "key_terms" in r:
             key_terms.extend(reanchor_items(r["key_terms"], chunk_start))
         if "extracted_resources" in r:
-            for k, lst in (r["extracted_resources"] or {}).items():
-                resources.extend(lst or [])
+            er = r["extracted_resources"] or []
+            for lst in (er.values() if isinstance(er, dict) else [er]):
+                resources.extend(x for x in (lst or []) if isinstance(x, dict))
 
     out: dict[str, Any] = {}
     if entities or task == "ner":
@@ -135,7 +140,7 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
         valid, dropped = validate_all(text, key_terms)
         out["key_terms"] = dedupe(valid, key_fields=("term", "start", "end"))
     if resources:
-        out["extracted_resources"] = {"1": resources}
+        out["extracted_resources"] = resources  # BKR records (resource_kg merges chunk duplicates)
     out["task_type"] = task
     return out
 
@@ -485,40 +490,27 @@ def run(text: str, *, task: str, extractor_model: str,
     # --- 2. alignment ---
     # Default: the configured cascade (concept_mapping.json): trusted ontologies in
     # trusted_ontologes/priority.md order, then local hybrid, then BioPortal.
-    if mapper_backend == "config":
+    cm = None
+    if mapper_backend:
+        # Every backend goes through the ConceptMapper cascade, so the trusted ontology
+        # files (trusted_ontologes/priority.md) are ALWAYS consulted first: "config" is
+        # concept_mapping.json's sources_priority (trusted -> local hybrid -> OLS MCP ->
+        # BioPortal); a named backend is trusted -> that backend.
         t0 = time.monotonic()
         from concept_mapping import ConceptMapper, map_result
-        cm = ConceptMapper(local_url=local_mapping_url, ask_user=ask_user)
+        named = {"local": "local_hybrid", "local_hybrid": "local_hybrid", "ols": "ols",
+                 "bioportal": "bioportal"}
+        if mapper_backend != "config" and mapper_backend not in named:
+            raise ValueError(f"unknown mapper backend: {mapper_backend!r}")
+        sources = None if mapper_backend == "config" else ["trusted", named[mapper_backend]]
+        cm = ConceptMapper(sources=sources, local_url=local_mapping_url, ask_user=ask_user)
         if not cm.usable_sources():
             raise RuntimeError("concept mapping is mandatory and tool-only (rule 15), and no source in "
-                               "concept_mapping.json sources_priority is usable: index the trusted "
-                               "ontologies (python -m scripts.concept_mapping index), start the local "
-                               "mapper, or set BIOPORTAL_API_KEY")
-        aligned = map_result(extraction, cm)
+                               f"{cm.sources} is usable: index the trusted ontologies (python -m "
+                               "scripts.concept_mapping index), start the local mapper, check the OLS MCP "
+                               "server, or set BIOPORTAL_API_KEY")
+        aligned = map_result(extraction, cm, texts=[text])
         alignment_meta = cm.meta()
-        timings["alignment"] = round(time.monotonic() - t0, 2)
-    elif mapper_backend:
-        t0 = time.monotonic()
-        try:
-            mapper, alignment_meta = build_mapper_with_cascade(
-                preferred=mapper_backend,
-                local_url=local_mapping_url,
-                ask_user=ask_user,
-                allow_ols_fallback=allow_ols_fallback,
-            )
-            aligned = align_direct(extraction, mapper=mapper)
-        except RuntimeError as e:
-            logger.error("alignment cascade exhausted: %s — skipping alignment", e)
-            aligned = extraction
-            for key in ("entities", "key_terms"):
-                for it in aligned.get(key, []) or []:
-                    it.setdefault("concept_mapping_provenance", "skipped")
-                    it.setdefault("alignment_method", "skipped")
-            alignment_meta = {"mapper_used": None,
-                              "mapper_url": None,
-                              "fallback_triggered": True,
-                              "cascade_history": ["all_failed"],
-                              "user_provided_url": False}
         timings["alignment"] = round(time.monotonic() - t0, 2)
     else:
         aligned = extraction
@@ -589,12 +581,15 @@ def run(text: str, *, task: str, extractor_model: str,
         wd = Path(work_dir or ".") / ("judge_" + Path(input_path or "input").stem)
         judged, kg_plan, report = run_panel(
             judged, text, call=llm_call, default_model=judge_model, judge_models=judge_models,
-            combiner_model=combiner_model, kg_plan=kg_plan, work_dir=wd)
+            combiner_model=combiner_model, kg_plan=kg_plan, work_dir=wd, remapper=cm)
         judged["stats"].setdefault("elapsed_seconds", {})["judge"] = round(time.monotonic() - t0, 2)
     if kg_plan is not None:
         judged["kg_plan"] = kg_plan  # carried to json_to_ttl; not part of the TTL itself
     if task == "resource":
-        require_supported_claims(judged, text)
+        # resource KG (references/resource-extraction.md): drop what the text does not
+        # state, map scope labels with the same tool cascade as NER (never an LLM IRI)
+        from resource_kg import prepare
+        prepare(judged, text, mapper=cm)
     # WHEN, WHO: recorded, never inferred (ner:NERExtractionActivity prov:startedAtTime ...)
     judged["run_metadata"] = {
         "started_at": started_at,
@@ -669,18 +664,14 @@ def _main():
                     help="with --format ttl, keep the working JSON under <out-dir>/.structsense/")
     ap.add_argument("--out-dir", default=None, help="where results go (default: beside each input)")
     ap.add_argument("--mapper", choices=["config", "ols", "bioportal", "local", "none"], default="config",
-                    help="mapping backend. 'config' (default): concept_mapping.json — trusted "
-                         "ontologies in priority.md order, then local hybrid, then BioPortal. "
-                         "'local' is the older cascade: "
-                         "local hybrid (http://localhost:8000) → BioPortal → interactive "
-                         "prompt for alternative URL → HARD STOP. OLS is NOT in the "
-                         "default cascade (no gene coverage); pass --mapper ols to use "
-                         "it explicitly, or --allow-ols-fallback to add it as a last "
-                         "resort. 'none' explicitly opts out of mapping (items get "
+                    help="mapping backend. 'config' (default): concept_mapping.json — the trusted "
+                         "ontology files in trusted_ontologes/priority.md order, then the local hybrid "
+                         "mapper if it is running, then OLS via its MCP server, then BioPortal. "
+                         "'local' / 'ols' / 'bioportal': the trusted files first, then only that "
+                         "backend. 'none' explicitly opts out of mapping (items get "
                          "concept_mapping_provenance='skipped').")
     ap.add_argument("--allow-ols-fallback", action="store_true",
-                    help="Allow OLS as a last-resort fallback when local + BioPortal "
-                         "both fail. Off by default because OLS lacks gene coverage.")
+                    help="no-op, kept for old command lines: OLS (MCP) is now in the default cascade.")
     ap.add_argument("--mapper-url", default="http://localhost:8000",
                     help="URL for the local hybrid mapping service. Overrides "
                          "LOCAL_CONCEPT_MAPPING_URL env var. /docs is a good "
@@ -703,6 +694,15 @@ def _main():
     ap.add_argument("--ner-models", default=None,
                     help="Comma-separated list of HF model IDs for an explicit "
                          "ensemble. Overrides --ner-profile.")
+    ap.add_argument("--human-feedback", choices=["off", "interactive"], default="off",
+                    help="optional human-feedback loop after the judge (references/review-loop.md): "
+                         "'interactive' shows the review queue and asks approve / abort / edit / skip "
+                         "(skip after --feedback-timeout s); each round re-renders and re-gates the "
+                         "output so the reviewer can go round again.")
+    ap.add_argument("--feedback", type=Path, default=None,
+                    help="apply a reviewer's ops file (scripts/human_feedback.py queue/apply format) "
+                         "after the judge, before the output is written. One file for one input.")
+    ap.add_argument("--feedback-timeout", type=float, default=60.0)
     ap.add_argument("--ner-device", type=int, default=-1,
                     help="CUDA device index for HF NER models (-1 = CPU). "
                          "Default -1.")
@@ -790,6 +790,29 @@ def _main():
 
         out_dir = Path(args.out_dir) if args.out_dir else in_path.parent
         kg_plan = result.pop("kg_plan", None)
+        # --- human feedback (optional): same operations and rules as the judges ---
+        if args.task == "ner" and (args.feedback or args.human_feedback == "interactive"):
+            import human_feedback as hf
+            import review_loop as rl
+            tools = rl.Tools()
+            if args.feedback:
+                spec = json.loads(Path(args.feedback).read_text())
+                for e in hf.apply_feedback("ner", result, (spec.get("ops") if isinstance(spec, dict) else spec) or [],
+                                           tools=tools):
+                    if not e["applied"]:
+                        print(f"  feedback REJECTED {e.get('action')} {e.get('id')}: {e['rejected_because']}",
+                              file=sys.stderr)
+            if args.human_feedback == "interactive":
+                preview = work_root / f"{in_path.stem}.preview.ttl"
+
+                def _render(data, _plan=kg_plan, _src=in_path, _p=preview):
+                    g = hf.render_ner_ttl(data, _p, kg_plan=_plan, source_path=_src)
+                    return f"{g['triples']} triples, gate {'VALID' if g['ok'] else 'FAILED'} ({g['violations']} violations)"
+                status = hf.interactive("ner", result, work_root / f"{in_path.stem}_final.json", render=_render,
+                                        timeout=args.feedback_timeout or None, tools=tools)
+                if status == "aborted":
+                    failed.append((in_path, "aborted at human feedback"))
+                    continue
         if args.format == "json":
             out_path = Path(default_output_path(str(out_dir / in_path.name), args.out))
             out_path.write_text(json.dumps(result, indent=2, default=str))

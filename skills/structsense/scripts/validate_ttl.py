@@ -32,6 +32,11 @@ Usage:
 
 Each file is validated on its own. Entity and concept nodes are shared UUIDs, so a
 merged multi-paper file validates too.
+
+A resource KG (any node typed in https://brainkb.org/resource/) is recognised and
+gated against the BrainKB Resource Ontology instead: brainkb_resource_ontology.owl +
+brainkb_resource_shapes.ttl (scripts/resource_kg.py validate). A licence the paper
+never states is a source-silence finding, reported as a warning, not a violation.
 """
 from __future__ import annotations
 
@@ -333,9 +338,11 @@ def validate_file(ttl: Path, *, ontology: Path = DEFAULT_ONTOLOGY, shapes: Path 
                   ns: str = DEFAULT_NS, kb_ns: str = DEFAULT_KB_NS, use_shacl: bool = True,
                   ols: bool = False, ont: dict | None = None) -> dict:
     """Library entry point. Returns a report dict; `ok` is the gate."""
-    ont = ont or load_ontology(ontology)
     data = rdflib.Graph()
     data.parse(str(ttl), format="turtle")
+    if _is_resource_graph(data):
+        return _resource_report(ttl, data)
+    ont = ont or load_ontology(ontology)
     violations = check_vocabulary(ont, data, ns, kb_ns)
     pol_v, pol_w = check_policy(data, ns, DEFAULT_TTL_CONFIG, ont)
     violations.update(pol_v)
@@ -358,6 +365,44 @@ def validate_file(ttl: Path, *, ontology: Path = DEFAULT_ONTOLOGY, shapes: Path 
         "ontology_classes": len(ont["classes"]), "ontology_properties": len(ont["props"]),
         "shacl": shacl_ran, "ok": n_viol == 0, "violation_count": n_viol,
         "warning_count": sum(len(v) for v in warnings.values()),
+        "violations": {k: sorted(v) for k, v in sorted(violations.items())},
+        "warnings": {k: sorted(v) for k, v in sorted(warnings.items())},
+    }
+
+
+def _is_resource_graph(data: rdflib.Graph) -> bool:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from resource_kg import is_resource_graph
+    return is_resource_graph(data)
+
+
+def _resource_report(ttl: Path, data: rdflib.Graph) -> dict:
+    """A resource KG (BrainKB Resource Ontology) is gated by resource_kg.validate_graph:
+    the BKR shapes (default_ontology/brainkb_resource_shapes.ttl), the BKR + NER
+    vocabularies and one connected component. Source-silence findings (no licence
+    stated by the paper) are reported but never fail the gate."""
+    from resource_kg import load_config, validate_graph
+    cfg = load_config()
+    r = validate_graph(data, cfg)
+    violations: dict[str, set[str]] = {}
+    for v in r["violations"]:
+        violations.setdefault(f"[{v['shape']}] {v['message']}", set()).add(v["focus"])
+    for p in r["problems"]:
+        violations.setdefault(p, set()).add(str(ttl))
+    warnings: dict[str, set[str]] = {}
+    for f in r["source_silence_findings"]:
+        warnings.setdefault(f"source silence (finding, not a defect) [{f['shape']}] {f['message']}", set()).add(f["focus"])
+    for w in r["warnings"]:
+        warnings.setdefault(f"[SHACL warning] {w['message']}", set()).add(f"{w['count']} node(s)")
+    onto = rdflib.Graph().parse(cfg["ontology"], format="xml")
+    return {
+        "file": str(ttl), "kind": "resource_kg", "triples": len(data), "components": r["components"],
+        "ontology_classes": len(set(onto.subjects(RDF.type, OWL.Class))),
+        "ontology_properties": len(set(onto.subjects(RDF.type, OWL.ObjectProperty))
+                                   | set(onto.subjects(RDF.type, OWL.DatatypeProperty))),
+        "shacl": True, "ok": r["ok"], "violation_count": sum(len(v) for v in violations.values()),
+        "warning_count": sum(len(v) for v in warnings.values()),
+        "source_silence_findings": len(r["source_silence_findings"]),
         "violations": {k: sorted(v) for k, v in sorted(violations.items())},
         "warnings": {k: sorted(v) for k, v in sorted(warnings.items())},
     }

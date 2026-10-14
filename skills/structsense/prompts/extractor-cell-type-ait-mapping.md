@@ -23,13 +23,24 @@ edge. Practically this means:
 
 ## Order of operations
 
-Four passes. Do not merge Pass 1 with Pass 3 — extraction must not be biased by what
-the taxonomy happens to contain.
+Four passes, then the review loop every structsense mode runs
+(`references/review-loop.md`). Do not merge Pass 1 with Pass 3 — extraction must not
+be biased by what the taxonomy happens to contain.
 
 1. **Index and extract (one pass over the paper).**
 2. **Verify** — lexical evidence check, deduplication, provenance labelling.
 3. **Map** to AIT taxonomies with SKOS match relations.
 4. **Assemble entity cards**, including the marker-gene diff.
+5. **Review loop** — concept map every entity through the trusted ontologies
+   (`python -m scripts.review_loop map --mode ait out/` → `concept_mappings.csv`:
+   trusted files first, then the local mapper, OLS MCP, BioPortal); the judge panel
+   (`python -m scripts.record_judge prepare|combine --mode ait out/`, prompt
+   `prompts/judge-record.md`, one judge at a time); optional human feedback
+   (`python -m scripts.human_feedback queue|apply --mode ait out/`). Corrections
+   append superseding rows to `mappings.csv` (`mapped_by` llm for a judge, human for a
+   curator) and never overwrite; an entity a gate drops is quarantined
+   (`unverified_evidence`). Re-run Pass 4 if an edge moved to another node, then
+   `ait_tables validate`.
 
 ---
 
@@ -448,8 +459,9 @@ used; the `validate` result; and every assumption you made that a curator should
 - **AIT taxonomy reader** — look up candidate nodes by label, region, or markers, and
   retrieve the marker gene set needed for the Pass 4 diff.
 - **Deterministic stages** — `scripts/ait_evidence.py` (Pass 2a), `scripts/ait_tables.py`
-  (derive / review sheet / validate), `scripts/ait_gene_diff.py` (Pass 4). Run them; do
-  not reproduce their output by hand.
+  (derive / review sheet / validate), `scripts/ait_gene_diff.py` (Pass 4),
+  `scripts/review_loop.py` / `scripts/record_judge.py` / `scripts/human_feedback.py`
+  (Pass 5). Run them; do not reproduce their output by hand.
 - **GFF / GeneOrthology tools** — normalize gene symbols and resolve cross-species
   orthologs before any gene-set comparison.
 - **StructSense extraction skills**.

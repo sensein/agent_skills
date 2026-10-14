@@ -1,0 +1,51 @@
+{
+  "_comment": "Resource extraction -> resource KG (BrainKB Resource Ontology, BKR). Read by scripts/resource_kg.py. The ontology is brainkb_resource_ontology.owl (the BKR standalone: every module merged, no owl:imports); the policy shapes are brainkb_resource_shapes.ttl, kept outside the ontology on purpose.",
+  "ontology": "brainkb_resource_ontology.owl",
+  "shapes": "brainkb_resource_shapes.ttl",
+  "schema": "../schemas/bkr-resource-extraction.schema.json",
+  "instance_base": "https://brainkb.org/kb/",
+  "_instance_base": "UUIDv5 instance namespace. The same base as the NER graphs (ttl_config.json iri.base), so a paper's resource KG and its NER KG share the publication node. Changing it re-keys every instance: choose once.",
+  "emit_skos": true,
+  "_emit_skos": "skos:exactMatch/broadMatch shortcuts for ACCEPTED, tool-backed mappings only; the reified ner:ConceptMappingDecision stays authoritative.",
+  "global_resource_key": true,
+  "_global_resource_key": "true: a resource is one node across papers, keyed on its normalised name (records, scopes, assumptions and evidence stay per paper and point at it). false: one resource node per record, as the BKR bundle does.",
+  "concept_routing": {
+    "_comment": "Scope dimension of the extraction schema -> the extractor label whose label_routing (concept_mapping.json) restricts which ontologies may answer. A dimension mapped to null is not sent to any mapper (its label survives, unmapped): an unrestricted search maps generic words like 'analysis' to arbitrary terms.",
+    "species": "Species",
+    "anatomical_structures": "BrainRegion",
+    "cell_types": "CellType",
+    "developmental_stages": "DevelopmentalStage",
+    "assays": "Method",
+    "modalities": "Method",
+    "conditions": "Disease",
+    "tasks": null,
+    "topics": null,
+    "variables": null
+  },
+  "accepted_tiers": [
+    "exactMatch",
+    "closeMatch"
+  ],
+  "_accepted_tiers": "A tool mapping in one of these tiers is status 'accepted' (and becomes a SKOS shortcut). A weaker tool match (broad/narrow/related synonym) keeps its IRI as status 'proposed' for review.",
+  "grounding": {
+    "_comment": "What must be stated in the source text, checked before conversion. A value that is not is removed and its field path added to not_found_fields: never invent an identifier, version, URL or licence.",
+    "verify_values": [
+      "stable_identifiers",
+      "versions",
+      "url",
+      "license"
+    ],
+    "verify_quotes": true,
+    "_verify_quotes": "Every evidence quote (field_evidence, assumption/failure/benchmark/scope evidence) must occur verbatim in the source (whitespace- and quote-normalised). An unsupported quote is dropped; a validated scope left with no evidence is demoted to declared (BKR invariant 2)."
+  },
+  "source_silence_shapes": [
+    "CitableResourceShape"
+  ],
+  "_source_silence_shapes": "SHACL shapes whose violations report what the SOURCE does not state (a paper rarely gives a licence or access condition). validate reports them as findings, not graph defects, and they do not fail the gate. Never fix them by inventing a licence.",
+  "absence_shapes": {
+    "ScopedResourceShape": "applicability"
+  },
+  "_absence_shapes": "Shapes whose violation is a source-silence finding only when the gap is DECLARED: the resource's record lists the field in not_found_fields (bkr:notFoundField, invariant 7: the extractor looked and the source does not say), or the node is a mention stub (named, never described). Otherwise it is an extraction gap and fails the gate.",
+  "extraction_chunk_chars": 60000,
+  "_extraction_chunk_chars": "The resource extractor reads whole documents (one record per resource, deep records need Methods + Availability + Limitations together). Longer texts are split at this size and records are merged by name."
+}

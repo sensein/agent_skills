@@ -45,8 +45,8 @@ def system_prompt(rel_path: str) -> str:
 
 def run_panel(result: dict, text: str, *, call: Callable[..., str], default_model: str,
               judge_models: Optional[dict[str, str]] = None, combiner_model: Optional[str] = None,
-              kg_plan: Optional[dict] = None, work_dir: Path, cfg: Optional[dict] = None
-              ) -> tuple[dict, Optional[dict], dict]:
+              kg_plan: Optional[dict] = None, work_dir: Path, cfg: Optional[dict] = None,
+              remapper=None) -> tuple[dict, Optional[dict], dict]:
     """Run every configured judge over its packets, then combine. `call(model=, system=,
     user=, json_mode=, temperature=)` is llm_client.call."""
     cfg = cfg or json.loads(DEFAULT_CONFIG.read_text())
@@ -74,7 +74,7 @@ def run_panel(result: dict, text: str, *, call: Callable[..., str], default_mode
             {"judge": judge, "model": f"llm:{model}", "mode": "parallel", "items": items},
             indent=1, ensure_ascii=False) + "\n")
     reviews = load_reviews(sorted(reviews_dir.glob("*.json")))
-    judged, plan, report = combine(result, reviews, cfg, kg_plan)
+    judged, plan, report = combine(result, reviews, cfg, kg_plan, remapper=remapper)
     if report["needs_review"] and combiner_model:
         user = json.dumps({"needs_review": report["needs_review"]}, ensure_ascii=False, default=str)
         raw = call(model=combiner_model, system=system_prompt(cfg["combiner"]["prompt"]), user=user,

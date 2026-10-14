@@ -129,8 +129,39 @@ papers/                                  <- inputs, never written to
     ├── <stem>_abcd.codebook.tsv         --formats ...,codebook
     ├── abcd_synthesis.{json,md,ttl}
     ├── text/<stem>.txt                  extracted text (--prepare)
-    └── payloads/<stem>.payload.json     agent payloads (--prepare -> --payload)
+    ├── payloads/<stem>.payload.json     agent payloads (--prepare -> --payload)
+    ├── judge/<stem>/{packets,reviews}/  the judge panel's packets and reviews
+    └── feedback/<stem>.feedback.json    a reviewer's ops (human_feedback queue)
 ```
+
+### Concept map → judge → human feedback (every paper)
+
+After verification each paper runs the review loop shared with NER and AIT
+(`references/review-loop.md`), before export and before the synthesis counts it:
+
+1. **Concept map.** Constructs (and findings' constructs) go through the mapping
+   cascade with label route `CognitiveConstruct`: the trusted ontology files first
+   (COGAT, COGPO, NBO, MF, MFOEM, MFOMD, HP in priority.md order), then the local
+   mapper, OLS MCP, BioPortal. The Cognitive Atlas id from the verifier stays; the
+   tool mapping is added as `ontology_id` / `ontology_mapping_source` and written
+   as `skos:<tier>` in the Turtle. `--offline-mapping` = trusted files only.
+2. **Judge.** The same panel and gates as NER (`scripts/record_judge.py`,
+   `prompts/judge-record.md`): grounding (re-anchored quotes), labeling (role,
+   respondent, construct kind, model kind), mapping (dictionary match, construct
+   mapping), claims (direction, effect size, statistic from the quote; cited work
+   fails). A gate failure moves the item to `rejected[]` as `judge:<judge>: …`.
+   With `--llm-model` the panel runs (`--judge-model` to use another model). On the
+   agent path the first run writes the packets to `judge/<stem>/` and reports
+   `judge: pending`; write each review file, then re-run the same command.
+3. **Human feedback (optional).** `python -m scripts.human_feedback queue --mode
+   abcd abcd_results/<stem>_abcd.json` writes `feedback/<stem>.feedback.json`;
+   fill its `ops` (or turn the user's words into ops with
+   `prompts/humanfeedback.md`) and re-run the same `abcd_extract` command — the file
+   is applied automatically. A variable `remap` re-gates through the dictionary; a
+   value set on a finding must be copied from its quote. `--human-feedback
+   interactive` asks per paper instead. Re-running is the output loop.
+
+The Markdown's "Review loop" table lists every judge and human change.
 
 `--out-dir` moves it. Two properties matter beyond tidiness:
 
@@ -642,6 +673,9 @@ problems` do **not**, because the Atlas names those differently. Unmapped
 constructs are reported honestly and still grouped in the synthesis by their
 lowercased label (`unmapped:internalizing problems`). When something important is
 unmapped, run `search` and offer the candidates to the user — do not auto-pick.
+Independently of the Atlas, every construct is also looked up in the trusted
+ontology files (the review loop's concept-map step), so an Atlas miss can still
+carry a tool-verified COGAT / NBO / MF / HP mapping.
 
 ## Reading the synthesis
 

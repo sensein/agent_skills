@@ -59,6 +59,16 @@ window. Never retry-loop, and never split one job into many calls to get around 
 
 ## Credentials & safety
 
+- **Reading public data needs no login — don't start one.** `brainkb_list_spaces`,
+  `brainkb_search` and `brainkb_read_space` work for an unauthenticated caller and
+  return **public spaces only** (read-only). If the user only wants to browse,
+  search or read public content, call those tools directly — no `whoami`, no
+  Globus flow, no PAT. Ask for login only when the task actually needs it:
+  private/member spaces, any write (create space, ingest, visibility, members,
+  access rules), provenance/delta, the graph registry, SPARQL / `brainkb_qa_run`,
+  or admin calls. When an anonymous read returns `403` with `"anonymous": true`,
+  the space is private (or restricted by a read rule): tell the user it isn't
+  public and offer to log in, rather than retrying.
 - **How to authenticate — pick in this order. Do NOT ask the user for a password
   by default; BrainKB is a Globus/OAuth-first system and password login is being
   retired.**
@@ -146,6 +156,8 @@ membership, then any per-space **access rule**. Key rules to set expectations:
 - **Ingest / recover**: write-capable role (+ owner/editor of the space).
 - **Arbitrary SPARQL**: Admin/SuperAdmin only.
 - **No role**: read **public** content only — cannot create/ingest/read private.
+- **Not logged in at all (anonymous)**: same as no role, via `brainkb_list_spaces`,
+  `brainkb_search`, `brainkb_read_space` only. Everything else needs login.
 - **Delegated upgrades** (Admin only): `brainkb_grant_capability(member, capability)`
   — e.g. let a Lab Member create team spaces. Inspect with
   `brainkb_capabilities(member)`. Admin-only caps (`grant`, `sparql_admin`) are not
@@ -168,6 +180,10 @@ users can onboard by first login via Globus/ORCID/GitHub, which auto-provisions
 the same profile + default role.) Never echo the password back.
 
 ### 1. Log in
+
+**Skip this whole section for public reads** — listing, searching or reading
+public spaces works without login (see *Credentials & safety*). Log in only once
+the task needs private data, a write, provenance, SPARQL or admin.
 
 **Auth order (TL;DR) — take the first that applies:**
 1. `brainkb_whoami()` → if `authenticated: true` (a PAT/header is already
@@ -199,8 +215,8 @@ login can evaporate on the hosted remote.
 (header token or `BRAINKB_TOKEN` PAT is configured), you're done; don't ask for
 anything.
 
-**If it reports `authenticated: false`, do NOT stop and offer the user a menu of
-auth methods.** Immediately call `brainkb_globus_login()` and hand over the URL it
+**If it reports `authenticated: false` and the task needs login** (not a public
+read), **do NOT stop and offer the user a menu of auth methods.** Immediately call `brainkb_globus_login()` and hand over the URL it
 returns — that is the only path that works from a cold start, so presenting it as
 a choice just adds a round trip. Then take the code they paste,
 `brainkb_finish_login("<code>")`, and **mint a PAT in the same turn** with
@@ -871,14 +887,15 @@ deploy):
    `brainkb_finish_login(code)`. Then `brainkb_whoami()` → should report
    `authenticated: true` and the right `base_url`/email (proves login + SSO
    exchange).
-2. `brainkb_list_spaces()` → returns without error (proves query_service auth via
-   the exchanged token).
+2. `brainkb_list_registered_graphs()` → returns without error (proves
+   query_service auth via the exchanged token). Don't use `brainkb_list_spaces()`
+   for this — it also succeeds anonymously, so it proves nothing about auth.
 3. **PAT:** `brainkb_create_token(name="smoke-test", days=3)` → returns a
    `brainkb_pat_…` once; `brainkb_list_tokens()` → shows it `active: true`;
    `brainkb_revoke_token(<id>)` → `revoked: true`. To prove end-to-end, set that
    PAT as `BRAINKB_TOKEN` (or `brainkb_use_token("<pat>")`) and re-run
-   `brainkb_whoami()` / `brainkb_list_spaces()` — they should still work with **no
-   password/browser**.
+   `brainkb_whoami()` / `brainkb_list_registered_graphs()` — they should still
+   work with **no password/browser**.
 4. Admin reachability (if Admin/SuperAdmin): `brainkb_list_users(limit=1)` returns
    without error (proves the `usermanagement` audience exchange too).
 

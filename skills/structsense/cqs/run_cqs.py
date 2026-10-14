@@ -3,6 +3,12 @@
 Example: python cqs/run_cqs.py /path/to/output --report cq-results.json
 Requires rdflib; optionally install pyoxigraph for large corpora. Empty answers do not
 fail execution. Reports distinguish missing prerequisite records from empty answers.
+
+Resource KGs (BrainKB Resource Ontology):
+    python cqs/run_cqs.py out/ --cqs cqs/brainkb_resource_ontology_CQs.md \
+        --with-ontology default_ontology/brainkb_resource_ontology.owl --entail
+--entail queries the OWL-RL closure of data + ontology (needs owlrl): bkr:hasScope and
+bkr:appliedToConcept are entailed, never asserted.
 """
 from __future__ import annotations
 import argparse
@@ -63,6 +69,8 @@ def main():
     ap.add_argument('ttl', nargs='+', type=Path)
     ap.add_argument('--cqs', type=Path, default=HERE / 'named_entity_ontology_CQs.md')
     ap.add_argument('--with-ontology', type=Path)
+    ap.add_argument('--entail', action='store_true',
+                    help='query the OWL-RL closure of the data + --with-ontology (needs owlrl)')
     ap.add_argument('--only', help='Comma-separated IDs, e.g. CQ24,CQ25')
     ap.add_argument('--rows', type=int, default=3)
     ap.add_argument('--engine', choices=['auto', 'rdflib', 'oxigraph'], default='auto')
@@ -93,17 +101,37 @@ def main():
                 ap.error('pyoxigraph is not installed; use --engine rdflib')
     engine = 'oxigraph' if ox else 'rdflib'
     g = ox.Store() if ox else rdflib.Graph(bind_namespaces='none')
-    for f in files:
+    ontology = rdflib.Graph().parse(args.with_ontology) if args.with_ontology else None
+    if args.entail:
+        try:
+            import owlrl
+        except ImportError:
+            ap.error('--entail needs owlrl: pip install owlrl')
+        closure = rdflib.Graph(bind_namespaces='none')
+        for f in files:
+            closure.parse(f, format='turtle')
+        if ontology is not None:
+            closure += ontology
+        owlrl.DeductiveClosure(owlrl.OWLRL_Semantics, axiomatic_triples=False,
+                               datatype_axioms=False).expand(closure)
+        # OWL-RL derives generalised triples (a literal as subject); RDF stores reject them
+        for t in [t for t in closure if isinstance(t[0], rdflib.Literal)]:
+            closure.remove(t)
         if ox:
-            g.load(path=str(f), format=ox.RdfFormat.TURTLE)
+            g.load(closure.serialize(format='nt'), format=ox.RdfFormat.N_TRIPLES)
         else:
-            g.parse(f, format='turtle')
-    if args.with_ontology:
-        ontology = rdflib.Graph().parse(args.with_ontology)
-        if ox:
-            g.load(ontology.serialize(format='nt'), format=ox.RdfFormat.N_TRIPLES)
-        else:
-            g += ontology
+            g = closure
+    else:
+        for f in files:
+            if ox:
+                g.load(path=str(f), format=ox.RdfFormat.TURTLE)
+            else:
+                g.parse(f, format='turtle')
+        if ontology is not None:
+            if ox:
+                g.load(ontology.serialize(format='nt'), format=ox.RdfFormat.N_TRIPLES)
+            else:
+                g += ontology
     def query(q):
         if ox:
             return g.query(q)
@@ -131,7 +159,8 @@ def main():
                 if len(sample) < max(0, args.rows):
                     sample.append([val(v) for v in row])
             item.update(count=count, sample=sample, status='answered' if count else 'empty')
-            required = REQUIRES.get(cq)
+            # prerequisite records are those of the named-entity CQ file (CQ ids are per file)
+            required = REQUIRES.get(cq) if args.cqs.name == 'named_entity_ontology_CQs.md' else None
             if not count and required and not type_counts.get(N + required):
                 item.update(status='unavailable', reason=f'No {required} records in loaded data; this feature/profile is absent.')
             if not count and cq == 'CQ41':

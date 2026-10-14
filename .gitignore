@@ -211,3 +211,6 @@ __marimo__/
 .idea/
 skills/*.zip
 skills/structsense/cqs/named_entity_ontology_CQs.md
+/skills/brainkb/diagrams
+/skills/structsense/diagrams
+/skills/synthscholar/diagrams

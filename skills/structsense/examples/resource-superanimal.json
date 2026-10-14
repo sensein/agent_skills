@@ -1,0 +1,41 @@
+{
+  "task_type": "resource",
+  "source_metadata": {"paper_title": "SuperAnimal-Quadruped: a foundation model for quadruped pose estimation"},
+  "extracted_resources": [
+    {
+      "record_id": "r1",
+      "extracted_type": "model",
+      "name": "SuperAnimal-Quadruped",
+      "description": "A pre-trained pose-estimation model for quadrupeds, released through the DeepLabCut Model Zoo.",
+      "url": "https://deeplabcut.github.io/DeepLabCut/docs/ModelZoo.html",
+      "tasks": [{"label": "pose-estimation"}],
+      "applicability": {
+        "declared": [{"statement": "Target species include mice, rats, dogs, and horses.",
+                      "species": [{"label": "mice"}, {"label": "rats"}, {"label": "dogs"}, {"label": "horses"}],
+                      "evidence_level": "documented_in_publication",
+                      "evidence": [{"quote": "Target species include mice, rats, dogs, and horses."}]}],
+        "validated": [{"statement": "Evaluated on the AP-10K benchmark.", "evidence_level": "benchmarked",
+                       "evidence": [{"quote": "where it reaches 84.1 mAP on AP-10K"}]}],
+        "out_of_scope": [{"statement": "Not tested on birds.", "species": [{"label": "birds"}],
+                          "evidence": [{"quote": "The model has not been tested on birds."}]}]
+      },
+      "failure_modes": [{"statement": "Keypoints can be placed on the wrong limb for heavily occluded animals.",
+                         "condition": "heavily occluded animals", "symptom": "keypoints on the wrong limb",
+                         "silent": true, "severity": "moderate",
+                         "evidence": [{"quote": "Performance degrades on heavily occluded animals, where keypoints can be placed on the wrong limb without any warning."}]}],
+      "benchmark_evidence": [{"benchmark": "AP-10K", "metric": "mAP", "value": 84.1,
+                              "evidence": [{"quote": "where it reaches 84.1 mAP on AP-10K"}]}],
+      "inputs": [{"name": "video frames", "format": "RGB video frames"}],
+      "outputs": [{"name": "keypoints", "description": "39 keypoints per animal"}],
+      "mentions": [{"name": "Quadruped-80K", "extracted_type": "dataset"},
+                   {"name": "AnimalPose", "extracted_type": "benchmark"},
+                   {"name": "AP-10K", "extracted_type": "benchmark"},
+                   {"name": "DeepLabCut", "extracted_type": "software_library"}],
+      "provenance": {"field_evidence": [
+        {"field": "url", "quote": "released through the DeepLabCut Model Zoo (https://deeplabcut.github.io/DeepLabCut/docs/ModelZoo.html)"},
+        {"field": "description", "quote": "We introduce SuperAnimal-Quadruped, a pre-trained pose-estimation model"}]},
+      "not_found_fields": ["stable_identifiers", "versions", "license", "access", "owners"],
+      "field_completeness": 0.55
+    }
+  ]
+}

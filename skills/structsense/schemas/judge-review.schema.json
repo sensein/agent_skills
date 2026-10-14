@@ -22,8 +22,10 @@
           "reason": {"type": "string", "maxLength": 400},
           "suggestion": {
             "type": ["object", "null"],
-            "description": "machine-usable fix within this judge's dimension only",
+            "description": "machine-usable fix within this judge's dimension only. query: a better SEARCH TERM for the mapping tool (never an id; the tool decides). set: {field: value} for record modes (ABCD/AIT), allowlisted per item kind in scripts/review_loop.py FIXABLE.",
             "properties": {
+              "query": {"type": "string", "minLength": 1},
+              "set": {"type": "object"},
               "label": {"type": "string"},
               "tier": {"type": "string", "enum": ["exactMatch", "closeMatch", "broadMatch", "narrowMatch", "relatedMatch"]},
               "normalized_key": {"type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$"},

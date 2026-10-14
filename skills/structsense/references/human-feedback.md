@@ -65,11 +65,20 @@ The feedback agent receives:
 - `user_feedback_text`: the freeform feedback string from the human.
 - `modification_context`: optional structured context (which items were highlighted, etc.).
 
-Its job: emit the same JSON structure, revised according to the feedback. The system prompt should hardcode "**preserve structure; only revise according to feedback; never invent or drop items**" — see `prompts/humanfeedback.md`.
+Its job is **not** to rewrite the JSON. It turns the feedback into review operations
+(`drop`, `restore`, `set`, `remap`, `demote`, `approve`, `note`) that
+`scripts/review_loop.py` applies under the same rules as the judges' fixes: fields
+from the allowlist only, ids only from a mapping tool (trusted ontologies first),
+no new items — see `prompts/humanfeedback.md` and `references/review-loop.md`.
+Structured reviewers can skip the model entirely: `python -m scripts.human_feedback
+queue` writes the queue with an empty `ops` list to fill, and `apply` applies it.
 
 ## Audit trail
 
-Always append a `human_feedback_log` entry:
+`scripts/review_loop.py` appends one entry per round to `review_loop.rounds` — actor,
+reviewer (`--by`), time, and per operation the value before and after, or why it was
+refused. In NER Turtle (`--profile full`) each round is a `ner:HumanReviewActivity`
+with `ner:ChangeRecord`s. The older free-form log looked like this:
 
 ```jsonc
 {

@@ -1,4 +1,13 @@
-"""Offline, synthetic contract tests; not an extraction-accuracy benchmark."""
+"""Offline, synthetic contract tests for the legacy resource shape; not an
+extraction-accuracy benchmark.
+
+The legacy structsense resource record (schemas/resource-output.schema.json) is still
+accepted as input. Its output is now a resource KG in the BrainKB Resource Ontology
+(scripts/resource_kg.py): source-stated identifiers become adms:Identifier nodes,
+versions bkr:ResourceVersion nodes, and each quote a bkr:ResourceAssertion anchored by
+an ner:EntityMention — all attested by the paper. Unsupported claims are removed and
+reported, never published.
+"""
 import copy
 import json
 import sys
@@ -6,26 +15,36 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
-from rdflib import Graph, Literal
-from rdflib.namespace import DCTERMS, OWL, PROV, RDF, RDFS
+from rdflib import Graph, Literal, Namespace
+from rdflib.namespace import DCTERMS, PROV, RDF, SKOS
 
 SKILL = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(SKILL / "scripts"))
 
-from json_to_ttl import NER, result_to_ttl  # noqa: E402
+from json_to_ttl import result_to_ttl  # noqa: E402
 from normalize_result import normalize  # noqa: E402
 from pipeline import run  # noqa: E402
-from resource_claims import checked_claims  # noqa: E402
+from resource_kg import ground, load_config, to_records  # noqa: E402
 from validate_ttl import validate_file  # noqa: E402
 
+BKR = Namespace("https://brainkb.org/resource/")
+NER = Namespace("https://brainkb.org/ner/")
+ADMS = Namespace("http://www.w3.org/ns/adms#")
+DCAT = Namespace("http://www.w3.org/ns/dcat#")
+SCHEMA = Namespace("https://schema.org/")
+
 FIXTURES = json.loads((SKILL / "examples" / "resource-catalog-fixtures.json").read_text())
-SCHEMA = json.loads((SKILL / "schemas" / "resource-output.schema.json").read_text())
-VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+SCHEMA_LEGACY = json.loads((SKILL / "schemas" / "resource-output.schema.json").read_text())
+VALIDATOR = Draft202012Validator(SCHEMA_LEGACY, format_checker=FormatChecker())
 
 
 def result(*resources):
     return {"extracted_resources": {str(i): [res] for i, res in enumerate(resources, 1)},
             "task_type": "resource"}
+
+
+def by_name(graph, name, cls):
+    return next(s for s in graph.subjects(BKR.resourceName, Literal(name)) if (s, RDF.type, cls) in graph)
 
 
 @pytest.mark.parametrize("case", ["dataset", "tool", "legacy"])
@@ -52,56 +71,70 @@ def test_schema_rejects_malformed_claims(change):
     assert not VALIDATOR.is_valid(result(resource))
 
 
-def test_unsupported_claim_is_not_accepted():
+def _grounded(resource, source):
+    records, _ = to_records(result(resource))
+    report = ground(records, source, load_config())
+    return records[0], report
+
+
+def test_unsupported_claim_is_removed_not_published():
     resource = copy.deepcopy(FIXTURES["dataset"]["expected"])
     resource["identifiers"][0]["value"] = "999999"
-    claims, errors = checked_claims(resource, FIXTURES["dataset"]["source"])
-    assert len(claims) == 1  # the valid version remains supported
-    assert "identifiers[0]" in errors[0]
+    rec, report = _grounded(resource, FIXTURES["dataset"]["source"])
+    assert "stable_identifiers" not in rec and "stable_identifiers" in rec["not_found_fields"]
+    assert [v["version"] for v in rec["versions"]] == ["0.2.0"]  # the valid version stays
+    assert any(r["field"] == "stable_identifiers[0]" for r in report["removed"])
     resource = copy.deepcopy(FIXTURES["dataset"]["expected"])
-    resource["identifiers"][0]["value"] = "00012"  # prefix is not the stated ID
-    _, errors = checked_claims(resource, FIXTURES["dataset"]["source"])
-    assert "identifiers[0]" in errors[0]
+    resource["identifiers"][0]["value"] = "00012"  # a prefix is not the stated ID
+    rec, _ = _grounded(resource, FIXTURES["dataset"]["source"])
+    assert "stable_identifiers" not in rec
 
 
-def test_mocked_pipeline_preserves_metadata_and_rejects_fabrication(monkeypatch):
+def test_mocked_pipeline_grounds_instead_of_publishing_fabrication(monkeypatch):
     import pipeline
     resource = copy.deepcopy(FIXTURES["dataset"]["expected"])
     monkeypatch.setattr(pipeline, "extract", lambda *a, **k: result(resource))
     output = run(FIXTURES["dataset"]["source"], task="resource", extractor_model="mock",
                  mapper_backend=None, judge_model=None, skip_judge=True)
-    assert output["extracted_resources"]["1"][0]["identifiers"] == resource["identifiers"]
-    assert normalize(copy.deepcopy(output))["extracted_resources"]["1"][0]["versions"] == resource["versions"]
+    rec = output["extracted_resources"][0]
+    assert rec["extracted_type"] == "dataset"
+    assert rec["stable_identifiers"] == [{"value": "000123", "scheme": "accession", "resolves_through": "DANDI"}]
+    assert normalize(copy.deepcopy(output))["extracted_resources"][0]["versions"] == [{"version": "0.2.0"}]
+    assert output["resource_grounding"]["grounded"] is True
     resource["identifiers"][0]["value"] = "invented"
-    with pytest.raises(ValueError, match="Unsupported resource metadata"):
-        run(FIXTURES["dataset"]["source"], task="resource", extractor_model="mock",
-            mapper_backend=None, judge_model=None, skip_judge=True)
+    output = run(FIXTURES["dataset"]["source"], task="resource", extractor_model="mock",
+                 mapper_backend=None, judge_model=None, skip_judge=True)
+    rec = output["extracted_resources"][0]
+    assert "stable_identifiers" not in rec
+    assert any(r["value"] == "invented" for r in output["resource_grounding"]["removed"])
 
 
 def test_rdf_claims_survive_and_validate(tmp_path):
     source = tmp_path / "source.txt"
     source.write_text(FIXTURES["both"]["source"], encoding="utf-8")
-    data = result(*FIXTURES["both"]["expected"])
-    ttl, report = result_to_ttl(data, source_path=source)
-    assert report["warnings"] == []
+    ttl, report = result_to_ttl(result(*FIXTURES["both"]["expected"]), source_path=source)
+    assert report["kind"] == "resource_kg" and report["grounding"]["n_removed"] == 0
     graph = Graph().parse(data=ttl, format="turtle")
-    dataset = next(s for s in graph.subjects(RDFS.label, Literal("Pine Maze Dataset"))
-                   if (s, RDF.type, NER.DatasetEntity) in graph)
-    tool = next(s for s in graph.subjects(RDFS.label, Literal("MazeCheck"))
-                if (s, RDF.type, NER.SoftwareEntity) in graph)
-    cited = next(s for s in graph.subjects(RDFS.label, Literal("OldScope"))
-                 if (s, RDF.type, NER.SoftwareEntity) in graph)
-    assert (dataset, DCTERMS.identifier, Literal("DANDI:000123")) in graph
-    assert {str(v) for v in graph.objects(tool, OWL.versionInfo)} == {"1.4.0", "1.5.0"}
-    assert list(graph.triples((dataset, OWL.versionInfo, None))) == []
-    assert list(graph.triples((cited, DCTERMS.identifier, None))) == []
-    assert list(graph.triples((cited, OWL.versionInfo, None))) == []
-    assert len(list(graph.subjects(RDF.type, RDF.Statement))) == 3
-    for statement in graph.subjects(RDF.type, RDF.Statement):
-        subject = graph.value(statement, RDF.subject)
-        assert subject in {dataset, tool}
-        assert graph.value(statement, DCTERMS.description)
-        assert graph.value(statement, PROV.hadPrimarySource)
+    dataset = by_name(graph, "Pine Maze Dataset", DCAT.Dataset)
+    tool = by_name(graph, "MazeCheck", SCHEMA.SoftwareApplication)
+    cited = by_name(graph, "OldScope", SCHEMA.SoftwareApplication)
+    ident = graph.value(dataset, ADMS.identifier)
+    assert str(graph.value(ident, SKOS.notation)) == "000123"
+    assert str(graph.value(graph.value(dataset, BKR.depositedIn), BKR.resourceName)) == "DANDI"
+    assert {str(graph.value(v, BKR.versionIdentifier)) for v in graph.objects(tool, BKR.hasVersion)} == {"1.4.0", "1.5.0"}
+    assert list(graph.objects(dataset, BKR.hasVersion)) == []
+    assert list(graph.objects(cited, ADMS.identifier)) == [] and list(graph.objects(cited, BKR.hasVersion)) == []
+    assert (dataset, BKR.mentions, cited) in graph and (tool, BKR.mentions, cited) in graph
+    assertions = set(graph.subjects(RDF.type, BKR.ResourceAssertion))
+    assert len(assertions) == 3
+    pub = next(graph.subjects(RDF.type, NER.SourceDocument))
+    for a in assertions:
+        assert graph.value(a, BKR.assertionAbout) in {dataset, tool}
+        mention = graph.value(a, BKR.evidencedByMention)
+        assert str(graph.value(mention, NER.evidenceText)) in FIXTURES["both"]["source"]
+    for res in (dataset, tool):
+        assert (res, DCTERMS.isReferencedBy, pub) in graph
+        assert (graph.value(res, BKR.hasRecord), PROV.hadPrimarySource, pub) in graph
     ttl_path = tmp_path / "out.ttl"
     ttl_path.write_text(ttl, encoding="utf-8")
     assert validate_file(ttl_path)["ok"]
@@ -115,15 +148,15 @@ def test_repeated_resource_keeps_each_stated_version(tmp_path):
     first["versions"] = resource["versions"][:1]
     second["versions"] = resource["versions"][1:]
     ttl, report = result_to_ttl(result(first, second), source_path=source)
-    assert report["warnings"] == []
+    assert report["records"] == 1  # one resource from two partial records
     graph = Graph().parse(data=ttl, format="turtle")
-    tool = next(s for s in graph.subjects(RDFS.label, Literal("MazeCheck"))
-                if (s, RDF.type, NER.SoftwareEntity) in graph)
-    assert {str(v) for v in graph.objects(tool, OWL.versionInfo)} == {"1.4.0", "1.5.0"}
+    tool = by_name(graph, "MazeCheck", SCHEMA.SoftwareApplication)
+    assert {str(graph.value(v, BKR.versionIdentifier)) for v in graph.objects(tool, BKR.hasVersion)} == {"1.4.0", "1.5.0"}
 
 
 def test_missing_source_never_emits_unverified_claim():
     ttl, report = result_to_ttl(result(FIXTURES["dataset"]["expected"]))
     graph = Graph().parse(data=ttl, format="turtle")
-    assert list(graph.triples((None, DCTERMS.identifier, None))) == []
-    assert any("not in the normalized source text" in warning for warning in report["warnings"])
+    assert list(graph.triples((None, ADMS.identifier, None))) == []
+    assert list(graph.subjects(RDF.type, BKR.ResourceVersion)) == []
+    assert any("no source text" in w for w in report["warnings"])

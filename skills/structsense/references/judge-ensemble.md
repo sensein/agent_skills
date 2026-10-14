@@ -112,7 +112,13 @@ Per item, in order:
 2. **Mapping fail** → demote to unmapped (ontology fields nulled,
    `concept_mapping_provenance: "unmapped"`, `alignment_method: "judge_demoted"`)
    — the item survives, the IRI doesn't. Rule 15: an IRI needs positive
-   verification at every stage.
+   verification at every stage. With `suggestion.query` — a better *search term*
+   from the paper, never an id — the mapping tool runs again (trusted ontologies
+   first, then the cascade) and its hit becomes the mapping
+   (`alignment_method: "judge_remapped"`, unjudged, listed in the human queue);
+   `report.remapped` records query, from and to. The mapping packet also carries
+   unmapped entities whose label has an ontology route, so the judge can supply a
+   query for a term the tool missed. (`judge_combine --no-remap` only demotes.)
 3. **Mapping tier**: mapping `pass` → `mapping_tier: "exactMatch"`; `flag` with a
    tier suggestion → that tier. Unjudged mappings are written as closeMatch.
 4. **Mechanical suggestions** (label, normalized_key, hypothetical/negated) with
@@ -123,6 +129,16 @@ Per item, in order:
 6. **Score**: `judge_score = Σ w_j · conf_j · s(v_j) / Σ w_j` over the judges
    that reviewed the item, `s(pass)=1, flag=0.5, fail=0`, weights from
    `judges_config.json`.
+
+A critical drop keeps the full mentions under `review_loop.dropped`, so the human
+feedback stage can `restore` a wrong drop (references/review-loop.md).
+
+**ABCD and AIT** are judged by the same panel, gates and weights through
+`scripts/record_judge.py` and one prompt, `prompts/judge-record.md`: the packet
+names the dimension; suggestions are `{"set": {field: value}}` (allowlisted per item
+kind), `{"tier": ...}` or `{"query": ...}`; verdicts become the same review_loop
+operations a human uses. ABCD drops go to `rejected[]`; AIT revisions append
+superseding rows to `mappings.csv`, so the CSV contract still validates.
 
 All of it is applied to the **raw mentions** (`entities[]` / `key_terms[]`), the
 authoritative record; the grouped views and `stats` are rebuilt from them, so a
