@@ -402,8 +402,9 @@ classes:
   RunConfiguration:
     class_uri: ner:ConfigurationArtifact
     description: >-
-      Settings in effect for a run. config_sha256 hashes the full settings
-      document; the common generation parameters are also broken out.
+      Settings in effect for a run. config_sha256 identifies the settings
+      (and only the settings; see that slot); the common generation parameters
+      are also broken out so they can be read without the files.
     slots:
       - config_sha256
       - temperature
@@ -981,9 +982,12 @@ slots:
     slot_uri: dcterms:format
   content_checksum:
     slot_uri: ner:checksum
+    pattern: "^(sha256:)?[0-9a-f]{64}$"
     description: >-
-      sha256 of the exact text the pipeline read (after PDF-to-text). Offsets in
-      SourceLocation refer to this text.
+      sha256 of the UTF-8 bytes of the exact text the pipeline read (after
+      PDF-to-text), written as `sha256:<64 hex>` (bare hex is also accepted).
+      Offsets in SourceLocation refer to this text. It covers the text only:
+      no file name, path, timestamp or run id.
   document_version:
     slot_uri: pav:version
     description: Version of the document (preprint v2, version of record…).
@@ -1146,12 +1150,24 @@ slots:
     slot_uri: ner:promptVersion
   prompt_sha256:
     slot_uri: ae:extractionPromptHash
-    pattern: "^[0-9a-f]{64}$"
+    pattern: "^(sha256:)?[0-9a-f]{64}$"
+    description: >-
+      sha256 of the prompt file's bytes exactly as sent, written as
+      `sha256:<64 hex>` (bare hex is also accepted), as structsense
+      judge_combine._file_sha256 does. It covers the prompt text only: no
+      path, timestamp or run id, so the same prompt always has the same hash.
   prompt_role:
     range: PromptRoleEnum
   config_sha256:
     slot_uri: ner:configurationHash
-    pattern: "^[0-9a-f]{64}$"
+    pattern: "^(sha256:)?[0-9a-f]{64}$"
+    description: >-
+      sha256 over the settings in effect, written as `sha256:<64 hex>` (bare
+      hex is also accepted). For structsense this is json_to_ttl.config_hash():
+      each configuration file's repo-relative name and bytes, in sorted order.
+      It covers settings only. Run-specific values (start/end time, run id,
+      input paths) are never part of it, so two runs with identical settings
+      share a hash; the run itself is identified by its id and timestamps.
   temperature:
     range: float
     slot_uri: ner:temperature
@@ -1296,7 +1312,7 @@ slots:
     description: mapping_id of an earlier decision this one replaces.
   mapper_type:
     range: MapperTypeEnum
-    description: Whether code, a model or a human made the decision.
+    description: Whether software, a language model or a human made the decision.
   mapped_by:
     range: Agent
     inlined: false
@@ -1655,10 +1671,18 @@ enums:
       other:
 
   MapperTypeEnum:
+    description: >-
+      Kind of agent that made a mapping decision. The AIT tables write
+      mapped_by=code for software; it is stored here as `software` because
+      `code` is a reserved attribute in LinkML's generated Python enums.
     permissible_values:
-      code:
+      software:
+        title: code
+        description: A deterministic program (lookup tool, rule, lexical matcher).
       llm:
+        description: A language model.
       human:
+        description: A human curator.
 
   DocumentTypeEnum:
     permissible_values:

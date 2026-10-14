@@ -75,6 +75,36 @@ class ExtractionCoreSchemaTest(unittest.TestCase):
         outcomes = set(self.sv.get_enum("EvidenceVerificationEnum").permissible_values)
         self.assertLessEqual(set(ait_tables.load_schema()["vocabularies"]["evidence_verified"]), outcomes)
 
+    def test_every_enum_value_builds_its_enum_in_generated_python(self):
+        # linkml-convert builds Python classes from the schema, and LinkML keeps the
+        # matched permissible value on each enum object as `.code`. A value that
+        # shadows an EnumDefinitionImpl attribute (as a value named `code` did)
+        # corrupts every member: MapperTypeEnum("llm").code was the `code` value.
+        from linkml.generators.pythongen import PythonGenerator
+
+        module = PythonGenerator(str(SCHEMA)).compile_module()
+        for enum_name, enum in self.sv.all_enums().items():
+            cls = getattr(module, enum_name)
+            for value in enum.permissible_values:
+                with self.subTest(enum=enum_name, value=value):
+                    member = cls(value)
+                    self.assertIsInstance(member, cls)
+                    self.assertEqual(member.code.text, value)
+
+    def test_hashes_accept_structsense_format(self):
+        import hashlib
+        import re
+
+        digest = hashlib.sha256(b"prompt text").hexdigest()
+        for cname, slot in (("PromptVersion", "prompt_sha256"), ("RunConfiguration", "config_sha256"),
+                            ("SourceDocument", "content_checksum")):
+            pattern = re.compile(self.sv.induced_slot(slot, cname).pattern)
+            with self.subTest(slot=slot):
+                self.assertRegex("sha256:" + digest, pattern)  # what structsense writes
+                self.assertRegex(digest, pattern)
+                for bad in ("md5:" + digest, "sha256:" + digest[:40], digest.upper()):
+                    self.assertNotRegex(bad, pattern)
+
     def test_valid_example_passes(self):
         problems = self.checker.check(EXAMPLES / "ExtractionDataset-hu2026.yaml")
         self.assertEqual(problems, [])

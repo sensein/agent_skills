@@ -77,6 +77,12 @@ jobs:
           gen-owl schemas/extraction_core/extraction_core.yaml > /tmp/extraction_core.owl.ttl
       - name: Validate the example dataset
         run: python schemas/extraction_core/check_dataset.py schemas/extraction_core/examples/ExtractionDataset-*.yaml
+      - name: Convert the example to RDF (the README's linkml-convert command)
+        run: |
+          for fmt in ttl jsonld; do
+            linkml-convert -s schemas/extraction_core/extraction_core.yaml -C ExtractionDataset \
+              -o /tmp/example.$fmt schemas/extraction_core/examples/ExtractionDataset-hu2026.yaml
+          done
       - name: Schema tests
         run: python -m unittest tests.test_extraction_core -v
 
