@@ -23,17 +23,12 @@ bkbit filemanifest2jsonld [-l] FILE_MANIFEST_CSV > output.jsonld
 | --- | --- |
 | `-l`, `--list_library_aliquots` | Also write the unique `Specimen ID`s to `./file_manifest_library_aliquots.txt`. |
 
-> **Known issue (bkbit `main` as of 2026-10-14, and not in any PyPI release):**
-> every run fails with `ValidationError: 1 validation error for DigitalAsset
-> content_url: Input should be a valid string`. The translator is correct: the
-> upstream `brain-bican/models` schema makes `content_url` multivalued. The
-> problem is bkbit's bundled `bkbit/models/library_generation.py`, which is
-> older than upstream and still types it as `Optional[str]`. The fix belongs
-> in that model file (`Optional[List[str]]`, or a full re-sync from upstream),
-> **not** in the translator. If the user hits this error, explain the cause
-> and point them to <https://github.com/brain-bican/bkbit/issues>. Don't patch
-> their installed package unless they ask. `-l` fails the same way, because the
-> ID file is only written after the objects are built.
+> **Needs bkbit newer than PyPI `0.1.1`.** Until October 2026 every run
+> failed with `ValidationError: ... DigitalAsset content_url: Input should be
+> a valid string`, because bkbit's bundled model typed `content_url` as a
+> single string. This is fixed on `main` (brain-bican/bkbit#108). If the user
+> sees this error, their bkbit is older than that fix: have them install from
+> GitHub (`pip install git+https://github.com/brain-bican/bkbit`).
 
 Required CSV columns, spelled exactly like this: `Specimen ID`, `File Name`,
 `Checksum`, `File Type`, `Archive`, `Archive URI`. A missing column raises

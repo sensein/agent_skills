@@ -16,25 +16,24 @@ AnS().provide_data("path/to/csv_dir", "anatomical_structure.jsonld")
 # -> path/to/csv_dir/anatomical_structure.jsonld
 ```
 
-> **Known issue (bkbit `main` as of 2026-10-14):** the October 2026 model
-> update made `version` required on `ParcellationTermSet` and
-> `ParcellationTerm`, but the translator's term-set and term CSV headers have
-> no `version` column and pass none. A folder containing either CSV fails with
-> `ValidationError: ... version Field required`, and the run writes **no
-> output file at all**, not even for the other CSVs. Until bkbit is fixed,
-> either move those two CSVs to a separate folder and translate the rest, or
-> build those objects from Python with `version` set
-> (`ans.ParcellationTerm(..., version="1")`). The other nine CSV types
-> translate correctly. The same update made `name` and `description`
-> optional on most classes, but the translator still needs those columns in
-> the header, because CSVs are matched by their exact header.
+> **Term and term-set CSVs need a `version` column** (bkbit `main` since
+> October 2026, brain-bican/bkbit#108). The model requires `version` on
+> `ParcellationTermSet` and `ParcellationTerm`. A term or term-set CSV in the
+> older format, missing only `version`, raises `ValueError: <file> is missing
+> the required 'version' column.` Add the column, using the version of the
+> terminology the terms belong to. Older bkbit installs fail differently: a
+> folder with either CSV raises `ValidationError: ... version Field required`
+> and writes no output at all. Have those users install bkbit from GitHub.
+> `name` and `description` are optional in the model, but the columns must
+> still be present, because CSVs are matched by their exact header.
 
 ## How CSVs are matched
 
 The translator identifies each CSV by its **exact set of header columns**
 (order doesn't matter). The headers must match one of the `generate_*`
 methods' parameter names exactly. A CSV with a missing, extra, or misspelled
-column is **skipped without a warning**. If a class is missing from the
+column is **skipped without a warning** (except a term or term-set CSV that
+lacks only `version`, which raises an error). If a class is missing from the
 output, check that file's header against this table first:
 
 | Object | Required header (exact set) |
@@ -44,8 +43,8 @@ output, check that file's header against this table first:
 | `AnatomicalAnnotationSet` | `label,name,description,revision_of,version,anatomical_space_label` |
 | `ParcellationAnnotation` | `internal_identifier,anatomical_annotation_set_label,voxel_count` |
 | `ParcellationTerminology` | `label,name,description,revision_of,version` |
-| `ParcellationTermSet` | `label,name,description,parcellation_terminology_label,parcellation_term_set_order,parcellation_parent_term_set_label` |
-| `ParcellationTerm` | `name,symbol,description,parcellation_term_set_label,parcellation_terminology_label,parcellation_term_identifier,parcellation_term_order,parcellation_parent_term_set_label,parcellation_parent_term_identifier` |
+| `ParcellationTermSet` | `label,name,description,version,parcellation_terminology_label,parcellation_term_set_order,parcellation_parent_term_set_label` |
+| `ParcellationTerm` | `name,symbol,description,version,parcellation_term_set_label,parcellation_terminology_label,parcellation_term_identifier,parcellation_term_order,parcellation_parent_term_set_label,parcellation_parent_term_identifier` |
 | `ParcellationAnnotationTermMap` | `internal_identifier,anatomical_annotation_set_label,parcellation_term_identifier,parcellation_term_set_label,parcellation_terminology_label` |
 | `ParcellationColorScheme` | `label,name,description,revision_of,version,parcellation_terminology_label` |
 | `ParcellationColorAssignment` | `parcellation_color_scheme_label,parcellation_term_identifier,parcellation_terminology_label,color_hex_triplet` |

@@ -16,11 +16,11 @@ collect the inputs it needs, run it, and check what it produced.
 | The user has... | Command | Model | Details |
 | --- | --- | --- | --- |
 | Specimen Portal NHash IDs (`DO-…`, `LP-…`, `LA-…`), or a file with one per line | `bkbit specimen2jsonld` | Library Generation | [references/specimen_portal.md](references/specimen_portal.md) |
-| A **File Manifest** CSV from the Brain Knowledge Platform | `bkbit filemanifest2jsonld` (currently broken, see reference) | Library Generation | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
+| A **File Manifest** CSV from the Brain Knowledge Platform | `bkbit filemanifest2jsonld` | Library Generation | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
 | A **Metadata** (specimen list) CSV from the Brain Knowledge Platform | `bkbit list-library-aliquot` | none, prints IDs | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
 | A GFF3 URL from NCBI or Ensembl | `bkbit gff2jsonld` | Genome Annotation | [references/genome_annotation.md](references/genome_annotation.md) |
 | HMBA annotation, abbreviation, and description CSVs | `bkbit taxonomy2jsonld` | BKE Taxonomy | [references/hmba_taxonomy.md](references/hmba_taxonomy.md) |
-| A folder of anatomical-structure / parcellation CSVs | Python API only (`AnS`); term and term-set CSVs currently fail, see reference | Anatomical Structure | [references/anatomical_structure.md](references/anatomical_structure.md) |
+| A folder of anatomical-structure / parcellation CSVs | Python API only (`AnS`) | Anatomical Structure | [references/anatomical_structure.md](references/anatomical_structure.md) |
 
 Read only the reference file for the translator you are using. Each one gives
 the exact inputs, options, examples, and known problems.
@@ -30,15 +30,20 @@ the exact inputs, options, examples, and known problems.
 1. **Identify the input.** Ask what the user has if it isn't clear: an ID, a
    CSV (and which Brain Knowledge Platform export), a URL, or a folder. Match it
    to the table above.
-2. **Make sure bkbit is installed.** Run `bkbit --help`. If the command is not
-   found:
+2. **Make sure a current bkbit is installed.** Run `bkbit --help` and check
+   that the subcommand you need is listed. **Install from GitHub, not PyPI.**
+   The PyPI release (`0.1.1`, June 2024) predates every translator: its CLI
+   only has `schema2model`. So `pip install bkbit` gives a `bkbit` that is
+   missing these commands. If `bkbit` is not found, or the subcommand is
+   missing:
    ```bash
-   pip install bkbit
+   pip install --upgrade git+https://github.com/brain-bican/bkbit
    # Temporary fix the bkbit README asks for:
    pip install git+https://github.com/linkml/schemasheets
    ```
    Use a virtual environment or the project's own environment. Don't install
-   into the system Python.
+   into the system Python. To check which version is installed, run
+   `pip show bkbit`.
 3. **Check what the translator needs before running it.** That can be a
    credential (`jwt_token`), network access (Specimen Portal, NCBI/Ensembl FTP,
    the JSON-LD context on `raw.githubusercontent.com`), required CSV columns, or
