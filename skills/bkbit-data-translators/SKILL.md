@@ -87,9 +87,12 @@ user wants the objects themselves, for a notebook, or to batch runs:
 from bkbit.data_translators.genome_annotation_translator import Gff3
 
 gff3 = Gff3(url, assembly_accession=None, assembly_strain=None)
-gff3.setup()            # parses the URL, downloads the file
-gff3.parse_gff3_file()  # organism, assembly, checksum, annotation objects
-gff3.parse()            # gene annotations
+try:
+    gff3.setup()            # parses the URL, downloads the file to a temp file
+    gff3.parse_gff3_file()  # organism, assembly, checksum, annotation objects
+    gff3.parse()            # gene annotations
+finally:
+    gff3.cleanup()          # deletes the downloaded temp file
 jsonld = gff3.serialize_to_jsonld()
 ```
 
