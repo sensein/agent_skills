@@ -16,6 +16,19 @@ AnS().provide_data("path/to/csv_dir", "anatomical_structure.jsonld")
 # -> path/to/csv_dir/anatomical_structure.jsonld
 ```
 
+> **Known issue (bkbit `main` as of 2026-10-14):** the October 2026 model
+> update made `version` required on `ParcellationTermSet` and
+> `ParcellationTerm`, but the translator's term-set and term CSV headers have
+> no `version` column and pass none. A folder containing either CSV fails with
+> `ValidationError: ... version Field required`, and the run writes **no
+> output file at all**, not even for the other CSVs. Until bkbit is fixed,
+> either move those two CSVs to a separate folder and translate the rest, or
+> build those objects from Python with `version` set
+> (`ans.ParcellationTerm(..., version="1")`). The other nine CSV types
+> translate correctly. The same update made `name` and `description`
+> optional on most classes, but the translator still needs those columns in
+> the header, because CSVs are matched by their exact header.
+
 ## How CSVs are matched
 
 The translator identifies each CSV by its **exact set of header columns**

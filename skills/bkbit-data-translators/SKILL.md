@@ -16,11 +16,11 @@ collect the inputs it needs, run it, and check what it produced.
 | The user has... | Command | Model | Details |
 | --- | --- | --- | --- |
 | Specimen Portal NHash IDs (`DO-…`, `LP-…`, `LA-…`), or a file with one per line | `bkbit specimen2jsonld` | Library Generation | [references/specimen_portal.md](references/specimen_portal.md) |
-| A **File Manifest** CSV from the Brain Knowledge Platform | `bkbit filemanifest2jsonld` (known upstream bug, see reference) | Library Generation | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
+| A **File Manifest** CSV from the Brain Knowledge Platform | `bkbit filemanifest2jsonld` (currently broken, see reference) | Library Generation | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
 | A **Metadata** (specimen list) CSV from the Brain Knowledge Platform | `bkbit list-library-aliquot` | none, prints IDs | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
 | A GFF3 URL from NCBI or Ensembl | `bkbit gff2jsonld` | Genome Annotation | [references/genome_annotation.md](references/genome_annotation.md) |
 | HMBA annotation, abbreviation, and description CSVs | `bkbit taxonomy2jsonld` | BKE Taxonomy | [references/hmba_taxonomy.md](references/hmba_taxonomy.md) |
-| A folder of anatomical-structure / parcellation CSVs | Python API only (`AnS`) | Anatomical Structure | [references/anatomical_structure.md](references/anatomical_structure.md) |
+| A folder of anatomical-structure / parcellation CSVs | Python API only (`AnS`); term and term-set CSVs currently fail, see reference | Anatomical Structure | [references/anatomical_structure.md](references/anatomical_structure.md) |
 
 Read only the reference file for the translator you are using. Each one gives
 the exact inputs, options, examples, and known problems.
@@ -105,4 +105,10 @@ Each reference file covers the matching class (`SpecimenPortal`,
   <https://github.com/brain-bican/bkbit/issues>.
 - Object `id`s like `urn:bkbit:<sha256>` are hashes of the object's
   attributes, so the same input gives the same IDs every run. Different IDs for
-  the same input mean the input changed.
+  the same input mean the input changed. The SKOS mapping attributes
+  (`exact_match`, `close_match`, `broad_match`, `narrow_match`,
+  `related_match`, `mapping_relation`) are left out of the hash, so adding an
+  ontology mapping doesn't change an ID. `xref` is still part of the hash.
+  bkbit releases before October 2026 hashed every attribute, so IDs for
+  objects with SKOS mappings, such as `gff2jsonld`'s `OrganismTaxon`, differ
+  between old and new versions.

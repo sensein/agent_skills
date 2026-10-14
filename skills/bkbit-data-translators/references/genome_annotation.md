@@ -8,6 +8,12 @@ objects: one `OrganismTaxon`, one `GenomeAssembly`, one `GenomeAnnotation`,
 one `Checksum`, and one `GeneAnnotation` per `gene` / `pseudogene` /
 `ncRNA_gene` feature.
 
+The `OrganismTaxon` has `xref` and `exact_match` both set to
+`NCBITaxon:<taxid>`. The `@context` URL is pinned to a fixed
+`brain-bican/models` commit (`CONTEXT_URL` in the translator) rather than
+`main`, so output from one bkbit version always resolves against the same
+context.
+
 ## Command
 
 ```bash
