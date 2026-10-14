@@ -39,6 +39,7 @@ prefixes:
   bibo: http://purl.org/ontology/bibo/
   doco: http://purl.org/spar/doco/
   doap: http://usefulinc.com/ns/doap#
+  owl: http://www.w3.org/2002/07/owl#
   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
   rdfs: http://www.w3.org/2000/01/rdf-schema#
   xsd: http://www.w3.org/2001/XMLSchema#
@@ -485,6 +486,13 @@ classes:
     description: >-
       A resolved referent with a stable identity across sources. All mentions
       of the same referent in every paper point to one Entity id.
+
+      Accepted ontology matches are asserted directly with the SKOS slots from
+      OntologyMappable, so the entity links to the external term in the graph.
+      concept_mappings keeps the full decision record (candidates, rejected,
+      scores, method); only accepted decisions appear in the SKOS slots.
+    mixins:
+      - OntologyMappable
     slots:
       - entity_category
       - entity_class
@@ -510,7 +518,7 @@ classes:
       - mapped_iri
       - mapped_label
       - ontology
-      - mapping_relation
+      - skos_relation
       - mapping_status
       - alignment_method
       - mapping_score
@@ -699,6 +707,44 @@ classes:
     slots:
       - member_assertions
       - generated_by
+
+  OntologyMappable:
+    mixin: true
+    description: >-
+      SKOS mapping slots for linking an entity to concepts in external
+      vocabularies, matching OntologyMappable in the BICAN SKOS schema
+      (brain-bican/models linkml-schema/bican_skos.yaml). Each slot holds
+      accepted matches only. All are sub-properties of skos:mappingRelation,
+      so a weaker claim can be tightened later without contradicting what was
+      already published. close_match is not a more general broad_match: they
+      are siblings (similarity at the same level vs. a hierarchy), and the
+      neutral fallback is mapping_relation.
+    slots:
+      - mapping_relation
+      - exact_match
+      - close_match
+      - broad_match
+      - narrow_match
+      - related_match
+
+  OntologyClass:
+    class_uri: owl:Class
+    description: >-
+      A term in an external ontology or taxonomy (CL, UBERON, NCBITaxon, ECO,
+      an Allen taxonomy node…), referenced by CURIE. It is never defined in an
+      Extraction Core dataset; using it as a range makes the value an IRI node
+      in RDF and JSON-LD ("@type": "@id") instead of a string, so the graph
+      joins onto the external ontology.
+    slots:
+      - id
+
+  OntologyProperty:
+    class_uri: rdf:Property
+    description: >-
+      A relation from an external ontology (RO, ae:, ner:…), referenced by
+      CURIE. Like OntologyClass, it is serialized as an IRI node.
+    slots:
+      - id
 
   TemporalContext:
     class_uri: ae:TemporalContext
@@ -920,7 +966,8 @@ slots:
     slot_uri: ae:hasSpeciesContext
     description: Organisms the record is scoped to, each with its role in the source.
   taxon:
-    range: uriorcurie
+    range: OntologyClass
+    inlined: false
     description: NCBITaxon CURIE, e.g. NCBITaxon:10090.
   taxon_label:
     slot_uri: rdfs:label
@@ -1233,7 +1280,8 @@ slots:
       Extraction label (e.g. CellType, BrainRegion, Gene). Prefer labels in the
       structsense label_class_map so entity_class can be filled.
   entity_class:
-    range: uriorcurie
+    range: OntologyClass
+    inlined: false
     description: Ontology class CURIE for the category (e.g. ner:CellType, ae:BrainRegion).
   mention_specificity:
     range: MentionSpecificityEnum
@@ -1268,9 +1316,15 @@ slots:
 
   # --- concept mapping ------------------------------------------------
   mapped_curie:
-    range: uriorcurie
-    slot_uri: ae:mappedToCurie
-    description: Ontology term CURIE, e.g. CL:0000540 or UBERON:0002420.
+    range: OntologyClass
+    inlined: false
+    description: >-
+      The proposed target term, written as a CURIE (e.g. CL:0000540 or
+      UBERON:0002420) and serialized as an IRI node. ae:mappedToCurie is a
+      string-valued property, so it is kept as a related mapping rather than
+      the slot URI.
+    related_mappings:
+      - ae:mappedToCurie
   mapped_iri:
     range: uri
     slot_uri: ae:mappedToURI
@@ -1279,8 +1333,12 @@ slots:
   ontology:
     range: OntologyVersion
     inlined: false
-  mapping_relation:
+  skos_relation:
     range: MappingRelationEnum
+    description: >-
+      The SKOS relation this decision proposes (same name as the AIT tables'
+      skos_relation column). When the decision is accepted on an Entity, the
+      target also appears in the Entity's slot for that relation.
   mapping_status:
     range: MappingStatusEnum
   alignment_method:
@@ -1294,7 +1352,7 @@ slots:
   match_confidence:
     range: MatchConfidenceEnum
     description: >-
-      Coarse review-queue grade derived from mapping_relation (exactMatch →
+      Coarse review-queue grade derived from skos_relation (exactMatch →
       exact, other SKOS relations → partial, no match → none). Not calibrated.
   basis_for_match:
     range: MatchBasisEnum
@@ -1304,7 +1362,8 @@ slots:
   no_match_reason:
     description: Why no target was accepted when mapping_status is no_match.
   nearest_ancestor:
-    range: uriorcurie
+    range: OntologyClass
+    inlined: false
     description: Closest broader term that does fit when no exact target exists.
   mapping_id:
     description: Stable id of this mapping decision, so later decisions can supersede it.
@@ -1319,6 +1378,54 @@ slots:
   mapping_run:
     range: ExtractionRun
     inlined: false
+
+  # --- SKOS mappings (OntologyMappable) -------------------------------
+  mapping_relation:
+    slot_uri: skos:mappingRelation
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: >-
+      Accepted mapping of unspecified kind. The honest choice when the
+      relationship is not established: it entails nothing, being neither
+      symmetric nor transitive and carrying no direction.
+  exact_match:
+    slot_uri: skos:exactMatch
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: >-
+      Accepted: the external concept is interchangeable with this entity.
+      Symmetric and transitive, so do not use it where several entities map
+      to one external concept (that would make them equivalent to each other).
+  close_match:
+    slot_uri: skos:closeMatch
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: >-
+      Accepted: close enough to be used interchangeably in some applications.
+      Symmetric but not transitive.
+  broad_match:
+    slot_uri: skos:broadMatch
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: "Accepted: the external concept is broader than this entity."
+  narrow_match:
+    slot_uri: skos:narrowMatch
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: "Accepted: the external concept is narrower than this entity."
+  related_match:
+    slot_uri: skos:relatedMatch
+    range: OntologyClass
+    multivalued: true
+    inlined: false
+    description: >-
+      Accepted: associatively related. This positively asserts the concepts
+      are neither equivalent nor hierarchically related.
 
   # --- assertions -----------------------------------------------------
   claim_category:
@@ -1381,7 +1488,8 @@ slots:
   evidence_type:
     range: EvidenceTypeEnum
   evidence_code:
-    range: uriorcurie
+    range: OntologyClass
+    inlined: false
     description: Evidence & Conclusion Ontology code (e.g. ECO:0000006 experimental evidence).
   method:
     multivalued: true
@@ -1449,7 +1557,8 @@ slots:
     range: EntityMention
     inlined: false
   predicate:
-    range: uriorcurie
+    range: OntologyProperty
+    inlined: false
     description: Relation property CURIE (e.g. RO:0002292 expresses, ae:locatedIn).
   relation_type:
     range: RelationTypeEnum
@@ -1787,6 +1896,9 @@ enums:
         meaning: skos:narrowMatch
       related_match:
         meaning: skos:relatedMatch
+      mapping_relation:
+        meaning: skos:mappingRelation
+        description: A mapping of unspecified kind; entails nothing.
 
   MappingStatusEnum:
     permissible_values:

@@ -114,6 +114,9 @@ entities:
     entity_class: ner:CellType
     identity_key: celltype|pvalb interneuron
     aliases: [PV interneuron, PV+ cell]
+    # Accepted mapping asserted directly as a SKOS link; concept_mappings below
+    # keeps the decision record.
+    exact_match: [CL:4023018]
     species_context:
       - taxon: NCBITaxon:10090
         taxon_label: Mus musculus
@@ -122,7 +125,7 @@ entities:
       - mapped_curie: CL:4023018
         mapped_label: pvalb GABAergic cortical interneuron
         ontology: ex:ontology/cl/2026-09-01
-        mapping_relation: exact_match
+        skos_relation: exact_match
         mapping_status: accepted
         alignment_method: ontology_lookup_service
         mapping_score: 0.93

@@ -1,0 +1,1148 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "CHEBI": {
+      "@id": "http://purl.obolibrary.org/obo/CHEBI_",
+      "@prefix": true
+    },
+    "CL": {
+      "@id": "http://purl.obolibrary.org/obo/CL_",
+      "@prefix": true
+    },
+    "DOI": "https://doi.org/",
+    "ECO": {
+      "@id": "http://purl.obolibrary.org/obo/ECO_",
+      "@prefix": true
+    },
+    "GO": {
+      "@id": "http://purl.obolibrary.org/obo/GO_",
+      "@prefix": true
+    },
+    "IAO": {
+      "@id": "http://purl.obolibrary.org/obo/IAO_",
+      "@prefix": true
+    },
+    "NCBITaxon": {
+      "@id": "http://purl.obolibrary.org/obo/NCBITaxon_",
+      "@prefix": true
+    },
+    "ORCID": "https://orcid.org/",
+    "PMCID": "https://www.ncbi.nlm.nih.gov/pmc/articles/",
+    "PMID": "https://pubmed.ncbi.nlm.nih.gov/",
+    "RO": {
+      "@id": "http://purl.obolibrary.org/obo/RO_",
+      "@prefix": true
+    },
+    "RRID": "https://identifiers.org/RRID/",
+    "SEPIO": {
+      "@id": "http://purl.obolibrary.org/obo/SEPIO_",
+      "@prefix": true
+    },
+    "UBERON": {
+      "@id": "http://purl.obolibrary.org/obo/UBERON_",
+      "@prefix": true
+    },
+    "ae": "https://brainkb.org/assertion-evidence/",
+    "bibo": "http://purl.org/ontology/bibo/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "doap": "http://usefulinc.com/ns/doap#",
+    "doco": "http://purl.org/spar/doco/",
+    "ex": "https://example.org/extraction/",
+    "exc": "https://brainkb.org/extraction-core/",
+    "linkml": "https://w3id.org/linkml/",
+    "ner": "https://brainkb.org/ner/",
+    "obo": "http://purl.obolibrary.org/obo/",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "pav": "http://purl.org/pav/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "schema": "http://schema.org/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "@vocab": "https://brainkb.org/extraction-core/",
+    "abstract": {
+      "@id": "dcterms:abstract"
+    },
+    "affiliation": {
+      "@id": "affiliation"
+    },
+    "aliases": {
+      "@id": "skos:altLabel"
+    },
+    "alignment_method": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:alignmentMethod"
+    },
+    "applicability_context": {
+      "@id": "ae:applicabilityContext"
+    },
+    "assertion": {
+      "@id": "assertion"
+    },
+    "assertion_relation_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "assertion_relation_type"
+    },
+    "assertion_relations": {
+      "@type": "@id",
+      "@id": "assertion_relations"
+    },
+    "assertion_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "assertion_type"
+    },
+    "assertions": {
+      "@type": "@id",
+      "@id": "assertions"
+    },
+    "attributed_to": {
+      "@id": "ae:attributedClaimAgent"
+    },
+    "authors": {
+      "@id": "dcterms:creator"
+    },
+    "basis_for_match": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "basis_for_match"
+    },
+    "broad_match": {
+      "@type": "@id",
+      "@id": "skos:broadMatch"
+    },
+    "char_end": {
+      "@type": "xsd:integer",
+      "@id": "ae:charEnd"
+    },
+    "char_start": {
+      "@type": "xsd:integer",
+      "@id": "ae:charStart"
+    },
+    "chunk_id": {
+      "@id": "chunk_id"
+    },
+    "chunk_overlap": {
+      "@type": "xsd:integer",
+      "@id": "chunk_overlap"
+    },
+    "chunk_size": {
+      "@type": "xsd:integer",
+      "@id": "chunk_size"
+    },
+    "cited_source": {
+      "@type": "xsd:anyURI",
+      "@id": "dcterms:references"
+    },
+    "claim_category": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:claimCategory"
+    },
+    "claim_clusters": {
+      "@type": "@id",
+      "@id": "claim_clusters"
+    },
+    "claim_stance": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:claimStance"
+    },
+    "close_match": {
+      "@type": "@id",
+      "@id": "skos:closeMatch"
+    },
+    "comment": {
+      "@id": "ner:reviewComment"
+    },
+    "commit": {
+      "@id": "commit"
+    },
+    "concept_mappings": {
+      "@type": "@id",
+      "@id": "concept_mappings"
+    },
+    "confidence": {
+      "@type": "xsd:float",
+      "@id": "ae:confidence"
+    },
+    "confidence_method": {
+      "@id": "confidence_method"
+    },
+    "config_sha256": {
+      "@id": "ner:configurationHash"
+    },
+    "configuration": {
+      "@type": "@id",
+      "@id": "ner:usedConfiguration"
+    },
+    "container_digest": {
+      "@id": "ner:containerDigest"
+    },
+    "content_checksum": {
+      "@id": "ner:checksum"
+    },
+    "corresponding_authors": {
+      "@id": "corresponding_authors"
+    },
+    "created_at": {
+      "@type": "xsd:dateTime",
+      "@id": "pav:createdOn"
+    },
+    "dataset": {
+      "@type": "xsd:anyURI",
+      "@id": "ae:dataInput"
+    },
+    "decision": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ner:reviewStatus"
+    },
+    "derived_from": {
+      "@type": "xsd:anyURI",
+      "@id": "prov:wasDerivedFrom"
+    },
+    "description": {
+      "@id": "dcterms:description"
+    },
+    "directness": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "directness"
+    },
+    "document_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "document_type"
+    },
+    "document_version": {
+      "@id": "pav:version"
+    },
+    "documents": {
+      "@type": "@id",
+      "@id": "documents"
+    },
+    "doi": {
+      "@id": "bibo:doi"
+    },
+    "ended_at": {
+      "@type": "xsd:dateTime",
+      "@id": "prov:endedAtTime"
+    },
+    "entities": {
+      "@type": "@id",
+      "@id": "entities"
+    },
+    "entity_category": {
+      "@id": "ae:entityType"
+    },
+    "entity_class": {
+      "@type": "@id",
+      "@id": "entity_class"
+    },
+    "entity_mentions": {
+      "@type": "@id",
+      "@id": "entity_mentions"
+    },
+    "entity_relations": {
+      "@type": "@id",
+      "@id": "entity_relations"
+    },
+    "errors": {
+      "@id": "errors"
+    },
+    "evidence": {
+      "@type": "@id",
+      "@id": "ae:relationEvidence"
+    },
+    "evidence_code": {
+      "@type": "@id",
+      "@id": "evidence_code"
+    },
+    "evidence_items": {
+      "@type": "@id",
+      "@id": "evidence_items"
+    },
+    "evidence_relations": {
+      "@type": "@id",
+      "@id": "evidence_relations"
+    },
+    "evidence_similarity": {
+      "@type": "xsd:float",
+      "@id": "evidence_similarity"
+    },
+    "evidence_strength": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:bearingStrength"
+    },
+    "evidence_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "evidence_type"
+    },
+    "evidence_verification": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "evidence_verification"
+    },
+    "evidential_direction": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:evidentialDirection"
+    },
+    "evidential_mode": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:bearingMode"
+    },
+    "exact_match": {
+      "@type": "@id",
+      "@id": "skos:exactMatch"
+    },
+    "executed_by": {
+      "@type": "@id",
+      "@id": "executed_by"
+    },
+    "experiment": {
+      "@id": "ae:evidenceFromExperiment"
+    },
+    "extra_settings": {
+      "@id": "extra_settings"
+    },
+    "extracted_at": {
+      "@type": "xsd:dateTime",
+      "@id": "prov:generatedAtTime"
+    },
+    "extracted_by": {
+      "@type": "@id",
+      "@id": "prov:wasAttributedTo"
+    },
+    "extraction_flags": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "extraction_flags"
+    },
+    "extraction_path": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "extraction_path"
+    },
+    "extraction_runs": {
+      "@type": "@id",
+      "@id": "extraction_runs"
+    },
+    "id": "@id",
+    "field_name": {
+      "@id": "field_name"
+    },
+    "field_provenance": {
+      "@type": "@id",
+      "@id": "field_provenance"
+    },
+    "figure_or_table": {
+      "@id": "figure_or_table"
+    },
+    "full_text_source": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "full_text_source"
+    },
+    "generated_by": {
+      "@type": "@id",
+      "@id": "prov:wasGeneratedBy"
+    },
+    "identifier": {
+      "@id": "identifier"
+    },
+    "identifier_claims": {
+      "@type": "@id",
+      "@id": "identifier_claims"
+    },
+    "identifier_scheme": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "identifier_scheme"
+    },
+    "identifier_value": {
+      "@id": "identifier_value"
+    },
+    "identity_key": {
+      "@id": "ner:normalizedEntityKey"
+    },
+    "in_assertion": {
+      "@type": "@id",
+      "@id": "ae:entityMentionInAssertion"
+    },
+    "in_claim_clusters": {
+      "@type": "@id",
+      "@id": "ae:partOfClaimCluster"
+    },
+    "inferred_from": {
+      "@type": "@id",
+      "@id": "ae:inferredFrom"
+    },
+    "input_documents": {
+      "@type": "@id",
+      "@id": "prov:used"
+    },
+    "journal": {
+      "@id": "dcterms:bibliographicCitation"
+    },
+    "label": {
+      "@id": "rdfs:label"
+    },
+    "license": {
+      "@id": "dcterms:license"
+    },
+    "mapped_by": {
+      "@type": "@id",
+      "@id": "mapped_by"
+    },
+    "mapped_curie": {
+      "@type": "@id",
+      "@id": "mapped_curie"
+    },
+    "mapped_iri": {
+      "@type": "xsd:anyURI",
+      "@id": "ae:mappedToURI"
+    },
+    "mapped_label": {
+      "@id": "skos:prefLabel"
+    },
+    "mapper_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "mapper_type"
+    },
+    "mapping_evidence": {
+      "@id": "mapping_evidence"
+    },
+    "mapping_id": {
+      "@id": "mapping_id"
+    },
+    "mapping_rank": {
+      "@type": "xsd:integer",
+      "@id": "mapping_rank"
+    },
+    "mapping_relation": {
+      "@type": "@id",
+      "@id": "skos:mappingRelation"
+    },
+    "mapping_run": {
+      "@type": "@id",
+      "@id": "mapping_run"
+    },
+    "mapping_score": {
+      "@type": "xsd:float",
+      "@id": "mapping_score"
+    },
+    "mapping_status": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "mapping_status"
+    },
+    "match_confidence": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "match_confidence"
+    },
+    "max_tokens": {
+      "@type": "xsd:integer",
+      "@id": "max_tokens"
+    },
+    "media_type": {
+      "@id": "dcterms:format"
+    },
+    "member_assertions": {
+      "@type": "@id",
+      "@id": "ae:clusterHasAssertion"
+    },
+    "mention_count": {
+      "@type": "xsd:integer",
+      "@id": "ner:mentionCount"
+    },
+    "mention_specificity": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "mention_specificity"
+    },
+    "mentions_entities": {
+      "@type": "@id",
+      "@id": "ae:mentionsEntity"
+    },
+    "method": {
+      "@id": "ae:generationMethod"
+    },
+    "modality": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ner:assertionModality"
+    },
+    "model_identifier": {
+      "@id": "ner:sourceModelIdentifier"
+    },
+    "model_kind": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "model_kind"
+    },
+    "model_name": {
+      "@id": "ner:modelName"
+    },
+    "model_provider": {
+      "@id": "ner:modelProvider"
+    },
+    "model_revision": {
+      "@id": "model_revision"
+    },
+    "model_version": {
+      "@id": "ner:modelVersion"
+    },
+    "model_versions": {
+      "@type": "@id",
+      "@id": "model_versions"
+    },
+    "models": {
+      "@type": "@id",
+      "@id": "ae:usedModel"
+    },
+    "narrow_match": {
+      "@type": "@id",
+      "@id": "skos:narrowMatch"
+    },
+    "nearest_ancestor": {
+      "@type": "@id",
+      "@id": "nearest_ancestor"
+    },
+    "negated": {
+      "@type": "xsd:boolean",
+      "@id": "ner:assertionNegated"
+    },
+    "no_match_reason": {
+      "@id": "no_match_reason"
+    },
+    "normalization_failed": {
+      "@type": "xsd:boolean",
+      "@id": "ae:normalizationFailed"
+    },
+    "normalized_form": {
+      "@id": "ner:canonicalForm"
+    },
+    "notes": {
+      "@id": "rdfs:comment"
+    },
+    "object_assertion": {
+      "@type": "@id",
+      "@id": "ae:relationObject"
+    },
+    "object_entity": {
+      "@type": "@id",
+      "@id": "ae:relationObject"
+    },
+    "object_mention": {
+      "@type": "@id",
+      "@id": "object_mention"
+    },
+    "observed_during": {
+      "@type": "@id",
+      "@id": "ae:observedDuring"
+    },
+    "offset_convention": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "offset_convention"
+    },
+    "ontology": {
+      "@type": "@id",
+      "@id": "ontology"
+    },
+    "ontology_acronym": {
+      "@id": "ner:ontologyAcronym"
+    },
+    "ontology_iri": {
+      "@type": "xsd:anyURI",
+      "@id": "ner:ontologyIRI"
+    },
+    "ontology_version": {
+      "@id": "ontology_version"
+    },
+    "ontology_version_string": {
+      "@id": "ner:ontologyVersionString"
+    },
+    "ontology_versions": {
+      "@type": "@id",
+      "@id": "ontology_versions"
+    },
+    "ontology_versions_used": {
+      "@type": "@id",
+      "@id": "ner:usedOntologyVersion"
+    },
+    "orcid": {
+      "@type": "xsd:anyURI",
+      "@id": "orcid"
+    },
+    "output_schema": {
+      "@id": "output_schema"
+    },
+    "page": {
+      "@type": "xsd:integer",
+      "@id": "page"
+    },
+    "paper_id": {
+      "@type": "@id",
+      "@id": "prov:hadPrimarySource"
+    },
+    "paragraph_index": {
+      "@type": "xsd:integer",
+      "@id": "ae:paragraphIndex"
+    },
+    "parent_run": {
+      "@type": "@id",
+      "@id": "dcterms:isPartOf"
+    },
+    "people": {
+      "@type": "@id",
+      "@id": "people"
+    },
+    "pmcid": {
+      "@id": "ae:pmcid"
+    },
+    "pmid": {
+      "@id": "bibo:pmid"
+    },
+    "polarity": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ae:contentPolarity"
+    },
+    "predicate": {
+      "@type": "@id",
+      "@id": "predicate"
+    },
+    "prefix_text": {
+      "@id": "ner:prefixText"
+    },
+    "prompt_path": {
+      "@id": "prompt_path"
+    },
+    "prompt_role": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "prompt_role"
+    },
+    "prompt_sha256": {
+      "@id": "ae:extractionPromptHash"
+    },
+    "prompt_version": {
+      "@id": "ner:promptVersion"
+    },
+    "prompts": {
+      "@type": "@id",
+      "@id": "prompts"
+    },
+    "prompts_used": {
+      "@type": "@id",
+      "@id": "ner:usedPrompt"
+    },
+    "provenance_labels": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "provenance_labels"
+    },
+    "publication_date": {
+      "@type": "xsd:date",
+      "@id": "dcterms:issued"
+    },
+    "random_seed": {
+      "@type": "xsd:integer",
+      "@id": "ner:randomSeed"
+    },
+    "record_status": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "record_status"
+    },
+    "refers_to_entity": {
+      "@type": "@id",
+      "@id": "ner:refersToEntity"
+    },
+    "related_match": {
+      "@type": "@id",
+      "@id": "skos:relatedMatch"
+    },
+    "relation_context": {
+      "@id": "relation_context"
+    },
+    "relation_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "relation_type"
+    },
+    "release_date": {
+      "@type": "xsd:date",
+      "@id": "ner:ontologyReleaseDate"
+    },
+    "repository": {
+      "@type": "xsd:anyURI",
+      "@id": "doap:repository"
+    },
+    "resource_name": {
+      "@id": "schema:name"
+    },
+    "resource_records": {
+      "@type": "@id",
+      "@id": "resource_records"
+    },
+    "resource_role": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "resource_role"
+    },
+    "resource_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "resource_type"
+    },
+    "resource_url": {
+      "@type": "xsd:anyURI",
+      "@id": "schema:url"
+    },
+    "retrieval_status": {
+      "@id": "retrieval_status"
+    },
+    "retrieved": {
+      "@type": "xsd:boolean",
+      "@id": "retrieved"
+    },
+    "review_dimension": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ner:reviewDimension"
+    },
+    "review_run": {
+      "@type": "@id",
+      "@id": "review_run"
+    },
+    "reviewed_at": {
+      "@type": "xsd:dateTime",
+      "@id": "reviewed_at"
+    },
+    "reviewer": {
+      "@type": "@id",
+      "@id": "reviewer"
+    },
+    "reviews": {
+      "@type": "@id",
+      "@id": "ner:hasReviewDecision"
+    },
+    "run_status": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "run_status"
+    },
+    "schema_version": {
+      "@id": "pav:version"
+    },
+    "score": {
+      "@type": "xsd:float",
+      "@id": "ner:reviewConfidence"
+    },
+    "section": {
+      "@id": "ae:appearsInSection"
+    },
+    "section_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "section_type"
+    },
+    "sentence_index": {
+      "@type": "xsd:integer",
+      "@id": "ae:sentenceIndex"
+    },
+    "sentence_text": {
+      "@id": "ae:mentionSentenceText"
+    },
+    "skill": {
+      "@type": "@id",
+      "@id": "prov:wasAssociatedWith"
+    },
+    "skill_name": {
+      "@id": "skill_name"
+    },
+    "skill_version": {
+      "@id": "pav:version"
+    },
+    "skill_versions": {
+      "@type": "@id",
+      "@id": "skill_versions"
+    },
+    "skos_relation": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "skos_relation"
+    },
+    "software": {
+      "@type": "@id",
+      "@id": "ner:usedSoftware"
+    },
+    "software_name": {
+      "@id": "software_name"
+    },
+    "software_version": {
+      "@id": "ner:softwareVersion"
+    },
+    "software_versions": {
+      "@type": "@id",
+      "@id": "software_versions"
+    },
+    "source_excerpt": {
+      "@id": "ae:sourceExcerpt"
+    },
+    "source_file": {
+      "@type": "@id",
+      "@id": "source_file"
+    },
+    "source_files": {
+      "@type": "@id",
+      "@id": "dcterms:hasPart"
+    },
+    "source_location": {
+      "@type": "@id",
+      "@id": "ae:hasTextLocation"
+    },
+    "source_path": {
+      "@id": "ae:sourceFile"
+    },
+    "source_score": {
+      "@type": "xsd:float",
+      "@id": "source_score"
+    },
+    "source_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "source_type"
+    },
+    "source_uri": {
+      "@type": "xsd:anyURI",
+      "@id": "ner:sourceURI"
+    },
+    "species_context": {
+      "@type": "@id",
+      "@id": "ae:hasSpeciesContext"
+    },
+    "species_role": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "species_role"
+    },
+    "started_at": {
+      "@type": "xsd:dateTime",
+      "@id": "prov:startedAtTime"
+    },
+    "statistic": {
+      "@id": "statistic"
+    },
+    "subject_assertion": {
+      "@type": "@id",
+      "@id": "ae:relationSubject"
+    },
+    "subject_entity": {
+      "@type": "@id",
+      "@id": "ae:relationSubject"
+    },
+    "subject_mention": {
+      "@type": "@id",
+      "@id": "subject_mention"
+    },
+    "suffix_text": {
+      "@id": "ner:suffixText"
+    },
+    "supersedes": {
+      "@type": "xsd:anyURI",
+      "@id": "pav:previousVersion"
+    },
+    "supersedes_mapping": {
+      "@id": "supersedes_mapping"
+    },
+    "surface_form": {
+      "@id": "ner:surfaceForm"
+    },
+    "target_assertion": {
+      "@type": "@id",
+      "@id": "ae:relationAssertion"
+    },
+    "task_type": {
+      "@context": {
+        "text": "skos:notation",
+        "description": "skos:prefLabel",
+        "meaning": "@id"
+      },
+      "@id": "ner:taskType"
+    },
+    "taxon": {
+      "@type": "@id",
+      "@id": "taxon"
+    },
+    "taxon_label": {
+      "@id": "rdfs:label"
+    },
+    "temperature": {
+      "@type": "xsd:float",
+      "@id": "ner:temperature"
+    },
+    "text_extractor": {
+      "@id": "text_extractor"
+    },
+    "time_expression": {
+      "@id": "ae:timeExpression"
+    },
+    "title": {
+      "@id": "dcterms:title"
+    },
+    "valid_during": {
+      "@type": "@id",
+      "@id": "ae:validDuring"
+    },
+    "valid_from": {
+      "@type": "xsd:dateTime",
+      "@id": "ae:validFrom"
+    },
+    "valid_until": {
+      "@type": "xsd:dateTime",
+      "@id": "ae:validUntil"
+    },
+    "version_claims": {
+      "@type": "@id",
+      "@id": "version_claims"
+    },
+    "version_value": {
+      "@id": "version_value"
+    },
+    "xml_id": {
+      "@id": "ae:xmlId"
+    },
+    "xml_path": {
+      "@id": "ae:xmlPath"
+    },
+    "Agent": {
+      "@id": "prov:Agent"
+    },
+    "Assertion": {
+      "@id": "SEPIO:0000001"
+    },
+    "AssertionRelation": {
+      "@id": "ae:AssertionRelation"
+    },
+    "ClaimCluster": {
+      "@id": "ae:ClaimCluster"
+    },
+    "ConceptMapping": {
+      "@id": "ae:ConceptMapping"
+    },
+    "Entity": {
+      "@id": "ae:DomainEntity"
+    },
+    "EntityMention": {
+      "@id": "ae:EntityMention"
+    },
+    "EntityRelation": {
+      "@id": "ae:EntityRelation"
+    },
+    "EvidenceItem": {
+      "@id": "SEPIO:0000149"
+    },
+    "EvidenceRelation": {
+      "@id": "ae:EvidenceRelation"
+    },
+    "ExtractionDataset": {
+      "@id": "ExtractionDataset"
+    },
+    "ExtractionRecord": {
+      "@id": "ae:ClaimRecord"
+    },
+    "ExtractionRun": {
+      "@id": "ae:ExtractionRun"
+    },
+    "FieldProvenance": {
+      "@id": "FieldProvenance"
+    },
+    "HumanAgent": {
+      "@id": "prov:Person"
+    },
+    "IdentifierClaim": {
+      "@id": "IdentifierClaim"
+    },
+    "ModelVersion": {
+      "@id": "ae:Extractor"
+    },
+    "NamedThing": {
+      "@id": "NamedThing"
+    },
+    "OntologyClass": {
+      "@id": "owl:Class"
+    },
+    "OntologyMappable": {
+      "@id": "OntologyMappable"
+    },
+    "OntologyProperty": {
+      "@id": "rdf:Property"
+    },
+    "OntologyVersion": {
+      "@id": "ner:OntologyVersion"
+    },
+    "PromptVersion": {
+      "@id": "ner:PromptArtifact"
+    },
+    "ResourceRecord": {
+      "@id": "ResourceRecord"
+    },
+    "ReviewDecision": {
+      "@id": "ner:ReviewDecision"
+    },
+    "RunConfiguration": {
+      "@id": "ner:ConfigurationArtifact"
+    },
+    "SkillVersion": {
+      "@id": "ner:PipelineAgent"
+    },
+    "SoftwareVersion": {
+      "@id": "ner:SoftwareArtifact"
+    },
+    "SourceDocument": {
+      "@id": "ner:SourceDocument"
+    },
+    "SourceFile": {
+      "@id": "ner:SourceArtifact"
+    },
+    "SourceLocation": {
+      "@id": "ae:TextLocation"
+    },
+    "SpeciesContext": {
+      "@id": "ae:Species"
+    },
+    "TemporalContext": {
+      "@id": "ae:TemporalContext"
+    },
+    "VersionClaim": {
+      "@id": "VersionClaim"
+    }
+  }
+}

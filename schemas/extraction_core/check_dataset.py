@@ -14,6 +14,9 @@ rules that make a dataset reproducible:
   - a concept mapping names a target unless it is ``no_match`` (which needs a
     ``no_match_reason``), and its ``match_confidence`` follows from its SKOS
     relation (exactMatch -> exact, other matches -> partial, no_match -> none)
+  - an entity's SKOS slots (exact_match, close_match, ...) hold exactly its
+    accepted concept mappings: every accepted mapping is asserted in the slot
+    for its skos_relation, and nothing is asserted without an accepted mapping
 
 Usage:
   python schemas/extraction_core/check_dataset.py DATA.yaml [DATA2.json ...]
@@ -31,6 +34,12 @@ from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "extraction_core.yaml"
 ROOT_CLASS = "ExtractionDataset"
+# Ranges that name terms in external ontologies; they are never defined in a dataset.
+EXTERNAL_TERMS = {"OntologyClass", "OntologyProperty"}
+# OntologyMappable slot for each skos_relation value.
+SKOS_SLOTS = {"exact_match": "exact_match", "close_match": "close_match", "broad_match": "broad_match",
+              "narrow_match": "narrow_match", "related_match": "related_match",
+              "mapping_relation": "mapping_relation"}
 
 
 def load_instance(path: Path) -> dict:
@@ -56,7 +65,7 @@ def _reference_slots(sv):
     for cname in sv.all_classes():
         for slot in sv.class_induced_slots(cname):
             rng = slot.range
-            if rng not in sv.all_classes() or slot.inlined or slot.inlined_as_list:
+            if rng not in sv.all_classes() or rng in EXTERNAL_TERMS or slot.inlined or slot.inlined_as_list:
                 continue
             if not sv.get_identifier_slot(rng):
                 continue
@@ -134,12 +143,27 @@ def integrity_problems(instance: dict) -> list[str]:
                 problems.append(f"{where}: reviewer {reviewer} is not among the models of run {rrun['id']}")
         for mapping in obj.get("concept_mappings") or []:
             problems += mapping_problems(where, mapping)
+        if cname == "Entity":
+            problems += skos_problems(where, obj)
+    return problems
+
+
+def skos_problems(where: str, entity: dict) -> list[str]:
+    """The SKOS slots are the accepted concept mappings, no more and no less."""
+    accepted = {(m.get("skos_relation"), m.get("mapped_curie"))
+                for m in entity.get("concept_mappings") or [] if m.get("mapping_status") == "accepted"}
+    asserted = {(rel, term) for rel, slot in SKOS_SLOTS.items() for term in entity.get(slot) or []}
+    problems = [f"{where}: accepted {rel} mapping to {term} is missing from {SKOS_SLOTS.get(rel, rel)}"
+                for rel, term in sorted(accepted - asserted, key=str) if rel in SKOS_SLOTS]
+    problems += [f"{where}: {SKOS_SLOTS[rel]} asserts {term} without an accepted mapping"
+                 for rel, term in sorted(asserted - accepted, key=str)]
     return problems
 
 
 # skos relation -> match_confidence, as in structsense ait_tables.SKOS_TO_CONFIDENCE
 RELATION_TO_CONFIDENCE = {"exact_match": "exact", "close_match": "partial", "broad_match": "partial",
-                          "narrow_match": "partial", "related_match": "partial"}
+                          "narrow_match": "partial", "related_match": "partial",
+                          "mapping_relation": "partial"}
 
 
 def mapping_problems(where: str, mapping: dict) -> list[str]:
@@ -154,13 +178,15 @@ def mapping_problems(where: str, mapping: dict) -> list[str]:
     else:
         if not curie:
             problems.append(f"{where}: mapping has no mapped_curie and is not marked no_match")
-        expected = RELATION_TO_CONFIDENCE.get(mapping.get("mapping_relation"))
+        expected = RELATION_TO_CONFIDENCE.get(mapping.get("skos_relation"))
     if status == "accepted" and mapping.get("alignment_method") == "model_proposed_unverified":
         problems.append(f"{where}: accepted mapping to {curie} was never tool-verified")
+    if status == "accepted" and not mapping.get("skos_relation"):
+        problems.append(f"{where}: accepted mapping to {curie} has no skos_relation")
     given = mapping.get("match_confidence")
     if given and expected and given != expected:
         problems.append(f"{where}: match_confidence {given} does not follow from "
-                        f"{mapping.get('mapping_relation') or status} (expected {expected})")
+                        f"{mapping.get('skos_relation') or status} (expected {expected})")
     return problems
 
 

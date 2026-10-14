@@ -45,7 +45,8 @@ ExtractionDataset
  │                                   started_at / ended_at, run_status
  └─ records ─ generated_by ──► ExtractionRun
       entity_mentions   EntityMention   → refers_to_entity Entity, concept_mappings, in_assertion
-      entities          Entity          resolved referent shared across papers
+      entities          Entity          resolved referent shared across papers; accepted matches as
+                                        SKOS links (exact_match, close_match, broad_match, …)
       assertions        Assertion       claim_category, claim_stance, modality, negated, cited_source …
       evidence_items    EvidenceItem    evidence_type / ECO code, method, statistic
       evidence_relations EvidenceRelation  evidence → target_assertion, direction, mode, strength
@@ -67,6 +68,35 @@ Sub-steps such as concept mapping, judging and combining are their own `Extracti
 
 `extraction_path` says how the model was invoked: `api`, `agent_supplied_payload` (the calling agent, such as Claude Code or Codex, was the model), `host_sequential`, `local_model` or `manual`. A run with no API call still lists the model that did the work.
 
+## Linked data: links to external ontologies
+
+Extraction Core data should join onto the ontologies it cites, so ontology terms are written as IRI nodes, not strings.
+
+**Accepted matches are SKOS links on the entity.** `Entity` uses the `OntologyMappable` mixin, which has the same slots as the [BICAN SKOS schema](https://github.com/brain-bican/models/blob/main/linkml-schema/bican_skos.yaml): `exact_match`, `close_match`, `broad_match`, `narrow_match`, `related_match`, and `mapping_relation` for a match of unspecified kind. They hold **accepted** matches only. `concept_mappings` stays the record of how each match was decided (candidates, rejected ones, scores, method, mapper), so a proposed or rejected match never becomes a triple.
+
+```yaml
+entities:
+  - id: ex:entity/pvalb-interneuron
+    exact_match: [CL:4023018]          # accepted result
+    concept_mappings:                  # how it was decided
+      - mapped_curie: CL:4023018
+        skos_relation: exact_match
+        mapping_status: accepted
+        mapping_score: 0.93
+```
+
+This produces one direct triple:
+
+```turtle
+ex:entity/pvalb-interneuron skos:exactMatch <http://purl.obolibrary.org/obo/CL_4023018> .
+```
+
+`check_dataset.py` keeps the two in step. Every accepted mapping must appear in the SKOS slot for its `skos_relation`, and a SKOS slot may not hold a term without an accepted mapping behind it.
+
+**Ontology-valued fields are nodes.** `taxon`, `entity_class`, `evidence_code`, `nearest_ancestor`, `mapped_curie` and the SKOS slots have range `OntologyClass` (an `owl:Class`), and `predicate` has range `OntologyProperty` (an `rdf:Property`). These classes are never defined in a dataset; they only make the value an IRI (`"@type": "@id"` in JSON-LD). In YAML the values are still plain CURIEs such as `NCBITaxon:10090`.
+
+**JSON-LD context.** [`extraction_core.context.jsonld`](./extraction_core.context.jsonld) is generated from the schema by `gen_jsonld_context.py` and declares `"@version": 1.1`. OBO prefixes end in `_` (`CL_`), so the context marks them `"@prefix": true`, a JSON-LD 1.1 keyword. Without `@version: 1.1`, rdflib before 7.1 does not expand `CL:4023018` to `http://purl.obolibrary.org/obo/CL_4023018`. CI fails if the committed context is out of date, and a test loads the example as JSON-LD and checks the links.
+
 ## What came from where
 
 The schema merges two draft ontologies and the provenance that structsense already writes. LinkML `class_uri`, `slot_uri`, enum `meaning` and `*_mappings` keep the link to each source, so converting to RDF loses nothing.
@@ -86,7 +116,7 @@ The schema merges two draft ontologies and the provenance that structsense alrea
 | `entities[].entity` / `label` | `EntityMention.surface_form` / `entity_category` |
 | `entities[].sentence`, `start`, `end`, `paper_location` | `source_location[].{sentence_text, char_start, char_end, section}` |
 | `entities[].source_model`, `source_score` | `extracted_by` (a `ModelVersion` id), `source_score` |
-| `entities[].ontology_id`, `ontology_label`, `alignment_method`, `concept_mapping_provenance` | `concept_mappings[].{mapped_curie, mapped_label, alignment_method, mapping_run}` |
+| `entities[].ontology_id`, `ontology_label`, `alignment_method`, `concept_mapping_provenance` | `concept_mappings[].{mapped_curie, mapped_label, alignment_method, mapping_run}`; when accepted, also the entity's SKOS slot (e.g. `exact_match`) |
 | `entities[].judge_score`, `remarks`, `judge_method` | `reviews[].{score, comment}` + a judging `ExtractionRun` |
 | `entities[].referent_id`, `identity_key` | `refers_to_entity`, `identity_key` |
 | `run_metadata.{started_at, ended_at, extractor_model, judge_model, mode}` | `ExtractionRun.{started_at, ended_at, models, extraction_path}` + child judging run |
@@ -108,7 +138,7 @@ The cell-type AIT mode (`prompts/extractor-cell-type-ait-mapping.md`) writes sev
 | `evidence_sentence, evidence_section, evidence_chunk_id, evidence_char_start, evidence_char_end` | `source_excerpt`, `source_location[].{section, chunk_id, char_start, char_end}` |
 | `evidence_verified, evidence_similarity, extraction_flag` | `evidence_verification`, `evidence_similarity`, `extraction_flags` |
 | `field_provenance` (`field=label;label\|…`) | `field_provenance[]` (`field_name`, `provenance_labels`; replace `:` with `_` in each label) |
-| `mappings.csv`: `mapping_id, ait_node_id/cl_id, ait_cell_type_label, skos_relation, match_confidence, basis_for_match, mapping_evidence, no_match_reason, nearest_ancestor_node_id, supersedes_mapping_id, mapped_by` | `ConceptMapping.{mapping_id, mapped_curie, mapped_label, mapping_relation, match_confidence, basis_for_match, mapping_evidence, no_match_reason, nearest_ancestor, supersedes_mapping, mapper_type}`; `skos_relation: none` → `mapping_status: no_match` |
+| `mappings.csv`: `mapping_id, ait_node_id/cl_id, ait_cell_type_label, skos_relation, match_confidence, basis_for_match, mapping_evidence, no_match_reason, nearest_ancestor_node_id, supersedes_mapping_id, mapped_by` | `ConceptMapping.{mapping_id, mapped_curie, mapped_label, skos_relation, match_confidence, basis_for_match, mapping_evidence, no_match_reason, nearest_ancestor, supersedes_mapping, mapper_type}`; `skos_relation: none` → `mapping_status: no_match` |
 | `ait_taxonomy_used`, `reference_taxonomy` | `ConceptMapping.ontology` / `ExtractionRun.ontology_versions_used` → `OntologyVersion` |
 
 These columns are specific to cell-type taxonomy mapping and stay out of the core. They belong in a cell-type extension schema that imports it: assay metadata from `methods.csv` (platform, modality, gene panel, read/UMI/gene medians, QC counts, donors, clustering method/resolution, annotation method), marker genes, `hierarchy_level`, the `entity_cards.csv` gene-set comparison (shared/paper-only/taxonomy-only genes, Jaccard, panel limits), `taxonomy_deposited`, and the derived `review_sheet.csv` view.
@@ -129,6 +159,9 @@ gen-json-schema schemas/extraction_core/extraction_core.yaml > extraction_core.s
 gen-pydantic    schemas/extraction_core/extraction_core.yaml > extraction_core.py
 gen-owl         schemas/extraction_core/extraction_core.yaml > extraction_core.owl.ttl
 linkml-convert  -s schemas/extraction_core/extraction_core.yaml -C ExtractionDataset -o out.ttl my_extraction.yaml
+
+# Regenerate the JSON-LD context after changing the schema (adds "@version": 1.1)
+python schemas/extraction_core/gen_jsonld_context.py
 ```
 
 `check_dataset.py` adds the rules that JSON Schema cannot express:
@@ -138,12 +171,16 @@ linkml-convert  -s schemas/extraction_core/extraction_core.yaml -C ExtractionDat
 - a record whose grounding is `not_found` cannot be `accepted`;
 - an `accepted` concept mapping cannot be `model_proposed_unverified`;
 - a concept mapping names a target unless it is `no_match`, and a `no_match` needs a `no_match_reason`;
-- `match_confidence` follows from the SKOS relation (exactMatch → exact, other matches → partial, no_match → none).
+- `match_confidence` follows from the SKOS relation (exactMatch → exact, other matches → partial, no_match → none);
+- an accepted mapping has a `skos_relation`;
+- an entity's SKOS slots hold exactly its accepted mappings.
 
 ## Files
 
 - `extraction_core.yaml`: the schema.
 - `check_dataset.py`: the validator, which also runs the cross-record provenance rules.
+- `extraction_core.context.jsonld`: the JSON-LD context (generated; `"@version": 1.1`).
+- `gen_jsonld_context.py`: regenerates the context, or with `--check` verifies it is current.
 - `examples/ExtractionDataset-hu2026.yaml`: a complete valid example with mentions, an assertion, evidence, an evidential bearing, a relation, a resource, a judge review and a cluster.
 - `examples/invalid/`: datasets that must fail. One is missing provenance; the other has broken references and policy violations.
 - `.linkmllint.yaml`: the lint configuration used in CI.

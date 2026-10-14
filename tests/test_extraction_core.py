@@ -9,6 +9,7 @@ documents.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -105,6 +106,40 @@ class ExtractionCoreSchemaTest(unittest.TestCase):
                 for bad in ("md5:" + digest, "sha256:" + digest[:40], digest.upper()):
                     self.assertNotRegex(bad, pattern)
 
+    def test_jsonld_context_is_current_and_declares_1_1(self):
+        spec = importlib.util.spec_from_file_location("gen_jsonld_context", SCHEMA_DIR / "gen_jsonld_context.py")
+        gen = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gen)
+        committed = (SCHEMA_DIR / "extraction_core.context.jsonld").read_text(encoding="utf-8")
+        self.assertEqual(committed, gen.build_context(), "run gen_jsonld_context.py to regenerate")
+        context = json.loads(committed)["@context"]
+        self.assertEqual(context["@version"], 1.1)
+        self.assertEqual(context["CL"], {"@id": "http://purl.obolibrary.org/obo/CL_", "@prefix": True})
+
+    def test_jsonld_links_entities_to_external_ontology_terms(self):
+        # The point of the SKOS slots and the OntologyClass ranges: in RDF the
+        # entity links to the CL term itself, and ontology-valued fields are IRIs.
+        import rdflib
+        import yaml
+        from rdflib import Namespace, URIRef
+
+        data = yaml.safe_load((EXAMPLES / "ExtractionDataset-hu2026.yaml").read_text(encoding="utf-8"))
+        context = json.loads((SCHEMA_DIR / "extraction_core.context.jsonld").read_text(encoding="utf-8"))
+        doc = {**context, **json.loads(json.dumps(data, default=str))}
+        graph = rdflib.Graph().parse(data=json.dumps(doc), format="json-ld")
+
+        obo = "http://purl.obolibrary.org/obo/"
+        skos = Namespace("http://www.w3.org/2004/02/skos/core#")
+        exc = Namespace("https://brainkb.org/extraction-core/")
+        entity = URIRef("https://example.org/extraction/entity/pvalb-interneuron")
+        self.assertEqual(set(graph.objects(entity, skos.exactMatch)), {URIRef(obo + "CL_4023018")})
+        self.assertIn(URIRef(obo + "NCBITaxon_10090"), set(graph.objects(None, exc.taxon)))
+        self.assertIn(URIRef(obo + "ECO_0000006"), set(graph.objects(None, exc.evidence_code)))
+        self.assertIn(URIRef(obo + "RO_0002215"), set(graph.objects(None, exc.predicate)))
+        for prop in (exc.taxon, exc.mapped_curie, exc.entity_class, exc.predicate, exc.evidence_code):
+            for value in graph.objects(None, prop):
+                self.assertIsInstance(value, URIRef, f"{prop} -> {value!r} is not a node")
+
     def test_valid_example_passes(self):
         problems = self.checker.check(EXAMPLES / "ExtractionDataset-hu2026.yaml")
         self.assertEqual(problems, [])
@@ -124,6 +159,8 @@ class ExtractionCoreSchemaTest(unittest.TestCase):
         self.assertIn("never tool-verified", text)
         self.assertIn("match_confidence exact does not follow from broad_match", text)
         self.assertIn("no_match mapping has no no_match_reason", text)
+        self.assertIn("accepted exact_match mapping to UBERON:0003881 is missing from exact_match", text)
+        self.assertIn("close_match asserts UBERON:0003881 without an accepted mapping", text)
         self.assertFalse(any(p.startswith("schema:") for p in problems), problems)
 
 
