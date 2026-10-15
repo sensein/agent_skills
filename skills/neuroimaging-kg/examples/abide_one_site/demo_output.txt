@@ -14,7 +14,7 @@ ok           Caltech_nidm.ttl  (1.0 MB)
    38 participants, 75 mapped columns (0.0 s)
 
 == 2/6 convert phenotype rows to NIDM with PyNIDM csv2nidm (non-interactive)
-   4468 triples (5.7 s)
+   4468 triples (6.2 s)
 
 == 3/6 join our participants to ReproNim's site NIDM (reviewable identity links)
    matched 38, only in our table 0, only in ReproNim 0, conflicts 0 (1.6 s)
@@ -84,4 +84,21 @@ PASS  Q5_claims_using_dataset
   participant=51456, tool=http://purl.org/nidash/fsl#, measure=Left-Hippocampus (mm^3), volume_mm3=3766
   participant=51456, tool=https://surfer.nmr.mgh.harvard.edu/, measure=Left-Hippocampus Volume_mm3 (mm^3), volume_mm3=4513.9
 
-### Done in 13 s — graph files are in ./graph, answers in graph/answers.json
+### Step 10 — compare our graph with ReproNim's graph for Caltech as two contributors (identifiers, vocabulary, conflicts)
+# Comparison of contributors' graphs
+
+- **ours**: 38 participants, 75 data elements, 3 file(s)
+- **repronim**: 38 participants, 454 data elements, 4 file(s)
+
+## ours vs repronim
+
+| Identifiers | Matched | Only in ours | Only in repronim |
+|---|---|---|---|
+| participants | 38 | 0 | 0 |
+| datasets | 0 | 1 | 0 |
+| publications (DOI) | 0 | 1 | 0 |
+
+
+**Conflicts.** 282 participant×concept values compared; 0 differ beyond rtol=0.01; 0 not compared because one side has several elements for the same concept; 0 cohorts with different members.
+
+### Done in 15 s — graph files are in ./graph, answers in graph/answers.json

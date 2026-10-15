@@ -70,6 +70,16 @@ produced what, from what, by whom). **SHACL** — machine-checkable rules a grap
    Report matched / only-local / only-external / duplicates / conflicts. *Gate:* conflicts reviewed;
    `checks_compared` > 0 for every check (0 comparisons means the check found nothing).
    Before comparing values from two tools, confirm they are the same measure (unit, definition).
+5b. **Harmonise with other contributors' graphs.** Keep each contributor's graph separate (its own
+   files / named graph, attributed with PROV) and compare before merging anything:
+   `uv run $SKILL_DIR/scripts/compare_graphs.py --graph ours=a.ttl,b.ttl --graph theirs=c.ttl,cde.ttl --attributed ours="Lab A" --attributed theirs="Lab B" --out cmp.json --markdown cmp.md --review mapping_review.ttl --attribution contributors.ttl`.
+   It reports (1) identifier overlap — participants, datasets (with versions), publications (DOI);
+   (2) vocabulary alignment — shared concepts, and elements with no shared concept as *mapping
+   candidates* (proposed skos:exactMatch/closeMatch, written to a review file, never asserted, never
+   owl:sameAs); (3) conflicts — same participant and concept with different values (flagged when units
+   or labels differ: same term, different measure, e.g. "CSF" as total CSF vs ventricles, ~200× apart),
+   and named cohorts with different members. *Gate:* conflicts and candidates reviewed by a person;
+   accepted mappings recorded as their own attributed statements.
 6. **Scope and sharing.** Mark each record's place: a lab's **ReproPond** (local store) or the shared
    **ReproLake**; federation through Neurobagel sends the query to the pond and returns only permitted
    results. Record `nkg:consentScope` as `broad-sharing`, `study-only` or `named-uses` (data with no
@@ -104,6 +114,7 @@ first download. See its README.
 | Record an analysis step | `scripts/record_activity.py` |
 | Brain volumes from NIDM → table | `scripts/nidm_volumes.py` |
 | Link participants across graphs | `scripts/join_identity.py` |
+| Compare contributors' graphs (IDs, vocabulary, conflicts) | `scripts/compare_graphs.py` |
 | Check rules + mutation test | `scripts/validate_graph.py` |
 | Named graphs + competency questions | `scripts/query_graph.py` |
 | Claims from papers | `structsense` skill |

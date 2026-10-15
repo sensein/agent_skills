@@ -1,0 +1,33 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix nidm: <http://purl.org/nidash/nidm#> .
+@prefix ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix nkg: <urn:neuroimaging-kg:> .
+@prefix b: <urn:lab-b:> .
+
+# Contributor B (lab B). Participants 1, 2, 4: ID mismatch (3 only in A, 4 only in B).
+b:s1 a prov:Person ; ndar:src_subject_id "1" .
+b:s2 a prov:Person ; ndar:src_subject_id "2" .
+b:s4 a prov:Person ; ndar:src_subject_id "4" .
+
+b:age a nidm:DataElement ; rdfs:label "Age" ; nidm:isAbout <http://uri.interlex.org/ilx_0100400> ; nidm:hasUnit "years" .
+b:hip a nidm:DataElement ; rdfs:label "hippocampus left" ;
+  nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001954> ; nidm:hasLaterality "Left" ; nidm:hasUnit "mm^3" .
+# Same anatomy term as A's CSF, different definition: ventricles only.
+b:csf a nidm:DataElement ; rdfs:label "Lateral ventricles volume" ;
+  nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001359> ; nidm:hasUnit "mm^3" .
+# Concept mismatch: B ties handedness to a concept, A does not.
+b:hand a nidm:DataElement ; rdfs:label "handedness" ; nidm:sourceVariable "HANDEDNESS_CATEGORY" ;
+  nidm:isAbout <http://purl.obolibrary.org/obo/PATO_0002201> .
+b:fiq a nidm:DataElement ; rdfs:label "full-scale IQ" ; nidm:isAbout <http://uri.interlex.org/base/ilx_0739365> .
+
+b:act1 prov:qualifiedAssociation [ prov:agent b:s1 ] . b:e1 prov:wasGeneratedBy b:act1 ; b:age 21 ; b:hip 4010.0 ; b:hand "R" .
+# Value conflict: participant 2's hippocampus 4900 vs 4100 in A; CSF 1500 vs 300000 (200x, different definition).
+b:act2 prov:qualifiedAssociation [ prov:agent b:s2 ] . b:e2 prov:wasGeneratedBy b:act2 ; b:age 34 ; b:hip 4900.0 ; b:csf 1500.0 .
+b:act4 prov:qualifiedAssociation [ prov:agent b:s4 ] . b:e4 prov:wasGeneratedBy b:act4 ; b:age 25 ; b:fiq 110 .
+
+b:lowmotion a nkg:Cohort ; rdfs:label "mean FD < 0.2 mm" ; prov:hadMember b:s1 .
+<urn:ds:abide_i> a dcat:Dataset ; dcat:version "1.1" .
+b:claim1 dct:source <https://doi.org/10.1016/j.neuroimage.2016.10.045> .

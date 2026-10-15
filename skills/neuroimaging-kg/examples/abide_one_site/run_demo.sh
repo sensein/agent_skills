@@ -43,4 +43,12 @@ uv run "$SCRIPTS/query_graph.py" \
   --graph urn:g:cde/freesurfer=data/freesurfer_cde.ttl \
   --queries "$HERE/queries" --gold graph/gold.json --union --out graph/answers.json
 
+say "Step 10 — compare our graph with ReproNim's graph for $SITE as two contributors (identifiers, vocabulary, conflicts)"
+uv run "$SCRIPTS/compare_graphs.py" \
+  --graph ours=graph/phenotype.ttl,graph/cohort.ttl,graph/dataset_claims.ttl \
+  --graph repronim=data/"$SITE"_nidm.ttl,data/freesurfer_cde.ttl,data/fsl_cde.ttl,data/ants_cde.ttl \
+  --attributed ours="${DEMO_AGENT:-Demo user}" --attributed repronim="ReproNim simple2_NIDM_examples@e0dff17" \
+  --out graph/compare.json --markdown graph/compare.md --review graph/mapping_review.ttl \
+  --attribution graph/contributors.ttl | sed -n '1,14p;/Conflicts/p'
+
 say "Done in $(( $(date +%s) - START )) s — graph files are in ./graph, answers in graph/answers.json"

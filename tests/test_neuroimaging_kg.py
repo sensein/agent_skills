@@ -207,3 +207,73 @@ class NidmVolumesTest(unittest.TestCase):
         rows = nv.extract([str(FIXTURES / "site_volumes_nidm.ttl")], [str(FIXTURES / "tool_cde.ttl")],
                           region="http://purl.obolibrary.org/obo/UBERON_0001954", unit="voxel")
         self.assertEqual([(r["src_subject_id"], r["value"]) for r in rows], [("1001", 4410.0)])
+
+
+@unittest.skipUnless(DEPS, "rdflib, pyshacl and pyoxigraph are required")
+class CompareGraphsTest(unittest.TestCase):
+    def setUp(self):
+        import compare_graphs as cg
+
+        self.cg = cg
+        self.rep = cg.compare({"labA": [str(FIXTURES / "contributor_a.ttl")],
+                               "labB": [str(FIXTURES / "contributor_b.ttl")]}, normalize="int", rtol=0.05)
+        self.pair = self.rep["pairs"]["labA|labB"]
+
+    def test_identifier_overlap(self):
+        ids = self.pair["participants"]
+        self.assertEqual((ids["matched"], ids["only_a"], ids["only_b"]), (2, ["3"], ["4"]))
+        self.assertEqual(self.pair["publications"]["matched"], ["10.1016/j.neuroimage.2016.10.045"])
+        self.assertEqual(self.pair["datasets"]["version_mismatch"],
+                         [{"dataset": "urn:ds:abide_i", "a": ["1.0"], "b": ["1.1"]}])
+
+    def test_vocabulary_alignment_and_review_candidates(self):
+        voc = self.pair["vocabulary"]
+        self.assertIn("http://purl.obolibrary.org/obo/UBERON_0001954", voc["shared_concepts"])
+        cands = {(c["a"], c["b"]) for c in voc["mapping_candidates"]}
+        self.assertIn(("urn:lab-a:hand", "urn:lab-b:hand"), cands)
+        self.assertEqual({c["review_status"] for c in voc["mapping_candidates"]}, {"proposed"})
+
+    def test_value_and_definition_conflicts(self):
+        conf = self.pair["conflicts"]
+        vals = {(c["participant"], c["concept"].rsplit("_", 1)[-1]) for c in conf["values"]}
+        self.assertIn(("2", "0001954"), vals)       # 4100 vs 4900 beyond 5 %
+        self.assertNotIn(("1", "0001954"), vals)    # 4000 vs 4010 within tolerance
+        csf = [c for c in conf["values"] if c["concept"].endswith("UBERON_0001359")]
+        self.assertEqual(len(csf), 1)
+        self.assertGreater(csf[0]["ratio"], 100)
+        self.assertTrue(csf[0]["definitions_differ"])
+        self.assertEqual(conf["cohorts"], [{"cohort": "mean FD < 0.2 mm", "only_a": ["2"], "only_b": []}])
+
+    def test_outputs_never_assert_sameas_and_keep_attribution(self):
+        from rdflib import Graph, OWL, URIRef
+
+        with tempfile.TemporaryDirectory() as tmp:
+            review, attribution = Path(tmp) / "review.ttl", Path(tmp) / "contributors.ttl"
+            self.cg.write_review(self.rep, review)
+            self.cg.write_attribution(self.rep, attribution, {"labA": "Lab A", "labB": "Lab B"})
+            rg, ag = Graph().parse(review), Graph().parse(attribution)
+            md = self.cg.to_markdown(self.rep)
+        self.assertEqual(len(list(rg.triples((None, OWL.sameAs, None)))), 0)
+        skos = "http://www.w3.org/2004/02/skos/core#"
+        self.assertEqual([t for t in rg if str(t[1]).startswith(skos)], [])
+        prov = "http://www.w3.org/ns/prov#"
+        self.assertEqual(len(list(ag.triples((None, URIRef(prov + "wasAttributedTo"), None)))), 2)
+        self.assertIn("Only in labA", md)
+
+    def test_elements_sharing_a_concept_are_paired_by_source_variable(self):
+        import compare_graphs as cg
+        from rdflib import Graph
+
+        ttl = """@prefix prov: <http://www.w3.org/ns/prov#> . @prefix nidm: <http://purl.org/nidash/nidm#> .
+        @prefix ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/> . @prefix x: <urn:%s:> .
+        x:p ndar:src_subject_id "7" .
+        x:dsm nidm:isAbout <http://ncitt.ncit.nih.gov/Diagnosis> ; nidm:sourceVariable "DSM_IV_TR" .
+        x:dx nidm:isAbout <http://ncitt.ncit.nih.gov/Diagnosis> ; nidm:sourceVariable "DX_GROUP" .
+        x:act prov:qualifiedAssociation [ prov:agent x:p ] . x:e prov:wasGeneratedBy x:act ; x:dsm %s ; x:dx 1 ."""
+        with tempfile.TemporaryDirectory() as tmp:
+            fa, fb = Path(tmp) / "a.ttl", Path(tmp) / "b.ttl"
+            fa.write_text(ttl % ("a", "1"))
+            fb.write_text(ttl % ("b", "2"))
+            pair = cg.compare({"a": [str(fa)], "b": [str(fb)]})["pairs"]["a|b"]
+        self.assertEqual(pair["conflicts"]["ambiguous_concepts"], [])
+        self.assertEqual([(c["a"], c["b"]) for c in pair["conflicts"]["values"]], [("1", "2")])
