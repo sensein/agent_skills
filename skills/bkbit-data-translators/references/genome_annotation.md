@@ -14,6 +14,10 @@ The `OrganismTaxon` has `xref` and `exact_match` both set to
 `main`, so output from one bkbit version always resolves against the same
 context.
 
+This output is also what `ait2jsonld --gene_annotation` takes, to link a
+taxonomy's marker genes to `GeneAnnotation` IDs
+([ait_taxonomy.md](ait_taxonomy.md#marker-genes---gene_annotation)).
+
 ## Command
 
 ```bash

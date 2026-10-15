@@ -1,6 +1,6 @@
 ---
 name: bkbit-data-translators
-description: Turn BICAN source data into JSON-LD or Turtle with the bkbit data translators. Use when the user wants BICAN / Brain Knowledge Base objects from Specimen Portal (NIMP) NHash IDs (specimen2jsonld), a Brain Knowledge Platform file manifest or specimen metadata CSV (filemanifest2jsonld, list-library-aliquot), an NCBI or Ensembl GFF3 genome annotation (gff2jsonld), an HMBA cell-type taxonomy CSV set (taxonomy2jsonld), or anatomical-structure / parcellation CSVs. Also use when a bkbit translator command fails, or the user asks which bkbit command fits their data, what inputs it needs, or how to check the output.
+description: Turn BICAN source data into JSON-LD or Turtle with the bkbit data translators. Use when the user wants BICAN / Brain Knowledge Base objects from Specimen Portal (NIMP) NHash IDs (specimen2jsonld), a Brain Knowledge Platform file manifest or specimen metadata CSV (filemanifest2jsonld, list-library-aliquot), an NCBI or Ensembl GFF3 genome annotation (gff2jsonld), an HMBA cell-type taxonomy CSV set (taxonomy2jsonld), an Allen Institute Taxonomy (AIT) .h5ad file, local or remote, linking its marker genes to a genome annotation (ait2jsonld), or anatomical-structure / parcellation CSVs. Also use when a bkbit translator command fails, or the user asks which bkbit command fits their data, what inputs it needs, or how to check the output.
 ---
 
 # bkbit Data Translators
@@ -20,6 +20,7 @@ collect the inputs it needs, run it, and check what it produced.
 | A **Metadata** (specimen list) CSV from the Brain Knowledge Platform | `bkbit list-library-aliquot` | none, prints IDs | [references/brain_knowledge_platform.md](references/brain_knowledge_platform.md) |
 | A GFF3 URL from NCBI or Ensembl | `bkbit gff2jsonld` | Genome Annotation | [references/genome_annotation.md](references/genome_annotation.md) |
 | HMBA annotation, abbreviation, and description CSVs | `bkbit taxonomy2jsonld` | BKE Taxonomy | [references/hmba_taxonomy.md](references/hmba_taxonomy.md) |
+| An Allen Institute Taxonomy (AIT) `.h5ad`, local or an `https://` URL | `bkbit ait2jsonld` | Cell Taxonomy | [references/ait_taxonomy.md](references/ait_taxonomy.md) |
 | A folder of anatomical-structure / parcellation CSVs | Python API only (`AnS`) | Anatomical Structure | [references/anatomical_structure.md](references/anatomical_structure.md) |
 
 Read only the reference file for the translator you are using. Each one gives
@@ -41,19 +42,26 @@ the exact inputs, options, examples, and known problems.
    # Temporary fix the bkbit README asks for:
    pip install git+https://github.com/linkml/schemasheets
    ```
+   **`ait2jsonld` is not on `main` yet.** Until brain-bican/bkbit#105 and
+   djarecka/BrainKit#1 merge, install the branch given in
+   [references/ait_taxonomy.md](references/ait_taxonomy.md#install-not-on-bkbit-main-yet)
+   instead.
    Use a virtual environment or the project's own environment. Don't install
    into the system Python. To check which version is installed, run
    `pip show bkbit`.
 3. **Check what the translator needs before running it.** That can be a
    credential (`jwt_token`), network access (Specimen Portal, NCBI/Ensembl FTP,
    the JSON-LD context on `raw.githubusercontent.com`), required CSV columns, or
-   an extra option (`-a` for Ensembl). Check these first. A missing input
+   an extra option (`-a` for Ensembl; for `ait2jsonld`, a `--gene_annotation`
+   of the taxonomy's species). Check these first. A missing input
    usually fails late or fails without an error message.
 4. **Run it and redirect stdout.** Most translators print the whole document to
    stdout, so always redirect it (`> output.jsonld`). Two exceptions:
    `specimen2jsonld` given a *file* of IDs writes one `<NHASH_ID>.jsonld` per
-   line into the current directory, and `taxonomy2jsonld` writes to `-o`
-   (default `HMBA_BG_taxonomy.jsonld`).
+   line into the current directory, `taxonomy2jsonld` writes to `-o`
+   (default `HMBA_BG_taxonomy.jsonld`), and `ait2jsonld` writes only to
+   `--out` (without it, nothing is written). Run `ait2jsonld` with `--report`
+   too, and read the report's `deviations`.
 5. **Check the output.** Run the bundled summarizer on every file produced:
    ```bash
    python skills/bkbit-data-translators/scripts/summarize_jsonld.py output.jsonld
@@ -64,17 +72,19 @@ the exact inputs, options, examples, and known problems.
    a warning. Scroll back through stderr and report those messages to the user.
 6. **Report back.** Say which command you ran, where the output went, and the
    object counts by type. Pass on any skipped records or warnings exactly as
-   printed.
+   printed. For `ait2jsonld`, also list the markers its report says were not
+   linked.
 
 ## Output Formats
 
 - `-o turtle` works for `specimen2jsonld` and `gff2jsonld`.
 - `taxonomy2jsonld` accepts `-f turtle` (its `-o` sets the output file) but
-  currently writes JSON-LD anyway. `filemanifest2jsonld` and the
+  currently writes JSON-LD anyway. `filemanifest2jsonld`, `ait2jsonld` and the
   anatomical-structure translator write JSON-LD only. To get Turtle from any of
   these, convert the JSON-LD with `bkbit.utils.serialize_to_ttl.convert_jsonld_to_ttl`.
 - Converting to Turtle fetches the remote JSON-LD `@context`, so it needs
-  network access. If conversion fails, bkbit prints `Error during conversion:
+  network access. The exception is `ait2jsonld`, whose output embeds its
+  context. If conversion fails, bkbit prints `Error during conversion:
   …` in place of Turtle and still exits 0. Check the output (step 5) instead of
   relying on the exit code.
 
@@ -97,7 +107,8 @@ jsonld = gff3.serialize_to_jsonld()
 ```
 
 Each reference file covers the matching class (`SpecimenPortal`,
-`BKETaxonomy`, `AnS`, ...).
+`BKETaxonomy`, `AnS`, ...); `ait2jsonld` is the `build()` function in
+`ait_taxonomy_translator`.
 
 ## Guardrails
 
@@ -119,4 +130,6 @@ Each reference file covers the matching class (`SpecimenPortal`,
   ontology mapping doesn't change an ID. `xref` is still part of the hash.
   bkbit releases before October 2026 hashed every attribute, so IDs for
   objects with SKOS mappings, such as `gff2jsonld`'s `OrganismTaxon`, differ
-  between old and new versions.
+  between old and new versions. The same goes for `GeneAnnotation` IDs, which
+  is why `ait2jsonld`'s `--gene_annotation` must come from the bkbit release
+  the rest of the graph uses.
