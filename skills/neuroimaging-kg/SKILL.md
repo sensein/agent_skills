@@ -24,6 +24,22 @@ produced what, from what, by whom). **SHACL** — machine-checkable rules a grap
 **SPARQL** — the query language for graphs. **Oxigraph** — a database that answers SPARQL.
 **Competency question** — a question the graph must be able to answer, with a known answer.
 
+## Before you start
+
+- **Find the skill's files, don't search the disk.** Everything below lives next to this file:
+  `SKILL_DIR=.claude/skills/neuroimaging-kg` (project install) or `~/.claude/skills/neuroimaging-kg`
+  (user install). Use `$SKILL_DIR/scripts/…`, `$SKILL_DIR/assets/core_shapes.ttl`,
+  `$SKILL_DIR/examples/abide_one_site/…`.
+- **Run Python through uv.** `uv run $SKILL_DIR/scripts/<name>.py …`; for your own code
+  `uv run --with rdflib --with pyoxigraph python x.py`. The system `python3` lacks these packages.
+- **Pinned ABIDE sites:** `bash $SKILL_DIR/examples/abide_one_site/run_demo.sh <Caltech|SBL|OHSU|Stanford>`
+  builds, validates and queries a site in seconds; start there and query its `graph/` and `data/`.
+- **Identify things by persistent identifiers** in the graph and in answers: DOI IRIs for papers, ORCID
+  for people, repository URL or RRID for tools, landing page or accession for datasets.
+- **Consult and extend the wiki** (`$SKILL_DIR/wiki/patterns/`; index in `wiki/evolution_log.md`) when
+  the source repository is available: it records failures and fixes from earlier runs. After a run
+  that hit a new problem, add a short note to `wiki/experience/` (tried / happened / fix).
+
 ## Workflow — each step names its tool and the check that gates it
 
 1. **Scope first.** Write 5–10 competency questions and say where each gold answer comes from
@@ -40,7 +56,10 @@ produced what, from what, by whom). **SHACL** — machine-checkable rules a grap
    steps (cohort selection, connectivity, models) as PROV with
    `uv run scripts/record_activity.py --id … --label … --used IN --generated OUT --software name==ver --param k=v --agent "Name" --out provenance.ttl`
    (files are identified by SHA-256; outputs are linked to every input). For an AI agent use
-   `--agent-kind ai --model <id>`. *Gate:* every output names its inputs, software version and agent.
+   `--agent-kind ai --model <id>`. To read brain volumes out of ReproNim NIDM files (values in the site
+   file, meanings in the tool CDE files), use
+   `uv run $SKILL_DIR/scripts/nidm_volumes.py --nidm site_nidm.ttl --cde freesurfer_cde.ttl --cde fsl_cde.ttl --cde ants_cde.ttl --region <UBERON IRI> --out vols.csv`
+   (volumes are selected by unit, mm^3). *Gate:* every output names its inputs, software version and agent.
 4. **Publications and claims.** Extract claims with evidence spans with the `structsense` skill; run
    systematic literature searches with the `synthscholar` skill (exports SLR-ontology Turtle). Record
    each claim with its **scope** — population/cohort, measure, contrast, evaluation (association is
@@ -83,6 +102,7 @@ first download. See its README.
 | Phenotype table → NIDM | `uvx --from pynidm==4.5.5 csv2nidm … -json_map … -no_concepts` |
 | BIDS dataset → NIDM | `uvx --from pynidm==4.5.5 bidsmri2nidm -d <bids> -o nidm.ttl` |
 | Record an analysis step | `scripts/record_activity.py` |
+| Brain volumes from NIDM → table | `scripts/nidm_volumes.py` |
 | Link participants across graphs | `scripts/join_identity.py` |
 | Check rules + mutation test | `scripts/validate_graph.py` |
 | Named graphs + competency questions | `scripts/query_graph.py` |

@@ -187,3 +187,23 @@ class QueryGraphTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(DEPS, "rdflib, pyshacl and pyoxigraph are required")
+class NidmVolumesTest(unittest.TestCase):
+    def test_volumes_by_participant_tool_and_side_in_mm3_only(self):
+        import nidm_volumes as nv
+
+        rows = nv.extract([str(FIXTURES / "site_volumes_nidm.ttl")], [str(FIXTURES / "tool_cde.ttl")],
+                          region="http://purl.obolibrary.org/obo/UBERON_0001954", unit="mm^3")
+        got = sorted((r["src_subject_id"], r["tool"], r["side"], r["value"]) for r in rows)
+        self.assertEqual(got, [("1001", "FSL", "Left", 3700.0), ("1001", "FreeSurfer", "Left", 4400.0),
+                               ("1001", "FreeSurfer", "Right", 4300.0), ("1002", "FreeSurfer", "Left", 4000.0),
+                               ("1002", "FreeSurfer", "Right", 4100.0)])
+
+    def test_unit_filter_excludes_voxel_counts(self):
+        import nidm_volumes as nv
+
+        rows = nv.extract([str(FIXTURES / "site_volumes_nidm.ttl")], [str(FIXTURES / "tool_cde.ttl")],
+                          region="http://purl.obolibrary.org/obo/UBERON_0001954", unit="voxel")
+        self.assertEqual([(r["src_subject_id"], r["value"]) for r in rows], [("1001", 4410.0)])
