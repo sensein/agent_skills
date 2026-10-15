@@ -1,0 +1,5 @@
+participant_id,age,diagnosis,mean_fd
+1,21,ASD,0.08
+2,34,TD,0.25
+3,41,TD,0.12
+4,19,ASD,0.05

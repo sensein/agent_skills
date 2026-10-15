@@ -1,0 +1,86 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix nkg: <urn:neuroimaging-kg:> .
+@prefix nkgs: <urn:neuroimaging-kg:shapes:> .
+
+# Core acceptance checks for a neuroimaging knowledge graph built with this skill.
+# They are deliberately compatible with NIDM graphs written by PyNIDM: NIDM acquisitions use
+# prov:qualifiedAssociation rather than prov:wasAssociatedWith, and raw acquisition objects
+# have no prov:wasDerivedFrom, so neither is required unconditionally.
+# Use them together with SHACL generated from the PyNIDM LinkML schema (see SKILL.md).
+
+# An output of an activity that used inputs must say which inputs it was derived from.
+nkgs:DerivationShape a sh:NodeShape ;
+  sh:targetSubjectsOf prov:wasGeneratedBy ;
+  sh:sparql [ a sh:SPARQLConstraint ;
+    sh:message "output of an activity that used inputs has no prov:wasDerivedFrom (derivation edge missing)" ;
+    sh:select """PREFIX prov: <http://www.w3.org/ns/prov#>
+      SELECT $this WHERE {
+        $this prov:wasGeneratedBy ?act . ?act prov:used ?input .
+        FILTER NOT EXISTS { $this prov:wasDerivedFrom ?any }
+      }""" ] .
+
+# Every activity names who or what carried it out.
+nkgs:ActivityAgentShape a sh:NodeShape ;
+  sh:targetClass prov:Activity ;
+  sh:or ( [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ]
+          [ sh:path prov:qualifiedAssociation ; sh:minCount 1 ] ) ;
+  sh:message "activity has no associated agent (person, software or AI agent)" .
+
+# Software agents carry a version.
+nkgs:SoftwareVersionShape a sh:NodeShape ;
+  sh:targetClass prov:SoftwareAgent ;
+  sh:or ( [ sh:path nkg:version ; sh:minCount 1 ] [ sh:path nkg:model ; sh:minCount 1 ] ) ;
+  sh:message "software agent has no version (or, for an AI agent, no model id)" .
+
+# Identity across graphs is a reviewable link, produced by a recorded rule.
+nkgs:IdentityLinkShape a sh:NodeShape ;
+  sh:targetClass nkg:IdentityLink ;
+  sh:property [ sh:path nkg:localId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path nkg:externalSubject ; sh:minCount 1 ; sh:maxCount 1 ] ;
+  sh:property [ sh:path nkg:reviewStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "proposed" "accepted" "rejected" ) ] ;
+  sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ;
+                sh:message "identity link without the activity (and rule) that produced it" ] .
+
+# Consent describes what sharing it covers. "No consent" is not a scope: such data does not
+# belong in a research graph at all.
+nkgs:SensitivityShape a sh:NodeShape ;
+  sh:targetClass nkg:SensitivityProfile ;
+  sh:property [ sh:path nkg:consentScope ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "broad-sharing" "study-only" "named-uses" ) ;
+                sh:message "consentScope must be broad-sharing, study-only or named-uses" ] .
+
+# A claim carries its scope and at least one evidence span.
+nkgs:ClaimShape a sh:NodeShape ;
+  sh:targetClass nkg:Claim ;
+  sh:property [ sh:path nkg:claimType ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "associational" "predictive" "descriptive" ) ] ;
+  sh:property [ sh:path nkg:population ; sh:minCount 1 ; sh:message "claim has no population (cohort) scope" ] ;
+  sh:property [ sh:path nkg:measure ; sh:minCount 1 ; sh:message "claim has no measure" ] ;
+  sh:property [ sh:path nkg:evidence ; sh:minCount 1 ; sh:class nkg:EvidenceSpan ] .
+
+nkgs:EvidenceSpanShape a sh:NodeShape ;
+  sh:targetClass nkg:EvidenceSpan ;
+  sh:property [ sh:path nkg:quote ; sh:minCount 1 ] ;
+  sh:property [ sh:path nkg:source ; sh:minCount 1 ; sh:message "evidence quote has no source (DOI/URL)" ] .
+
+# A cohort records the rule that defined it and the activity that produced it.
+nkgs:CohortShape a sh:NodeShape ;
+  sh:targetClass nkg:Cohort ;
+  sh:property [ sh:path nkg:rule ; sh:minCount 1 ] ;
+  sh:property [ sh:path prov:hadMember ; sh:minCount 1 ] ;
+  sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ] .
+
+# Nothing whose consent does not cover broad sharing may be promoted from pond to lake.
+nkgs:EgressShape a sh:NodeShape ;
+  sh:targetSubjectsOf nkg:promotionStatus ;
+  sh:sparql [ a sh:SPARQLConstraint ;
+    sh:message "cannot promote to the lake: consent scope is {?scope}" ;
+    sh:select """PREFIX nkg: <urn:neuroimaging-kg:>
+      SELECT $this ?scope WHERE {
+        $this nkg:promotionStatus "promoted" ; nkg:sensitivity ?p . ?p nkg:consentScope ?scope .
+        FILTER (?scope != "broad-sharing")
+      }""" ] .
