@@ -1,0 +1,7 @@
+# How many participants are in our phenotype graph, and how many are linked to ReproNim's NIDM for the site?
+PREFIX ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/>
+PREFIX nkg: <urn:neuroimaging-kg:>
+SELECT ?in_phenotype ?linked_to_repronim WHERE {
+  { SELECT (COUNT(DISTINCT ?p) AS ?in_phenotype) WHERE { GRAPH <urn:g:phenotype> { ?p ndar:src_subject_id ?id } } }
+  { SELECT (COUNT(DISTINCT ?l) AS ?linked_to_repronim) WHERE { GRAPH <urn:g:links> { ?l a nkg:IdentityLink } } }
+}

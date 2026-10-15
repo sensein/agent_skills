@@ -1,0 +1,11 @@
+# Which published claims use ABIDE I, of what kind, about which population, and on what evidence?
+PREFIX nkg: <urn:neuroimaging-kg:>
+PREFIX dct: <http://purl.org/dc/terms/>
+SELECT ?claim_type ?population ?value ?quote ?paper ?consent_scope WHERE {
+  GRAPH <urn:g:claims> {
+    ?c a nkg:Claim ; nkg:usesDataset ?d ; nkg:claimType ?claim_type ; nkg:population ?population ;
+       nkg:value ?value ; dct:source ?paper ; nkg:evidence ?e .
+    ?e nkg:quote ?quote .
+    ?d nkg:sensitivity ?s . ?s nkg:consentScope ?consent_scope .
+  }
+}

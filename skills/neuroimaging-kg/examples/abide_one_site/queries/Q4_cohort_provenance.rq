@@ -1,0 +1,17 @@
+# What produced the head-motion cohort: which step, software and version, parameter, and which input file (by SHA-256)?
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX nkg: <urn:neuroimaging-kg:>
+PREFIX crypto: <http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions#>
+PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
+SELECT ?step ?software ?version ?parameter ?value ?input_file ?input_sha256 WHERE {
+  GRAPH <urn:g:cohort> { ?cohort a nkg:Cohort }
+  GRAPH <urn:g:prov> {
+    ?cohort prov:wasGeneratedBy ?act . ?act rdfs:label ?step ;
+      prov:wasAssociatedWith ?sw ; nkg:parameter ?pp ; prov:used ?in .
+    ?sw a prov:SoftwareAgent ; rdfs:label ?software ; nkg:version ?version .
+    ?pp rdfs:label ?parameter ; nkg:value ?value .
+    ?in nfo:fileName ?input_file ; crypto:sha256 ?input_sha256 .
+    FILTER (STRENDS(?input_file, "_motion.csv"))
+  }
+}

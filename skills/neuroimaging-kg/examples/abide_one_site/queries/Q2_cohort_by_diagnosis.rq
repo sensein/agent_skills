@@ -1,0 +1,12 @@
+# How many participants pass the head-motion rule, by diagnostic group (DX_GROUP: 1 = autism, 2 = control)?
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX nidm: <http://purl.org/nidash/nidm#>
+PREFIX nkg: <urn:neuroimaging-kg:>
+SELECT ?dx_group (COUNT(DISTINCT ?p) AS ?n) WHERE {
+  GRAPH <urn:g:cohort> { ?c a nkg:Cohort ; prov:hadMember ?p }
+  GRAPH <urn:g:phenotype> {
+    ?acq prov:qualifiedAssociation/prov:agent ?p . ?ao prov:wasGeneratedBy ?acq ; ?de ?dx .
+    ?de nidm:sourceVariable "DX_GROUP" .
+  }
+  BIND (STR(?dx) AS ?dx_group)
+} GROUP BY ?dx_group ORDER BY ?dx_group
