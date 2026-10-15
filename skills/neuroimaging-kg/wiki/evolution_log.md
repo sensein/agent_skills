@@ -74,3 +74,12 @@ R(val) > R_best, else revert the skill; the wiki is never rolled back.
   because using validation traces to change the skill would leak D_val; add a training task with a
   BOM in the next iteration.
 - V2-style answer-contract errors (reporting one count in another field) have no training evidence yet.
+
+## Test set (run once, after the gate) — Claude Code demo
+
+Four prompts in one continued session (`examples/test_claude_code_demo.sh`, transcript in
+`examples/claude_code_demo_transcript.md`): 34 s, 14 s, 162 s, 55 s; all answers checked against
+independently computed values (18/19; 51456 and 51469 excluded → 17/19; scan details match the NIDM
+file). One factual slip: prompt 1 said volumes come from three tools; Caltech's file has FreeSurfer and
+FSL only. Not used to change the skill (test-set observation); candidate pattern for the next
+iteration: "list the tools actually present before describing a site".
