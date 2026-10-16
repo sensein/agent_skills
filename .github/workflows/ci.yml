@@ -59,6 +59,19 @@ jobs:
       - name: Test source-backed resource conversion
         run: python -m pytest skills/structsense/scripts/tests/test_resource_catalog.py -q
 
+  neuroimaging-kg-tests:
+    name: neuroimaging-kg script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the scripts' dependencies
+        run: python -m pip install --quiet 'rdflib>=7,<8' 'pyshacl>=0.26' 'pyoxigraph>=0.4'
+      - name: Test provenance, identity join, validation and query scripts (offline fixture)
+        run: python -m unittest tests.test_neuroimaging_kg -v
+
   duct-skill-smoke:
     name: duct skill smoke test
     runs-on: ubuntu-latest

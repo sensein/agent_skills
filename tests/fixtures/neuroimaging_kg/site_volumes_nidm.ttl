@@ -1,0 +1,26 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix nidm: <http://purl.org/nidash/nidm#> .
+@prefix ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/> .
+@prefix sio: <http://semanticscience.org/ontology/sio.owl#> .
+@prefix niiri: <http://iri.nidash.org/> .
+@prefix fs: <https://surfer.nmr.mgh.harvard.edu/> .
+@prefix fsl: <http://purl.org/nidash/fsl#> .
+
+# Two participants; FreeSurfer for both, FSL for p1 only — the shape ReproNim's site NIDM files use.
+niiri:p1 a prov:Agent, prov:Person ; ndar:src_subject_id "1001" .
+niiri:p2 a prov:Agent, prov:Person ; ndar:src_subject_id "1002" .
+niiri:fs_agent a prov:SoftwareAgent ; nidm:NIDM_0000164 fs: .
+niiri:fsl_agent a prov:SoftwareAgent ; nidm:NIDM_0000164 fsl: .
+
+niiri:act_fs1 a prov:Activity ;
+  prov:qualifiedAssociation [ prov:agent niiri:p1 ; prov:hadRole sio:Subject ] ,
+                            [ prov:agent niiri:fs_agent ; prov:hadRole nidm:NIDM_0000164 ] .
+niiri:ent_fs1 prov:wasGeneratedBy niiri:act_fs1 ; fs:L_hip_vol 4400.0 ; fs:R_hip_vol 4300.0 ; fs:L_hip_vox 4410 .
+niiri:act_fs2 a prov:Activity ;
+  prov:qualifiedAssociation [ prov:agent niiri:p2 ; prov:hadRole sio:Subject ] ,
+                            [ prov:agent niiri:fs_agent ; prov:hadRole nidm:NIDM_0000164 ] .
+niiri:ent_fs2 prov:wasGeneratedBy niiri:act_fs2 ; fs:L_hip_vol 4000.0 ; fs:R_hip_vol 4100.0 .
+niiri:act_fsl1 a prov:Activity ;
+  prov:qualifiedAssociation [ prov:agent niiri:p1 ; prov:hadRole sio:Subject ] ,
+                            [ prov:agent niiri:fsl_agent ; prov:hadRole nidm:NIDM_0000164 ] .
+niiri:ent_fsl1 prov:wasGeneratedBy niiri:act_fsl1 ; fsl:L_hip 3700 .

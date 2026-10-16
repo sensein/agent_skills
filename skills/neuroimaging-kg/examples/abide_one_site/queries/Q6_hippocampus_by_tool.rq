@@ -1,0 +1,17 @@
+# Same participant, same structure, different tools: left-hippocampus volume (mm^3) from every tool that has one,
+# for the first participant (by ID). Descriptive: no gold answer. (Caltech has FreeSurfer and FSL outputs, no ANTs.)
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX nidm: <http://purl.org/nidash/nidm#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/>
+SELECT DISTINCT ?participant ?tool ?measure ?volume_mm3 WHERE {
+  { SELECT (MIN(?pid) AS ?participant) WHERE { GRAPH <urn:g:repronim> { ?s0 ndar:src_subject_id ?pid } } }
+  GRAPH <urn:g:repronim> {
+    ?s ndar:src_subject_id ?participant .
+    ?act prov:qualifiedAssociation ?a1 , ?a2 . ?a1 prov:agent ?sw . ?sw nidm:NIDM_0000164 ?tool .
+    ?a2 prov:agent ?s . ?ent prov:wasGeneratedBy ?act ; ?m ?volume_mm3 .
+  }
+  ?m nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001954> ; nidm:hasLaterality ?side ;
+     nidm:hasUnit "mm^3" ; rdfs:label ?measure .
+  FILTER (LCASE(STR(?side)) = "left")
+} ORDER BY ?tool

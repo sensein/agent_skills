@@ -1,0 +1,14 @@
+@prefix nidm: <http://purl.org/nidash/nidm#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix fs: <https://surfer.nmr.mgh.harvard.edu/> .
+@prefix fsl: <http://purl.org/nidash/fsl#> .
+@prefix obo: <http://purl.obolibrary.org/obo/> .
+
+fs:L_hip_vol rdfs:label "Left-Hippocampus Volume_mm3 (mm^3)" ; nidm:isAbout obo:UBERON_0001954 ;
+  nidm:hasLaterality "Left" ; nidm:hasUnit "mm^3" .
+fs:R_hip_vol rdfs:label "Right-Hippocampus Volume_mm3 (mm^3)" ; nidm:isAbout obo:UBERON_0001954 ;
+  nidm:hasLaterality "Right" ; nidm:hasUnit "mm^3" .
+fs:L_hip_vox rdfs:label "Left-Hippocampus NVoxels" ; nidm:isAbout obo:UBERON_0001954 ;
+  nidm:hasLaterality "Left" ; nidm:hasUnit "voxel" .
+fsl:L_hip rdfs:label "Left-Hippocampus (mm^3)" ; nidm:isAbout obo:UBERON_0001954 ;
+  nidm:hasLaterality "Left" ; nidm:hasUnit "mm^3" .

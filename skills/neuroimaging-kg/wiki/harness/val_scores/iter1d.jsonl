@@ -1,0 +1,3 @@
+{"task": "V2_caltech_tool_disagreement", "pass": true, "seconds": 66}
+{"task": "V3_malformed_table", "pass": true, "seconds": 85}
+{"task": "V1_ohsu_motion_and_volumes", "pass": true, "seconds": 86}
