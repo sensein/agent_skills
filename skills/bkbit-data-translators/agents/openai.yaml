@@ -1,0 +1,7 @@
+interface:
+  display_name: "bkbit Data Translators"
+  short_description: "Convert BICAN source data to JSON-LD with the bkbit translators"
+  default_prompt: "Use $bkbit-data-translators to pick the right bkbit translator for my data, check its inputs, run it, and summarize the JSON-LD it produces."
+
+policy:
+  allow_implicit_invocation: true
