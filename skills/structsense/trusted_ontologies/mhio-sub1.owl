@@ -1,0 +1,1834 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000262">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>CBT</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000065">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intrusive thoughts</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000260">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>bulimia</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000256">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>schizophrenia spectrum disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000180">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overanalyzing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000230">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>detox</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000257">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trauma and stressor-related disorders</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000276">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>grounding exercises</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000120">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hypervigilance</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000141">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>I’m worthless</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000023"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000249">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>bipolar II</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000145">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>holding past trauma</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000024"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000196">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trauma core</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000225">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>drinking again</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000014">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Behavioral process</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000002"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000193">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>vent tweet</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000197">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>private story vent</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000033">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Affective representation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000031"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000179">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intrusive thoughts</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000277">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>journaling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000121">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trauma response patterns</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000327">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Binge calories</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000345">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>main character therapy arc</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000049">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sleep deprivation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000003">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Bodily process</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000002"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000267">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>safety plan</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000124">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>masking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000084">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>suicidal ideation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000020">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Realizable entity</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000017"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000138">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>flashbacks</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000022"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000176">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>tension</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000162">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>low mood</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000346">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i’m regulating like a toddler rn</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000021">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Mental disposition</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000020"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000229">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>craving</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000163">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling broken</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000280">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mindfulness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000283">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>rehab</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000183">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mental breakdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000265">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>exposure therapy</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000161">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>irritability</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000309">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mentally in a ditch</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000224">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>cutting</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000086">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depressed mood</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000200">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dark humor coping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000104">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>manipulation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000343">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>comfort blanket era</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000201">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>spam account rant</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000067">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>panic attack</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000332">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional shutdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000253">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>generalized anxiety disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000318">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Want to disappear</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000103">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional blackmail</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000068">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dissociation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000016">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Intervention</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000001"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000294">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>doom mode</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000045">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hyperventilating</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000055">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>startle reflex</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000042">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>racing heart</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000107">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>invalidation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000254">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>panic disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000142">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>nobody would miss me</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000023"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000289">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>fried mentally</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000263">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>DBT</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000279">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>affirmations</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000023">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Belief-related disposition</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000101">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>silent treatment</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000292">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my brain is buffering</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000026">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Disease or disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000017"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000311">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>doom blanket</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000353">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain static</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000170">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overstressed</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000357">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mentally checked out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000195">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depression memes</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000221">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally unavailable dad</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000144">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dread of future</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000024"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000082">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally unstable</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000348">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>time blindness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000239">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>skipping school</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000199">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>aesthetic sad edits</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000325">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Fasting</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000106">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>parentification</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000215">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trauma history</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000174">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>heaviness in body</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000313">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>empty brain vibes</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000259">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>anorexia</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000119">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>catastrophic thinking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000131">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional regulation difficulty</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000361">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain stuck on negative mode</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000035">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Slang expression</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000030"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000210">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>golden child</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000046">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>restless</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000166">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional overload</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000301">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my anxiety be loud</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000232">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>binge drinking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Ontology"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000352">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>task switching meltdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000187">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crying myself to sleep</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000287">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>doomscrolling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000217">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>bullied</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000043">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>heart racing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000158">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>anxiety</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000251">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>major depressive disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000243">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>angry teen behaviors</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000303">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my mind is pacing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000295">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mental crash</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000088">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>spaced out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000010"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000001">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Occurrent</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000222">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>binge eating</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000181">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>obsessive looping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000316">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Off myself</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000028">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Mental quality</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000027"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000288">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally cooked</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000136">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>executive dysfunction</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000190">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional breakdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000231">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>rehab</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000167">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>burnout vibes</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000242">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crying all night</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000299">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>soft breakdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000324">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Restricting</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000113">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>irascibility</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000165">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>lost interest</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000340">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my anxiety is loud as hell today</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000350">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dopamine chasing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000255">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>psychosis</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000333">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my thoughts doing parkour</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000228">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>substance dependence</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000112">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>neurotic tendencies</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000019">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Personality trait</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000018"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000266">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>relapse prevention plan</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000246">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>ADHD</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000355">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my chest feels heavy</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000098">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>people pleasing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000054">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>adrenaline rush</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000073">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hearing voices</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000007"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000036">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Slang mental-state expression</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000035"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000310">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling hollowed out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000063">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dark thoughts</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000302">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i’m overstimmed</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000171">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mentally done</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000109">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>anxious attachment</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000338">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>heartbeat doing the macarena</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000192">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mood swings</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000002">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Process</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000001"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000018">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Personality</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000017"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000322">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Relapsing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000339">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i can’t calm my neurons</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000240">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>doom scrolling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000139">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>reliving it</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000022"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000029">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Bodily quality</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000027"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000070">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feel detached</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000114">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>introversion</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000359">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my thoughts are loud</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000365">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i need emotional tech support</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000219">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>self-harm at school</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000321">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Beans</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000298">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>in my flop era</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000213">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mother wound</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000326">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Thinspo</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000308">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>down bad mentally</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000177">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sensory overload</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000074">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>seeing things</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000008"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000208">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>toxic household</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000330">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crying nonstop</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000358">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i feel crushed emotionally</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000050">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sleep deprived</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000363">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i need a mental reboot</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000356">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>my heart hurts but not physically</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000164">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling numb</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000351">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hyperfocus mode</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000360">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i feel like i’m underwater</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000075">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>flashbacks</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000008"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000290">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>check out mentally</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000236">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intoxicated</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000044">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>chest tightness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000080">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>self-sabotage</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000261">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>substance use disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000102">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>guilt tripping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000076">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>low self-esteem</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000214">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>father wound</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000126">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>avoidance behavior</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000094">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>late-night crying</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000012"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000281">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>harm reduction</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000038">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>nauseous</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000317">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Give up</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000132">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sensory overload</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000264">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>EMDR</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000077">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>impostor syndrome</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000013">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Higher-order consciousness – intersubjectivity</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000079">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>self-hate</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000300">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>micro panic</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000081">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling unsafe</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000168">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>unmotivated</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000194">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>vent account</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000100">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>codependency</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000252">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>anxiety disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000155">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>despair</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000178">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>chronic fatigue</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000059">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling numb</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000085">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>anhedonia</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000189">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sad girl hours</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000291">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>can’t function mode</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000097">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>gaslighting</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000105">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trauma bond</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000089">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overstimulated in environment</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000010"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000285">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain fog (slang)</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000061">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>heavy chest</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000060">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally numb</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000362">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i need a reset button</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000007">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Auditory consciousness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000344">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i’m in my healing arc</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000341">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally yeeting myself out of the situation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000172">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>fatigue</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000146">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>grounding exercises</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000296">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>social battery dead</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000159">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dread</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000234">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>escapism</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000123">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dissociation tendency</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000128">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>perfectionistic burnout tendencies</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000004">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Process profile</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000002"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000305">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>can’t get out of bed core</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000148">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mindfulness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000127">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>impulsive substance use</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000205">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>childhood abuse</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000122">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>maladaptive coping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000143">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>I can’t do this</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000023"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000241">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crying in my car</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000244">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>OCD</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000216">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intergenerational trauma</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000226">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>relapse</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000304">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>heart doing jump-scares</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000069">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dissociate</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000140">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intrusive memories</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000022"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000008">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Visual consciousness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000220">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>family conflict</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000115">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>extraversion</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000130">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overthinking spiral</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000364">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain needs a patch update</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000337">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>panic brain</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000347">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>stabby thoughts</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000037">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>nausea</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000047">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hypersomnia</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000175">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>lightheadedness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000235">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overdose</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000066">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>racing thoughts</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000022">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Memory-related disposition</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000331">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>drinking to cope</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000031">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Representation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000030"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000328">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional numbing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000271">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>therapist</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000160">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>fear response</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000209">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>absent parent</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000056">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>exaggerated startle</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000248">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>bipolar I</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000011">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Higher-order consciousness – body</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000218">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>peer pressure</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000090">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>social withdrawal</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000010"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000204">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>childhood neglect</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000092">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>can’t shower</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000011"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000017">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Continuant</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000002"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000133">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>zoning out habit</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000156">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>melancholy</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000057">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>nightmares</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000335">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain spirals</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000307">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sad girl hours</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000154">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hopelessness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000198">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depressive playlist</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000250">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depressive disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000334">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>mind on 100 tabs open</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000270">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>medication check-in</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000072">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>empty inside</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000238">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>vaping in bathroom</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000078">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>worthless</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000227">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>using again</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000108">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intergenerational trauma</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000268">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hotline call</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000095">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>daily crying</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000012"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000096">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sad girl hours</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000012"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000237">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>blacking out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000278">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>breath work</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000354">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>freeze mode</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000039">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>shaking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000274">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>psych ward</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000258">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>eating disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000320">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>SH</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000336">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overthink Olympics</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000058">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feeling hollow</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000342">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feral stress energy</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000211">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>scapegoat</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000223">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>self-harm</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000185">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>doomscrolling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000323">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Blade</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000315">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Overdosing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000269">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>group therapy</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000293">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>zero spoons</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000152">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depression</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000282">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>detox</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000032">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Cognitive representation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000031"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000245">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>PTSD</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000005">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Consciousness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000004"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000147">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>journaling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000203">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>late-night crying content</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000118">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>negative self-talk</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000173">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>tiredness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000029"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000052">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brain fog</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000051">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>insomnia</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000157">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sadness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000297">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i’m dissociating fr</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000012">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Higher-order consciousness – time</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000024">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Time-intentional modality</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000053">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>brainfog</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000041">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sweaty palms</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000006">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Direct consciousness</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000149">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>therapy homework</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000191">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally drained</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000202">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>isolation phase</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000034"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000182">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>catastrophic thinking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000099">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally unavailable parent</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000013"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000062">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>sadness wave</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000329">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>unhealthy coping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000273">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>inpatient</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000129">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>spiral</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000010">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Higher-order consciousness – space</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000034">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Digital representation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000031"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000188">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>dark humor coping</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000272">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crisis counselor</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000048">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>chronic fatigue</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000030">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Role</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000023"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000314">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i’m running on fumes</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000027">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Quality</rdfs:label>
+    <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000153">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>depressed</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000233">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>numbing out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000014"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000286">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>spiraling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000110">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>avoidant attachment</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000186">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>crying spells</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000033"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000071">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>feel disconnected</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000275">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>wellness check</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000083">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>hopeless</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000009"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000040">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>trembling</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000003"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000137">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overstimulation meltdown</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000312">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>i feel grayscale</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000206">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>unstable home</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000349">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>ADHD paralysis</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000064">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>intrusive memories</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000006"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000151">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotional regulation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000207">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>yelling household</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000087">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>zoning out</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000010"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000111">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>rejection sensitive</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000019"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000025">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Mental capability</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000020"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000169">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overwhelmed</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000028"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000150">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>coping mechanisms</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000025"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000125">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>people pleasing</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000116">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>overthinking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000247">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>autism spectrum disorder</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000026"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000212">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>narcissistic parent</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000015"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000319">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Constantly geeked</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000117">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>rumination</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000284">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>twelve-step program</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000016"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000093">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>tired all the time</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000011"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000009">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>Higher-order consciousness – self</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000005"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000184">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>stuck in my head</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000032"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000091">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>can’t get out of bed</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000011"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000306">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>emotionally offline</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000036"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000135">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>low motivation</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000015">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>History process</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000002"/>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://mhio.org/mh#MH_0000134">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:label>defeatist thinking</rdfs:label>
+    <rdfs:subClassOf rdf:resource="https://mhio.org/mh#MH_0000021"/>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,952 @@
+@prefix cso: <https://cathexis.health/ontology/cso/v1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# Cathexis Somatic Ontology (CSO) v1.1
+# Machine-Readable Representation
+#
+# Author: Justin DeGarbo, AMFT
+# Organization: Cathexis Health
+# License: CC BY-NC-SA 4.0
+# DOI: 10.5281/zenodo.20448395
+#
+# Seven theoretical foundations:
+#   Barrett (constructed emotion), Friston (predictive processing),
+#   Panksepp (primary affect systems), Damasio (somatic markers),
+#   Solms (neuropsychoanalysis), Pessoa (entangled brain),
+#   Kandel/Nader/Schiller/Ecker (memory systems)
+# ============================================================
+
+<https://cathexis.health/ontology/cso/v1.1/>
+    rdf:type owl:Ontology ;
+    owl:versionIRI <https://cathexis.health/ontology/cso/v1.1/> ;
+    owl:versionInfo "1.1" ;
+    dcterms:title "Cathexis Somatic Ontology"@en ;
+    dcterms:description "A formal vocabulary and relational schema for encoding body-based therapeutic experience computationally. Defines entity classes for anatomical zones, sensation qualities, neurobiological organization patterns (territories), therapeutic change mechanisms, brain regions, ecological layers, and intervention architectures, organized within a Markov blanket framework."@en ;
+    dcterms:creator "Justin DeGarbo" ;
+    dcterms:publisher "Cathexis Health" ;
+    dcterms:issued "2026-05-29"^^xsd:date ;
+    dcterms:license <https://creativecommons.org/licenses/by-nc-sa/4.0/> ;
+    dcterms:identifier "10.5281/zenodo.20448395" ;
+    rdfs:seeAlso <https://cathexis.health/ontology/cso/v1.1/context.jsonld> .
+
+
+# ============================================================
+# TOP-LEVEL CLASSES
+# ============================================================
+
+cso:SomaticEntity rdf:type owl:Class ;
+    rdfs:label "Somatic Entity"@en ;
+    rdfs:comment "Abstract base class for all entities in the Cathexis Somatic Ontology."@en .
+
+cso:SomaticDataPoint rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Somatic Data Point"@en ;
+    rdfs:comment "A single sensation report: where in the body (zone), what kind (quality), how intense (0.0-1.0), how the user relates to it (valence). The atomic unit of somatic data."@en .
+
+cso:SomaticSnapshot rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Somatic Snapshot"@en ;
+    rdfs:comment "A complete body state at a single moment: the composite portrait of all active zones. Contains one or more SomaticDataPoints."@en .
+
+cso:SomaticTrajectory rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Somatic Trajectory"@en ;
+    rdfs:comment "A body state over time: ordered snapshots with computed per-zone aggregate statistics."@en .
+
+
+# ============================================================
+# BLANKET COMPONENTS (Friston's Markov Blanket)
+# ============================================================
+
+cso:BlanketComponent rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Blanket Component"@en ;
+    rdfs:comment "One of four components in Friston's Markov blanket formalism, used as the primary organizational structure for all CSO entities."@en .
+
+cso:InternalState rdf:type owl:NamedIndividual, cso:BlanketComponent ;
+    rdfs:label "Internal State"@en ;
+    rdfs:comment "User's physiological and psychological condition as experienced through interoception. What the user builds observer capacity for."@en .
+
+cso:ExternalState rdf:type owl:NamedIndividual, cso:BlanketComponent ;
+    rdfs:label "External State"@en ;
+    rdfs:comment "Environmental conditions influencing internal experience. What the user cannot directly control but must relate to."@en .
+
+cso:SensoryState rdf:type owl:NamedIndividual, cso:BlanketComponent ;
+    rdfs:label "Sensory State"@en ;
+    rdfs:comment "The boundary where external becomes internal: the translation mechanism. Where prediction lives. The most clinically important component."@en .
+
+cso:ActiveState rdf:type owl:NamedIndividual, cso:BlanketComponent ;
+    rdfs:label "Active State"@en ;
+    rdfs:comment "User's repertoire of responses: actions to minimize prediction error. The intervention library as a toolkit of active states."@en .
+
+
+# ============================================================
+# BODY ZONES (23 anatomical + 4 expansion + 2 meta)
+# ============================================================
+
+cso:BodyZone rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Body Zone"@en ;
+    rdfs:comment "An anatomical zone for somatic data capture. Each zone has defined clinical significance derived from its role in somatic therapy."@en ;
+    cso:blanketComponent cso:InternalState .
+
+# Head & Face (Zones 1-5)
+cso:headScalp rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Head / Scalp"@en ;
+    skos:definition "Tension headaches, pressure, cognitive overwhelm."@en ;
+    cso:zoneNumber 1 .
+
+cso:forehead rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Forehead"@en ;
+    skos:definition "Tension, pressure, furrowing; cognitive strain and worry patterns."@en ;
+    cso:zoneNumber 2 .
+
+cso:eyes rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Eyes"@en ;
+    skos:definition "Strain, pressure, burning, tears; hypervigilance, crying suppression."@en ;
+    cso:zoneNumber 3 .
+
+cso:jaw rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Jaw / TMJ"@en ;
+    skos:definition "Clenching, grinding, tightness; RAGE suppression. High diagnostic value."@en ;
+    cso:zoneNumber 4 .
+
+cso:mouthLips rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Mouth / Lips"@en ;
+    skos:definition "Tightness, numbness, trembling; speech suppression, grief expression."@en ;
+    cso:zoneNumber 5 .
+
+# Neck & Throat (Zones 6-8)
+cso:throat rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Throat"@en ;
+    skos:definition "Constriction, lump; suppressed expression across multiple territories."@en ;
+    cso:zoneNumber 6 .
+
+cso:neckFront rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Neck (Front)"@en ;
+    skos:definition "Tightness, vulnerability; exposure anxiety."@en ;
+    cso:zoneNumber 7 .
+
+cso:neckBack rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Neck (Back)"@en ;
+    skos:definition "Tension, stiffness, bracing; protective posture."@en ;
+    cso:zoneNumber 8 .
+
+# Shoulders & Torso (Zones 9-13)
+cso:shoulders rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Shoulders"@en ;
+    skos:definition "Carrying, tension, elevation; extremely common across territories."@en ;
+    cso:zoneNumber 9 .
+
+cso:upperChest rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Upper Chest"@en ;
+    skos:definition "Tightness, pressure, racing; FEAR system activation, cardiac awareness."@en ;
+    cso:zoneNumber 10 .
+
+cso:solarPlexus rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Solar Plexus"@en ;
+    skos:definition "Churning, butterflies, knot; core anxiety, diaphragmatic tension."@en ;
+    cso:zoneNumber 11 .
+
+cso:stomach rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Stomach / Abdomen"@en ;
+    skos:definition "Nausea, churning, sinking; gut-brain axis, visceral distress."@en ;
+    cso:zoneNumber 12 .
+
+cso:lowerAbdomen rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Lower Abdomen / Pelvis"@en ;
+    skos:definition "Tension, numbness, dissociation; trauma-sensitive zone."@en ;
+    cso:zoneNumber 13 .
+
+# Back (Zones 14-15)
+cso:upperBack rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Upper Back"@en ;
+    skos:definition "Tension, aching, bracing; protective posture, chronic guarding."@en ;
+    cso:zoneNumber 14 .
+
+cso:lowerBack rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Lower Back"@en ;
+    skos:definition "Aching, tension, weakness; structural support anxiety."@en ;
+    cso:zoneNumber 15 .
+
+# Arms & Hands (Zones 16-18)
+cso:upperArms rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Arms (Upper)"@en ;
+    skos:definition "Heaviness, weakness, restlessness; reaching/holding/pushing gestures."@en ;
+    cso:zoneNumber 16 .
+
+cso:forearms rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Forearms"@en ;
+    skos:definition "Tension, tingling, weakness; action readiness or suppression."@en ;
+    cso:zoneNumber 17 .
+
+cso:hands rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Hands"@en ;
+    skos:definition "Clenching, tingling, numbness, sweating; highly expressive zone."@en ;
+    cso:zoneNumber 18 .
+
+# Lower Body (Zones 19-23)
+cso:hips rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Hips"@en ;
+    skos:definition "Tightness, restriction; mobility, procedural tension patterns."@en ;
+    cso:zoneNumber 19 .
+
+cso:upperLegs rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Upper Legs / Thighs"@en ;
+    skos:definition "Heaviness, tension, restlessness; flight readiness or collapse."@en ;
+    cso:zoneNumber 20 .
+
+cso:knees rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Knees"@en ;
+    skos:definition "Weakness, instability; structural anxiety."@en ;
+    cso:zoneNumber 21 .
+
+cso:lowerLegs rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Lower Legs / Calves"@en ;
+    skos:definition "Heaviness, restlessness, cramping; grounding connection."@en ;
+    cso:zoneNumber 22 .
+
+cso:feet rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Feet"@en ;
+    skos:definition "Numbness, tingling, groundedness; grounding anchor zone."@en ;
+    cso:zoneNumber 23 .
+
+# Expansion Zones (v1.1)
+cso:pelvicFloor rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Pelvic Floor"@en ;
+    skos:definition "Deep guarding, tension, numbness; trauma-sensitive, sexual and attachment associations."@en ;
+    cso:zoneNumber 24 .
+
+cso:vestibular rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Vestibular / Balance"@en ;
+    skos:definition "Dizziness, unsteadiness, groundlessness; dissociative and transition states."@en ;
+    cso:zoneNumber 25 .
+
+cso:heart rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Heart"@en ;
+    skos:definition "Racing, pounding, skipping; cardiac interoception distinct from chest wall tightness."@en ;
+    cso:zoneNumber 26 .
+
+cso:diaphragm rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Diaphragm"@en ;
+    skos:definition "Constriction, catching, restriction; breath holding, autonomic regulation anchor."@en ;
+    cso:zoneNumber 27 .
+
+# Meta-Zones
+cso:wholeBody rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Whole Body / Systemic"@en ;
+    skos:definition "Non-localizable sensations: diffuse fatigue, buzzing, heaviness. Genuinely systemic sensations that forcing localization would misrepresent."@en ;
+    cso:zoneNumber 28 .
+
+cso:unspecified rdf:type owl:NamedIndividual, cso:BodyZone ;
+    rdfs:label "Unspecified"@en ;
+    skos:definition "Present but not yet localized. Therapeutically important for early-stage users developing interoceptive capacity. The ratio of unspecified-to-localized reports over time measures developing body awareness."@en ;
+    cso:zoneNumber 29 .
+
+
+# ============================================================
+# SENSATION QUALITIES (15 original + 5 expansion)
+# ============================================================
+
+cso:SensationQuality rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Sensation Quality"@en ;
+    rdfs:comment "A phenomenological sensation descriptor. Somatic qualities, not emotional labels. Defined phenomenologically (what it feels like) rather than mechanistically (what causes it)."@en ;
+    cso:blanketComponent cso:InternalState .
+
+# Original 15 Qualities
+cso:tightness rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Tightness"@en ;
+    skos:definition "Constriction, gripping, clenching. FEAR activation, muscular bracing, suppressed expression. Most commonly reported quality across populations."@en .
+
+cso:heat rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Heat / Warmth"@en ;
+    skos:definition "Radiating temperature increase, flushing. RAGE activation, shame response (facial heat), inflammatory processes."@en .
+
+cso:cold rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Cold"@en ;
+    skos:definition "Temperature decrease, chilling, stillness. Dissociative states, withdrawal, circulatory changes in freeze responses."@en .
+
+cso:pressure rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Pressure"@en ;
+    skos:definition "Compression, weight, bearing down. Overwhelm, suppressed affect, tension accumulation."@en .
+
+cso:tingling rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Tingling"@en ;
+    skos:definition "Fine electrical sensation, pins-and-needles. Autonomic arousal, hyperventilation, peripheral nervous system activation."@en .
+
+cso:numbness rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Numbness"@en ;
+    skos:definition "Absence of sensation, deadness, blankness. Dissociation, shutdown, protective disconnection from interoceptive signal."@en .
+
+cso:pain rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Pain"@en ;
+    skos:definition "Sharp, specific, localized nociception. Chronic pain territories, acute somatic distress, body-as-alarm."@en .
+
+cso:heaviness rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Heaviness"@en ;
+    skos:definition "Weight, density, gravitational pull. SEEKING suppression (T2 Shutdown), fatigue, depressive somatization."@en .
+
+cso:lightness rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Lightness"@en ;
+    skos:definition "Buoyancy, ease, relief. Post-regulation shift, PLAY activation, reduced sympathetic tone."@en .
+
+cso:pulsing rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Pulsing"@en ;
+    skos:definition "Rhythmic beat, throbbing. Cardiovascular awareness, autonomic oscillation, activation pattern."@en .
+
+cso:hollow rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Hollowness"@en ;
+    skos:definition "Emptiness, void, absence-of-substance. Grief (T3 Loss), existential states (T15), identity emptiness (T13 Mask)."@en .
+
+cso:buzzing rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Buzzing"@en ;
+    skos:definition "Vibration, agitation, electrical hum. Anxiety activation, restlessness, autonomic hyperarousal."@en .
+
+cso:nausea rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Nausea"@en ;
+    skos:definition "Stomach turning, queasiness. Gut-brain axis distress, disgust, overwhelming affect, medication effects."@en .
+
+cso:ache rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Aching"@en ;
+    skos:definition "Deep, diffuse, persistent discomfort. Chronic tension patterns, grief somatization, sustained stress."@en .
+
+cso:vibration rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Vibration"@en ;
+    skos:definition "Trembling, shaking, oscillation. High activation, trauma-related tremor, release of accumulated tension."@en .
+
+# v1.1 Expansion Qualities
+cso:stillness rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Stillness"@en ;
+    skos:definition "Calm absence of movement within zone. T2 (Shutdown): the rare positive signal, stillness as arrival, not absence. T15 (Existential): presence without action."@en .
+
+cso:expansion rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Expansion"@en ;
+    skos:definition "Outward-radiating warmth from zone center. Positive somatic signal, often appears during regulation success. Distinct from heat (which has urgency); expansion is spacious."@en .
+
+cso:contraction rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Contraction"@en ;
+    skos:definition "Inward-pulling compression toward zone center. The somatic signature of withdrawal, bracing, protective narrowing. T4 (Disconnection), T11 (Shame): the body pulling inward."@en .
+
+cso:floating rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Floating"@en ;
+    skos:definition "Untethered, drifting sensation within zone. T10 (Transition): groundlessness. T6 (Siege): dissociative lightness. Distinct from lightness (which has buoyancy); floating has no anchor."@en .
+
+cso:trembling rdf:type owl:NamedIndividual, cso:SensationQuality ;
+    rdfs:label "Trembling"@en ;
+    skos:definition "Fine involuntary oscillation within zone. Somatic discharge: can be regulatory (post-activation release) or distress (T6 freeze-thaw, T5 overwhelm spillover)."@en .
+
+
+# ============================================================
+# TERRITORIES OF HUMAN EXPERIENCE (16)
+# ============================================================
+
+cso:Territory rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Territory of Human Experience"@en ;
+    rdfs:comment "A distinct pattern of neurobiological organization. Not a diagnosis; describes how a person's nervous system is currently organized and what that organization feels like from the inside. In Pessoa's terms, a characteristic pattern of dynamic functional coalition formation."@en .
+
+cso:threat rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T1: Living in Threat"@en ;
+    skos:definition "High-precision threat predictions; ambiguous stimuli interpreted as dangerous."@en ;
+    cso:affectConfiguration "FEAR up, SEEKING down, PLAY down" ;
+    cso:blanketConfiguration cso:Porosity ;
+    cso:territoryNumber 1 .
+
+cso:shutdown rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T2: Shutdown"@en ;
+    skos:definition "Collapsed generative model; predictions of low return suppress approach behavior."@en ;
+    cso:affectConfiguration "SEEKING down, PLAY down" ;
+    cso:blanketConfiguration cso:Rigidity ;
+    cso:territoryNumber 2 .
+
+cso:loss rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T3: Loss"@en ;
+    skos:definition "Model of world-with-person persists after person is gone; prediction errors on absence."@en ;
+    cso:affectConfiguration "PANIC/GRIEF up, SEEKING variable" ;
+    cso:blanketConfiguration cso:Damage ;
+    cso:territoryNumber 3 .
+
+cso:disconnection rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T4: Disconnection"@en ;
+    skos:definition "Relational predictions suppressed; intimacy modeled as dangerous."@en ;
+    cso:affectConfiguration "PANIC/GRIEF suppressed, CARE down" ;
+    cso:blanketConfiguration cso:Rigidity ;
+    cso:territoryNumber 4 .
+
+cso:overwhelm rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T5: Overwhelm"@en ;
+    skos:definition "Multiple high-precision predictions competing simultaneously; regulatory capacity exceeded."@en ;
+    cso:affectConfiguration "All systems competing" ;
+    cso:blanketConfiguration cso:Porosity ;
+    cso:territoryNumber 5 .
+
+cso:siege rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T6: Living Under Siege (Trauma)"@en ;
+    skos:definition "Locked threat predictions with extreme precision; inability to update despite safety."@en ;
+    cso:affectConfiguration "FEAR locked, all potentially dysregulated" ;
+    cso:blanketConfiguration cso:Damage ;
+    cso:territoryNumber 6 .
+
+cso:conflict rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T7: Conflict"@en ;
+    skos:definition "Contradictory predictions with high precision in opposing directions."@en ;
+    cso:affectConfiguration "SEEKING vs FEAR, or RAGE vs FEAR" ;
+    cso:blanketConfiguration cso:Boundary ;
+    cso:territoryNumber 7 .
+
+cso:body rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T8: Body Under Strain"@en ;
+    skos:definition "Brain's pain predictions maintained despite changed peripheral input; pain as construct."@en ;
+    cso:affectConfiguration "Variable by presentation" ;
+    cso:blanketConfiguration cso:ExistentialNeurological ;
+    cso:territoryNumber 8 .
+
+cso:systemPressure rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T9: System Under Pressure"@en ;
+    skos:definition "Accurate predictions of genuine systemic threat; the stress response IS appropriate."@en ;
+    cso:affectConfiguration "Contextually appropriate" ;
+    cso:blanketConfiguration cso:Porosity ;
+    cso:territoryNumber 9 .
+
+cso:transition rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T10: Transition"@en ;
+    skos:definition "Generative model of self under active reconstruction; predictions temporarily unreliable."@en ;
+    cso:affectConfiguration "SEEKING disrupted, PANIC/GRIEF active" ;
+    cso:blanketConfiguration cso:Boundary ;
+    cso:territoryNumber 10 .
+
+cso:shame rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T11: Shame"@en ;
+    skos:definition "Self-model prediction of unworthiness; core identity prediction of defectiveness."@en ;
+    cso:affectConfiguration "PANIC/GRIEF + self-model damage" ;
+    cso:blanketConfiguration cso:Damage ;
+    cso:territoryNumber 11 .
+
+cso:addiction rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T12: Addiction"@en ;
+    skos:definition "SEEKING system hijacked by substance/behavior; reward predictions distorted."@en ;
+    cso:affectConfiguration "SEEKING hijacked, underlying varies" ;
+    cso:blanketConfiguration cso:Boundary ;
+    cso:territoryNumber 12 .
+
+cso:mask rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T13: Mask"@en ;
+    skos:definition "False-self predictions maintained; authentic predictions suppressed."@en ;
+    cso:affectConfiguration "SEEKING misdirected, PLAY down" ;
+    cso:blanketConfiguration cso:Rigidity ;
+    cso:territoryNumber 13 .
+
+cso:alteredBodyMind rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T14: Altered Body/Mind"@en ;
+    skos:definition "Sensory processing differences; predictions calibrated to atypical neurology."@en ;
+    cso:affectConfiguration "Variable" ;
+    cso:blanketConfiguration cso:ExistentialNeurological ;
+    cso:territoryNumber 14 .
+
+cso:existential rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T15: Existential"@en ;
+    skos:definition "Confrontation with predictions that cannot be resolved: mortality, meaning, freedom."@en ;
+    cso:affectConfiguration "SEEKING confronting limits" ;
+    cso:blanketConfiguration cso:ExistentialNeurological ;
+    cso:territoryNumber 15 .
+
+cso:changingBrain rdf:type owl:NamedIndividual, cso:Territory ;
+    rdfs:label "T16: Living With a Changing Brain"@en ;
+    skos:definition "Memory systems themselves degrading; predictions increasingly unreliable. Procedural memory is the most resilient system."@en ;
+    cso:affectConfiguration "RAGE (frustration), FEAR, PANIC/GRIEF" ;
+    cso:blanketConfiguration cso:ExistentialNeurological ;
+    cso:territoryNumber 16 .
+
+
+# ============================================================
+# BLANKET CONFIGURATIONS
+# ============================================================
+
+cso:BlanketConfiguration rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Blanket Configuration"@en ;
+    rdfs:comment "A characteristic pattern of Markov blanket organization shared by related territories."@en .
+
+cso:Porosity rdf:type owl:NamedIndividual, cso:BlanketConfiguration ;
+    rdfs:label "Porosity Disorders (Blanket Too Thin)"@en ;
+    cso:therapeuticDirection "Sensory translations overactive; build appropriate boundary thickness." .
+
+cso:Rigidity rdf:type owl:NamedIndividual, cso:BlanketConfiguration ;
+    rdfs:label "Rigidity Disorders (Blanket Too Thick)"@en ;
+    cso:therapeuticDirection "Sensory signals suppressed; carefully increase permeability." .
+
+cso:Boundary rdf:type owl:NamedIndividual, cso:BlanketConfiguration ;
+    rdfs:label "Boundary Disorders (Blanket Misshapen)"@en ;
+    cso:therapeuticDirection "Boundary distorted; reshape with self-referential attention." .
+
+cso:Damage rdf:type owl:NamedIndividual, cso:BlanketConfiguration ;
+    rdfs:label "Damage Patterns (Blanket Torn)"@en ;
+    cso:therapeuticDirection "Boundary ruptured; safety first, stabilize before reshaping." .
+
+cso:ExistentialNeurological rdf:type owl:NamedIndividual, cso:BlanketConfiguration ;
+    rdfs:label "Existential / Neurological"@en ;
+    cso:therapeuticDirection "Attend to what is present; predictions may be accurate or untestable." .
+
+
+# ============================================================
+# PRIMARY AFFECT SYSTEMS (Panksepp)
+# ============================================================
+
+cso:AffectSystem rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Primary Affect System"@en ;
+    rdfs:comment "One of Panksepp's seven genetically encoded primary affect systems with distinct neural circuitry."@en .
+
+cso:SEEKING rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "SEEKING"@en ;
+    skos:definition "Dopaminergic motivation, exploration, curiosity. Suppression is a hallmark of T2 Shutdown."@en ;
+    cso:neuralSubstrate "Ventral tegmental area, nucleus accumbens, lateral hypothalamus" .
+
+cso:FEAR rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "FEAR"@en ;
+    skos:definition "Threat detection, defensive behavior. Primary driver of T1 Threat. Locked activation defines T6 Trauma."@en ;
+    cso:neuralSubstrate "Central amygdala, periaqueductal gray, medial hypothalamus" .
+
+cso:RAGE rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "RAGE"@en ;
+    skos:definition "Frustration, assertive response. Suppressed RAGE appears as jaw tension."@en ;
+    cso:neuralSubstrate "Medial amygdala, hypothalamus, periaqueductal gray" .
+
+cso:PANIC_GRIEF rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "PANIC/GRIEF"@en ;
+    skos:definition "Separation distress, attachment. Primary system in T3 Loss. Suppressed in T4 Disconnection."@en ;
+    cso:neuralSubstrate "Anterior cingulate, bed nucleus stria terminalis, periaqueductal gray" .
+
+cso:CARE rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "CARE"@en ;
+    skos:definition "Nurturing, bonding. Suppression indicates relational territory involvement."@en ;
+    cso:neuralSubstrate "Anterior cingulate, bed nucleus stria terminalis, ventral tegmental area" .
+
+cso:PLAY rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "PLAY"@en ;
+    skos:definition "Social learning, joy, boundary-testing. Suppression is a sensitive clinical marker across all territories."@en ;
+    cso:neuralSubstrate "Dorsomedial thalamus, posterior thalamus, parafascicular area" .
+
+cso:LUST rdf:type owl:NamedIndividual, cso:AffectSystem ;
+    rdfs:label "LUST"@en ;
+    skos:definition "Sexual motivation. Relevant to T4, T6, and relational territories."@en ;
+    cso:neuralSubstrate "Hypothalamus, ventral tegmental area, amygdala" .
+
+
+# ============================================================
+# BRAIN REGIONS (Pessoa's Entangled Brain, 19 regions)
+# ============================================================
+
+cso:BrainRegion rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Brain Region"@en ;
+    rdfs:comment "A brain region rendered in the Neural Net visualization. Each region participates in multiple functional networks with graded membership (Pessoa). Activation is always distributed across multiple co-participating regions; no single region produces a given emotion (Barrett + Pessoa design constraint)."@en .
+
+cso:prefrontalCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Prediction & Evaluation"@en ; cso:anatomicalName "Ventromedial PFC / OFC" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub false .
+
+cso:anteriorCingulate rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Conflict & Error Monitoring"@en ; cso:anatomicalName "Anterior Cingulate Cortex" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub true .
+
+cso:posteriorCingulate rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Self-Reflection"@en ; cso:anatomicalName "Posterior Cingulate / Precuneus" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub false .
+
+cso:hippocampus rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Memory & Context"@en ; cso:anatomicalName "Hippocampus" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub false .
+
+cso:thalamus rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Sensory Gateway"@en ; cso:anatomicalName "Thalamus" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub true .
+
+cso:amygdala rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Threat & Salience Detection"@en ; cso:anatomicalName "Amygdala" ;
+    cso:blanketComponent cso:SensoryState ; cso:isRichClubHub true .
+
+cso:anteriorInsula rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Body Awareness"@en ; cso:anatomicalName "Anterior Insula" ;
+    cso:blanketComponent cso:InternalState ; cso:isRichClubHub true .
+
+cso:posteriorInsula rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Body Signal Processing"@en ; cso:anatomicalName "Posterior Insula" ;
+    cso:blanketComponent cso:InternalState ; cso:isRichClubHub false .
+
+cso:somatosensoryCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Touch & Body Mapping"@en ; cso:anatomicalName "Somatosensory Cortex" ;
+    cso:blanketComponent cso:InternalState ; cso:isRichClubHub false .
+
+cso:hypothalamus rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Body Regulation"@en ; cso:anatomicalName "Hypothalamus" ;
+    cso:blanketComponent cso:InternalState ; cso:isRichClubHub false .
+
+cso:brainstem rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Core Survival Systems"@en ; cso:anatomicalName "Brainstem (PAG / NTS / Raphe)" ;
+    cso:blanketComponent cso:InternalState ; cso:isRichClubHub false .
+
+cso:dorsolateralPFC rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Context Processing"@en ; cso:anatomicalName "Dorsolateral Prefrontal Cortex" ;
+    cso:blanketComponent cso:ExternalState ; cso:isRichClubHub false .
+
+cso:temporalPole rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Emotional Memory & Meaning"@en ; cso:anatomicalName "Temporal Pole" ;
+    cso:blanketComponent cso:ExternalState ; cso:isRichClubHub false .
+
+cso:lateralTemporalCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Language & Sound Processing"@en ; cso:anatomicalName "Lateral Temporal Cortex" ;
+    cso:blanketComponent cso:ExternalState ; cso:isRichClubHub false .
+
+cso:parietalCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Spatial Awareness"@en ; cso:anatomicalName "Parietal Cortex" ;
+    cso:blanketComponent cso:ExternalState ; cso:isRichClubHub false .
+
+cso:occipitalCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Visual Processing"@en ; cso:anatomicalName "Occipital Cortex" ;
+    cso:blanketComponent cso:ExternalState ; cso:isRichClubHub false .
+
+cso:motorCortex rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Movement & Regulation"@en ; cso:anatomicalName "Motor / Premotor Cortex" ;
+    cso:blanketComponent cso:ActiveState ; cso:isRichClubHub false .
+
+cso:basalGanglia rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Habits & Motivation"@en ; cso:anatomicalName "Basal Ganglia (NAc / Caudate / Putamen)" ;
+    cso:blanketComponent cso:ActiveState ; cso:isRichClubHub false .
+
+cso:cerebellum rdf:type owl:NamedIndividual, cso:BrainRegion ;
+    rdfs:label "Coordination & Timing"@en ; cso:anatomicalName "Cerebellum" ;
+    cso:blanketComponent cso:ActiveState ; cso:isRichClubHub false .
+
+
+# ============================================================
+# BRAIN NETWORKS (11 functional networks)
+# ============================================================
+
+cso:BrainNetwork rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Brain Network"@en ;
+    rdfs:comment "A large-scale functional network. Networks are the meaningful functional unit (Pessoa Principle 3): the same region participates in multiple networks with graded membership."@en .
+
+cso:defaultMode rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Default Mode Network"@en ;
+    skos:definition "Self-referential processing, autobiographical memory, mind-wandering, future simulation. Active during rest. Overactive in rumination (T2)."@en .
+
+cso:salience rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Salience Network"@en ;
+    skos:definition "Detects what matters: threat, novelty, reward, social significance. The switchboard that routes attention between internal and external processing."@en .
+
+cso:centralExecutive rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Central Executive Network"@en ;
+    skos:definition "Cognitive control, working memory, goal-directed behavior, strategic planning."@en .
+
+cso:interoceptive rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Interoceptive Network"@en ;
+    skos:definition "Body signal processing. Where the body's internal state becomes conscious felt experience. This network IS what Cathexis trains."@en .
+
+cso:threatFear rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Threat / Fear Circuit"@en ;
+    skos:definition "Rapid threat detection and defensive response. Panksepp's FEAR system plus cortical monitoring."@en .
+
+cso:seeking rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Reward / Motivation Network"@en ;
+    skos:definition "Panksepp's SEEKING system. Dopaminergic circuits that drive exploration, engagement, and approach behavior."@en .
+
+cso:socialBrain rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Social Brain Network"@en ;
+    skos:definition "Social cognition: reading faces, voices, intentions, and relational context. Models other minds and tracks social dynamics."@en .
+
+cso:memoryConsolidation rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Memory Consolidation Network"@en ;
+    skos:definition "Consolidates experience into durable learning and contextualizes the present with the past. Active during reconsolidation and model updating."@en .
+
+cso:attachmentLoss rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Attachment / Loss Network"@en ;
+    skos:definition "Panksepp's PANIC/GRIEF circuitry. Processes separation distress, proximity-seeking, and the somatic weight of loss (T3, T4)."@en .
+
+cso:play rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "PLAY Network"@en ;
+    skos:definition "Panksepp's PLAY system. Social joy, spontaneity, and boundary-testing. Suppression is a cross-territory marker of chronic strain; its return marks recovery."@en .
+
+cso:sensorimotor rdf:type owl:NamedIndividual, cso:BrainNetwork ;
+    rdfs:label "Somatomotor Network"@en ;
+    skos:definition "Motor execution, body schema, proprioception. The action network. Regulation interventions activate here."@en .
+
+
+# ============================================================
+# BRONFENBRENNER ECOLOGICAL LAYERS (5)
+# ============================================================
+
+cso:BronfenbrennerLayer rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Bronfenbrenner Layer"@en ;
+    rdfs:comment "An ecological systems layer from Bronfenbrenner's developmental ecology. Used to classify external state entities by their proximity and influence type."@en ;
+    cso:blanketComponent cso:ExternalState .
+
+cso:micro rdf:type owl:NamedIndividual, cso:BronfenbrennerLayer ;
+    rdfs:label "Microsystem"@en ;
+    skos:definition "Immediate relationships and settings: partner, family, close friends, workplace team, home."@en .
+
+cso:meso rdf:type owl:NamedIndividual, cso:BronfenbrennerLayer ;
+    rdfs:label "Mesosystem"@en ;
+    skos:definition "Interactions between microsystems: work-family conflict, school-home dynamics."@en .
+
+cso:exo rdf:type owl:NamedIndividual, cso:BronfenbrennerLayer ;
+    rdfs:label "Exosystem"@en ;
+    skos:definition "Indirect environments that affect the individual: partner's workplace stress, community resources, media."@en .
+
+cso:macro rdf:type owl:NamedIndividual, cso:BronfenbrennerLayer ;
+    rdfs:label "Macrosystem"@en ;
+    skos:definition "Broad cultural and societal patterns: economic conditions, political climate, cultural norms."@en .
+
+cso:chrono rdf:type owl:NamedIndividual, cso:BronfenbrennerLayer ;
+    rdfs:label "Chronosystem"@en ;
+    skos:definition "Transitions and shifts over time: life transitions, historical events, developmental changes."@en .
+
+
+# ============================================================
+# CHANGE MECHANISMS (3)
+# ============================================================
+
+cso:ChangeMechanism rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Change Mechanism"@en ;
+    rdfs:comment "A therapeutic change mechanism, each engaging a distinct memory system."@en .
+
+cso:reconsolidation rdf:type owl:NamedIndividual, cso:ChangeMechanism ;
+    rdfs:label "Memory Reconsolidation"@en ;
+    skos:definition "Opens and updates emotional memory during the reconsolidation window (approximately 4 to 6 hours)."@en ;
+    cso:memorySystem "Emotional / implicit memory (amygdala-dependent)" .
+
+cso:newHabitFormation rdf:type owl:NamedIndividual, cso:ChangeMechanism ;
+    rdfs:label "New Habit Formation"@en ;
+    skos:definition "Builds new procedural patterns through repetition and reward."@en ;
+    cso:memorySystem "Procedural memory (basal ganglia-dependent)" .
+
+cso:modelUpdating rdf:type owl:NamedIndividual, cso:ChangeMechanism ;
+    rdfs:label "Model Updating"@en ;
+    skos:definition "Updates explicit beliefs and self-narratives through new information and reflection."@en ;
+    cso:memorySystem "Explicit / declarative memory (hippocampus-dependent)" .
+
+
+# ============================================================
+# LEARNING LEVELS (6)
+# ============================================================
+
+cso:LearningLevel rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Learning Level"@en ;
+    rdfs:comment "One of six universal progression levels. Content differs by territory; structure is universal. Each level is a prerequisite for the next."@en .
+
+cso:L1 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L1: Somatic Awareness"@en ;
+    skos:definition "Ability to notice body signals with increasing precision."@en .
+
+cso:L2 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L2: Regulation Capacity"@en ;
+    skos:definition "Ability to shift physiological state through practice."@en .
+
+cso:L3 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L3: Pattern Recognition"@en ;
+    skos:definition "Ability to see the brain's predictions as predictions."@en .
+
+cso:L4 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L4: Prediction Testing"@en ;
+    skos:definition "Ability to test predictions through real-world active inference."@en .
+
+cso:L5 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L5: Integration"@en ;
+    skos:definition "Consolidation of new experience into updated self-model."@en .
+
+cso:L6 rdf:type owl:NamedIndividual, cso:LearningLevel ;
+    rdfs:label "L6: Autonomous Practice"@en ;
+    skos:definition "Self-directed practice with warning-sign recognition. The system has done its job."@en .
+
+
+# ============================================================
+# INTELLIGENCE LAYERS (4)
+# ============================================================
+
+cso:IntelligenceLayer rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Intelligence Layer"@en ;
+    rdfs:comment "A level of pattern detection sophistication over somatic data. Each layer has distinct regulatory implications."@en .
+
+cso:IL1 rdf:type owl:NamedIndividual, cso:IntelligenceLayer ;
+    rdfs:label "L1: Reactive"@en ;
+    skos:definition "Internal states only. General Wellness regulatory classification."@en .
+
+cso:IL2 rdf:type owl:NamedIndividual, cso:IntelligenceLayer ;
+    rdfs:label "L2: Adaptive"@en ;
+    skos:definition "Internal + External states. General Wellness regulatory classification."@en .
+
+cso:IL3 rdf:type owl:NamedIndividual, cso:IntelligenceLayer ;
+    rdfs:label "L3: Pattern"@en ;
+    skos:definition "Internal + External + Sensory translations. Approaching SaMD boundary."@en .
+
+cso:IL4 rdf:type owl:NamedIndividual, cso:IntelligenceLayer ;
+    rdfs:label "L4: Predictive"@en ;
+    skos:definition "Full blanket dynamics. Likely SaMD; requires regulatory engagement."@en .
+
+
+# ============================================================
+# MECHANISM TYPES (7)
+# ============================================================
+
+cso:MechanismType rdf:type owl:Class ;
+    rdfs:subClassOf cso:SomaticEntity ;
+    rdfs:label "Mechanism Type"@en ;
+    rdfs:comment "A type of therapeutic intervention mechanism with defined neurobiological action."@en ;
+    cso:blanketComponent cso:ActiveState .
+
+cso:autonomicRegulation rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Autonomic Regulation"@en ;
+    skos:definition "Shifts autonomic state via parasympathetic or sympathetic modulation."@en .
+
+cso:interoceptiveAwareness rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Interoceptive Awareness"@en ;
+    skos:definition "Builds precision of body signal detection (anterior insular cortex)."@en .
+
+cso:somaticExperiencing rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Somatic Experiencing"@en ;
+    skos:definition "Titrated contact with somatic activation patterns; controlled nervous system processing."@en .
+
+cso:predictionErrorGeneration rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Prediction Error Generation"@en ;
+    skos:definition "Creates controlled mismatch between prediction and experience."@en .
+
+cso:memoryReconsolidationMechanism rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Memory Reconsolidation"@en ;
+    skos:definition "Opens and updates emotional memory during reconsolidation window."@en .
+
+cso:interoceptiveExposure rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Interoceptive Exposure"@en ;
+    skos:definition "Graduated contact with avoided body sensations."@en .
+
+cso:relationalSomatic rdf:type owl:NamedIndividual, cso:MechanismType ;
+    rdfs:label "Relational Somatic"@en ;
+    skos:definition "Body awareness in interpersonal context."@en .
+
+
+# ============================================================
+# OBJECT PROPERTIES
+# ============================================================
+
+cso:blanketComponent rdf:type owl:ObjectProperty ;
+    rdfs:label "blanket component"@en ;
+    rdfs:comment "The primary Markov blanket component this entity belongs to."@en ;
+    rdfs:domain cso:SomaticEntity ;
+    rdfs:range cso:BlanketComponent .
+
+cso:blanketConfiguration rdf:type owl:ObjectProperty ;
+    rdfs:label "blanket configuration"@en ;
+    rdfs:comment "The characteristic blanket organization pattern for a territory."@en ;
+    rdfs:domain cso:Territory ;
+    rdfs:range cso:BlanketConfiguration .
+
+cso:primaryTerritories rdf:type owl:ObjectProperty ;
+    rdfs:label "primary territories"@en ;
+    rdfs:comment "Territories for which a brain region carries the strongest clinical signal."@en ;
+    rdfs:domain cso:BrainRegion ;
+    rdfs:range cso:Territory .
+
+cso:pankseppAffects rdf:type owl:ObjectProperty ;
+    rdfs:label "Panksepp affects"@en ;
+    rdfs:comment "Primary affect systems associated with a brain region."@en ;
+    rdfs:domain cso:BrainRegion ;
+    rdfs:range cso:AffectSystem .
+
+cso:zone rdf:type owl:ObjectProperty ;
+    rdfs:label "zone"@en ;
+    rdfs:comment "The anatomical zone where a sensation was reported."@en ;
+    rdfs:domain cso:SomaticDataPoint ;
+    rdfs:range cso:BodyZone .
+
+cso:quality rdf:type owl:ObjectProperty ;
+    rdfs:label "quality"@en ;
+    rdfs:comment "The phenomenological sensation quality reported."@en ;
+    rdfs:domain cso:SomaticDataPoint ;
+    rdfs:range cso:SensationQuality .
+
+cso:changeMechanism rdf:type owl:ObjectProperty ;
+    rdfs:label "change mechanism"@en ;
+    rdfs:comment "The primary therapeutic change mechanism for a territory."@en ;
+    rdfs:domain cso:Territory ;
+    rdfs:range cso:ChangeMechanism .
+
+cso:servesTerritory rdf:type owl:ObjectProperty ;
+    rdfs:label "serves territory"@en ;
+    rdfs:comment "A mechanism type that serves a specific territory."@en ;
+    rdfs:domain cso:MechanismType ;
+    rdfs:range cso:Territory .
+
+cso:hasRegion rdf:type owl:ObjectProperty ;
+    rdfs:label "has region"@en ;
+    rdfs:comment "A brain network that includes a specific brain region."@en ;
+    rdfs:domain cso:BrainNetwork ;
+    rdfs:range cso:BrainRegion .
+
+
+# ============================================================
+# DATATYPE PROPERTIES
+# ============================================================
+
+cso:intensity rdf:type owl:DatatypeProperty ;
+    rdfs:label "intensity"@en ;
+    rdfs:comment "Sensation intensity on a continuous 0.0-1.0 scale."@en ;
+    rdfs:domain cso:SomaticDataPoint ;
+    rdfs:range xsd:float .
+
+cso:isRichClubHub rdf:type owl:DatatypeProperty ;
+    rdfs:label "is rich club hub"@en ;
+    rdfs:comment "Whether this brain region is a Pessoa rich club hub with dense cross-network connectivity."@en ;
+    rdfs:domain cso:BrainRegion ;
+    rdfs:range xsd:boolean .
+
+cso:anatomicalName rdf:type owl:DatatypeProperty ;
+    rdfs:label "anatomical name"@en ;
+    rdfs:comment "The neuroanatomical name for a brain region. Only shown at deep zoom level."@en ;
+    rdfs:domain cso:BrainRegion ;
+    rdfs:range xsd:string .
+
+cso:zoneNumber rdf:type owl:DatatypeProperty ;
+    rdfs:label "zone number"@en ;
+    rdfs:domain cso:BodyZone ;
+    rdfs:range xsd:integer .
+
+cso:territoryNumber rdf:type owl:DatatypeProperty ;
+    rdfs:label "territory number"@en ;
+    rdfs:domain cso:Territory ;
+    rdfs:range xsd:integer .
+
+cso:affectConfiguration rdf:type owl:DatatypeProperty ;
+    rdfs:label "affect configuration"@en ;
+    rdfs:comment "The characteristic Panksepp affect system configuration for a territory."@en ;
+    rdfs:domain cso:Territory ;
+    rdfs:range xsd:string .
+
+cso:neuralSubstrate rdf:type owl:DatatypeProperty ;
+    rdfs:label "neural substrate"@en ;
+    rdfs:domain cso:AffectSystem ;
+    rdfs:range xsd:string .
+
+cso:memorySystem rdf:type owl:DatatypeProperty ;
+    rdfs:label "memory system"@en ;
+    rdfs:domain cso:ChangeMechanism ;
+    rdfs:range xsd:string .
+
+cso:therapeuticDirection rdf:type owl:DatatypeProperty ;
+    rdfs:label "therapeutic direction"@en ;
+    rdfs:domain cso:BlanketConfiguration ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# END OF ONTOLOGY
+# ============================================================

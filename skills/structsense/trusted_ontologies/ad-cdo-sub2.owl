@@ -1,0 +1,3075 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/AD-CDE#"
+     xml:base="http://www.semanticweb.org/AD-CDE"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:AD-CDE="http://www.semanticweb.org/sun/ontologies/AD-CDE#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/AD-CDE"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasAthenaID -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasAthenaID"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasBrandName -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasBrandName"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasDrugBankCategory -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasDrugBankCategory"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasNDC -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasNDC"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasPhenotypingAlgorithm -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasPhenotypingAlgorithm"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasUMLS -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasUMLS"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#hasValueSets -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasValueSets"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#has_ICD10 -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#has_ICD10">
+        <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasPhenotypingAlgorithm"/>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#has_ICD9 -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#has_ICD9">
+        <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasPhenotypingAlgorithm"/>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#has_SNOMEDCT -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#has_SNOMEDCT">
+        <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#hasPhenotypingAlgorithm"/>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Acheta -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Acheta">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0998381</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Administration_Of_Drug_Or_Medicament -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Administration_Of_Drug_Or_Medicament">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Adrenergic_Beta-Antagonists -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Adrenergic_Beta-Antagonists">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001645</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Amyloid_Fibril-Directed_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Amyloid_Fibril-Directed_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C5206122</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Anti-Inflammatory_Agents_Non-Steroidal -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Anti-Inflammatory_Agents_Non-Steroidal">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003211</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Anticholinergic_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Anticholinergic_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0242896</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Anticonvulsants -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Anticonvulsants">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003286</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Antihypertensive_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Antihypertensive_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003364</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Antiparkinson_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Antiparkinson_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003405</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Appendectomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Appendectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003611</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Barbiturates -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Barbiturates">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0004745</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Bariatric_Surgery -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Bariatric_Surgery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1456587</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Beck_Depression_Inventory -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Beck_Depression_Inventory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451022</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Bilateral_Salpingectomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Bilateral_Salpingectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C2243030</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Cardiac_Surgery_Procedures -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Cardiac_Surgery_Procedures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018821</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Clonidine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Clonidine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009014</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Columbia_Suicide_Severity_Rating_Scale -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Columbia_Suicide_Severity_Rating_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3888485</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Convulsants -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Convulsants">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009950</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Coronary_Artery_Bypass_Surgery -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Coronary_Artery_Bypass_Surgery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0010055</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Coumadin -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Coumadin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0699129</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Creation_of_Cerebrospinal_Fluid_Shunt -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Creation_of_Cerebrospinal_Fluid_Shunt">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0007812</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Deep_Brain_Stimulation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Deep_Brain_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0394162</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Defibrillators -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Defibrillators">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0180307</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Deleted_Rating_Criteria -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Deleted_Rating_Criteria">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Drug_Infusion_Pumps -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Drug_Infusion_Pumps">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3825405</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Electroencephalography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Electroencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/45888289</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0013819</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Estrogen_Replacement_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Estrogen_Replacement_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0014935</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Evaluation_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Evaluation_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Gastric_Bypass -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Gastric_Bypass">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0017125</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Ginkgo_Biloba -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Ginkgo_Biloba">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0330206</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Global_Deterioration_Scale -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Global_Deterioration_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C4537573</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Hamilton_Rating_Scale_For_Depression -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Hamilton_Rating_Scale_For_Depression">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451203</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Histamine_Antagonists -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Histamine_Antagonists">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0019590</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Hormone_Replacement_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Hormone_Replacement_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0282402</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Hydroxymethylglutaryl-CoA_Reductase_Inhibitors -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Hydroxymethylglutaryl-CoA_Reductase_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0360714</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Hypnotics -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Hypnotics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020591</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Immunization -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Immunization">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020971</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Immunosuppressive_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Immunosuppressive_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0021081</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Implantable_Defibrillator -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Implantable_Defibrillator">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0162589</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Implantable_Neurostimulators -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Implantable_Neurostimulators">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C2048402</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Implantation_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Implantation_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Insertion_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Insertion_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Intrauterine_Contraceptive_Device_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Intrauterine_Contraceptive_Device_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0404094</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Introduction_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Introduction_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Lithium -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Lithium">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0023870</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Loss_Of_Fertility -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Loss_Of_Fertility">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0233419</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Magnetic_metal -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Magnetic_metal">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0439876</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Monoamine_Oxidase_Inhibitors -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Monoamine_Oxidase_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0026457</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Monoclonal_Antibodies -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Monoclonal_Antibodies">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003250</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Multivitamin_Preparation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Multivitamin_Preparation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0301532</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#NPI_Total_Score -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#NPI_Total_Score">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3828753</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Namenda -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Namenda">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1330412</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Narcotic_Analgesics -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Narcotic_Analgesics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027409</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Neuropsychiatric_Inventory_Questionnaire -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Neuropsychiatric_Inventory_Questionnaire">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3539727</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#New_Added_Medication -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#New_Added_Medication">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#New_Added_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#New_Added_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Nootropic_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Nootropic_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0242913</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#On_Anti-Coagulants -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#On_Anti-Coagulants">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0848112</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Organ_Transplantation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Organ_Transplantation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0029216</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Ovariectomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Ovariectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0029936</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Percutaneous_Coronary_Intervention -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Percutaneous_Coronary_Intervention">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1532338</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Postmenopause -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Postmenopause">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0206159</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Procedures -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Psychiatric_Or_Psychological_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Psychiatric_Or_Psychological_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Puncture_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Puncture_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Radiotherapeutic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Radiotherapeutic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0034619</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Regimes_And_Therapies -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Regimes_And_Therapies">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Sedatives -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Sedatives">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0036557</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Selective_Serotonin_Reuptake_Inhibitors -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Selective_Serotonin_Reuptake_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0360105</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Stimulator -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Stimulator">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0175727</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Surgical_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Surgical_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Surgical_Procedure_On_Lumbar_Spine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Surgical_Procedure_On_Lumbar_Spine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0408578</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Tacrine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Tacrine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0039245</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Transcranial_Magnetic_Stimulation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Transcranial_Magnetic_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0436548</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Undefined_Procedures -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Undefined_Procedures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Procedures"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Vascular_Surgical_Procedures -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Vascular_Surgical_Procedures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042381</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Vitamin_E -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Vitamin_E">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Medication"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042874</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Wechsler_Memory_Scale -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Wechsler_Memory_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451575</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#gender -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#gender">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0079399</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#12_lead_EKG_panel -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#12_lead_EKG_panel">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Electrocardiogram_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/3044889</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0430456</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Neurostimulator,_Device_(physical_object) -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Neurostimulator,_Device_(physical_object)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0582124</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-CDE#Phlebotomy,_Therapeutic_(Separate_Procedure) -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-CDE#Phlebotomy,_Therapeutic_(Separate_Procedure)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#New_Added_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0031555</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Acetylcholinesterase_Inhibitors -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acetylcholinesterase_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cholinesterase_Inhibitors"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/42536924</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT005329</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001046</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Actigraph -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Actigraph">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/607185</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1139952</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Acupressure_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acupressure_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Regimes_And_Therapies"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4333835</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0282614</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Acupuncture_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acupuncture_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Insertion_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4260518</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0394664</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Adamts2_Gene -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Adamts2_Gene">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Evaluation"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1412208</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.genecards.org/cgi-bin/carddisp.pl?gene=ADAMTS2 
+
+https://medlineplus.gov/genetics/gene/adamts2/#references</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Adrenal_Cortex_Hormones -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Adrenal_Cortex_Hormones">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immunologic_Agent"/>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000556</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=Adrenal%20Cortex&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001617</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Alanine_Transaminase_Blood_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Alanine_Transaminase_Blood_Test">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test"/>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/46235106</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001899</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.3616.200.110.102.5001/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Alkaline_Phosphatase_Measurement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Alkaline_Phosphatase_Measurement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4230636</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0201850</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Allergy_Specialty -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Allergy_Specialty">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immune_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4235265</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0002111</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Aneurysm_Clipping -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Aneurysm_Clipping">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0179977</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Angina_Pectoris -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Angina_Pectoris">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/321318</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0002962</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Anti-Anxiety_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Anti-Anxiety_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604564</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000404</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=anxiety&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0040616</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Anticoagulants -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Anticoagulants">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/35807264</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000007</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=Anticoagulant&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003280</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1283/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Antidepressive_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Antidepressive_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000345</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=depression&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003289</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1213/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Antipsychotic_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Antipsychotic_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604490</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000529</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0040615</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.11.1265/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1106.93/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Apolipoprotein_E_Genotype_Determination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Apolipoprotein_E_Genotype_Determination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4133684</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1446118</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Aspartate_Transferase_Blood_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Aspartate_Transferase_Blood_Test">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test"/>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/3005435</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0004002</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1248.224/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Aspirin -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Aspirin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Agent"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Pain_Management"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/1112807</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=aspirin&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0004057</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1305/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1376/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1394/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.196.12.1211/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Attachment_Of_Auricular_Prosthesis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Attachment_Of_Auricular_Prosthesis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Insertion_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0182450</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Benzodiazepines -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Benzodiazepines">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Anti-Anxiety_Agents"/>
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypnotics_And_Sedatives"/>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604653 
+
+https://athena.ohdsi.org/search-terms/terms/21604414 
+
+https://athena.ohdsi.org/search-terms/terms/21604565 
+
+https://athena.ohdsi.org/search-terms/terms/21604635</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0005064</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1032.43/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Bilateral_Oophorectomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Bilateral_Oophorectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4297990</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0278321</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.471/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Bilirubin_Lab_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Bilirubin_Lab_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4118986 
+
+https://athena.ohdsi.org/search-terms/terms/45890528</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0005437</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1248.223/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Bipolar_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Bipolar_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/436665</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.67.1.101.1.128/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0005586</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Coagulation_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Coagulation_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematopoietic_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/432585</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0005779</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1078.549/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Urea_Nitrogen_Measurement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Urea_Nitrogen_Measurement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4017361</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0005845</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Body_Mass_Index -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Body_Mass_Index">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Physical_Health_and_Body_Metrics"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1305855</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.aapc.com/codes/icd-10-codes/Z68</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Bronchodilator_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Bronchodilator_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000555</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0006280</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiac_Arrhythmia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiac_Arrhythmia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/44784217</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003811</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21601237 
+
+https://athena.ohdsi.org/search-terms/terms/21605509</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000010</AD-CDE:hasDrugBankCategory>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/134057</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0007222</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21605445</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000044</AD-CDE:hasDrugBankCategory>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cerebrovascular_Accident -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cerebrovascular_Accident">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/381316</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.1549/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0038454</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cerebrovascular_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cerebrovascular_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/381591</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0007820</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Chemotherapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Chemotherapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Administration_Of_Drug_Or_Medicament"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4273629</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3665472</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1047.451/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Childbearing_Potential -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Childbearing_Potential">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3831118</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cholinesterase_Inhibitors -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cholinesterase_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604803 
+
+https://athena.ohdsi.org/search-terms/terms/21605253</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000815</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0008425</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.140/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Chronic_Obstructive_Airway_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Chronic_Obstructive_Airway_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Respiratory_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/255573</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0024117</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Clinical_Dementia_Rating_Scale -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Clinical_Dementia_Rating_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4164818</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451074</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://loinc.org/72088-8</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Mental_Health"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/40480615</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009241</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Function_Clinical_Assessment -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Function_Clinical_Assessment">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Neuropsychological_Testing"/>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/35623626 
+
+https://athena.ohdsi.org/search-terms/terms/45876079</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009244</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.981/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Complete_Blood_Count -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Complete_Blood_Count">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4132152</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009555</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Congestive_Heart_Failure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Congestive_Heart_Failure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thoracic_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/319835</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018802</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Cornell_Scale_For_Depression_In_Dementia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cornell_Scale_For_Depression_In_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C4744456</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Craniocerebral_Trauma -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Craniocerebral_Trauma">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/375415</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018674</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Creatinine_Blood_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Creatinine_Blood_Test">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+                    <rdf:Description rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test"/>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37069099 
+
+https://athena.ohdsi.org/search-terms/terms/2212294</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0010294</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1146.2206/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Creatinine_Clearance_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Creatinine_Clearance_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37076262</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0812399</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1078.320/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Degenerative_Disease_Of_The_Central_Nervous_System -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Degenerative_Disease_Of_The_Central_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4213310</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0270715 
+
+https://uts.nlm.nih.gov/uts/umls/concept/C0524851</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Dementia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4182210</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.485/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.1513/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0497327</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0011298</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Diabetes_Mellitus -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diabetes_Mellitus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Inherited_Metabolic_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/201820</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0011849</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_And_Statistical_Manual_Of_Mental_Disorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_And_Statistical_Manual_Of_Mental_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1136324</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://psychcentral.com/disorders/dsm-iv-diagnostic-codes#list-of-codes</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_By_Infectious_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_By_Infectious_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/432250 
+
+https://athena.ohdsi.org/search-terms/terms/40535084</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009450</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Cellular_Proliferation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Cellular_Proliferation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Mental_Health -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Mental_Health">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/432586</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.117.1.7.1.262/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0004936</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Metabolism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Metabolism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Donepezil -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Donepezil">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acetylcholinesterase_Inhibitors"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/715997</AD-CDE:hasAthenaID>
+        <AD-CDE:hasBrandName>Aricept
+https://uts.nlm.nih.gov/uts/umls/concept/C0527315</AD-CDE:hasBrandName>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=donepezil&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0527316</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Duodenal_Ulcer -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Duodenal_Ulcer">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4198381</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0013295</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Electrocardiogram_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Electrocardiogram_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/45876202</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0013798</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.952/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/31821</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0014130</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_and_Metabolic_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_and_Metabolic_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Epilepsy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Epilepsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/380378</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0014544</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.51/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#FDG-Positron_Emission_Tomography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#FDG-Positron_Emission_Tomography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Positron-Emission_Tomography"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Fecal_Incontinence -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fecal_Incontinence">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/197675</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0015732</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Folic_Acid_Measurement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Folic_Acid_Measurement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4017648</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0523631</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Frontotemporal_Dementia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Frontotemporal_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Dementia"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4043378</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0338451</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Galantamine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Galantamine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acetylcholinesterase_Inhibitors"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/757627</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=galantamine&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0016967</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastric_Ulcer -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastric_Ulcer">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4265600</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0038358</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_Surgical_Procedure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_Surgical_Procedure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4299602</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0524722</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.aapc.com/codes/cpt-codes-range/40490-49999/#:~:text=Surgical%20Procedures%20on%20the%20Digestive%20System%20CPT%C2%AE%20Code%20range%2040490%2D%2049999</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4201745</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0012242</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#General_Anesthesia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#General_Anesthesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Administration_Of_Drug_Or_Medicament"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4174669</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0002915</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1248.208/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.117.1.7.1.254/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#General_Health_and_Physical_Assessment -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#General_Health_and_Physical_Assessment">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Evaluation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Evaluation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Deleted_Rating_Criteria"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Genetic_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Geriatric_Depression_Scale -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Geriatric_Depression_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451184</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.105.12.1043/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Glomerular_Filtration_Rate -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Glomerular_Filtration_Rate">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4213477 
+https://athena.ohdsi.org/search-terms/terms/44790183</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0017654</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hachinski_Ischemia_Score -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hachinski_Ischemia_Score">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0475492</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Heart_Diseases -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Heart_Diseases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/321588</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018799</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematocrit_Determination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematocrit_Determination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4151358</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018935</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematology_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematology_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4090979</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018941</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematopoietic_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hematopoietic_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4179872</AD-CDE:hasAthenaID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hemoglobin_A1C_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hemoglobin_A1C_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/1621295 
+
+https://athena.ohdsi.org/search-terms/terms/4184637</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0019018</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.359/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hemoglobin_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hemoglobin_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/40795725</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0019046</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.114/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatic_Function_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4098135</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0023901</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatitis_C_Virus_Antibody -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hepatitis_C_Virus_Antibody">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4216067</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0166049</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#History_Of_Conception -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#History_Of_Conception">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0232908</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hospital_Care -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hospital_Care">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Regimes_And_Therapies"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4214577</AD-CDE:hasAthenaID>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/45617910</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0019993</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Human_Immunodeficiency_Virus_Infection -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Human_Immunodeficiency_Virus_Infection">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_By_Infectious_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/439727</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0019693</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hydrocephalus -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hydrocephalus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4043738</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020255</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypersensitivity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypersensitivity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immune_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4223616</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020517</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1047.314/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1047.302/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1078.282/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1222.776/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1047.304/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1211/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1280/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1177/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1253/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1256/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.526.3.1317/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1096.162/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypertensive_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypertensive_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/316866</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020538</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypnotics_And_Sedatives -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypnotics_And_Sedatives">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604606</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000452</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020592</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypothyroidism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hypothyroidism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/140673</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020676</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Hysterectomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Hysterectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4127886</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020699</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1032.148/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Imaging -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Imaging">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Evaluation_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/2859638</AD-CDE:hasAthenaID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Immune_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immune_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4212886 
+
+https://athena.ohdsi.org/search-terms/terms/440371</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0021053</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Immunologic_Agent -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immunologic_Agent">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21601278</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT005063</AD-CDE:hasDrugBankCategory>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Impaired_Cognition -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Impaired_Cognition">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/443432</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1046.89/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0338656</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Implant_Material -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Implant_Material">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0440216</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Cardiac_Pacemaker -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Cardiac_Pacemaker">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Implantation_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0030163 
+
+https://uts.nlm.nih.gov/uts/umls/concept/C0810633</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Cochlear_Prosthetic_Device -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Cochlear_Prosthetic_Device">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Implantation_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4145102</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0009199</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1235.237/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Heart_Valve_Prosthesis_Or_Synthetic_Device -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Implantation_Of_Heart_Valve_Prosthesis_Or_Synthetic_Device">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Implantation_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0018825</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1178.78/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Infertility -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Infertility">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4311387</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0021359</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Inflammatory_Bowel_Diseases -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Inflammatory_Bowel_Diseases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4074815</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0021390</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Inherited_Metabolic_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Inherited_Metabolic_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Metabolism"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37170016</AD-CDE:hasAthenaID>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Insertion_Of_Insulin_Pump -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Insertion_Of_Insulin_Pump">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Insertion_Procedure"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1140609</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1053.8/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Insulin -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Insulin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_and_Metabolic_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21600744 
+
+https://athena.ohdsi.org/search-terms/terms/21600713 
+
+https://athena.ohdsi.org/search-terms/terms/21602681</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/drugs/DB00030</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=Insulin&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0021641</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1219.85/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Intellectual_Disability -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Intellectual_Disability">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Mental_Health"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/40277917</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0025362 
+
+https://uts.nlm.nih.gov/uts/umls/concept/C3714756</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Kidney_Diseases -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Kidney_Diseases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/198124</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0022658</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Lactose_Intolerance -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Lactose_Intolerance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Inherited_Metabolic_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/36674577</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0022951</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Lacunar_Infarction -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Lacunar_Infarction">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4046360</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0333559</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Lewy_Body_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Lewy_Body_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Dementia"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4196433 
+
+https://athena.ohdsi.org/search-terms/terms/380701 
+
+https://athena.ohdsi.org/search-terms/terms/4196433</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0752347</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Ligation_Of_Bilateral_Fallopian_Tubes -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Ligation_Of_Bilateral_Fallopian_Tubes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0589114</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Liver_Diseases -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Liver_Diseases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Gastrointestinal_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/194984</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0023895</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Magnetic_Resonance_Imaging_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Magnetic_Resonance_Imaging_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Imaging"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37026690 
+https://athena.ohdsi.org/search-terms/terms/4013636</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0024485</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1106.21/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.17.4077.3.2060/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.113.12.1034/expansion/Latest 
+
+https://vsac.nlm.nih.gov/valueset/2.16.840.1.13883.3.3157.4068/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Major_Depressive_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Major_Depressive_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Depression"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4152280</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1269683</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Neoplasm -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Neoplasm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Cellular_Proliferation"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/443392</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.1195/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0006826</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Tumor_Of_Prostate -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Tumor_Of_Prostate">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Neoplasm"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4163261</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0376358</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Memantine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Memantine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21604799</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=memantine&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0025242</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Menopause -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Menopause">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0025320</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Menstruation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Menstruation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0025344</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Depression -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Depression">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4152280</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.600.145/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0011570</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Mild_Cognitive_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mild_Cognitive_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4297400</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1108.9/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1270972</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Mini-Mental_State_Examination_Score -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mini-Mental_State_Examination_Score">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0451306</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.1240.14.3.6002/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Montreal_Cognitive_Assessment_Score -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Montreal_Cognitive_Assessment_Score">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3496286</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Multiple_Sclerosis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Multiple_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Immune_System_Disease"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/374919</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0026769</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Myocardial_Infarction -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Myocardial_Infarction">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4329847</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027051</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1078.270/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Narcotics -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Narcotics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Pain_Management"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/724082</AD-CDE:hasAthenaID>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000479</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027415</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://americanaddictioncenters.org/the-big-list-of-narcotic-drugs 
+
+https://www.incb.org/incb/en/narcotic-drugs/Yellowlist/yellow-list.html</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#National_Institute_Of_Neurological_Disorders_And_Stroke -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#National_Institute_Of_Neurological_Disorders_And_Stroke">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C2350584</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#National_Institute_On_Alcohol_Abuse_And_Alcoholism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#National_Institute_On_Alcohol_Abuse_And_Alcoholism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1955975</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Neoplasm_Of_Brain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Neoplasm_Of_Brain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Malignant_Neoplasm"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/373724</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0006118</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/376337</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.640/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027765</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Neuropsychological_Testing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Neuropsychological_Testing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Psychiatric_Or_Psychological_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4145254</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027902</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Neutrophil_Count -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Neutrophil_Count">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4148615</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0200633</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Operation_On_Brain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Operation_On_Brain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Operation_On_Nervous_System"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4323283</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0195775</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.aapc.com/codes/cpt-codes-range/61000-62258/#:~:text=CPT%C2%AE%20Code%20%2D%20Surgical%20Procedures,61000%2D62258%20%2D%20Codify%20by%20AAPC</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Operation_On_Nervous_System -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Operation_On_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4041193</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0027926</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Pain_Management -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Pain_Management">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Medication"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Parkinson_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Parkinson_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/381270</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.177/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0030567</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Phobic_Anxiety_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Phobic_Anxiety_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4058397</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0008909</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Physical_Examination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Physical_Examination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#General_Health_and_Physical_Assessment"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/3022076</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0031809</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.11.20.9.65/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Physical_Health_and_Body_Metrics -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Physical_Health_and_Body_Metrics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Physiologic_Amenorrhea -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Physiologic_Amenorrhea">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4261326</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0232938</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Platelet_Count_Lab_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Platelet_Count_Lab_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4094890 
+
+https://athena.ohdsi.org/search-terms/terms/4267147 
+
+https://athena.ohdsi.org/search-terms/terms/3007461 
+
+https://athena.ohdsi.org/search-terms/terms/3024929 
+
+https://athena.ohdsi.org/search-terms/terms/1616298 
+
+https://athena.ohdsi.org/search-terms/terms/3031586 
+
+https://athena.ohdsi.org/search-terms/terms/3031834 
+
+https://athena.ohdsi.org/search-terms/terms/40765005 
+
+https://athena.ohdsi.org/search-terms/terms/3039827 
+
+https://athena.ohdsi.org/search-terms/terms/44787107 
+
+https://athena.ohdsi.org/search-terms/terms/3051319 
+
+https://athena.ohdsi.org/search-terms/terms/40758923 
+
+https://athena.ohdsi.org/search-terms/terms/3006297 
+
+https://athena.ohdsi.org/search-terms/terms/3016682 
+
+https://athena.ohdsi.org/search-terms/terms/44816673</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0032181</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1045.127/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Positron-Emission_Tomography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Positron-Emission_Tomography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Imaging"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37045057 
+https://athena.ohdsi.org/search-terms/terms/4305790</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0032743</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Pregnancy_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Pregnancy_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_Health_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/1177412 
+
+https://athena.ohdsi.org/search-terms/terms/4250175</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0032976</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.111.12.1011/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Premenopause -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Premenopause">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Fertility"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0206158</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychological_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychological_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4061974</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0033905</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychometric_Testing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychometric_Testing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychological_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4146309</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0033920</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychotic_Disorder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychotic_Disorder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/436073</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0033975</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychotropic_Drugs -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Psychotropic_Drugs">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Central_Nervous_System_Agent"/>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000346</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0033978</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.hhs.texas.gov/sites/default/files/documents/List-of-Psychotropic-Medications-and-Side-Effects.pdf</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Radiation_Therapy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Radiation_Therapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Introduction_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/1242725</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1522449</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rating_Criteria"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_Function_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_insufficiency -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Renal_insufficiency">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Kidney_Diseases"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/36716945 
+
+https://athena.ohdsi.org/search-terms/terms/4030518</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1565489</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_Health_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_Health_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Reproductive_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4179871</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0178829</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Respiratory_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Respiratory_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/320136</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0035204</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Rivastigmine -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Rivastigmine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Acetylcholinesterase_Inhibitors"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/733523</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=rivastigmine&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0649350</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Schizophrenia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Schizophrenia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cognitive_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/435783</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113883.3.464.1003.105.12.1104/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0036341</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Seizure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Seizure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/377091</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0036572</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Spinal_Puncture -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Spinal_Puncture">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Puncture_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4080549</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0037943</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Sterilization_For_Infection_Control -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Sterilization_For_Infection_Control">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0038280</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Surgical_Clips -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Surgical_Clips">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Undefined_Procedures"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0038917</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Thoracic_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thoracic_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroid_Function_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroid_Function_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/37393428 
+https://athena.ohdsi.org/search-terms/terms/4261836</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0040130</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroid_Stimulating_Hormone_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroid_Stimulating_Hormone_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroid_Function_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4246879</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0040160</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1146.2156/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroxine_Measurement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Thyroxine_Measurement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4248132</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0202231</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Tissue_factor_induced_coagulation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Tissue_factor_induced_coagulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4011807</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0368977</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Transient_Cerebral_Ischemia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Transient_Cerebral_Ischemia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_System_Disease"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/373503</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0007787</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Traumatic_Brain_Injury -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Traumatic_Brain_Injury">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4132546</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0876926</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Tricyclic_Antidepressive_Agents -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Tricyclic_Antidepressive_Agents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Antidepressive_Agents"/>
+        <AD-CDE:hasDrugBankCategory>https://go.drugbank.com/categories/DBCAT000744</AD-CDE:hasDrugBankCategory>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0003290</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://www.drugs.com/drug-class/tricyclic-antidepressants.html</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Triglycerides_Measurement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Triglycerides_Measurement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Cardiovascular_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4032789</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0202236</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Tubal_Ligation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Tubal_Ligation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#Surgical_Procedure"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4298948</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0520483</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinalysis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinalysis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Diagnostic_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4099313</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042014</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_Incontinence -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_Incontinence">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_System_Disease"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/197672</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042024</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_System_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinary_System_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Disease_Of_Anatomical_Entity"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/75865</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042075</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Pregnancy_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Pregnancy_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Screening"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4055285</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0430056</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Screening -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Screening">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urinalysis"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4064933</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1533688</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Tricyclic_Drug_Screen -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Tricyclic_Drug_Screen">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Urine_Screening"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4192913</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C1273364</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Vascular_Dementia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Vascular_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Dementia"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/443605</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0011269</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Vitamin_B12_Test -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Vitamin_B12_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Blood_Test"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4032173 
+
+https://athena.ohdsi.org/search-terms/terms/40652823 
+
+https://athena.ohdsi.org/search-terms/terms/40789544</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042845</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1078.599/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Vitamins -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Vitamins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Endocrine_and_Metabolic_Agent"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21600800 
+
+https://athena.ohdsi.org/search-terms/terms/21601219</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=Vitamin&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0042890</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Warfarin -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Warfarin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Anticoagulants"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/21600965</AD-CDE:hasAthenaID>
+        <AD-CDE:hasNDC>https://ndclist.com/search-advanced.php?sNDC=&amp;sPROPRIETARYNAME=warfarin&amp;sDOSAGEFORMNAME=&amp;sNONPROPRIETARYNAME=&amp;sROUTENAME=&amp;sAPPLICATIONNUMBER=&amp;sLABELERNAME=&amp;sSUBSTANCENAME=&amp;sPHARM_CLASSES=&amp;sDEASCHEDULE=&amp;sRxCUI=&amp;sDrugUses=</AD-CDE:hasNDC>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0043031</AD-CDE:hasUMLS>
+        <AD-CDE:hasValueSets>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1213.8/expansion/Latest</AD-CDE:hasValueSets>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#X-Ray_Computed_Tomography -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#X-Ray_Computed_Tomography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Imaging"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/4300757</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0040405</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#adult -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#adult">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001675</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#age -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#age">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0001779</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#age_more_than_50_years -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#age_more_than_50_years">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#age"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0521999</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#alcohol_abuse -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#alcohol_abuse">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0085762</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#drug_abuse -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#drug_abuse">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0013146</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#females -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#females">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#gender"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0086287</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#knowledge_acquisition -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#knowledge_acquisition">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Demographic"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0013621</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#males -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#males">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-CDE#gender"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0086582</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#smoking -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#smoking">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0037369</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#substance_abuse_problem -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#substance_abuse_problem">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Social_Determinant_Of_Health"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0740858</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#55-59_years_old -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#55-59_years_old">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#age"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C4035748</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#55-64_years -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#55-64_years">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#age"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C5452745</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#60_or_older -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#60_or_older">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#age"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C3843698</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Alzheimer&apos;s_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Alzheimer&apos;s_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/378419</AD-CDE:hasAthenaID>
+        <AD-CDE:hasPhenotypingAlgorithm>https://vsac.nlm.nih.gov/valueset/2.16.840.1.113762.1.4.1034.444/expansion/Latest</AD-CDE:hasPhenotypingAlgorithm>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0002395</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Huntington&apos;s_Chorea -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Huntington&apos;s_Chorea">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nervous_System_Disorder"/>
+        <AD-CDE:hasAthenaID>https://athena.ohdsi.org/search-terms/terms/374341</AD-CDE:hasAthenaID>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C0020179</AD-CDE:hasUMLS>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/sun/ontologies/AD-CDE#Nincds-Adrda_Criteria_For_Alzheimer&apos;s_Disease -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/sun/ontologies/AD-CDE#Nincds-Adrda_Criteria_For_Alzheimer&apos;s_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/sun/ontologies/AD-CDE#Mental_Health_and_Cognitive_Function_Assessment"/>
+        <AD-CDE:hasUMLS>https://uts.nlm.nih.gov/uts/umls/concept/C2828081</AD-CDE:hasUMLS>
+    </owl:Class>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi -->
+

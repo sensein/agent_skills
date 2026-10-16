@@ -1,0 +1,4022 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#"
+     xml:base="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl">
+        <owl:versionIRI rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl"/>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#AIDS_Dementia_Complex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#AIDS_Dementia_Complex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#AMPA -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#AMPA">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Abducens_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Abducens_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acalculia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acalculia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acetylcholine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acetylcholine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acetylcholinesterase -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acetylcholinesterase">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acoustic_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Acoustic_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Action_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Action_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adenosine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adenosine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adenylyl_Cyclase -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adenylyl_Cyclase">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adipocytes -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adipocytes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adrenergic_Nerves -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adrenergic_Nerves">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adrenergic_Receptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Adrenergic_Receptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Afferent_Pathways -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Afferent_Pathways">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Afferent_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Afferent_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Agnosia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Agnosia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Agraphia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Agraphia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alanines -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alanines">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alcoholic_Hallucinosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alcoholic_Hallucinosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alcoholic_Psychosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alcoholic_Psychosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alexia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alexia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alpha_Rhythm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alpha_Rhythm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amino_Acids -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amino_Acids">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amygdala -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amygdala">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amyloid_Precursor_Protein -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amyloid_Precursor_Protein">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amyotrophic_Lateral_Sclerosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Amyotrophic_Lateral_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anencephaly -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anencephaly">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Angiotensin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Angiotensin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anosognosia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anosognosia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anoxia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anoxia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anterograde_Amnesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Anterograde_Amnesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Aphasia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Aphasia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Apraxia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Apraxia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Aspartic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Aspartic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Astrocytes -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Astrocytes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ataxia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ataxia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Athetosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Athetosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Atomoxetine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Atomoxetine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Audiogenic_Seizures -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Audiogenic_Seizures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Evoked_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Evoked_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Neurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Auditory_Neurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Ganglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Ganglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Nervous_System_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Autonomic_Nervous_System_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Axons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Axons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Back_Pain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Back_Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bacterial_Meningitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bacterial_Meningitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Baroreceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Baroreceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Basal_Ganglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Basal_Ganglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Basal_Skin_Resistance -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Basal_Skin_Resistance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Behavioral_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Behavioral_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bender_Gestalt_Test -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bender_Gestalt_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Beta_Rhythm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Beta_Rhythm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bipolar_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bipolar_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Blood_Brain_Barrier -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Blood_Brain_Barrier">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bombesin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bombesin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Botulinum_Toxin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Botulinum_Toxin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bradykinesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Bradykinesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Concussion -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Concussion">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Damage -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Damage">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Derived_Neurotrophic_Factor -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Derived_Neurotrophic_Factor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Development -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Development">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Neoplasms -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Neoplasms">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Self_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Self_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Size -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Size">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Stem -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Stem">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Weight -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Brain_Weight">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#CREB_Activation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#CREB_Activation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Catalepsy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Catalepsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cataplexy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cataplexy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Catecholamines -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Catecholamines">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Caudate_Nucleus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Caudate_Nucleus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Adhesion_Molecules -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Adhesion_Molecules">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Differentiation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Differentiation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Membrane -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cell_Membrane">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cellular_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cellular_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Nervous_System_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Nervous_System_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Pattern_Generator -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Central_Pattern_Generator">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebellum -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebellum">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Arteriosclerosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Arteriosclerosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Atrophy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Atrophy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Blood_Flow -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Blood_Flow">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Dominance -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Dominance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Hemorrhage -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Hemorrhage">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Ischemia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Ischemia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Palsy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Palsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Ventricles -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebral_Ventricles">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrospinal_Fluid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrospinal_Fluid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrovascular_Accidents -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrovascular_Accidents">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrovascular_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cerebrovascular_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Charcot-Marie-Tooth_Disease -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Charcot-Marie-Tooth_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chemical_Brain_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chemical_Brain_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chemoreceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chemoreceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholecystokinin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholecystokinin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Choline -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Choline">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinergic_Nerves -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinergic_Nerves">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinergic_Receptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinergic_Receptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinesterase -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cholinesterase">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chorea -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chorea">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chronic_Pain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Chronic_Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cingulate_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cingulate_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Clinical_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Clinical_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Impairment -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Impairment">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Reserve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cognitive_Reserve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Coma -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Coma">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Commissurotomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Commissurotomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Computational_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Computational_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Contingent_Negative_Variation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Contingent_Negative_Variation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Corpus_Callosum -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Corpus_Callosum">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Corticobasal_Degeneration -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Corticobasal_Degeneration">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Creutzfeldt_Jakob_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Creutzfeldt_Jakob_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cutaneous_Receptive_Fields -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cutaneous_Receptive_Fields">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cutaneous_Sense -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cutaneous_Sense">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cytoarchitecture -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cytoarchitecture">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cytoskeleton -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cytoskeleton">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Decerebration -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Decerebration">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Deep_Brain_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Deep_Brain_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Delirium_Tremens -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Delirium_Tremens">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Delta_Rhythm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Delta_Rhythm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dementia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dementia_with_Lewy_Bodies -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dementia_with_Lewy_Bodies">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dendrites -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dendrites">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Depolarization -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Depolarization">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Developmental_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Developmental_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Diencephalon -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Diencephalon">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dihydroxyphenylacetic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dihydroxyphenylacetic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dihydroxytryptamine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dihydroxytryptamine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dopamine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dopamine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dopamine_Metabolites -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dopamine_Metabolites">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dorsal_Horns -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dorsal_Horns">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dorsal_Roots -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dorsal_Roots">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dynorphins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dynorphins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysarthria -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysarthria">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysexecutive_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysexecutive_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyskinesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyskinesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyslexia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyslexia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysphasia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysphasia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysphonia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dysphonia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyspraxia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Dyspraxia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Echoencephalography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Echoencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Efferent_Pathways -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Efferent_Pathways">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrical_Activity -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrical_Activity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrical_Brain_Stimulation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrical_Brain_Stimulation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electroencephalography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electroencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrophysiology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Electrophysiology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalomyelitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalomyelitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalopathies -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Encephalopathies">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endocytosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endocytosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endogenous_Opiates -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endogenous_Opiates">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endoplasmic_Reticulum -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endoplasmic_Reticulum">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endorphins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Endorphins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Enkephalins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Enkephalins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Entorhinal_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Entorhinal_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epilepsy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epilepsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epileptic_Seizures -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epileptic_Seizures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epinephrine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Epinephrine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Evoked_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Evoked_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Excitatory_Postsynaptic_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Excitatory_Postsynaptic_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Excitatory_Synapse -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Excitatory_Synapse">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Exocytosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Exocytosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Extrapyramidal_Symptoms -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Extrapyramidal_Symptoms">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Extrapyramidal_Tracts -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Extrapyramidal_Tracts">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Facial_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Facial_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Forebrain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Forebrain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fornix -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fornix">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fovea -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fovea">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Frontal_Lobe -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Frontal_Lobe">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Functional_Magnetic_Resonance_Imaging -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Functional_Magnetic_Resonance_Imaging">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fusiform_Gyrus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Fusiform_Gyrus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Galvanic_Skin_Response -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Galvanic_Skin_Response">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gamma_Aminobutyric_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gamma_Aminobutyric_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gamma_Rhythm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gamma_Rhythm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ganglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ganglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gap_Junctions -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gap_Junctions">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#General_Paresis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#General_Paresis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glioma -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glioma">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gliosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gliosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Global_Amnesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Global_Amnesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Globus_Pallidus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Globus_Pallidus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glutamate_Receptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glutamate_Receptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glutamic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glutamic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glycine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Glycine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Golgi_Apparatus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Golgi_Apparatus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Grand_Mal_Seizures -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Grand_Mal_Seizures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Granule_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Granule_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gray_Matter -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Gray_Matter">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Halstead_Reitan_Neuropsychological_Battery -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Halstead_Reitan_Neuropsychological_Battery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Head_Injuries -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Head_Injuries">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Headache -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Headache">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemianopia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemianopia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemiplegia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemiplegia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemispherectomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hemispherectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hindbrain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hindbrain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hippocampus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hippocampus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Histamine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Histamine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Histochemistry -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Histochemistry">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Homovanillic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Homovanillic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Huntingtons_Disease -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Huntingtons_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydrocephalus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydrocephalus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hyperkinesis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hyperkinesis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hyperpolarization -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hyperpolarization">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamic_Pituitary_Adrenal_Axis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamic_Pituitary_Adrenal_Axis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamo_Hypophyseal_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamo_Hypophyseal_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamus_Lesions -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hypothalamus_Lesions">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ibotenic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ibotenic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunocytochemistry -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunocytochemistry">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunodepression -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunodepression">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunotoxin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Immunotoxin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Inferior_Colliculus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Inferior_Colliculus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Inhibitory_Postsynaptic_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Inhibitory_Postsynaptic_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Insula -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Insula">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Interhemispheric_Interaction -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Interhemispheric_Interaction">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Interneurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Interneurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Intracranial_Abscesses -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Intracranial_Abscesses">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ion_Channel -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ion_Channel">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kainic_Acid -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kainic_Acid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kindling -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kindling">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kluver_Bucy_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Kluver_Bucy_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Korsakoffs_Psychosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Korsakoffs_Psychosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lateral_Dominance -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lateral_Dominance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Left_Hemisphere -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Left_Hemisphere">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lemniscal_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lemniscal_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Leptin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Leptin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Leukoencephalopathy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Leukoencephalopathy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ligand-gated_Ion_Channel -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ligand-gated_Ion_Channel">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Limbic_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Limbic_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lipopolysaccharide -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lipopolysaccharide">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Locus_Ceruleus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Locus_Ceruleus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lumbar_Spinal_Cord -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Lumbar_Spinal_Cord">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Luria_Nebraska_Neuropsychological_Battery -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Luria_Nebraska_Neuropsychological_Battery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Magnetic_Resonance_Imaging -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Magnetic_Resonance_Imaging">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Magnetoencephalography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Magnetoencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mechanoreceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mechanoreceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Medial_Forebrain_Bundle -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Medial_Forebrain_Bundle">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Medulla_Oblongata -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Medulla_Oblongata">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Melanocyte_Stimulating_Hormone -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Melanocyte_Stimulating_Hormone">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Membrane_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Membrane_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Memory_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Memory_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Memory_for_Designs_Test -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Memory_for_Designs_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meninges -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meninges">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meningitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meningitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meningoradiculitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Meningoradiculitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mesencephalon -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mesencephalon">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Microcephaly -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Microcephaly">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Microglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Microglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Migraine_Headache -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Migraine_Headache">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Migration_of_Nerve_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Migration_of_Nerve_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mini_Mental_State_Examination -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mini_Mental_State_Examination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mirror_Neurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mirror_Neurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mismatch_Negativity -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mismatch_Negativity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mitochondria -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mitochondria">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mitogen_Activated_Protein_Kinase -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Mitogen_Activated_Protein_Kinase">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Molecular_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Molecular_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Monoamine_Oxidases -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Monoamine_Oxidases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Motor_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Motor_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Motor_Neurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Motor_Neurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Movement_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Movement_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Multiple_Sclerosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Multiple_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Multiple_System_Atrophy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Multiple_System_Atrophy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Muscle_Contraction_Headache -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Muscle_Contraction_Headache">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Muscular_Dystrophy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Muscular_Dystrophy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myasthenia_Gravis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myasthenia_Gravis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myelin_Sheath -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myelin_Sheath">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myelitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myelitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myofascial_Pain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myofascial_Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myopathy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Myopathy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Narcolepsy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Narcolepsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Endings -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Endings">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Growth_Factor -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Growth_Factor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Tissues -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nerve_Tissues">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System_Neoplasms -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nervous_System_Neoplasms">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Analyzers -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Analyzers">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Development -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Development">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Inhibition -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Inhibition">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Lesions -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Lesions">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Networks -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Networks">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Pathways -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Pathways">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Plasticity -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Plasticity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Pruning -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Pruning">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Receptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Receptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Regeneration -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Regeneration">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Transplantation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neural_Transplantation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuralgia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuralgia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroanatomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroanatomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurobiology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurobiology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurochemistry -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurochemistry">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurocognition -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurocognition">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodegeneration -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodegeneration">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodegenerative_Diseases -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodegenerative_Diseases">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodevelopmental_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurodevelopmental_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroeconomics -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroeconomics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroendocrinology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroendocrinology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurofibrillary_Tangles -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurofibrillary_Tangles">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurofibromatosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurofibromatosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurogenesis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurogenesis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroimaging -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroimaging">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroimmunology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroimmunology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroinflammation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroinflammation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurokinins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurokinins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroleptic_Malignant_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroleptic_Malignant_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurolinguistics -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurolinguistics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuromuscular_Disorders -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuromuscular_Disorders">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropathic_Pain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropathic_Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropathology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropathology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropeptide_Y -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropeptide_Y">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropeptides -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropeptides">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropharmacology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropharmacology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurophysiology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurophysiology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroprotection -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuroprotection">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychiatry -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychiatry">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychological_Assessment -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychological_Assessment">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychopharmacology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neuropsychopharmacology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosciences -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosciences">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosurgery -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosurgery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosyphilis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurosyphilis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotensin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotensin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotherapy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotherapy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotoxicity -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotoxicity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotoxins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotoxins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmission -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmission">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitter_Transporters -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitter_Transporters">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitter_Uptake_Inhibitors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitter_Uptake_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitters -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotransmitters">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotrophic_Factor -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Neurotrophic_Factor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nitric_Oxide -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nitric_Oxide">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nociceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nociceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Node_of_Ranvier -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Node_of_Ranvier">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Norepinephrine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Norepinephrine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Norepinephrine_Metabolites -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Norepinephrine_Metabolites">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nucleosides -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nucleosides">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nucleus_Basalis_Magnocellularis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Nucleus_Basalis_Magnocellularis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Occipital_Lobe -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Occipital_Lobe">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ocular_Dominance -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ocular_Dominance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Bulb -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Bulb">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Evoked_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Evoked_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Olfactory_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oligodendrocytes -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oligodendrocytes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Chiasm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Chiasm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Lobe -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Lobe">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Tract -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Optic_Tract">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Organic_Brain_Syndromes -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Organic_Brain_Syndromes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oxidative_Stress -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oxidative_Stress">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oxytocin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Oxytocin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#P300 -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#P300">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pain -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Paralysis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Paralysis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Paraplegia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Paraplegia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parasympathetic_Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parasympathetic_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parietal_Lobe -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parietal_Lobe">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peptides -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peptides">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Periaqueductal_Gray -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Periaqueductal_Gray">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peripheral_Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peripheral_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peripheral_Neuropathy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Peripheral_Neuropathy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Periventricular_Leukomalacia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Periventricular_Leukomalacia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Petit_Mal_Seizures -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Petit_Mal_Seizures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Phenethylamines -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Phenethylamines">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Phosphodiesterase -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Phosphodiesterase">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Photoreceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Photoreceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Picks_Disease -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Picks_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pneumoencephalography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pneumoencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Poliomyelitis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Poliomyelitis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Polysomnography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Polysomnography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Positron_Emission_Tomography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Positron_Emission_Tomography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Postactivation_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Postactivation_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Posterior_Reversible_Encephalopathy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Posterior_Reversible_Encephalopathy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Preoptic_Area -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Preoptic_Area">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Presenile_Dementia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Presenile_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Prion -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Prion">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Progenitor_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Progenitor_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Progressive_Supranuclear_Palsy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Progressive_Supranuclear_Palsy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Proprioceptors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Proprioceptors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Prosopagnosia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Prosopagnosia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Proteomics -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Proteomics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychoneuroendocrinology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychoneuroendocrinology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychoneuroimmunology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychoneuroimmunology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychopharmacology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychopharmacology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychosurgery -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Psychosurgery">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Purkinje_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Purkinje_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Putamen -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Putamen">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pyramidal_Tracts -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Pyramidal_Tracts">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Quadriplegia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Quadriplegia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Raphe_Nuclei -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Raphe_Nuclei">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Receptive_Fields -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Receptive_Fields">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Receptor_Binding -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Receptor_Binding">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Reticular_Formation -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Reticular_Formation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Retina -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Retina">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Retrograde_Amnesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Retrograde_Amnesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Reuptake -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Reuptake">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rheoencephalography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rheoencephalography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ribosomes -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ribosomes">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Right_Hemisphere -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Right_Hemisphere">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rimonabant -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rimonabant">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Schwann_Cells -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Schwann_Cells">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Seizures -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Seizures">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Semantic_Dementia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Semantic_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Dementia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Plaques -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Plaques">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Psychosis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Senile_Psychosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sense_Organs -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sense_Organs">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sensory_Neurons -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sensory_Neurons">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Septal_Nuclei -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Septal_Nuclei">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin_Metabolites -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin_Metabolites">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin_Norepinephrine_Reuptake_Inhibitors -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Serotonin_Norepinephrine_Reuptake_Inhibitors">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Single_Photon_Emission_Computed_Tomography -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Single_Photon_Emission_Computed_Tomography">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Electrical_Properties -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Electrical_Properties">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Potential -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Potential">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Resistance -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Skin_Resistance">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Social_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Social_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatosensory_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatosensory_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatosensory_Evoked_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatosensory_Evoked_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatostatin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Somatostatin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spasms -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spasms">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Column -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Column">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Cord -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Cord">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Cord_Injuries -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Cord_Injuries">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Ganglia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinal_Ganglia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinothalamic_Tracts -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Spinothalamic_Tracts">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Stereotaxic_Techniques -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Stereotaxic_Techniques">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Striatum -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Striatum">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Substance_P -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Substance_P">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Substantia_Nigra -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Substantia_Nigra">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Subthalamic_Nucleus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Subthalamic_Nucleus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Subventricular_Zone -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Subventricular_Zone">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sympathectomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sympathectomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sympathetic_Nervous_System -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sympathetic_Nervous_System">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptic_Pruning -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptic_Pruning">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptic_Vesicle -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptic_Vesicle">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptotagmin -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synaptotagmin">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synesthesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Synesthesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Systems_Neuroscience -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Systems_Neuroscience">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tachykinins -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tachykinins">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tardive_Dyskinesia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tardive_Dyskinesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Task_Switching -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Task_Switching">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Taurine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Taurine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tegmentum -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tegmentum">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Teratology -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Teratology">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamic_Nuclei -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamic_Nuclei">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamotomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamotomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamus -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Thalamus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Theta_Rhythm -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Theta_Rhythm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tics -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tics">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Torticollis -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Torticollis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tourette_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tourette_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Toxic_Encephalopathies -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Toxic_Encephalopathies">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tractotomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tractotomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Traumatic_Brain_Injury -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Traumatic_Brain_Injury">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tremor -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tremor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Trigeminal_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Trigeminal_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Trigeminal_Neuralgia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Trigeminal_Neuralgia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tryptamine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tryptamine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tyramine -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Tyramine">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vagotomy -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vagotomy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vagus_Nerve -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vagus_Nerve">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vascular_Dementia -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Vascular_Dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ventral_Roots -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ventral_Roots">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Visual_Cortex -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Visual_Cortex">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Visual_Evoked_Potentials -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Visual_Evoked_Potentials">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wechsler_Memory_Scale -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wechsler_Memory_Scale">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#White_Matter -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#White_Matter">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Williams_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Williams_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wisconsin_Card_Sorting_Test -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wisconsin_Card_Sorting_Test">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alzheimer&apos;s_Disease -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Alzheimer&apos;s_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Balint&apos;s_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Balint&apos;s_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Broca&apos;s_Area -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Broca&apos;s_Area">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cones_(Eye) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Cones_(Eye)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Decortication_(Brain) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Decortication_(Brain)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ganglion_Cells_(Retina) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Ganglion_Cells_(Retina)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Geniculate_Bodies_(Thalamus) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Geniculate_Bodies_(Thalamus)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydroxydopamine_(6-) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydroxydopamine_(6-)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydroxyindoleacetic_Acid_(5-) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Hydroxyindoleacetic_Acid_(5-)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Methoxyhydroxyphenylglycol_(3,4) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Methoxyhydroxyphenylglycol_(3,4)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parkinson&apos;s_Disease -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Parkinson&apos;s_Disease">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rods_(Eye) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Rods_(Eye)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sclerosis_(Nervous_System) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Sclerosis_(Nervous_System)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Soma_(Cells) -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Soma_(Cells)">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    </owl:Class>
+    
+
+
+    <!-- http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wernicke&apos;s_Syndrome -->
+
+    <owl:Class rdf:about="http://ontology.apa.org/apaonto/termsonlyOUT%20(5).owl#Wernicke&apos;s_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#AssessmentDiagnosis"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Electrophysiology"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neuroanatomy"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalDisorders"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurologicalIntervention"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#Neurosciences"/>
+    
+
+
+    <!-- http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/ontologies/2015/0/apaneurocluster.owl#NeurotransmittersNeuroregulators"/>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi -->
+

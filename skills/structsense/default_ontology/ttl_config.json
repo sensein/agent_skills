@@ -125,7 +125,8 @@
     "NIFSTD": "http://uri.neuinfo.org/nif/nifstd/{id}",
     "biolink": "https://w3id.org/biolink/vocab/{id}",
     "MGI": "http://www.informatics.jax.org/marker/{id}",
-    "BRAINKB": "https://brainkb.org/concept/{id}"
+    "BRAINKB": "https://brainkb.org/concept/{id}",
+    "BKBIT": "urn:bkbit:{id}"
   },
   "curie_fallback_template": "https://identifiers.org/{prefix}:{id}",
   "mapping_method_by_source": {

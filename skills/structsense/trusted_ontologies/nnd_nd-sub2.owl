@@ -1,0 +1,1625 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#"
+     xml:base="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7"
+     xmlns:obo="http://purl.obolibrary.org/obo/"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:oboInOwl="http://www.geneontology.org/formats/oboInOwl#"
+     xmlns:untitled-ontology-7="http://purl.obolibrary.org/obo/http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7">
+        <oboInOwl:hasOBOFormatVersion>1.2</oboInOwl:hasOBOFormatVersion>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Definition -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.obolibrary.org/obo/Definition"/>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/abbreviation -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.obolibrary.org/obo/abbreviation"/>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/database_cross_reference -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.obolibrary.org/obo/database_cross_reference"/>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/synonym -->
+
+    <owl:AnnotationProperty rdf:about="http://purl.obolibrary.org/obo/synonym"/>
+    
+
+
+    <!-- http://www.geneontology.org/formats/oboInOwl#hasOBOFormatVersion -->
+
+    <owl:AnnotationProperty rdf:about="http://www.geneontology.org/formats/oboInOwl#hasOBOFormatVersion">
+        <rdfs:label>has_obo_format_version</rdfs:label>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.geneontology.org/formats/oboInOwl#id -->
+
+    <owl:AnnotationProperty rdf:about="http://www.geneontology.org/formats/oboInOwl#id"/>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#IsProgressiveNeurodegenerativeDisease -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#IsProgressiveNeurodegenerativeDisease"/>
+    
+
+
+    <!-- http://www.w3.org/2000/01/rdf-schema#label -->
+
+    <owl:AnnotationProperty rdf:about="http://www.w3.org/2000/01/rdf-schema#label"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Adrenoleukodystrophy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Adrenoleukodystrophy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Leukodystrophy"/>
+        <obo:abbreviation>LDA</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/E71.52
+MESH:http://purl.bioontology.org/ontology/MESH/D000326
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10588</obo:database_cross_reference>
+        <oboInOwl:id>Adrenoleukodystrophy</oboInOwl:id>
+        <rdfs:label>Adrenoleukodystrophy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Alexanders_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Alexanders_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Leukodystrophy"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Downs_Syndrome"/>
+        <obo:abbreviation>ALEX</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D038261
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_4252</obo:database_cross_reference>
+        <oboInOwl:id>Alexanders_Disease</oboInOwl:id>
+        <rdfs:label>Alexander&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:Definition>Group of neurodegenerative disorders in which the main pathological observation is abnormal accumulation of alpha-synuclein.</obo:Definition>
+        <oboInOwl:id>Alpha-Synucleinopathy_Disorders</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Alpha-Synucleinopathy Disorders</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Alzheimers_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Alzheimers_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>AD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G30
+MESH:http://purl.bioontology.org/ontology/MESH/D000544
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0002511
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10652</obo:database_cross_reference>
+        <oboInOwl:id>Alzheimers_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Alzheimer&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Amyotrophic_Lateral_Sclerosis -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Amyotrophic_Lateral_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Motor_Neuron_Diseases"/>
+        <obo:abbreviation>ALS</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G12.21
+MESH:http://purl.bioontology.org/ontology/MESH/D000690
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0007354
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_332</obo:database_cross_reference>
+        <oboInOwl:id>Amyotrophic_Lateral_Sclerosis</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Amyotrophic Lateral Sclerosis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Argyrophilic_Grain_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Argyrophilic_Grain_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Congophilic_Angiopathy"/>
+        <obo:abbreviation>AGD</obo:abbreviation>
+        <obo:database_cross_reference>SNOMEDCT: http://purl.bioontology.org/ontology/SNOMEDCT/230281007</obo:database_cross_reference>
+        <oboInOwl:id>Argyrophilic_Grain_Disease</oboInOwl:id>
+        <rdfs:label>Argyrophilic Grain Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Attention_Deficit_Hyperactivity_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Attention_Deficit_Hyperactivity_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Autism_Spectrum_Disorder"/>
+        <obo:abbreviation>ADHD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F90
+MESH:http://purl.bioontology.org/ontology/MESH/D001289
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0007018
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1094</obo:database_cross_reference>
+        <oboInOwl:id>Attention_Deficit_Hyperactivity_Disorder</oboInOwl:id>
+        <rdfs:label>Attention Deficit Hyperactivity Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Atypical_Parkinsons_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Atypical_Parkinsons_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <obo:Definition>Patient&apos;s who have an alphasynucleinopathy or so called &quot;Lewy body disease&quot;, however, they do not have the typical neuropathological picture of PD.  In these cases additional neuropathological findings are considered to contribute to the clinical picture. These additional neuropathological findings vary between cases. Hence the &quot;atypical Parkinson&apos;s disease&quot;</obo:Definition>
+        <obo:abbreviation>ATPD</obo:abbreviation>
+        <oboInOwl:id>Atypical_Parkinsons_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Atypical Parkinson&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Autism_Spectrum_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Autism_Spectrum_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>ASD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/F84.0, http://purl.bioontology.org/ontology/ICD10/F84.1, http://purl.bioontology.org/ontology/ICD10/F84.5
+MESH:http://purl.bioontology.org/ontology/MESH/D000067877
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0000717
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_0060041</obo:database_cross_reference>
+        <oboInOwl:id>Autism_Spectrum_Disorder</oboInOwl:id>
+        <rdfs:label>Autism Spectrum Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Autosomal_Dominant_Cerebellar_Ataxia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Autosomal_Dominant_Cerebellar_Ataxia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Cerebellar_Ataxia"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Friedreichs_Ataxia"/>
+        <obo:abbreviation>ADCA</obo:abbreviation>
+        <obo:database_cross_reference>Human Phenotype Ontology: http://purl.obolibrary.org/obo/HP_0001251
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_1441</obo:database_cross_reference>
+        <oboInOwl:id>Autosomal_Dominant_Cerebellar_Ataxia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Autosomal Dominant Cerebellar Ataxia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Binswangers_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Binswangers_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>BINSW</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D015140</obo:database_cross_reference>
+        <oboInOwl:id>Binswangers_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Binswanger&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Bipolar_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Bipolar_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>BP</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F31
+MESH:http://purl.bioontology.org/ontology/MESH/D001714
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0007302</obo:database_cross_reference>
+        <oboInOwl:id>Bipolar_Disorder</oboInOwl:id>
+        <rdfs:label>Bipolar Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Brain_Cancer -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Brain_Cancer">
+        <obo:Definition>Category including neoplasms of the brain, both primary (benign/malignant) and secondary (metastatic) forms.</obo:Definition>
+        <oboInOwl:id>Brain_Cancer</oboInOwl:id>
+        <rdfs:label>Brain Cancer</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/C9ORF72 -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/C9ORF72">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Mutation"/>
+        <obo:Definition>Donors with C9ORF72 mutation mostly show FTD-TDP-B pathology, but FTD-TDP A is also seen.</obo:Definition>
+        <obo:abbreviation>C9ORF72</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D016657</obo:database_cross_reference>
+        <oboInOwl:id>C9ORF72</oboInOwl:id>
+        <rdfs:label>C9ORF72</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Cerebellar_Ataxia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Cerebellar_Ataxia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:Definition>Group of disorders in which the main symptom is ataxia.</obo:Definition>
+        <obo:abbreviation>ATAXIA</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G11
+MESH: http://purl.bioontology.org/ontology/MESH/D002524
+Human phenotype ontology: http://purl.obolibrary.org/obo/HP_0001251
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_0050753</obo:database_cross_reference>
+        <oboInOwl:id>Cerebellar_Ataxia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Cerebellar Ataxia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Cerebral_Autosomal_Dominant_Arteriopathy_with_Sub-cortical_Infarcts_and_Leukoencephalopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Cerebral_Autosomal_Dominant_Arteriopathy_with_Sub-cortical_Infarcts_and_Leukoencephalopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>VDCAD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/I67.850
+MESH:http://purl.bioontology.org/ontology/MESH/D046589
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_13945</obo:database_cross_reference>
+        <obo:synonym>Cerebral Autosomal Dominant Arteriopathy with Sub-cortical Infarcts and Leukoencephalopathy</obo:synonym>
+        <oboInOwl:id>Cerebral_Autosomal_Dominant_Arteriopathy_with_Sub-cortical_Infarcts_and_Leukoencephalopathy</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>CADASIL</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Cerebrovascular_Accident -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Cerebrovascular_Accident">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Vascular_Pathology"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Ischemic_Changes"/>
+        <obo:abbreviation>CVA</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D020521
+DOID: http://purl.obolibrary.org/obo/DOID_6713</obo:database_cross_reference>
+        <oboInOwl:id>Cerebrovascular_Accident</oboInOwl:id>
+        <rdfs:label>Cerebrovascular Accident</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Congophilic_Angiopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Congophilic_Angiopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:abbreviation>CA</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D016657
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_9246</obo:database_cross_reference>
+        <obo:synonym>cerebral amyloid angiopathy</obo:synonym>
+        <oboInOwl:id>Congophilic_Angiopathy</oboInOwl:id>
+        <rdfs:label>Congophilic Angiopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Control_Brain -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Control_Brain">
+        <obo:Definition>Donors without cognitive decline or dementia, who neuropathologically do not meet the criteria for any neurodegenerative disease.</obo:Definition>
+        <obo:abbreviation>CON</obo:abbreviation>
+        <oboInOwl:id>Control_Brain</oboInOwl:id>
+        <rdfs:label>Control Brain</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Corticobasal_Degeneration -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Corticobasal_Degeneration">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>CBD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G31.85</obo:database_cross_reference>
+        <oboInOwl:id>Corticobasal_Degeneration</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Corticobasal Degeneration</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Creutzfeldt-Jakob_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Creutzfeldt-Jakob_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>CJD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/A81.0
+MESH:http://purl.bioontology.org/ontology/MESH/D007562
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_11949</obo:database_cross_reference>
+        <oboInOwl:id>Creutzfeldt-Jakob_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Creutzfeldt-Jakob Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>DEM</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D003704
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0000726
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1307</obo:database_cross_reference>
+        <oboInOwl:id>Dementia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Dementia_with_Lewy_Bodies -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Dementia_with_Lewy_Bodies">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <obo:abbreviation>DLB</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D020961
+Human Disease Ontology: https://disease-ontology.org/?id=DOID:12217</obo:database_cross_reference>
+        <oboInOwl:id>Dementia_with_Lewy_Bodies</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Dementia with Lewy Bodies</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Developmental_Diseases -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Developmental_Diseases">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Rare_Disorders"/>
+        <obo:abbreviation>DEV</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D002658
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0012759</obo:database_cross_reference>
+        <oboInOwl:id>Developmental_Diseases</oboInOwl:id>
+        <rdfs:label>Developmental Diseases</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Diffuse_Axonal_Injury -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Diffuse_Axonal_Injury">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:abbreviation>DAI</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/S06.2, http://purl.bioontology.org/ontology/ICD10/S06
+MESH:http://purl.bioontology.org/ontology/MESH/D020833
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0003405</obo:database_cross_reference>
+        <oboInOwl:id>Diffuse_Axonal_Injury</oboInOwl:id>
+        <rdfs:label>Diffuse Axonal Injury</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Downs_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Downs_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Syndromes"/>
+        <obo:abbreviation>DOWN</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/Q90
+MESH:http://purl.bioontology.org/ontology/MESH/D004314</obo:database_cross_reference>
+        <oboInOwl:id>Downs_Syndrome</oboInOwl:id>
+        <rdfs:label>Down&apos;s Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Dystonia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Dystonia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>DYSTO</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G24
+MESH: http://purl.bioontology.org/ontology/MESH/D004421
+Human Phenotype Ontology: http://purl.obolibrary.org/obo/HP_0001332</obo:database_cross_reference>
+        <oboInOwl:id>Dystonia</oboInOwl:id>
+        <rdfs:label>Dystonia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Encephalitis -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Encephalitis">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>ENCE</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G04.9
+MESH:http://purl.bioontology.org/ontology/MESH/D004660</obo:database_cross_reference>
+        <oboInOwl:id>Encephalitis</oboInOwl:id>
+        <rdfs:label>Encephalitis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Encephalopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Encephalopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:Definition>Group of pathologic disorders that affect the brain, which cannot be more appropriately included in another category/group.</obo:Definition>
+        <obo:abbreviation>ENCEPHA</obo:abbreviation>
+        <obo:database_cross_reference>Human phenotype ontology: http://purl.obolibrary.org/obo/HP_0001298</obo:database_cross_reference>
+        <oboInOwl:id>Encephalopathy</oboInOwl:id>
+        <rdfs:label>Encephalopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Epilepsy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Epilepsy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>EPI</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G40
+MESH:http://purl.bioontology.org/ontology/MESH/D004827
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0001250
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1826</obo:database_cross_reference>
+        <oboInOwl:id>Epilepsy</oboInOwl:id>
+        <rdfs:label>Epilepsy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Fahrs_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Fahrs_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>FAHR</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/C536275
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0002135
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_0060230</obo:database_cross_reference>
+        <oboInOwl:id>Fahrs_Syndrome</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Fahr&apos;s Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Fragile_X_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Fragile_X_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Syndromes"/>
+        <obo:abbreviation>FRAGX</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/Q99.2
+MESH: http://purl.bioontology.org/ontology/MESH/D005600
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_14261</obo:database_cross_reference>
+        <oboInOwl:id>Fragile_X_Syndrome</oboInOwl:id>
+        <rdfs:label>Fragile X Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Friedreichs_Ataxia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Friedreichs_Ataxia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Cerebellar_Ataxia"/>
+        <obo:abbreviation>FA</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G11.11</obo:database_cross_reference>
+        <oboInOwl:id>Friedreichs_Ataxia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Friedreich&apos;s Ataxia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>FTD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G31.0
+MESH:http://purl.bioontology.org/ontology/MESH/D057174
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0002145
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_9255</obo:database_cross_reference>
+        <oboInOwl:id>Frontotemporal_Dementia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_FUS -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_FUS">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Picks_Disease"/>
+        <obo:Definition>Frontoterporal lobe degeneration with FUS (Fused in sarcoma) accumulations.</obo:Definition>
+        <obo:abbreviation>FTD-FUS</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_FUS</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia FUS</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <obo:Definition>Donors with frontotomporal lobe degeneration with TDP-43 pathology.</obo:Definition>
+        <obo:abbreviation>FTD-TDP</obo:abbreviation>
+        <obo:database_cross_reference>https://pubmed.ncbi.nlm.nih.gov/21644037/</obo:database_cross_reference>
+        <oboInOwl:id>Frontotemporal_Dementia_TDP</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia TDP</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_Undefined -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_Undefined">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP"/>
+        <obo:Definition>Donors belonging to the category &quot;Frontotemporal Dementia TDP Undefined&quot; are known to have FTD-TDP. However, the subtype (A, B, or C) could not be distinguished.</obo:Definition>
+        <obo:abbreviation>FTD-TDP_undefined</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_TDP_Undefined</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia TDP Undefined</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_A -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_A">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_B"/>
+        <obo:Definition>FTD with TDP-43 pathology, charactarized by numerous short dystrophic neurites and crescentic or oval neuronal cytoplasmatic inclusions, concentrated primarely in neocortical layer II.</obo:Definition>
+        <obo:abbreviation>FTD-TDP-A</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_TDP_type_A</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia TDP type A</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_B -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_B">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP"/>
+        <obo:Definition>FTD with TDP-43 pathology, charactarized by a moderate numbers of neuronal cytoplasmatic inclusions, in all cortical layers, but with only few dystrophic neurites.</obo:Definition>
+        <obo:abbreviation>FTD-TDP-B</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_TDP_type_B</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia TDP type B</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_C -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_C">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP"/>
+        <obo:Definition>FTD with TDP-43 pathology, characterized by a predominance of elongated dystrophic neurites in upper cortical layers with only few neuronal cytoplasmatic inclusions.</obo:Definition>
+        <obo:abbreviation>FTD-TDP-C</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_TDP_type_C</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia TDP type C</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Tauopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Tauopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <obo:Definition>Donors with FTD characterized by abnormal intracellular accumulation of hyperphosphorilated tau.</obo:Definition>
+        <obo:abbreviation>FTD-TAU</obo:abbreviation>
+        <obo:database_cross_reference>https://pubmed.ncbi.nlm.nih.gov/27306735/</obo:database_cross_reference>
+        <oboInOwl:id>Frontotemporal_Dementia_Tauopathy</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia Tauopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Ubiquitine -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Ubiquitine">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <obo:Definition>Donors with frontotemporal lobar degeneration with ubiquitin or P62 only immunoreactive inclusions (negative for all other proteins, as well as cases that have not yet been analyzed with FUS or TDP-43)</obo:Definition>
+        <obo:abbreviation>FTD-UPS</obo:abbreviation>
+        <obo:database_cross_reference>https://pubmed.ncbi.nlm.nih.gov/21810890/</obo:database_cross_reference>
+        <oboInOwl:id>Frontotemporal_Dementia_Ubiquitine</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia Ubiquitine</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Undefined -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_Undefined">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <obo:Definition>Donors belonging to the category &quot;Frontotemporal Dementia Undefined&quot; are known to have FTD. However, the subtype could not be distinguished.</obo:Definition>
+        <obo:abbreviation>FTD_undefined</obo:abbreviation>
+        <oboInOwl:id>Frontotemporal_Dementia_Undefined</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Frontotemporal Dementia Undefined</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Guillain-Barre_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Guillain-Barre_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Polyneuropathy"/>
+        <obo:abbreviation>GUIL</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G61.0
+MESH:http://purl.bioontology.org/ontology/MESH/D020275
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_12842</obo:database_cross_reference>
+        <oboInOwl:id>Guillain-Barre_Disease</oboInOwl:id>
+        <rdfs:label>Guillain-Barré Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Hereditary_Motoric_Sensoric_Neuropathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Hereditary_Motoric_Sensoric_Neuropathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Polyneuropathy"/>
+        <obo:abbreviation>HMSN</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G60.0
+MESH:http://purl.bioontology.org/ontology/MESH/D015417</obo:database_cross_reference>
+        <obo:synonym>Charcot Marie Tooth disease</obo:synonym>
+        <oboInOwl:id>Hereditary_Motoric_Sensoric_Neuropathy</oboInOwl:id>
+        <rdfs:label>Hereditary Motoric Sensoric Neuropathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Hereditary_Spastic_Paraplegia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Hereditary_Spastic_Paraplegia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>HSP</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G11.4
+MESH:http://purl.bioontology.org/ontology/MESH/D015419
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0002313</obo:database_cross_reference>
+        <oboInOwl:id>Hereditary_Spastic_Paraplegia</oboInOwl:id>
+        <rdfs:label>Hereditary Spastic Paraplegia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Hippocampal_Sclerosis -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Hippocampal_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:abbreviation>HIP</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G93.81
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0033715</obo:database_cross_reference>
+        <oboInOwl:id>Hippocampal_Sclerosis</oboInOwl:id>
+        <rdfs:label>Hippocampal Sclerosis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Human_Immunodeficiency_Virus -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Human_Immunodeficiency_Virus">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Other_Disorders_with_Neurological_Implications"/>
+        <obo:abbreviation>HIV</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/B20-B20
+MESH:http://purl.bioontology.org/ontology/MESH/D006678</obo:database_cross_reference>
+        <oboInOwl:id>Human_Immunodeficiency_Virus</oboInOwl:id>
+        <rdfs:label>Human Immunodeficiency Virus</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Huntingtons_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Huntingtons_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>HD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G10
+MESH:http://purl.bioontology.org/ontology/MESH/D006816
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_12858</obo:database_cross_reference>
+        <oboInOwl:id>Huntingtons_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Huntington&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Hydrocephalus_Adultorum -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Hydrocephalus_Adultorum">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>COHA</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G91
+MESH:http://purl.bioontology.org/ontology/MESH/D006849
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0000238
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10908</obo:database_cross_reference>
+        <oboInOwl:id>Hydrocephalus_Adultorum</oboInOwl:id>
+        <rdfs:label>Hydrocephalus Adultorum</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Incidental_Lewy_Body_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Incidental_Lewy_Body_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <obo:Definition>Incidental Lewy body disease is the presence of Lewy bodies or Lewy neurites without clinical findings of parkinsonism or dementia.</obo:Definition>
+        <obo:abbreviation>iLBD</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D016631
+Human phenotype ontology: http://purl.obolibrary.org/obo/HP_0100315
+PUBMED: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3366193/, https://pubmed.ncbi.nlm.nih.gov/20175211/</obo:database_cross_reference>
+        <oboInOwl:id>Incidental_Lewy_Body_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Incidental Lewy Body Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Ischemic_Changes -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Ischemic_Changes">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Vascular_Pathology"/>
+        <obo:abbreviation>IS</obo:abbreviation>
+        <obo:database_cross_reference>Human Phenotype Ontology: http://purl.obolibrary.org/obo/HP_0002637</obo:database_cross_reference>
+        <oboInOwl:id>Ischemic_Changes</oboInOwl:id>
+        <rdfs:label>Ischemic Changes</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Klinefelters_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Klinefelters_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Syndromes"/>
+        <obo:abbreviation>KLIN</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/Q98.1, http://purl.bioontology.org/ontology/ICD10CM/Q98.0,http://purl.bioontology.org/ontology/ICD10CM/Q98.4
+MESH:http://purl.bioontology.org/ontology/MESH/D007713
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1921</obo:database_cross_reference>
+        <oboInOwl:id>Klinefelters_Syndrome</oboInOwl:id>
+        <rdfs:label>Klinefelter&apos;s Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Korsakoff_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Korsakoff_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>KOR</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/F04
+MESH:http://purl.bioontology.org/ontology/MESH/D020915
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10915</obo:database_cross_reference>
+        <oboInOwl:id>Korsakoff_Syndrome</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Korsakoff Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Leukodystrophy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Leukodystrophy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Rare_Disorders"/>
+        <obo:abbreviation>LD</obo:abbreviation>
+        <obo:database_cross_reference>Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0002415
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10579</obo:database_cross_reference>
+        <oboInOwl:id>Leukodystrophy</oboInOwl:id>
+        <rdfs:label>Leukodystrophy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Leukodystrophy_Other -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Leukodystrophy_Other">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Leukodystrophy"/>
+        <obo:Definition>Donors belonging to the category &quot;Leukodystrophy Other&quot; have Leukodystrophy, but this was not further specified.</obo:Definition>
+        <obo:abbreviation>LD_other</obo:abbreviation>
+        <oboInOwl:id>Leukodystrophy_Other</oboInOwl:id>
+        <rdfs:label>Leukodystrophy Other</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Major_Depressive_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Major_Depressive_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>MDD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/F33
+MESH:http://purl.bioontology.org/ontology/MESH/D003865
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0000716
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1470</obo:database_cross_reference>
+        <oboInOwl:id>Major_Depressive_Disorder</oboInOwl:id>
+        <rdfs:label>Major Depressive Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Meningitis -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Meningitis">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>MEN</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/G00
+MESH:http://purl.bioontology.org/ontology/MESH/D008581
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0001287</obo:database_cross_reference>
+        <oboInOwl:id>Meningitis</oboInOwl:id>
+        <rdfs:label>Meningitis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Metabolic_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Metabolic_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Other_Disorders_with_Neurological_Implications"/>
+        <obo:abbreviation>MEDIS</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D008659, http://purl.bioontology.org/ontology/MESH/D001928
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_0014667</obo:database_cross_reference>
+        <oboInOwl:id>Metabolic_Disease</oboInOwl:id>
+        <rdfs:label>Metabolic Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Motor_Neuro_Disease_Other -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Motor_Neuro_Disease_Other">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Motor_Neuron_Diseases"/>
+        <obo:Definition>Donors belonging to the category &quot;Motor Neuron Disease Other&quot; have a Motor Neuron Disease which is different from ALS,  but not further specified.</obo:Definition>
+        <obo:abbreviation>MND_other</obo:abbreviation>
+        <oboInOwl:id>Motor_Neuron_Disease_Other</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Motor Neuron Disease Other</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Motor_Neuron_Diseases -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Motor_Neuron_Diseases">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>MND</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G12.2
+MESH:http://purl.bioontology.org/ontology/MESH/D000690
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_231</obo:database_cross_reference>
+        <oboInOwl:id>Motor_Neuron_Diseases</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Motor Neuron Diseases</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_Sclerosis -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuroinflammatory_Disease"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Neuromyelitis_Optica"/>
+        <obo:abbreviation>MS</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G35
+MESH: http://purl.bioontology.org/ontology/MESH/D009103
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_2377</obo:database_cross_reference>
+        <oboInOwl:id>Multiple_Sclerosis</oboInOwl:id>
+        <rdfs:label>Multiple Sclerosis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_Sclerosis_Primary_Progressive -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Primary_Progressive">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Multiple_Sclerosis"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Remitting_Relapsing"/>
+        <obo:abbreviation>MS-PP</obo:abbreviation>
+        <obo:database_cross_reference>Human Disease Ontology: https://disease-ontology.org/?id=DOID:0050784</obo:database_cross_reference>
+        <oboInOwl:id>Multiple_Sclerosis_Primary_Progressive</oboInOwl:id>
+        <rdfs:label>Multiple Sclerosis Primary Progressive</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_Sclerosis_Remitting_Relapsing -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Remitting_Relapsing">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Multiple_Sclerosis"/>
+        <obo:abbreviation>MS-RR</obo:abbreviation>
+        <obo:database_cross_reference>Human Disease Ontology: https://disease-ontology.org/?id=DOID:2378</obo:database_cross_reference>
+        <oboInOwl:id>Multiple_Sclerosis_Remitting_Relapsing</oboInOwl:id>
+        <rdfs:label>Multiple Sclerosis Remitting Relapsing</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_Sclerosis_Secondary_Progressive -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Secondary_Progressive">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Multiple_Sclerosis"/>
+        <obo:abbreviation>MS-SP</obo:abbreviation>
+        <obo:database_cross_reference>Human Disease Ontology: https://disease-ontology.org/?id=DOID:0050783</obo:database_cross_reference>
+        <oboInOwl:id>Multiple_Sclerosis_Secondary_Progressive</oboInOwl:id>
+        <rdfs:label>Multiple Sclerosis Secondary Progressive</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_Sclerosis_Undefined -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Undefined">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Multiple_Sclerosis"/>
+        <obo:Definition>Donors belonging to the category &quot;Multiple Sclerosis Undefined&quot; are known to have MS. However, the subtype could not be distinguished.</obo:Definition>
+        <obo:abbreviation>MS_undefined</obo:abbreviation>
+        <oboInOwl:id>Multiple_Sclerosis_undefined</oboInOwl:id>
+        <rdfs:label>Multiple Sclerosis Undefined</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Multiple_System_Atrophy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Multiple_System_Atrophy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <obo:abbreviation>MSA</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D019578
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_4752</obo:database_cross_reference>
+        <oboInOwl:id>Multiple_System_Atrophy</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Multiple System Atrophy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Mutation -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Mutation">
+        <obo:Definition>Category including the mutations that occur in donors and that are relevant for understanding their family or clinical history.</obo:Definition>
+        <oboInOwl:id>Mutation</oboInOwl:id>
+        <rdfs:label>Mutation</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Narcolepsy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Narcolepsy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>NARCO</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G47.41
+MESH: http://purl.bioontology.org/ontology/MESH/D009290
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_8986</obo:database_cross_reference>
+        <oboInOwl:id>Narcolepsy</oboInOwl:id>
+        <rdfs:label>Narcolepsy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Neuroinflammatory_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Neuroinflammatory_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:Definition>Group of disorders characterized by inflammation in the central nervous system.</obo:Definition>
+        <obo:abbreviation>AUTO</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/D020274</obo:database_cross_reference>
+        <oboInOwl:id>Neuroinflammatory_Disease</oboInOwl:id>
+        <rdfs:label>Neuroinflammatory Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Neurological_Disorders -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Neurological_Disorders">
+        <obo:Definition>Category including neurological disorders with various causes (genetic, autoimmune, vascular, infectious). Progressive neurodegenerative disorders form a separate category.</obo:Definition>
+        <oboInOwl:id>Neurological_Disorders</oboInOwl:id>
+        <rdfs:label>Neurological Disorders</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Neuromyelitis_Optica -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Neuromyelitis_Optica">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuroinflammatory_Disease"/>
+        <obo:abbreviation>NMO</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G36.0
+MESH: http://purl.bioontology.org/ontology/MESH/D009471
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_8869</obo:database_cross_reference>
+        <oboInOwl:id>Neuromyelitis_Optica</oboInOwl:id>
+        <rdfs:label>Neuromyelitis Optica</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Neuropathophysiological_Traits -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits">
+        <obo:Definition>Category including neuropathophysiological traits observed on autopsy.</obo:Definition>
+        <oboInOwl:id>Neuropathophysiological_Traits</oboInOwl:id>
+        <rdfs:label>Neuropathophysiological Traits</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Nigral_Degeneration -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Nigral_Degeneration">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:Definition>Degeneration of the substantia nigra.</obo:Definition>
+        <obo:abbreviation>NIG</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D013378</obo:database_cross_reference>
+        <oboInOwl:id>Nigral_Degeneration</oboInOwl:id>
+        <rdfs:label>Nigral Degeneration</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Non-Classifiable_Senile_Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Non-Classifiable_Senile_Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>NCSD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F03.9, http://purl.bioontology.org/ontology/ICD10CM/G31.1
+Human Phenotype Ontology:http://purl.obolibrary.org/obo/HP_0000726</obo:database_cross_reference>
+        <oboInOwl:id>Non-Classifiable_Senile_Dementia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Non-Classifiable Senile Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Non-Hodgkin_Lymphoma -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Non-Hodgkin_Lymphoma">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Brain_Cancer"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Space-Occupying_Proces/Tumor"/>
+        <obo:abbreviation>NHL</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/C85
+MESH: http://purl.bioontology.org/ontology/MESH/D008228
+Human Phenotype Ontology: http://purl.obolibrary.org/obo/HP_0012539
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_0060060</obo:database_cross_reference>
+        <oboInOwl:id>Non-Hodgkin_Lymphoma</oboInOwl:id>
+        <rdfs:label>Non-Hodgkin Lymphoma</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Obsessive_Compulsive_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Obsessive_Compulsive_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>OCD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F42
+MESH:http://purl.bioontology.org/ontology/MESH/D009771
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_10933</obo:database_cross_reference>
+        <oboInOwl:id>Obsessive_Compulsive_Disorder</oboInOwl:id>
+        <rdfs:label>Obsessive Compulsive Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Other_Disorders_with_Neurological_Implications -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Other_Disorders_with_Neurological_Implications">
+        <obo:Definition>Category including disorders that may have implications for nervous system structure and function.</obo:Definition>
+        <oboInOwl:id>Other_Disorders_with_Neurological_Implications</oboInOwl:id>
+        <rdfs:label>Other Disorders with Neurological Implications</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/PROG -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/PROG">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Mutation"/>
+        <obo:Definition>Pathogenic mutation in Progranulin (GRN) gene on chromosome 17.</obo:Definition>
+        <obo:abbreviation>PROG</obo:abbreviation>
+        <oboInOwl:id>PROG</oboInOwl:id>
+        <rdfs:label>PROG</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Pallidal_Degeneration -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Pallidal_Degeneration">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:abbreviation>PAL</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/C564910
+Human phenotype ontology: http://purl.obolibrary.org/obo/HP_0007132</obo:database_cross_reference>
+        <oboInOwl:id>Pallidal_Degeneration</oboInOwl:id>
+        <rdfs:label>Pallidal Degeneration</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Parkinsons_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Parkinsons_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <owl:disjointWith rdf:resource="http://purl.obolibrary.org/obo/Parkinsons_Disease_with_Dementia"/>
+        <obo:abbreviation>PD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G20
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_14330</obo:database_cross_reference>
+        <oboInOwl:id>Parkinsons_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Parkinson&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Parkinsons_Disease_with_Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Parkinsons_Disease_with_Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Alpha-Synucleinopathy_Disorders"/>
+        <obo:Definition>Donors with with clinical and neuropathological PD, and clinical cognitive decline/dementia.</obo:Definition>
+        <obo:abbreviation>PDD</obo:abbreviation>
+        <oboInOwl:id>Parkinsons_Disease_with_Dementia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Parkinson&apos;s Disease with Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Picks_Disease -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Picks_Disease">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Frontotemporal_Dementia"/>
+        <obo:abbreviation>PID</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G31.01
+MESH: http://purl.bioontology.org/ontology/MESH/D020774
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_11870</obo:database_cross_reference>
+        <oboInOwl:id>Picks_Disease</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Pick&apos;s Disease</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Polyneuropathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Polyneuropathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neurological_Disorders"/>
+        <obo:abbreviation>POLY</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/G60-G65
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1389</obo:database_cross_reference>
+        <oboInOwl:id>Polyneuropathy</oboInOwl:id>
+        <rdfs:label>Polyneuropathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Polyneuropathy_Other -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Polyneuropathy_Other">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Polyneuropathy"/>
+        <obo:Definition>Donors belonging to the category &quot;Polyneuropathy Other&quot; have Polyneuropathy, but this was not further specified.</obo:Definition>
+        <obo:abbreviation>POLY_other</obo:abbreviation>
+        <oboInOwl:id>Polyneuropathy_Other</oboInOwl:id>
+        <rdfs:label>Polyneuropathy Other</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Post_Traumatic_Stress_Disorder -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Post_Traumatic_Stress_Disorder">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>PTSD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F43.1
+MESH:http://purl.bioontology.org/ontology/MESH/D013313
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_2055</obo:database_cross_reference>
+        <oboInOwl:id>Post_Traumatic_Stress_Disorder</oboInOwl:id>
+        <rdfs:label>Post Traumatic Stress Disorder</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Posterior_Cortical_Atrophy_Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Posterior_Cortical_Atrophy_Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>PCAD</obo:abbreviation>
+        <obo:database_cross_reference>MEDDRA:http://purl.bioontology.org/ontology/MEDDRA/10078207</obo:database_cross_reference>
+        <oboInOwl:id>Posterior_Cortical_Atrophy_Dementia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Posterior Cortical Atrophy Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Prader-Willi_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Prader-Willi_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Syndromes"/>
+        <obo:abbreviation>PWS</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/Q87.11
+MESH:http://purl.bioontology.org/ontology/MESH/D011218
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_11983</obo:database_cross_reference>
+        <oboInOwl:id>Prader-Willi_Syndrome</oboInOwl:id>
+        <rdfs:label>Prader-Willi Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Progressive_Multifocal_Leucoencephalopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Progressive_Multifocal_Leucoencephalopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Encephalopathy"/>
+        <obo:abbreviation>PML</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10/A81.2
+MESH:http://purl.bioontology.org/ontology/MESH/D007968
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_643</obo:database_cross_reference>
+        <oboInOwl:id>Progressive_Multifocal_Leucoencephalopathy</oboInOwl:id>
+        <rdfs:label>Progressive Multifocal Leucoencephalopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases">
+        <obo:Definition>Category including disorders characterized by progressive dysfunction of the nervous system.</obo:Definition>
+        <oboInOwl:id>Progressive_Neurodegenerative_Diseases</oboInOwl:id>
+        <rdfs:label>Progressive Neurodegenerative Diseases</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Progressive_Supranuclear_Palsy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Progressive_Supranuclear_Palsy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>PSP</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D013494
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_678</obo:database_cross_reference>
+        <oboInOwl:id>Progressive_Supranuclear_Palsy</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Progressive Supranuclear Palsy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Psychiatric_Disorders -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Psychiatric_Disorders">
+        <obo:Definition>Category including psychiatric disorders.</obo:Definition>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/F01-F99
+MESH: http://purl.bioontology.org/ontology/MESH/D001523
+Human disease ontology: https://disease-ontology.org/?id=DOID_150</obo:database_cross_reference>
+        <oboInOwl:id>Psychiatric_Disorders</oboInOwl:id>
+        <rdfs:label>Psychiatric Disorders</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Psychiatric_Other -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Psychiatric_Other">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:Definition>Donors belonging to the category &quot;Psychiatric Disorder Other&quot; have  a Psychiatric Disorder, but this was not further specified.</obo:Definition>
+        <obo:abbreviation>PSYCH_other</obo:abbreviation>
+        <oboInOwl:id>Psychiatric_Other</oboInOwl:id>
+        <rdfs:label>Psychiatric Other</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Rare_Disorders -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Rare_Disorders">
+        <obo:Definition>Category including disorders that are infrequently observed in the general population and/or the autopsy cohort.</obo:Definition>
+        <oboInOwl:id>Rare_Disorders</oboInOwl:id>
+        <rdfs:label>Rare Disorders</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Schizophrenia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Schizophrenia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Psychiatric_Disorders"/>
+        <obo:abbreviation>SCZ</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/F20
+MESH:http://purl.bioontology.org/ontology/MESH/D012559
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_5419</obo:database_cross_reference>
+        <oboInOwl:id>Schizophrenia</oboInOwl:id>
+        <rdfs:label>Schizophrenia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Senile_Involutive_Cortical_Changes -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Senile_Involutive_Cortical_Changes">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:Definition>SICC is a term used by the Netherlands Brain Bank since the beginning. At first it was only about the progress of amyloid plagues and neurofibrillary tangles, but not sufficient enough to meet the criteria for Alzheimer’s disease. Over the years, the neuropathological field has developed, and by now SICC encompasses both amyloid plaques (up to Thal phase 3 out of 5) and tangles (Braak 1, 2 and 3), but also ARTAG (age-related tau-astrogliopathy)  and mild cerebral amyloid angiopathy. In the present these findings are all written down separately.</obo:Definition>
+        <obo:abbreviation>SICC</obo:abbreviation>
+        <obo:synonym>ARTAG</obo:synonym>
+        <oboInOwl:id>Senile_Involutive_Cortical_Changes</oboInOwl:id>
+        <rdfs:label>Senile Involutive Cortical Changes</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Septic_Cerebral_Foci -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Septic_Cerebral_Foci">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Vascular_Pathology"/>
+        <obo:Definition>Donors with cerebral septic lesions and/or a cerebral abcess.</obo:Definition>
+        <obo:abbreviation>SEP</obo:abbreviation>
+        <oboInOwl:id>Septic_Cerebral_Foci</oboInOwl:id>
+        <rdfs:label>Septic Cerebral Foci</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Spinocerebellar_Ataxia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Spinocerebellar_Ataxia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Cerebellar_Ataxia"/>
+        <obo:abbreviation>SCA</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/G11
+MESH: http://purl.bioontology.org/ontology/MESH/D020754
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_0050753</obo:database_cross_reference>
+        <oboInOwl:id>Spinocerebellar_Ataxia</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Spinocerebellar Ataxia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Syndromes -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Syndromes">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Rare_Disorders"/>
+        <obo:Definition>Group of rare syndromes associated with a specific genetic cause.</obo:Definition>
+        <oboInOwl:id>Syndromes</oboInOwl:id>
+        <rdfs:label>Syndromes</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Tauopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Tauopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:abbreviation>TAU</obo:abbreviation>
+        <obo:database_cross_reference>MESH:http://purl.bioontology.org/ontology/MESH/D024801
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_680</obo:database_cross_reference>
+        <oboInOwl:id>Tauopathy</oboInOwl:id>
+        <rdfs:label>Tauopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Vascular_Dementia -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Vascular_Dementia">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>VD</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/F01
+MESH: http://purl.bioontology.org/ontology/MESH/D015140
+DOID: https://disease-ontology.org/?id=DOID:8725</obo:database_cross_reference>
+        <oboInOwl:id>Vascular_Dementia</oboInOwl:id>
+        <rdfs:label>Vascular Dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Vascular_Encephalopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Vascular_Encephalopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Encephalopathy"/>
+        <obo:Definition>Donors with neuropathological vascular lesions (infarctions/atherosclerosis/hemmorhages).</obo:Definition>
+        <obo:abbreviation>VE</obo:abbreviation>
+        <oboInOwl:id>Vascular_Encephalopathy</oboInOwl:id>
+        <rdfs:label>Vascular Encephalopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Vascular_Pathology -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Vascular_Pathology">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Neuropathophysiological_Traits"/>
+        <obo:Definition>Group of traits observed on autopsy related to vascular pathology.</obo:Definition>
+        <oboInOwl:id>Vascular_Pathology</oboInOwl:id>
+        <rdfs:label>Vascular Pathology</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Wernicke_Encephalopathy -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Wernicke_Encephalopathy">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Progressive_Neurodegenerative_Diseases"/>
+        <obo:abbreviation>WER</obo:abbreviation>
+        <obo:database_cross_reference>ICD10:http://purl.bioontology.org/ontology/ICD10CM/E51.2
+MESH:http://purl.bioontology.org/ontology/MESH/D014899
+Human disease ontology: http://purl.obolibrary.org/obo/DOID_2384</obo:database_cross_reference>
+        <oboInOwl:id>Wernicke_Encephalopathy</oboInOwl:id>
+        <rdfs:label>Wernicke Encephalopathy</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Fragile-X-Associated_Tremor/Ataxia_Syndrome -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Fragile-X-Associated_Tremor/Ataxia_Syndrome">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Cerebellar_Ataxia"/>
+        <obo:abbreviation>FXTAS</obo:abbreviation>
+        <obo:database_cross_reference>MESH: http://purl.bioontology.org/ontology/MESH/C564105
+Human Disease Ontology: http://purl.obolibrary.org/obo/DOID_0050879</obo:database_cross_reference>
+        <oboInOwl:id>Fragile-X-Associated_Tremor/Ataxia_Syndrome</oboInOwl:id>
+        <IsProgressiveNeurodegenerativeDisease rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</IsProgressiveNeurodegenerativeDisease>
+        <rdfs:label>Fragile-X-Associated Tremor/Ataxia Syndrome</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/Space-Occupying_Proces/Tumor -->
+
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/Space-Occupying_Proces/Tumor">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/Brain_Cancer"/>
+        <obo:abbreviation>TUM</obo:abbreviation>
+        <obo:database_cross_reference>ICD10: http://purl.bioontology.org/ontology/ICD10CM/R90.0
+MESH: http://purl.bioontology.org/ontology/MESH/D001932
+Human Phenotype Ontology: http://purl.obolibrary.org/obo/HP_0030692
+Human Disease Ontology:http://purl.obolibrary.org/obo/DOID_1319</obo:database_cross_reference>
+        <oboInOwl:id>Space-Occupying_Proces/Tumor</oboInOwl:id>
+        <rdfs:label>Space-Occupying Proces or Tumor</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE">
+        <obo:abbreviation>EXCLUDE</obo:abbreviation>
+        <oboInOwl:id>EXCLUDE</oboInOwl:id>
+        <rdfs:label>EXCLUDE</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#No_PA-report_available -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#No_PA-report_available">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE"/>
+        <obo:abbreviation>NPA</obo:abbreviation>
+        <oboInOwl:id>No_PA-report_available</oboInOwl:id>
+        <rdfs:label>No PA-report available</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Non-Alzheimer_dementia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Non-Alzheimer_dementia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE"/>
+        <obo:abbreviation>NAD</obo:abbreviation>
+        <oboInOwl:id>Non-Alzheimer_dementia</oboInOwl:id>
+        <rdfs:label>Non-Alzheimer dementia</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Unknown_Diagnosis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Unknown_Diagnosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE"/>
+        <obo:abbreviation>Unknown</obo:abbreviation>
+        <oboInOwl:id>Unknown_Diagnosis</oboInOwl:id>
+        <rdfs:label>Unknown Diagnosis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Tissue_is_not_usable,_or_diagnosis_is_other_than_described_in_list,_or_diagnosis_is_unknown -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Tissue_is_not_usable,_or_diagnosis_is_other_than_described_in_list,_or_diagnosis_is_unknown">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#EXCLUDE"/>
+        <obo:abbreviation>NU</obo:abbreviation>
+        <oboInOwl:id>Tissue_is_not_usable_or_diagnosis_is_other_than_described_in_list_or_diagnosis is_unknown</oboInOwl:id>
+        <rdfs:label>Tissue is not usable, or diagnosis is other than described in list, or diagnosis is unknown</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotations
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Alexander%252525252527s_disease">
+        <oboInOwl:id>Alexander%2525252527s_disease</oboInOwl:id>
+    </rdf:Description>
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Fahr%252525252527s_syndrome">
+        <oboInOwl:id>Fahr%2525252527s_syndrome</oboInOwl:id>
+    </rdf:Description>
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/http://www.semanticweb.org/irholtman/ontologies/2023/5/untitled-ontology-7#Huntington%252525252527s_disease">
+        <oboInOwl:id>Huntington%2525252527s_disease</oboInOwl:id>
+    </rdf:Description>
+    <rdf:Description rdf:about="http://www.semanticweb.org/irholtman/ontologies/2023/5/Picks_disease">
+        <oboInOwl:id>Picks_disease</oboInOwl:id>
+    </rdf:Description>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // General axioms
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_A"/>
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_B"/>
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Frontotemporal_Dementia_TDP_type_C"/>
+        </owl:members>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
+        <owl:members rdf:parseType="Collection">
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Primary_Progressive"/>
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Remitting_Relapsing"/>
+            <rdf:Description rdf:about="http://purl.obolibrary.org/obo/Multiple_Sclerosis_Secondary_Progressive"/>
+        </owl:members>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.25.2023-02-15T19:15:49Z) https://github.com/owlcs/owlapi -->
+

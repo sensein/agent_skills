@@ -266,6 +266,20 @@ paper (Hu et al. 2026, CC BY 4.0), produced by `examples/ttl/run.sh`; its entity
 and concept IRIs are identical to the human-curated graph's. Diff against it when
 debugging.
 
+## AIT mapping mode
+
+The AIT cell-type mapping mode (`prompts/extractor-cell-type-ait-mapping.md`) keeps
+its seven review tables and **always** adds `<paper_id>.ttl`, written by
+`scripts/ait_ttl.py` from the validated tables through `json_to_ttl.result_to_ttl`
+with an `AitTurtleBuilder` (`builder_cls`) whose `emit_mapping` writes the
+`mappings.csv` edges instead of item-level ontology ids. One entity can carry several
+edges (a region-defined population → one `skos:narrowMatch` per AIT group). The
+concept IRI is the taxonomy node's own IRI in the trusted file — `urn:bkbit:<sha256>`,
+registered as prefix `BKBIT` in `ttl_config.json`; `OntologyConceptShape` accepts
+RFC 8141 URNs for this reason, and the registry still has to know the namespace.
+Variant `ait:cell-type-mapping` keeps its mentions and decisions apart from a
+`ner:cns-cells` reading of the same paper while the entities (same keys) merge.
+
 ## A different target ontology
 
 Pass `--ontology` (and a label map / shapes of your own) to both scripts, and

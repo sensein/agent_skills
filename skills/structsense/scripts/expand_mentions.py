@@ -57,7 +57,7 @@ OUT_OF_SCOPE = {"references", "bibliography", "literature cited", "acknowledgeme
 URL = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:org|com|edu|gov|io|net|de|uk)(?:/\S*)?"
                  r"|\S+\.(?:pdf|nii|gz|csv|zip|tsv|h5|h5ad)\b", re.I)
 WS = "[\\s ­]+"
-HY = "(?:-[\\s­]*|[‐‑–]|­\\s*)"
+HY = "(?:-[\\s­]*|[‐‑–−]|­\\s*)"  # −: minus sign, common in PDF figure text
 # a bibliography entry: "12. Smith, J. ...", "Smith JA, ... (2019)", "... 2019; 12:345-9", a DOI
 _CITATION = re.compile(r"^\s*(\[?\d{1,3}[.\])]\s+\S|[A-Z][A-Za-z'\-]+,?\s+(?:[A-Z]\.?\s?){1,3}[,.])"
                        r"|\((?:19|20)\d{2}[a-z]?\)|\b(?:19|20)\d{2}[a-z]?[;,.]\s*\d+|doi\.org/|\bdoi:|et al\.",

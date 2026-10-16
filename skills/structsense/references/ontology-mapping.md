@@ -1,6 +1,6 @@
 # Ontology mapping (concept alignment)
 
-Map free-text terms to ontology IRIs + labels. The trusted ontologies in `trusted_ontologes/` are consulted first (below); four remote backends cover the rest.
+Map free-text terms to ontology IRIs + labels. The trusted ontologies in `trusted_ontologies/` are consulted first (below); four remote backends cover the rest.
 
 | Backend | Setup | Quality | Speed | Cost |
 |---|---|---|---|---|
@@ -15,15 +15,15 @@ Map free-text terms to ontology IRIs + labels. The trusted ontologies in `truste
 ## Recommended cascade (production default) — trusted ontologies first
 
 Everything below is configuration: `concept_mapping.json` (sources, match
-properties, routing, tiers) and `trusted_ontologes/priority.md` (which ontology
+properties, routing, tiers) and `trusted_ontologies/priority.md` (which ontology
 files, in what priority). Nothing about a particular ontology is in code.
 
 `sources_priority` (default `["trusted", "local_hybrid", "ols", "bioportal"]`) is walked in
 order; an item goes to the next source only if every earlier one left it unmapped,
 and an unavailable source is skipped, not fatal:
 
-1. **Trusted ontologies** — the files in `trusted_ontologes/`, in
-   [priority.md](../trusted_ontologes/priority.md) order (1 = first; `off` disables
+1. **Trusted ontologies** — the files in `trusted_ontologies/`, in
+   [priority.md](../trusted_ontologies/priority.md) order (1 = first; `off` disables
    a row). `python -m scripts.concept_mapping index` streams each file once into a
    flat lexicon (`lexicon/<name>.tsv.gz`) and one indexed `lexicon.sqlite`; a
    lookup is a single query, and priority is applied at query time, so editing

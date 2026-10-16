@@ -1,0 +1,1108 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#"
+     xml:base="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl"
+     xmlns:ner="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl">
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Classes of named entity and some relationships that TM can find between them.</rdfs:comment>
+        <owl:versionInfo>The main developer of NERO is Prof. Robert Stevens, the University of Manchester</owl:versionInfo>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.w3.org/2000/01/rdf-schema#comment -->
+
+    <owl:AnnotationProperty rdf:about="http://www.w3.org/2000/01/rdf-schema#comment"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#amidates -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#amidates">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAmidatedBy"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#bindsTo -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#bindsTo">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#interactsWith"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#SymmetricProperty"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#expresses -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#expresses">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isExpressedBy"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#glycosylates -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#glycosylates">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isGlycosylatedBy"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasLinguisticLinkTo -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasLinguisticLinkTo">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#SymmetricProperty"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasMember -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasMember">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMemberOf"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOutput -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOutput">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isOutputOf"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasPart -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasPart"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasParticipant -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasParticipant"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasReferent -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasReferent">
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isReferentOf"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#interactsWith -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#interactsWith">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#SymmetricProperty"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAmidatedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAmidatedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAnnotationOf -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAnnotationOf"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isExpressedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isExpressedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isGlycosylatedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isGlycosylatedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMemberOf -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMemberOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasLinguisticLinkTo"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMethylatedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMethylatedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy"/>
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#methylates"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#interactsWith"/>
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#modifies"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isOutputOf -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isOutputOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isPhosphorylatedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isPhosphorylatedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isModifiedBy"/>
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#phosphorylates"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:range rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isReferentOf -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isReferentOf">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasLinguisticLinkTo"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isRelatedBy -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isRelatedBy">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasLinguisticLinkTo"/>
+        <owl:inverseOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#relates"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#methylates -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#methylates"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#modifies -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#modifies"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#phosphorylates -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#phosphorylates"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#relates -->
+
+    <owl:ObjectProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#relates"/>
+    
+
+
+    <!-- http://www.w3.org/2002/07/owl#topObjectProperty -->
+
+    <owl:ObjectProperty rdf:about="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasEndCharacter -->
+
+    <owl:DatatypeProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasEndCharacter">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOffset"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnnotationInText"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOffset -->
+
+    <owl:DatatypeProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOffset"/>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasStartCharacter -->
+
+    <owl:DatatypeProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasStartCharacter">
+        <rdfs:subPropertyOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOffset"/>
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnnotationInText"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasTrustLevel -->
+
+    <owl:DatatypeProperty rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasTrustLevel">
+        <rdfs:domain rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnnotationInText"/>
+        <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+        <rdfs:comment>the trust one has in the automated annotation from a text mining point of view</rdfs:comment>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AbstractEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AbstractEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+        <rdfs:label>Abstract text entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AminoAcidEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AminoAcidEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#SmallMoleculeEntity"/>
+        <rdfs:comment>A kind of small molecules, which is one of the 20 naturally occuring amino acids, their residues within proteins or peptides or modifications thereof</rdfs:comment>
+        <rdfs:label>Amino acid named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AminoAcidOrPeptideEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AminoAcidOrPeptideEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AminoAcidEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PartOfProteinEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Amino acid or peptide named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Anatomical part named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnnotationInText -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnnotationInText">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#Information_content_entity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isAnnotationOf"/>
+                <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasEndCharacter"/>
+                <owl:someValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasStartCharacter"/>
+                <owl:someValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasTrustLevel"/>
+                <owl:someValuesFrom rdf:resource="http://www.w3.org/2001/XMLSchema#float"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <owl:disjointWith rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+        <rdfs:comment>A portion of text with something said about it.</rdfs:comment>
+        <rdfs:label>Annotation in text</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AtomEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AtomEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity"/>
+        <rdfs:label>Atom named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CellEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CellEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity"/>
+        <rdfs:label>Cell named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CellularComponentEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CellularComponentEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity"/>
+        <rdfs:label>Cellular component named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Chemical named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CitationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CitationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Citation named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DiseaseEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DiseaseEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#biologicalProcessEntity"/>
+        <rdfs:label>Disease named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DrugEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DrugEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity"/>
+        <rdfs:comment>Actually a role played by a chemical in a certain context. Drugs are usually small molecules but that&apos;s not always so....</rdfs:comment>
+        <rdfs:label>Drug named entity</rdfs:label>
+        <rdfs:label>Drug text entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DurationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DurationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Duration named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#EnvironmentalFactorEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#EnvironmentalFactorEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ExperimentalFactorEntity"/>
+        <rdfs:label>Environmental factor named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ExperimentalFactorEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ExperimentalFactorEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Experimental factor named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#FacilityEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#FacilityEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>facility named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#FoodEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#FoodEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Food or drink that is not a simple substance (e.g., salt, water) or an organism name (e.g., wheat, pig, rice). Properly, this should be a role of a substance.</rdfs:comment>
+        <rdfs:label>Food named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:label>Gene named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneOrProteinEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneOrProteinEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Gene or protein named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneOrProteinGroupEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneOrProteinGroupEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntityGroupEntity"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasMember"/>
+                        <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">2</owl:minQualifiedCardinality>
+                        <owl:onClass>
+                            <owl:Class>
+                                <owl:unionOf rdf:parseType="Collection">
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity"/>
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+                                </owl:unionOf>
+                            </owl:Class>
+                        </owl:onClass>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:label>Gene or protein group named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeographicalLocationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeographicalLocationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:comment>Accommodates sites of all sorts of things - valleys, hills, countries, regions, oceans, poles, long and lat</rdfs:comment>
+        <rdfs:label>Geographical location named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#Information_content_entity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#Information_content_entity">
+        <rdfs:isDefinedBy>A generically dependent continuant that is about some thing.</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy>IAO:
+http://purl.obolibrary.org/obo/IAO_0000030</rdfs:isDefinedBy>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#IntellectualProductEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#IntellectualProductEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isOutputOf"/>
+                <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MentalProcessentity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A theory, idea, concept, hypothesis that is not linked in the text to a specific publication.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+For example, a patent includes intellectual product, but foremost it is a publication.</rdfs:comment>
+        <rdfs:label>Intellectual product named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#IonEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#IonEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity"/>
+        <rdfs:label>Ion named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#JournalEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#JournalEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Journal named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#LaboratoryExperimentalFactorEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#LaboratoryExperimentalFactorEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ExperimentalFactorEntity"/>
+        <rdfs:label>Laboratory experimental factor named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#LanguageEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#LanguageEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Language named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MeasurementEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MeasurementEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Measurement named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalDeviceEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalDeviceEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Medical device named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalFindingEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalFindingEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Medical finding named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalProcedureEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalProcedureEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity"/>
+        <rdfs:label>Medical procedure named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalProcedureOrDeviceEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalProcedureOrDeviceEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalDeviceEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MedicalProcedureEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Medical procedure or device named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MentalProcessentity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MentalProcessentity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasOutput"/>
+                <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#IntellectualProductEntity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Memory, emotions, thoughts, learning, cognition.</rdfs:comment>
+        <rdfs:label>Mental process named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MolecularProcessEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MolecularProcessEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity"/>
+        <rdfs:label>Molecular process named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#interactsWith"/>
+                        <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:comment>why is this part of some protein?</rdfs:comment>
+        <rdfs:label>Molecule named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+        <rdfs:label>Named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntityGroupEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntityGroupEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasMember"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">2</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:label>Group of named entity text entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NonproteinOrNucleicAcidChemicalEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NonproteinOrNucleicAcidChemicalEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ChemicalEntity"/>
+                    <owl:Class>
+                        <owl:complementOf>
+                            <owl:Class>
+                                <owl:unionOf rdf:parseType="Collection">
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NucleicAcidEntity"/>
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity"/>
+                                </owl:unionOf>
+                            </owl:Class>
+                        </owl:complementOf>
+                    </owl:Class>
+                </owl:intersectionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">All chemicals that are not nucleic acid or protein -- isotopes, ions, etc.</rdfs:comment>
+        <rdfs:label>Non ucleic acid or protein molecule named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NucleicAcidEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NucleicAcidEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:label>Nucleic acid named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#OrganismEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#OrganismEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Organism named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PartOfProteinEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PartOfProteinEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">An oligopeptitide that is part of or maps to some protein. A peptide in its own right is a protein.</rdfs:comment>
+        <rdfs:label>Part of protein named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isMemberOf"/>
+                <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonGroupEntity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A proper name of an individual person.</rdfs:comment>
+        <rdfs:label>Person named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonGroupEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonGroupEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#hasMember"/>
+                <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PersonEntity"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A proper name of an association of individuals, including companies, clubs, political organizations, government branches, or other entities, as well as groups by character, of people that share certain characteristics such as profession, gender, nationality or diseases..</rdfs:comment>
+        <rdfs:label>Group of person named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Process named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PronounEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PronounEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+        <rdfs:label>Pronoun text entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProperNamedGeographicalLocationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProperNamedGeographicalLocationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeographicalLocationEntity"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A proper name of a geographical location.</rdfs:comment>
+        <rdfs:label>Proper  name for a geographical named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProteinEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isExpressedBy"/>
+                        <owl:someValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity"/>
+                    </owl:Restriction>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#isExpressedBy"/>
+                        <owl:allValuesFrom rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeneEntity"/>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:label>Protein named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PublicationOrCitationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PublicationOrCitationEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CitationEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PublishedSourceOfInformationEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PublishedSourceOfInformationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PublishedSourceOfInformationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A reference to a paper (citation), an article, manuscript, video, book, diary, note, message, report, letter, journal, etc.</rdfs:comment>
+        <rdfs:label>Published source of information named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#QuantityEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#QuantityEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Quantity named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#QuantityOrMeasurementEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#QuantityOrMeasurementEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MeasurementEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#QuantityEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Quantity or measurement named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#RelationshipEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#RelationshipEntity">
+        <rdfs:subClassOf>
+            <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity"/>
+                    <owl:Restriction>
+                        <owl:onProperty rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#relates"/>
+                        <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">2</owl:minQualifiedCardinality>
+                        <owl:onClass>
+                            <owl:Class>
+                                <owl:unionOf rdf:parseType="Collection">
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+                                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#PronounEntity"/>
+                                </owl:unionOf>
+                            </owl:Class>
+                        </owl:onClass>
+                    </owl:Restriction>
+                </owl:intersectionOf>
+            </owl:Class>
+        </rdfs:subClassOf>
+        <rdfs:label>Relationship text entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ResearchActivityEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ResearchActivityEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity"/>
+        <rdfs:label>Research activity named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#SmallMoleculeEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#SmallMoleculeEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#MoleculeEntity"/>
+        <rdfs:label>Small molecule named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TextEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#Information_content_entity"/>
+        <rdfs:isDefinedBy>A textual entity is a part of a manifestation (FRBR sense), a generically dependent continuant whose concretizations are patterns of glyphs intended to be interpreted as words, formulas, etc.</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy>IAO</rdfs:isDefinedBy>
+        <rdfs:label>Textual entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TimePointEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TimePointEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>time point named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#UnitEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#UnitEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:label>Unit named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#UnproperNamedGeographicalLocationEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#UnproperNamedGeographicalLocationEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#GeographicalLocationEntity"/>
+        <rdfs:label>Unproper named  geographical location named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#biologicalProcessEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#biologicalProcessEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#ProcessEntity"/>
+        <rdfs:label>Biological process named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#bodyPartEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#bodyPartEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity"/>
+        <rdfs:label>Body part named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#chromosomeEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#chromosomeEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#CellularComponentEntity"/>
+        <rdfs:label>Chromosome named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#timeEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#timeEntity">
+        <owl:equivalentClass>
+            <owl:Class>
+                <owl:unionOf rdf:parseType="Collection">
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#DurationEntity"/>
+                    <rdf:Description rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#TimePointEntity"/>
+                </owl:unionOf>
+            </owl:Class>
+        </owl:equivalentClass>
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#NamedEntity"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A period or time point. A calendar time description that includes the year, decade or century. Other phrases that describe a duration in any time-related unit (seconds, hours, millennia) belong with quantity-or-measure-in-units category.</rdfs:comment>
+        <rdfs:label>Time named entity</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#tissueEntity -->
+
+    <owl:Class rdf:about="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#tissueEntity">
+        <rdfs:subClassOf rdf:resource="http://www.cs.man.ac.uk/~stevensr/ontology/ner.owl#AnatomicalPartEntity"/>
+        <rdfs:label>tissue named entity</rdfs:label>
+    </owl:Class>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+

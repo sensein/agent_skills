@@ -1,0 +1,374 @@
+@prefix schema: <http://schema.org/> .
+@prefix pav: <http://purl.org/pav/> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix xls2rdf: <https://xls2rdf.sparna.fr/vocabulary#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skosthes: <http://purl.org/iso25964/skos-thes#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dbr: <https://dbpedia.org/resource/> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix elderlycare: <https://github.com/Lars-S-S/ElderlyCareVocab/blob/main/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix euvoc: <http://publications.europa.eu/ontology/euvoc#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+
+<https://github.com/Lars-S-S/ElderlyCareVocab/> a skos:ConceptScheme;
+  skos:prefLabel "Vocabulary for the research on data interoperability in elderly dementia care"@en;
+  dct:title "Vocabulary for the research on data interoperability in elderly dementia care"@en;
+  dct:description "This is a template for the research on data interoperability in elderly dementia care"@en;
+  dct:creator "Fieldlab 5"@en;
+  dct:contributor "Nathalia Morales Rojas, Tessa de Jong, Michael de Koning, Wessel van Putten, Rick Schreuder, Michael de Rooij"@en;
+  pav:createdOn "45271"@en;
+  pav:lastUpdatedOn "45278"@en;
+  pav:version "2.0"@en;
+  skos:hasTopConcept elderlycare:ElderlyCareOntology .
+
+elderlycare:ElderlyCareOntology a skos:Concept;
+  skos:prefLabel "Elderly care ontology"@en;
+  skos:definition "The general ontology for elderly dementia care"@en;
+  skos:narrower elderlycare:PersonalData, elderlycare:Hobbies, elderlycare:DailySchedule,
+    elderlycare:PreferencesEnvironment, elderlycare:MedicalHistory, elderlycare:Medication,
+    elderlycare:PhysicalCondition, elderlycare:MedicalCarePreferences;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/>;
+  skos:topConceptOf <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PersonalData a skos:Concept;
+  skos:prefLabel "Personal data"@en;
+  skos:definition "Personal data of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:BSN;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:BSN a skos:Concept;
+  skos:prefLabel "BSN"@en;
+  skos:definition "The citizen service number of the patient."@en;
+  skos:broader elderlycare:PersonalData;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:Hobbies a skos:Concept;
+  skos:prefLabel "Hobbies"@en;
+  skos:definition "Data on the hobbies of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:PreferredPhysicalActivity, elderlycare:OtherActivities,
+    elderlycare:PreferredTelevisionChannels, elderlycare:EngagementInActivities, elderlycare:VariabilityInActivitiesPreferred,
+    elderlycare:OperateMobilePhone;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PreferredPhysicalActivity a skos:Concept;
+  skos:prefLabel "Preferred sport/physical activity"@en;
+  skos:definition "What kind of physical activities is the patient comfortable with performing?, you can also include the frequency."@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:OtherActivities a skos:Concept;
+  skos:prefLabel "Other activities"@en;
+  skos:definition "Does the patient have a preferred tv series or movie that they enjoy watching?, if they have a schedule (ex. 7 pm) you can also add it here."@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PreferredTelevisionChannels a skos:Concept;
+  skos:prefLabel "Preferred movies/television channels"@en;
+  skos:definition "Does the patient have a preferred tv series or movie that they enjoy watching?, if they have a schedule (ex. 7 pm) you can also add it here."@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:EngagementInActivities a skos:Concept;
+  skos:prefLabel "Engagement in activities"@en;
+  skos:definition "Is the patient excited to join new activities or is the patient more reserved?"@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:VariabilityInActivitiesPreferred a skos:Concept;
+  skos:prefLabel "Variability in activities is preferred?"@en;
+  skos:definition "Does the patient have a preference in constant change in activities? rather than having a stable routine."@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:OperateMobilePhone a skos:Concept;
+  skos:prefLabel "Do they operate a mobile/smart phone"@en;
+  skos:definition "Is the patient capable of using a smart device without any help? Or might they need assistance."@en;
+  skos:broader elderlycare:Hobbies;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:DailySchedule a skos:Concept;
+  skos:prefLabel "Daily schedule"@en;
+  skos:definition "Data on the daily schedule of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:WhoDoesWhat, elderlycare:ActivitiesAndDates, elderlycare:WakeUpTime,
+    elderlycare:SleepingTime, elderlycare:BehavorialChanges;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:WhoDoesWhat a skos:Concept;
+  skos:prefLabel "Who does what"@en;
+  skos:definition "Which tasks/activities are done by which persons? For example, does the neighbour always drive the patient to church, or does the caretaker always wash the patient?"@en;
+  skos:broader elderlycare:DailySchedule;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:ActivitiesAndDates a skos:Concept;
+  skos:prefLabel "List of activities and their dates"@en;
+  skos:definition "What activities or tasks are planned?"@en;
+  skos:broader elderlycare:DailySchedule;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:WakeUpTime a skos:Concept;
+  skos:prefLabel "Preferred wake up time"@en;
+  skos:definition "At what time does the patient prefer to wake up?"@en;
+  skos:broader elderlycare:DailySchedule;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:SleepingTime a skos:Concept;
+  skos:prefLabel "Preferred sleeping time"@en;
+  skos:definition "At what time does the patient prefer to go to bed?"@en;
+  skos:broader elderlycare:DailySchedule;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:BehavorialChanges a skos:Concept;
+  skos:prefLabel "Behavorial changes"@en;
+  skos:definition "Are there any changes in behaviour?"@en;
+  skos:broader elderlycare:DailySchedule;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PreferencesEnvironment a skos:Concept;
+  skos:prefLabel "Preferences of environment"@en;
+  skos:definition "Data on the preferences in the environment of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:PreferredRestingSurfaces, elderlycare:PreferredMaterials,
+    elderlycare:GoodDaysBadDays, elderlycare:HomeCareProviderAllowedIn, elderlycare:WillingnessSpeakingProfoundMatters,
+    elderlycare:HousingAdaptationNow, elderlycare:HousingAdaptationWanted;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PreferredRestingSurfaces a skos:Concept;
+  skos:prefLabel "Preferred resting surfaces"@en;
+  skos:definition "What is the patient's preferred resting surface? It can be a bed, chair, sofa, etc."@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PreferredMaterials a skos:Concept;
+  skos:prefLabel "Preferred materials (clothes/bedding/etc.)"@en;
+  skos:definition "Does the patient have a preference when it comes with object in their environment? Can be related to sensory issues. This can involve bedding, material of clothes, etc."@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:GoodDaysBadDays a skos:Concept;
+  skos:prefLabel "Good days/bad days (their husband died, specific holidays)"@en;
+  skos:definition "Are there any specific days to take notice? This can include deaths in the family or holidays that make them excited."@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:HomeCareProviderAllowedIn a skos:Concept;
+  skos:prefLabel "Is the home care provider allowed to go in themselves"@en;
+  skos:definition "Is the home care provide allowed to go in themselves? Do they need someone to pick them up?"@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:WillingnessSpeakingProfoundMatters a skos:Concept;
+  skos:prefLabel "Willingness to speak about profound matters"@en;
+  skos:definition "Does the patient like to speak of delicate topics such as loss, religion or spirituality?"@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:HousingAdaptationNow a skos:Concept;
+  skos:prefLabel "Degree of housing adaptation now"@en;
+  skos:definition "To what degree is the patient's housing currently adapted?"@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:HousingAdaptationWanted a skos:Concept;
+  skos:prefLabel "Degree of housing adaptation wanted"@en;
+  skos:definition "Which housing adaptations are still wanted/needed?"@en;
+  skos:broader elderlycare:PreferencesEnvironment;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:MedicalHistory a skos:Concept;
+  skos:prefLabel "Medical history"@en;
+  skos:definition "Data on the medical history of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:LevelOfDementia, elderlycare:Prognosis, elderlycare:HereditaryDiseases,
+    elderlycare:BornWithDisease, elderlycare:ProcedureHospital;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:LevelOfDementia a skos:Concept;
+  skos:prefLabel "Level of dementia"@en;
+  skos:definition "How developed is the dementia in the patient"@en;
+  skos:broader elderlycare:MedicalHistory;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:Prognosis a skos:Concept;
+  skos:prefLabel "Prognosis for (future) treatment"@en;
+  skos:definition "Is there any information on the future treatments the patient is to undergone?"@en;
+  skos:broader elderlycare:MedicalHistory;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:HereditaryDiseases a skos:Concept;
+  skos:prefLabel "Hereditary diseases"@en;
+  skos:definition "Is the patient prone to hereditary diseases?"@en;
+  skos:broader elderlycare:MedicalHistory;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:BornWithDisease a skos:Concept;
+  skos:prefLabel "Is the patient born with the disease?"@en;
+  skos:definition "Has the patient been born with any illness?"@en;
+  skos:broader elderlycare:MedicalHistory;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:ProcedureHospital a skos:Concept;
+  skos:prefLabel "Procedure in hospital"@en;
+  skos:definition "What is the procedure in the hospital (or outside of it)? What are the next steps?"@en;
+  skos:broader elderlycare:MedicalHistory;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:Medication a skos:Concept;
+  skos:prefLabel "Medication"@en;
+  skos:definition "The medication data of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:TakesMedicationIndependently;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:TakesMedicationIndependently a skos:Concept;
+  skos:prefLabel "Does patient take medication independently?"@en;
+  skos:definition "Does the patient take the medication themselves?"@en;
+  skos:broader elderlycare:Medication;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PhysicalCondition a skos:Concept;
+  skos:prefLabel "Physical condition"@en;
+  skos:definition "Data on the physical condition of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:PastComplications, elderlycare:ConditionForTransport, elderlycare:MobilityIndependence,
+    elderlycare:MobilityDependence, elderlycare:PresenceSkinDamage, elderlycare:PresenceWounds,
+    elderlycare:DifficultyEatingDigesting, elderlycare:OralHealth, elderlycare:Constipation,
+    elderlycare:PresenceCOPDOrRespiratoryInfection, elderlycare:SleepPattern, elderlycare:RiskOfInfection,
+    elderlycare:DifficultyWithLanguage, elderlycare:Loneliness, elderlycare:EmotionalState;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PastComplications a skos:Concept;
+  skos:prefLabel "Past complications"@en;
+  skos:definition "Are there past complications that occured in the hospital?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:ConditionForTransport a skos:Concept;
+  skos:prefLabel "Personal condition for transport"@en;
+  skos:definition "Is it safe for the patient to be moved to the hospital or somewhere else?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:MobilityIndependence a skos:Concept;
+  skos:prefLabel "Mobility independence"@en;
+  skos:definition "What activities can the patient still do themselves?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:MobilityDependence a skos:Concept;
+  skos:prefLabel "Mobility dependence"@en;
+  skos:definition "With what activities does the patient need help?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PresenceSkinDamage a skos:Concept;
+  skos:prefLabel "Presence of pressure ulcer / intertrigo / incontinence-related skin damage"@en;
+  skos:definition "Is there pressure ulcer / intertrigo / incontinence-related skin damage present?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PresenceWounds a skos:Concept;
+  skos:prefLabel "Presence of wounds"@en;
+  skos:definition "Does the patient have a wound?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:DifficultyEatingDigesting a skos:Concept;
+  skos:prefLabel "Degree of difficulty with eating/drinking/chewing/swallowing/digesting"@en;
+  skos:definition "Does the patient have difficulty with eating/drinking/chewing/swallowing/digesting?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:OralHealth a skos:Concept;
+  skos:prefLabel "Degree of oral health"@en;
+  skos:definition "What is the degree of oral health of the patient? E.g., do they have dentures?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:Constipation a skos:Concept;
+  skos:prefLabel "Degree of constipation"@en;
+  skos:definition "Does the patient experience constipation? Or are they inclined to be constipated?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:PresenceCOPDOrRespiratoryInfection a skos:Concept;
+  skos:prefLabel "Presence of COPD or respiratory infection"@en;
+  skos:definition "Does the patient have COPD or a respiratory infection?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:SleepPattern a skos:Concept;
+  skos:prefLabel "Sleep pattern"@en;
+  skos:definition "What is the state of the sleep pattern of the patient? Do they have trouble sleeping/waking up?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:RiskOfInfection a skos:Concept;
+  skos:prefLabel "Risk of infection"@en;
+  skos:definition "Is the patient at risk for infection?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:DifficultyWithLanguage a skos:Concept;
+  skos:prefLabel "Degree of difficulty with language"@en;
+  skos:definition "Does the patient speak Dutch fluently? Does the patient have any trouble speaking?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:Loneliness a skos:Concept;
+  skos:prefLabel "Degree of loneliness"@en;
+  skos:definition "To what degree does the patient feel lonely or express loneliness?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:EmotionalState a skos:Concept;
+  skos:prefLabel "Emotional state"@en;
+  skos:definition "What is the emotional state of the patient? Are they relatively happy, sad, angry?"@en;
+  skos:broader elderlycare:PhysicalCondition;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:MedicalCarePreferences a skos:Concept;
+  skos:prefLabel "Medical care preferences"@en;
+  skos:definition "Data on the medical care preferences of the patient"@en;
+  skos:broader elderlycare:ElderlyCareOntology;
+  skos:narrower elderlycare:WashingPreferences, elderlycare:FoodPreferences, elderlycare:UseExternalParties,
+    elderlycare:NeedWantADLOrPDL;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:WashingPreferences a skos:Concept;
+  skos:prefLabel "Washing preferences"@en;
+  skos:definition "How does the patient prefer to be washed? E.g. by a woman, not washing their toes, etc."@en;
+  skos:broader elderlycare:MedicalCarePreferences;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:FoodPreferences a skos:Concept;
+  skos:prefLabel "Food preferences"@en;
+  skos:definition "What types of food and drinks does or doesn't the patient like?"@en;
+  skos:broader elderlycare:MedicalCarePreferences;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:UseExternalParties a skos:Concept;
+  skos:prefLabel "Preference for use of external parties"@en;
+  skos:definition "Does the patient want to use the following external services?"@en;
+  skos:broader elderlycare:MedicalCarePreferences;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .
+
+elderlycare:NeedWantADLOrPDL a skos:Concept;
+  skos:prefLabel "Need/want for ADL/PDL"@en;
+  skos:definition "Is there a need/want for ADL or PDL?Also, what is the patient still learning?"@en;
+  skos:broader elderlycare:MedicalCarePreferences;
+  skos:inScheme <https://github.com/Lars-S-S/ElderlyCareVocab/> .

@@ -505,11 +505,11 @@ def run(text: str, *, task: str, extractor_model: str,
 
     # --- 2. alignment ---
     # Default: the configured cascade (concept_mapping.json): trusted ontologies in
-    # trusted_ontologes/priority.md order, then local hybrid, then BioPortal.
+    # trusted_ontologies/priority.md order, then local hybrid, then BioPortal.
     cm = None
     if mapper_backend:
         # Every backend goes through the ConceptMapper cascade, so the trusted ontology
-        # files (trusted_ontologes/priority.md) are ALWAYS consulted first: "config" is
+        # files (trusted_ontologies/priority.md) are ALWAYS consulted first: "config" is
         # concept_mapping.json's sources_priority (trusted -> local hybrid -> OLS MCP ->
         # BioPortal); a named backend is trusted -> that backend.
         t0 = time.monotonic()
@@ -676,7 +676,7 @@ def _main():
     ap.add_argument("--out-dir", default=None, help="where results go (default: beside each input)")
     ap.add_argument("--mapper", choices=["config", "ols", "bioportal", "local", "none"], default="config",
                     help="mapping backend. 'config' (default): concept_mapping.json — the trusted "
-                         "ontology files in trusted_ontologes/priority.md order, then the local hybrid "
+                         "ontology files in trusted_ontologies/priority.md order, then the local hybrid "
                          "mapper if it is running, then OLS via its MCP server, then BioPortal. "
                          "'local' / 'ols' / 'bioportal': the trusted files first, then only that "
                          "backend. 'none' explicitly opts out of mapping (items get "

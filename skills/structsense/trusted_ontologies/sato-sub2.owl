@@ -1,0 +1,381 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="https://w3id.org/CAPABLE/ontologies/SATO#"
+     xml:base="https://w3id.org/CAPABLE/ontologies/SATO"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:obo="http://purl.obolibrary.org/obo/"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:bcio="http://humanbehaviourchange.org/ontology/"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:sato="https://w3id.org/CAPABLE/ontologies/SATO#"
+     xmlns:schema="https://schema.org/"
+     xmlns:Property="https://www.wikidata.org/wiki/Property:"
+     xmlns:oboInOwl="http://www.geneontology.org/formats/oboInOwl#">
+    <owl:Ontology rdf:about="https://w3id.org/CAPABLE/ontologies/SATO">
+        <owl:imports rdf:resource="http://humanbehaviourchange.org/ontology/bcio.owl"/>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal">
+        <rdfs:subPropertyOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#has_scale_value -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#has_scale_value"/>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#has_state_goal -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#has_state_goal">
+        <rdfs:subPropertyOf rdf:resource="http://purl.obolibrary.org/obo/RO_0000057"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#is_described_by -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#is_described_by">
+        <obo:IAO_0000115>Relates a continuant (e.g., Person state) to a data item that describes it.
+
+Example: fatigue state is_described_by fatigue assessment result</obo:IAO_0000115>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#may_prevent -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#may_prevent">
+        <rdfs:subPropertyOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal"/>
+        <rdfs:range rdf:resource="http://purl.obolibrary.org/obo/BFO_0000015"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#may_treat -->
+
+    <owl:ObjectProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#may_treat">
+        <rdfs:subPropertyOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal"/>
+        <rdfs:range rdf:resource="http://purl.obolibrary.org/obo/BFO_0000015"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#has_numeric_scale_value -->
+
+    <owl:DatatypeProperty rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#has_numeric_scale_value"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://humanbehaviourchange.org/ontology/BCIO_001000 -->
+
+    <rdf:Description rdf:about="http://humanbehaviourchange.org/ontology/BCIO_001000">
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_039000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#pathologic_process"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_state_goal"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#person_state"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </rdf:Description>
+    
+
+
+    <!-- http://humanbehaviourchange.org/ontology/BCIO_003000 -->
+
+    <rdf:Description rdf:about="http://humanbehaviourchange.org/ontology/BCIO_003000">
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://humanbehaviourchange.org/ontology/BCIOR_000003"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_010000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_002000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_006000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </rdf:Description>
+    
+
+
+    <!-- http://humanbehaviourchange.org/ontology/BCIO_007000 -->
+
+    <rdf:Description rdf:about="http://humanbehaviourchange.org/ontology/BCIO_007000">
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_008000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_013000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </rdf:Description>
+    
+
+
+    <!-- http://humanbehaviourchange.org/ontology/BCIO_033000 -->
+
+    <rdf:Description rdf:about="http://humanbehaviourchange.org/ontology/BCIO_033000">
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_006000"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </rdf:Description>
+    
+
+
+    <!-- http://purl.obolibrary.org/obo/OBI_0000260 -->
+
+    <rdf:Description rdf:about="http://purl.obolibrary.org/obo/OBI_0000260">
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_process_goal"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_assessment_result"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </rdf:Description>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#assessment_result -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#assessment_result">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/IAO_0000027"/>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#fatigue_assessment_result -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_assessment_result">
+        <rdfs:subClassOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#assessment_result"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://humanbehaviourchange.org/ontology/BCIOR_000005"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_symptom"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_numeric_scale_value"/>
+                <owl:someValuesFrom>
+                    <rdfs:Datatype>
+                        <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+                        <owl:withRestrictions rdf:parseType="Collection">
+                            <rdf:Description>
+                                <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">9</xsd:minInclusive>
+                            </rdf:Description>
+                            <rdf:Description>
+                                <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">63</xsd:maxInclusive>
+                            </rdf:Description>
+                        </owl:withRestrictions>
+                    </rdfs:Datatype>
+                </owl:someValuesFrom>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#fatigue_person_state_of_no_clinically_significant_fatigue -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_person_state_of_no_clinically_significant_fatigue">
+        <rdfs:subClassOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_state"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#is_described_by"/>
+                <owl:someValuesFrom>
+                    <owl:Class>
+                        <owl:intersectionOf rdf:parseType="Collection">
+                            <rdf:Description rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_assessment_result"/>
+                            <owl:Restriction>
+                                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_numeric_scale_value"/>
+                                <owl:someValuesFrom>
+                                    <rdfs:Datatype>
+                                        <owl:onDatatype rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+                                        <owl:withRestrictions rdf:parseType="Collection">
+                                            <rdf:Description>
+                                                <xsd:minInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">9</xsd:minInclusive>
+                                            </rdf:Description>
+                                            <rdf:Description>
+                                                <xsd:maxInclusive rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">36</xsd:maxInclusive>
+                                            </rdf:Description>
+                                        </owl:withRestrictions>
+                                    </rdfs:Datatype>
+                                </owl:someValuesFrom>
+                            </owl:Restriction>
+                        </owl:intersectionOf>
+                    </owl:Class>
+                </owl:someValuesFrom>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#fatigue_state -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_state">
+        <rdfs:subClassOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#person_state"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#is_described_by"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_assessment_result"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#fatigue_symptom -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_symptom">
+        <rdfs:subClassOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#symptom"/>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#pathologic_process -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#pathologic_process">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/BFO_0000015"/>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#performing_fatigue-related_interventions -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#performing_fatigue-related_interventions">
+        <rdfs:subClassOf rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_039000"/>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#person_state -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#person_state">
+        <rdfs:subClassOf rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_050303"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#is_described_by"/>
+                <owl:someValuesFrom rdf:resource="http://purl.obolibrary.org/obo/IAO_0000027"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#symptom -->
+
+    <owl:Class rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#symptom">
+        <rdfs:subClassOf rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#pathologic_process"/>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- https://w3id.org/CAPABLE/ontologies/SATO#Fatigue_BCI_Scenario -->
+
+    <owl:NamedIndividual rdf:about="https://w3id.org/CAPABLE/ontologies/SATO#Fatigue_BCI_Scenario">
+        <rdf:type rdf:resource="http://humanbehaviourchange.org/ontology/BCIO_001000"/>
+        <rdf:type>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/BFO_0000117"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#performing_fatigue-related_interventions"/>
+            </owl:Restriction>
+        </rdf:type>
+        <rdf:type>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#has_state_goal"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_person_state_of_no_clinically_significant_fatigue"/>
+            </owl:Restriction>
+        </rdf:type>
+        <rdf:type>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#may_treat"/>
+                <owl:someValuesFrom rdf:resource="https://w3id.org/CAPABLE/ontologies/SATO#fatigue_symptom"/>
+            </owl:Restriction>
+        </rdf:type>
+    </owl:NamedIndividual>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+

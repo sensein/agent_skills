@@ -2,7 +2,7 @@
 
 > **Trusted ontologies first.** Before any HTTP mapper, run
 > `python -m scripts.concept_mapping map <result.json>`: it maps every item it can
-> from the trusted ontology files (`trusted_ontologes/priority.md` order), then
+> from the trusted ontology files (`trusted_ontologies/priority.md` order), then
 > sends only the rest to the local hybrid service and BioPortal
 > (`concept_mapping.json` → `sources_priority`). Use the calls below for whatever
 > is still `unmapped`, with `--only-unmapped` semantics: never overwrite a

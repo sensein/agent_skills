@@ -623,6 +623,16 @@ class TurtleBuilder:
             text = cut.rstrip(" ,;:") + "…"
         self.add(node, RDFS.label, Literal(text))
 
+    def id_name(self, curie: str, pref: Optional[str] = None, acr: str = "") -> str:
+        """A name for a node that stands for an identifier: the CURIE when it fits
+        labels.max_length, else the concept's preferred label. An identifier is never
+        cut: a shortened CURIE ("BKBIT:0453…") names nothing. The full identifier is
+        always on the concept (ner:conceptIdentifier / ner:conceptIRI)."""
+        cap = self.cfg.label_max_length
+        if not cap or len(curie) <= cap or not (pref or acr):
+            return curie
+        return str(pref) if pref else f"{acr} concept"
+
     def mint(self, kind: str, local: str) -> URIRef:
         """A paper-scoped node: UUIDv5 of `paper_name` (see ttl_config.json `iri`)."""
         if self.cfg.iri_scheme == "slug":
@@ -941,7 +951,12 @@ class TurtleBuilder:
             cls, class_note = self.resolve_class(grp["label"], grp["kind"], plan)
             from_plan = bool(plan.get("normalized_key")) or len({it.get("identity_key") for it in grp["items"] if it.get("identity_key")}) == 1
             key = plan.get("normalized_key") or self.derive_key(grp)
-            if from_plan:
+            identities = {it.get("identity_key") for it in grp["items"]}
+            asserted = len(identities) == 1 and key == normalize_key(str(next(iter(identities)) or ""), {})
+            if from_plan and not asserted:
+                # an explicit identity_key is an identity assertion, never a wrapped
+                # surface: "str_d2_msn" must not become "str_d2msn" because one alias
+                # of the entity is written "D2MSN"
                 key = rejoin_wrapped(key, grp)
             if not key:
                 key = f"{fold(self.slug)}_{slugify(grp['surface']).replace('-', '_')}"
@@ -1287,7 +1302,7 @@ class TurtleBuilder:
         pref = it.get("ontology_label")
         if pref:
             self.add(node, NER.preferredLabel, self.lit(pref, XSD.string))
-        self.label(node, pref or curie)
+        self.label(node, pref or self.id_name(curie, None, acr))
         self.add(node, NER.conceptInOntologyVersion, self.ontology_version(acr))
         self.concepts[curie] = node
         return node
@@ -1349,7 +1364,7 @@ class TurtleBuilder:
         self.add(cand, NER.candidateConcept, concept)
         self.add(cand, NER.candidateForNormalizedEntity, ent["node"])
         self.add(cand, NER.mappingRank, self.lit(1, XSD.positiveInteger))  # the selected (top) candidate
-        self.label(cand, ref[1])
+        self.label(cand, self.id_name(ref[1], self.g.value(concept, NER.preferredLabel), ref[2]))
         score = it.get("mapping_score") or it.get("score")
         if isinstance(score, (int, float)):
             sc = self.mint("mapping_score", base)
@@ -1383,7 +1398,7 @@ class TurtleBuilder:
             conf = it["score"]
         if isinstance(conf, (int, float)):
             self.add(dec, NER.decisionConfidence, self.dec(round(float(conf), 4)))
-        self.label(dec, ref[1])
+        self.label(dec, self.id_name(ref[1], self.g.value(concept, NER.preferredLabel), ref[2]))
 
     # ---- reviews ------------------------------------------------------------
     def judge_agent(self, judge: str) -> URIRef:
@@ -1973,7 +1988,7 @@ def _causal_prop(field: str) -> str:
             "modality": "causalModality", "directness": "causalDirectness"}[field]
 
 
-CONFIG_FILES = ("concept_mapping.json", "judges_config.json", "trusted_ontologes/priority.md",
+CONFIG_FILES = ("concept_mapping.json", "judges_config.json", "trusted_ontologies/priority.md",
                 "default_ontology/ttl_config.json", "default_ontology/label_class_map.json",
                 "default_ontology/key_synonyms.json", "default_ontology/named_entity_ontology.owl",
                 "default_ontology/named_entity_shapes.ttl")
@@ -2030,8 +2045,13 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
                   source_path: Optional[Path] = None,
                   media_type: Optional[str] = None,
                   ttl_config: Path = DEFAULT_TTL_CONFIG,
-                  variant: Optional[str] = None) -> tuple[str, dict]:
+                  variant: Optional[str] = None,
+                  builder_cls: Optional[type] = None) -> tuple[str, dict]:
     """Library entry point. Returns (turtle_text, report).
+
+    `builder_cls` lets a mode subclass TurtleBuilder (scripts/ait_ttl.py overrides
+    emit_mapping to write AIT taxonomy edges) while keeping identity, provenance and
+    the gate identical to every other NER result.
 
     A resource result (extracted_resources) is a resource KG, not a NER graph: it is
     built by scripts/resource_kg.py against the BrainKB Resource Ontology
@@ -2055,7 +2075,7 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
     slug = paper_slug or paper_slug_for(meta, fallback=json.dumps(meta, sort_keys=True) or "paper")
     digest = hashlib.sha1(json.dumps(result, sort_keys=True, default=str).encode()).hexdigest()[:8]
     checksum = sha256_of(source_path) if source_path and Path(source_path).is_file() else meta.get("sha256")
-    builder = TurtleBuilder(
+    builder = (builder_cls or TurtleBuilder)(
         result, kg_plan=kg_plan, label_map=load_json(label_map, {}),
         synonyms=syn.get("synonyms", {}),
         declared=declared, ontology_version=onto_version, paper_slug=slug, kb_ns=kb_ns,

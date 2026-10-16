@@ -1,0 +1,2115 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/AD-DROP#"
+     xml:base="http://www.semanticweb.org/AD-DROP"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:swrl="http://www.w3.org/2003/11/swrl#"
+     xmlns:swrlb="http://www.w3.org/2003/11/swrlb#"
+     xmlns:AD-DROP="http://www.semanticweb.org/AD-DROP#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/AD-DROP">
+        <rdfs:label>Alzheimer Disease Relevance Ontology by Process</rdfs:label>
+        <rdfs:seeAlso>AD-DROP</rdfs:seeAlso>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Object Properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#part_of -->
+
+    <owl:ObjectProperty rdf:about="http://www.semanticweb.org/AD-DROP#part_of">
+        <rdfs:label>part of</rdfs:label>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#Lancet_score -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/AD-DROP#Lancet_score">
+        <rdfs:subPropertyOf rdf:resource="http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level"/>
+        <rdfs:label>Lancet score</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#frequency_score -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/AD-DROP#frequency_score">
+        <rdfs:label>frequency score</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level">
+        <rdfs:label>pathogenic intensity level</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#specificity_level -->
+
+    <owl:DatatypeProperty rdf:about="http://www.semanticweb.org/AD-DROP#specificity_level">
+        <rdfs:label>specificity level</rdfs:label>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#AlzheimerDiseaseTypedisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#AlzheimerDiseaseTypedisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 6) -&gt; &apos;Alzheimer Disease type disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 6 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Alzheimer Disease type disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Alzheimer Disease type DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#AlzheimerDiseasedisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#AlzheimerDiseasedisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 5) -&gt; &apos;Alzheimer Disease disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 5 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Alzheimer Disease disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Alzheimer Disease DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#classifieddisease-relevantProcessByProperties -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#classifieddisease-relevantProcessByProperties">
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Upper class of a branch where DRPs are classified through their properties of specificity, frequency and/or pathogenic intensity toward Alzheimer disease. No DRPs should be asserted in this branch, they will be classified according logical reasoning.</rdfs:comment>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with at least one value for one of the specificity, frequency or pathogenic intensity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">classified disease-relevant process by properties</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">classified DRP by properties</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#communlyFrequentdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#communlyFrequentdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;frequency score&apos;(?x, ?FS), greaterThanOrEqual(?FS, 25), lessThan(?FS, 50)  -&gt; &apos;communly frequent disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 25 and 49% for its frequency toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">communly frequent disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Communly frequent DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#classifieddisease-relevantProcessByProperties"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by pathogenic intensity is the upper class of 4 classes wich represente 4 levels of frequency on a scale from occasional DRP to very frequent DRP. These levels depend to the DRP value (occasional [1-24%], commun [25-49%], frequent [50-74%] and very frequent [75-100])</rdfs:comment>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with one value for frequency toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">disease-relevant process by Frequency</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by Frequency</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#disease-relevantProcessByPathogenicIntensity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByPathogenicIntensity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#classifieddisease-relevantProcessByProperties"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by pathogenic intensity is the upper class of 3 classes wich represente 3 levels of pathogenic intensity on a scale from lowly intense DRP to highly DRP. These levels depend to the DRP value (low [1-3], middle [4-7], high [8-] according lancet score (Lancet&apos;s “population attributable fraction” attributed to this DRP (p. 428, Livingston et al., 2020)))</rdfs:comment>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with at least one value for pathogenic intensity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">disease-relevant process by pathogenic intensity</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by pathogenic intensity</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#classifieddisease-relevantProcessByProperties"/>
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by specificity is the upper class of 7 classes wich represente 7 levels of specificities on a scale from individual DRP to life-style DRP. These levels depend to the DRP value.</rdfs:comment>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with one value for one of the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">disease-relevant process by specificity</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP by specificity</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP identified as belonging to environmental level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">environmental disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">environmental DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#frequentdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#frequentdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;frequency score&apos;(?x, ?FS), greaterThanOrEqual(?FS, 50), lessThan(?FS, 75) -&gt; &apos;frequent disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 50 and 74% for its frequency toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">frequent disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Frequent DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP identified as belonging to gene level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">gene-related disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">gene-related DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#highlyImpactingdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#highlyImpactingdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByPathogenicIntensity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;pathogenic intensity level&apos;(?x, ?PIL), greaterThan(?PIL, 7) -&gt; &apos;highly impacting disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value greater than 8 to its intensity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">highly impacting disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">highly impacting DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess">
+        <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Upper class of a branch where DRPs are classified through their traditionnal biological level (gene-related, molecular, physiological…). Any DRPs should be asserted in this branch.</rdfs:comment>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">identified disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">identified DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#individualdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#individualdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 7) -&gt; &apos;individual disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 7 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">individual disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">individual DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#life-styledisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#life-styledisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 2) -&gt; &apos;life-style disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 2 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">life-style disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">life-style DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#lifedisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#lifedisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 1) -&gt; &apos;life disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 1 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">life disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">life DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#lowlyImpactingdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#lowlyImpactingdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByPathogenicIntensity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;pathogenic intensity level&apos;(?x, ?PIL), greaterThanOrEqual(?PIL, 1), lessThan(?PIL, 3) -&gt; &apos;lowly impacting disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 4 and 7 for its the pathogenic intensity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">lowly impacting disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">lowly impacting DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#midlyImpactingdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#midlyImpactingdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByPathogenicIntensity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;pathogenic intensity level&apos;(?x, ?PIL), greaterThanOrEqual(?PIL, 4), lessThan(?PIL, 8) -&gt; &apos;midly impacting disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 1 and 3 for its the pathogenic intensity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">midly impacting disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">midly impacting DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP identified as belonging to molecular level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">molecular disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Molecular DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#neurodegenerativeDiseasedisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#neurodegenerativeDiseasedisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 4) -&gt; &apos;neurodegenerative disease disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 4 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">neurodegenerative disease disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">neurodegenerative disease DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#occasionaldisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#occasionaldisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;frequency score&apos;(?x, ?FS), greaterThanOrEqual(?FS, 1), lessThan(?FS, 25)  -&gt; &apos;occasional disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 1 and 24% for its frequency toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">occasional disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Occasional DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#otherdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#otherdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Identified DRP that do not refer to any discribed biological level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">other disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Other DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#pathogenicdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#pathogenicdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessBySpecificity"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;specificity level&apos;(?x, ?SL), equal(?SL, 3) -&gt; &apos;pathogenic disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value equal to 3 the specificity toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">pathogenic disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">pathogenic DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP identified as belonging to pathological level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">pathological disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Pathological DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DRP identified as belonging to physiological level.</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">physiological disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Physiological DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#veryFrequentdisease-relevantProcess -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/AD-DROP#veryFrequentdisease-relevantProcess">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/AD-DROP#disease-relevantProcessByFrequency"/>
+        <rdfs:isDefinedBy>&apos;identified disease-relevant process&apos;(?x), &apos;frequency score&apos;(?x, ?FS), greaterThanOrEqual(?FS, 75) -&gt; &apos;very frequent disease-relevant process&apos;(?x)</rdfs:isDefinedBy>
+        <rdfs:isDefinedBy rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Process that appears relevant for Alzheimer disease (AD) with a value between 75 and 100% for its frequency toward AD</rdfs:isDefinedBy>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">very frequent disease-relevant process</rdfs:label>
+        <rdfs:seeAlso rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Very frequent DRP</rdfs:seeAlso>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#A-BetaDeposition -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#A-BetaDeposition">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#AmyloidImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A-Beta deposition</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#A-BetaOligomers -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#A-BetaOligomers">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#AmyloidImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A-Beta oligomers</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#A-Betaprion-likeMechanisms -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#A-Betaprion-likeMechanisms">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#AmyloidImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">A-Beta prion-like mechanisms</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#ABCA7 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#ABCA7">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">ABCA7</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#APOE -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#APOE">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">APOE</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#APP -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#APP">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">APP</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#AmyloidImpairment -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#AmyloidImpairment">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Amyloid impairment</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#AmyloidImperment -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#AmyloidImperment"/>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#BIN1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#BIN1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">BIN1</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CD33 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CD33">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CD33</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CLU -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CLU">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CLU</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CNSGlucoseMetabolismImbalance -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CNSGlucoseMetabolismImbalance">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#bioenergeticsDysfunction"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CNS glucose metabolism imbalance</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CR1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CR1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CR1</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CalciumPathwayDysregulation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CalciumPathwayDysregulation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Calcium pathway dysregulation</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CellDeath -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CellDeath">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Cell death </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#CellularImbalances -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#CellularImbalances">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Cellular imbalances</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#DNADamage -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#DNADamage">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">DNA damage </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#GeneticImbalances -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#GeneticImbalances">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Genetic imbalances </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#HerpesInfection -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#HerpesInfection">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Herpes infection</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#Inflammation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#Inflammation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Inflammation </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#LysosomesDyfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#LysosomesDyfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Lysosomes dyfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#MolecularImbalances -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#MolecularImbalances">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Molecular imbalances </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#NetworkFailure -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#NetworkFailure">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Network failure </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#NeuronalCellCycle -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#NeuronalCellCycle">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Neuronal cell cycle </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#PSEN1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#PSEN1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">PSEN1</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#PSEN2 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#PSEN2">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">PSEN2</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#SORL1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#SORL1">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#gene-relateddisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">SORL1</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#SynapticLoss -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#SynapticLoss">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#NetworkFailure"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Synaptic loss </rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#TauDeposition -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#TauDeposition">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#TauImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Tau deposition</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#TauHyperphosphorylation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#TauHyperphosphorylation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#TauImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Tau hyperphosphorylation</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#TauImperment -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#TauImperment">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Tau imperment</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#TauOligomers -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#TauOligomers">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#TauImperment"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Tau oligomers</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#aging -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#aging">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">aging</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#airPollution -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#airPollution">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">air pollution</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#alcohol -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#alcohol">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">alcohol</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#bioenergeticsDysfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#bioenergeticsDysfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">bioenergetics dysfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#brainAtrophy -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#brainAtrophy">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">brain atrophy</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#brainHypometabolism -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#brainHypometabolism">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">brain hypometabolism</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#cerebrovascularDysfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#cerebrovascularDysfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">cerebrovascular dysfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#chronicSleepDisorder -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#chronicSleepDisorder">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">chronic sleep disorder</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#dementia -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#dementia">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">dementia</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#depression -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#depression">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">depression</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#diabetes -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#diabetes">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">diabetes</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#excitotoxicity -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#excitotoxicity">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">excitotoxicity</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#gender -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#gender">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">gender</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#hearingLoss -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#hearingLoss">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">8</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">hearing loss</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#hypertension -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#hypertension">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#pathologicaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">hypertension</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#lessEducation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#lessEducation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">less education</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#memoryImpairment -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#memoryImpairment">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">memory impairment</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#mitochondiraDysfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#mitochondiraDysfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#bioenergeticsDysfunction"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">mitochondira dysfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#neuroinflammation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#neuroinflammation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">neuroinflammation</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#neuronalLoss -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#neuronalLoss">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#NetworkFailure"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">neuronal loss</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#nutrition -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#nutrition">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#nutrition"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">nutrition</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#obesity -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#obesity">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">obesity</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#oxidativeStress -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#oxidativeStress">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">oxidative stress</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#physicalInactivity -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#physicalInactivity">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">physical inactivity</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#proteasomeDysfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#proteasomeDysfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">proteasome dysfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#reducedAutophagy -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#reducedAutophagy">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">reduced autophagy</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#smoking -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#smoking">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">smoking</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#socialIsolation -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#socialIsolation">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#environmentaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">social isolation</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#synapticDysfunction -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#synapticDysfunction">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <part_of rdf:resource="http://www.semanticweb.org/AD-DROP#NetworkFailure"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">synaptic dysfunction</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#traumaticBrainInjury -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#traumaticBrainInjury">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#physiologicaldisease-relevantProcess"/>
+        <Lancet_score rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</Lancet_score>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">traumatic brain injury</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.semanticweb.org/AD-DROP#weakerMicrotubules -->
+
+    <owl:NamedIndividual rdf:about="http://www.semanticweb.org/AD-DROP#weakerMicrotubules">
+        <rdf:type rdf:resource="http://www.semanticweb.org/AD-DROP#moleculardisease-relevantProcess"/>
+        <specificity_level rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</specificity_level>
+        <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">weaker microtubules</rdfs:label>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Rules
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description rdf:about="urn:swrl:var#x">
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Variable"/>
+    </rdf:Description>
+    <rdf:Description rdf:about="urn:swrl:var#FS">
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Variable"/>
+    </rdf:Description>
+    <rdf:Description rdf:about="urn:swrl:var#PIL">
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Variable"/>
+    </rdf:Description>
+    <rdf:Description rdf:about="urn:swrl:var#SL">
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Variable"/>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#frequency_score"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#FS"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                        <rdf:first>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">25</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </rdf:Description>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </rdf:Description>
+                                </rdf:rest>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#occasionaldisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">2</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#life-styledisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#pathogenicdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#neurodegenerativeDiseasedisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">5</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#AlzheimerDiseasedisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">6</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#AlzheimerDiseaseTypedisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#frequency_score"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#FS"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">25</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                        <rdf:first>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">50</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </rdf:Description>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </rdf:Description>
+                                </rdf:rest>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#communlyFrequentdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#individualdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#frequency_score"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#FS"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">50</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                        <rdf:first>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">75</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </rdf:Description>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </rdf:Description>
+                                </rdf:rest>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#frequentdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#frequency_score"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#FS"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#FS"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">75</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#veryFrequentdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#PIL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThan"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#PIL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">7</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#highlyImpactingdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#PIL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#PIL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                        <rdf:first>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:resource="urn:swrl:var#PIL"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">3</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </rdf:Description>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </rdf:Description>
+                                </rdf:rest>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#lowlyImpactingdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#pathogenic_intensity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#PIL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#greaterThanOrEqual"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#PIL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">4</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                        <rdf:first>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                                <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#lessThan"/>
+                                                <swrl:arguments>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:resource="urn:swrl:var#PIL"/>
+                                                        <rdf:rest>
+                                                            <rdf:Description>
+                                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                                <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">8</rdf:first>
+                                                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                            </rdf:Description>
+                                                        </rdf:rest>
+                                                    </rdf:Description>
+                                                </swrl:arguments>
+                                            </rdf:Description>
+                                        </rdf:first>
+                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                    </rdf:Description>
+                                </rdf:rest>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#midlyImpactingdisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+    <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#Imp"/>
+        <swrl:body>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#identifieddisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                        <rdf:first>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#DatavaluedPropertyAtom"/>
+                                <swrl:propertyPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#specificity_level"/>
+                                <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                                <swrl:argument2 rdf:resource="urn:swrl:var#SL"/>
+                            </rdf:Description>
+                        </rdf:first>
+                        <rdf:rest>
+                            <rdf:Description>
+                                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                                <rdf:first>
+                                    <rdf:Description>
+                                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#BuiltinAtom"/>
+                                        <swrl:builtin rdf:resource="http://www.w3.org/2003/11/swrlb#equal"/>
+                                        <swrl:arguments>
+                                            <rdf:Description>
+                                                <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                <rdf:first rdf:resource="urn:swrl:var#SL"/>
+                                                <rdf:rest>
+                                                    <rdf:Description>
+                                                        <rdf:type rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+                                                        <rdf:first rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1</rdf:first>
+                                                        <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                                                    </rdf:Description>
+                                                </rdf:rest>
+                                            </rdf:Description>
+                                        </swrl:arguments>
+                                    </rdf:Description>
+                                </rdf:first>
+                                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+                            </rdf:Description>
+                        </rdf:rest>
+                    </rdf:Description>
+                </rdf:rest>
+            </rdf:Description>
+        </swrl:body>
+        <swrl:head>
+            <rdf:Description>
+                <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#AtomList"/>
+                <rdf:first>
+                    <rdf:Description>
+                        <rdf:type rdf:resource="http://www.w3.org/2003/11/swrl#ClassAtom"/>
+                        <swrl:classPredicate rdf:resource="http://www.semanticweb.org/AD-DROP#lifedisease-relevantProcess"/>
+                        <swrl:argument1 rdf:resource="urn:swrl:var#x"/>
+                    </rdf:Description>
+                </rdf:first>
+                <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
+            </rdf:Description>
+        </swrl:head>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+

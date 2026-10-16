@@ -1,0 +1,2222 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/EpilepsySemiologyOntology#"
+     xml:base="http://www.semanticweb.org/EpilepsySemiologyOntology"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:EpilepsySemiologyOntology="http://www.semanticweb.org/EpilepsySemiologyOntology#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotation properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d">
+        <rdfs:label xml:lang="zh">chinese</rdfs:label>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252 -->
+
+    <owl:AnnotationProperty rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252">
+        <rdfs:label xml:lang="zh">chinese synonym</rdfs:label>
+    </owl:AnnotationProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0658099b_c804_4e60_950a_46d8e9adbf03 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0658099b_c804_4e60_950a_46d8e9adbf03">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass20a5daf3_548d_4bd2_8c3f_dca25f9a728e"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>病理生理过程</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">physiological pathological process</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0f9e00ef_3e03_4e41_837a_8fc0ac2afe3f -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0f9e00ef_3e03_4e41_837a_8fc0ac2afe3f">
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>行体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">occurrent</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass199b318e_6db7_47ef_9392_b8165c67a74d -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass199b318e_6db7_47ef_9392_b8165c67a74d">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>出汗</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>大汗淋漓
+大汗
+出虚汗
+汗出
+冒大汗
+无冷汗
+多汗
+汗水增多</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">perspire</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass20a5daf3_548d_4bd2_8c3f_dca25f9a728e -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass20a5daf3_548d_4bd2_8c3f_dca25f9a728e">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0f9e00ef_3e03_4e41_837a_8fc0ac2afe3f"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>过程</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">process</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass223459ce_3d06_4b43_858e_4a6806cede43 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass223459ce_3d06_4b43_858e_4a6806cede43">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>阵挛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>抽动
+抖动
+颤抖
+抽搐
+手抖
+口角跳动</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">clonic</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass338e4a89_f86a_45d4_a981_28f1beb3852a -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass338e4a89_f86a_45d4_a981_28f1beb3852a">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>握拳</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>双拳紧握
+紧握双拳
+双手紧握
+握物</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">fist</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass4c8683a3_93b6_4804_807f_9f8f08b94baf -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass4c8683a3_93b6_4804_807f_9f8f08b94baf">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass64a1ed44_4988_48f8_bb5f_b45a1b92c2aa"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>小便失禁</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>大小便障碍
+大小便异常
+小便不能控制
+小便解于身上
+解小便
+小便障碍
+尿便失禁
+尿失禁
+尿便障碍
+二便障碍
+二便失禁
+二便障碍
+两便失禁</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:isDefinedBy>incontinence of urine</rdfs:isDefinedBy>
+        <rdfs:label xml:lang="zh">aconuresis</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass5b9e09f7_32ce_49fa_a7d0_2bfcf6434689 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass5b9e09f7_32ce_49fa_a7d0_2bfcf6434689">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>持物掉落</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>持物不稳
+手中持物落地
+手中持物掉落
+持物要掉落
+持物落地
+持物坠落
+持物掉落
+持物不会掉落
+持物掉地
+握持东西掉落
+持筷不稳
+持物坠地
+持筷不能
+持筷困难
+手中东西掉落
+手中东西落地
+持物摆动
+持物飞脱
+筷子落地
+掉筷子
+筷子突然落地
+筷子掉下
+碗筷掉落
+掉地
+物体掉
+物体掉落
+物体掉地
+掉落
+手中物品脱落
+物体落地</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">drop</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass64a1ed44_4988_48f8_bb5f_b45a1b92c2aa -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass64a1ed44_4988_48f8_bb5f_b45a1b92c2aa">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>失禁</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">incontinence</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass71e02985_3d71_49bc_867e_dbf500585a7e -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass71e02985_3d71_49bc_867e_dbf500585a7e">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse5f09e19_c599_4a78_bb2e_3bc035b76c87"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自在常体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">independent continuant</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass96e12c6e_39aa_4edd_8699_36d39b072aad -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass96e12c6e_39aa_4edd_8699_36d39b072aad">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>疲乏</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>疲倦
+疲惫
+乏力
+疲劳
+困倦</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">fatigue</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse6329615_61a1_4c5b_8afc_209cfbd6ba62"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>非运动过程</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">non-motor</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassaf3e90b7_2491_49e2_a987_6e3ac26d1368 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassaf3e90b7_2491_49e2_a987_6e3ac26d1368">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>行为异常</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>行为紊乱
+行为怪异
+行为改变
+言行异常</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">abnormal behavior</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassba45fcb5_52b8_4455_8233_d1e9e1d5f4ba -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassba45fcb5_52b8_4455_8233_d1e9e1d5f4ba">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自言自语</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>胡言乱语
+无意义话语
+喃喃自语
+乱语
+语言怪异
+自发言语
+言语行为表现异常
+语言行为异常
+重复言语
+重复说
+刻板言语
+重复语言
+重复单音
+重复单词
+乱说
+说胡话
+不停说话
+不断言语
+乱骂</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">verbal</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse408c9b3_7e77_45bc_9f39_97effd34cc7c -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse408c9b3_7e77_45bc_9f39_97effd34cc7c">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>头晕</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>眩晕
+头昏
+视物旋转</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">dizziness</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse5f09e19_c599_4a78_bb2e_3bc035b76c87 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse5f09e19_c599_4a78_bb2e_3bc035b76c87">
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>常体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">continuant</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse6329615_61a1_4c5b_8afc_209cfbd6ba62 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse6329615_61a1_4c5b_8afc_209cfbd6ba62">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0658099b_c804_4e60_950a_46d8e9adbf03"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>癫痫发作症状学</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">semiology</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassec791ee6_e7e3_45d0_9826_ec91c90b1aa8 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassec791ee6_e7e3_45d0_9826_ec91c90b1aa8">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse5f09e19_c599_4a78_bb2e_3bc035b76c87"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>他在常体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">dependent continuant</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfb28d20b_742c_4655_98bb_bf050836cb95 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfb28d20b_742c_4655_98bb_bf050836cb95">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClasse6329615_61a1_4c5b_8afc_209cfbd6ba62"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>运动过程</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <rdfs:label xml:lang="zh">motor</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfe2127bc_cd10_4bd4_bf00_53dbfc6f0e98 -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfe2127bc_cd10_4bd4_bf00_53dbfc6f0e98">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>苍白</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>脸色发白
+脸色苍白
+面色发白
+脸色变白
+面部发白
+面唇发白
+口唇发白</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+        <rdfs:label xml:lang="zh">pale</rdfs:label>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#a_rise_in_blood-pressure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#a_rise_in_blood-pressure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>血压升高</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#abdomen -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#abdomen">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#trunk"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>腹</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#abdominal_discomfort -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#abdominal_discomfort">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>上腹部不适</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>胃肠道不适
+胃部不适
+胃气上升
+胃气上冲
+胃部有一股气流向上涌
+胃气上涌感
+胃气上涌
+热气上升感
+自觉一股热气
+热气升腾
+一股凉气从腹部往头部上窜</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#ache -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#ache">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>酸痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#affective -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#affective">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>情感症状</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#air-blowing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#air-blowing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>吹气</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#fiat_object_part"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>解剖部位</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#anger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#anger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#affective"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>愤怒感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>发怒
+易怒
+易激怒
+动怒
+生气
+易激惹
+情绪激动
+激惹
+激动烦躁
+浮躁
+烦躁
+易躁
+暴躁
+躁动
+狂躁
+急躁
+愤怒</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#angle_of_mouth -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#angle_of_mouth">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#mouth"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>口角</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#anterior -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#anterior">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>前</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#arm -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#arm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>臂</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#athetoid -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#athetoid">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#dystonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>手足徐动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#atonic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#atonic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>失张力</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#auditory_hallucination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#auditory_hallucination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>听幻觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>幻听</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#auditory_illusory -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#auditory_illusory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>听错觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>声音变强
+声音变弱
+声音遥远</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#aura -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#aura">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>先兆</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#automatism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfb28d20b_742c_4655_98bb_bf050836cb95"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自动症</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自主神经症状</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#awareness -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#awareness">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>意识清楚</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#bilateral -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#bilateral">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>双侧的</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#burning -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#burning">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>灼烧感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#burning_pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#burning_pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>灼痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#chewing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#chewing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>咀嚼</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>嚼东西</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#chilly -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#chilly">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>发凉感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#cyanosis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#cyanosis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>紫绀</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>面色发青
+口唇青紫
+面色发青
+脸色发青
+面色青灰
+面色发乌
+紫绀
+口唇发紫
+面色发紫
+口唇颜色发紫
+嘴唇发紫
+脸色发紫
+口唇发黑
+发绀</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dacrystic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dacrystic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>流泪</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>反复哭
+大哭
+哭泣
+流眼泪</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#deja_vu -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#deja_vu">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>似曾相识感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>似曾相识</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#distending_pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#distending_pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>胀痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dressing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dressing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>穿衣</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>穿鞋子</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dull -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dull">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>沉闷感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dull_pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dull_pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>隐痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dumbfound -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dumbfound">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>愣神</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>发愣
+愣住
+眼神呆滞
+呆愣
+目光呆滞
+发呆
+呆立不动
+表情呆滞
+呆视
+呆滞
+双眼呆滞
+楞神
+双眼失神
+双眼无神
+眼神淡漠</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dysphasic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dysphasic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>失语</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#dystonic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#dystonic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>肌张力障碍</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>肌张力异常</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassfb28d20b_742c_4655_98bb_bf050836cb95"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>元素运动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>元素感觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#epigastrium -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#epigastrium">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#abdomen"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>上腹部</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>癫痫性痉挛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#excessive_eye_movement -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#excessive_eye_movement">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#atonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>眼部过度运动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>挤眉弄眼
+快速眨眼
+不自主眨眼
+挤眼</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#extension -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#extension">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>伸展</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#eye -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#eye">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>眼</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#eye_ball -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#eye_ball">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#eye"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>眼球</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#eyelids -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#eyelids">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#eye"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>眼睑</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#eyes_turned_up -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#eyes_turned_up">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>双眼上翻</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>眼球上翻
+眼睑上翻
+眼上翻
+眼睑向上翻
+双眼向上翻
+眼球短暂上翻
+眼皮上翻
+眼球上窜
+翻白眼
+双眼露白
+双眼上窜
+双眼翻白</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#face -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#face">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#trunk"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>面</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fall -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fall">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#atonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>跌倒</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>摔倒
+跌伤
+跌到
+摔倒在地
+摔倒
+晕倒
+倒地
+滑倒在地
+猝倒
+倾倒
+昏倒
+倒于地上
+后倒</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#falling -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#falling">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>坠落感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fear -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fear">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#affective"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>恐慌感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>惊吓感
+惊恐
+恐惧
+恐慌
+害怕</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fencing_posture -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fencing_posture">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#postural"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>击剑姿势</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fiat_object_part -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fiat_object_part">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#material_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>名义物体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#finger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#finger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>手指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#flexion -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#flexion">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>屈曲</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#floating -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#floating">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>漂浮感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#flush -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#flush">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>面红</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#foaming_at_the_mouth -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#foaming_at_the_mouth">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>口吐白沫</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>呕吐白沫
+口吐少量白沫
+口吐白沫
+口角白沫
+吐白沫
+口有白沫
+口吐少许白沫
+口周溢出少许白沫
+口角泡沫
+口吐泡沫
+口吐白色泡沫
+口吐少许泡沫
+吐白泡泡</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fooling_around -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fooling_around">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>原地转圈</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>身体转圈</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#foot -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#foot">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>足</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#forearm -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#forearm">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>前臂</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#foreign_body_sensation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#foreign_body_sensation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>异物感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自由上肢</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fullness -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fullness">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>闷胀感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#fumbling -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#fumbling">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>摸索</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>摸索衣裳
+摸索
+不自主摸索
+不自主到处摸索
+不停摸索
+乱翻衣物
+解自己裤子
+拽裤子
+脱裤子</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#gaze -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#gaze">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>双目凝视</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>双眼上视
+两眼注视向前不旋转
+双眼球凝视
+双眼向右凝视
+双眼向右侧凝视
+凝视
+双目凝视
+凝视前方
+注视
+双眼向右注视
+双目上视
+双眼瞪视
+双目凝神
+双眼凝神
+眼球固定</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#gelastic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#gelastic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>痴笑</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>嗤笑
+痴笑
+傻笑
+发笑
+强笑</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#lower_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>自由下肢</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#grab -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#grab">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>抓握动作</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>抓取动作
+乱抓
+乱抓扯</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#grimacing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#grimacing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>鬼脸</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#gustatory_hallucination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#gustatory_hallucination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>味幻觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>幻觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hand -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hand">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>手</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>手部自动症</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#head -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#head">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#trunk"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>头</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#head-turning -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#head-turning">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#versive"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>转头</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>头偏
+头部自主转
+头偏向一侧
+头稍偏
+头转动
+头歪斜
+头不自主偏转
+头向左转
+头偏转
+头斜
+头部反复左右转
+头向左歪
+扭头
+头向右摆动
+头偏向右
+偏头
+头转向
+头右偏
+摆头
+头侧向右侧
+转颈</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#head_nodding -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#head_nodding">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#epileptic_spasm"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>点头</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hip -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hip">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#lower_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>髋</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>过度运动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#hypokinetic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#hypokinetic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>动作终止</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>动作突然停止
+停止手中活动
+停止原有动作
+停止活动
+停止正在进行的动作
+动作停止
+停止正在做的事情
+停止原有活动
+动作减慢或停止
+停止正在进行的活动
+不能自主停止说话
+活动停止
+停止动作
+行走停止
+停止正在进行的事情
+行动终止
+动作停滞
+动作中断
+动作突然中断
+言语中断
+动作暂停
+行为中止
+动作中止
+行为终止</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#immaterial_entity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#immaterial_entity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass71e02985_3d71_49bc_867e_dbf500585a7e"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>非物质实体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#impaired_awareness -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#impaired_awareness">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>意识受损</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>意识突然丧失
+意识不清
+失去意识
+意识丧失
+意识模糊
+无意识
+意识朦胧
+意识欠清
+意识完全丧失
+意识恍惚
+意识障碍</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#incontinence_of_faeces -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#incontinence_of_faeces">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass64a1ed44_4988_48f8_bb5f_b45a1b92c2aa"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>大便失禁</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>大便不能控制
+大小便障碍
+大小便异常
+二便障碍
+二便失禁
+二便障碍
+尿便障碍
+尿便失禁
+两便失禁</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#index_finger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#index_finger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#finger"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>食指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#inferior -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#inferior">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>下</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#intact_memory -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#intact_memory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#awareness"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>能够回忆</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>可回忆发作过程
+可以回忆
+有记忆
+知晓发作</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#jamais_Vu -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#jamais_Vu">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>似不相识感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>陌生感
+感似不相识
+不真实感</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#joy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#joy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#affective"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>欣快感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>欣快</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#knee -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#knee">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>膝</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#left -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#left">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#unilateral"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>左</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#leg -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#leg">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>小腿</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#licking -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#licking">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>舔嘴唇</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>舔唇
+舔舌</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#limbs -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#limbs">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>四肢</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#lip -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#lip">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#mouth"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>唇</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#lip_pursing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#lip_pursing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>噘嘴</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>撅嘴
+噜嘴</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#lip_smacking -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#lip_smacking">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>咂嘴</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#little_finger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#little_finger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#finger"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>小指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#lower_limb -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#lower_limb">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#limbs"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>下肢</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#mandibular -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#mandibular">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#face"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>下颌</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#material_entity -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#material_entity">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass71e02985_3d71_49bc_867e_dbf500585a7e"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>物质实体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#memory_loss -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#memory_loss">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#impaired_awareness"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>不能回忆</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>不能回忆
+不可回忆
+不能清晰回忆
+不能对发作过程回忆
+无回忆
+无法回忆
+无法回忆发作过程
+不能完整回忆
+不能立即回忆
+不能完全回忆
+不能记忆
+记忆障碍
+无记忆
+无明确记忆
+记忆模糊
+记忆丧失
+全然不知</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#middle_finger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#middle_finger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#finger"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>中指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#mouth -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#mouth">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>口</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#moving -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#moving">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>运动感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#mydriasis -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#mydriasis">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>瞳孔散大</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>瞳孔扩大</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#nausea -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#nausea">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>恶心</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>呕心欲吐</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#neck -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#neck">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#trunk"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>颈</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#numbness -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#numbness">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>麻木感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#object -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#object">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#material_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>物体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#olfactory_hallucination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#olfactory_hallucination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>嗅幻觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>幻嗅
+闻及特殊气味</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>口咽自动症</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>疼痛感</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>疼痛</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#palpitation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#palpitation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>心悸</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>心慌
+心率加快
+心跳加快
+心率过速</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_sense"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>感觉异常</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>异样感觉
+感觉障碍
+异样发作感觉</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#pedaling -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#pedaling">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>蹬腿</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>乱蹬
+踢蹬
+蹬足
+蹬自行车样
+蹬脚
+乱踢
+瞪踢</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#pelvic_thrusting -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#pelvic_thrusting">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>骨盆前倾</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#piloerection -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#piloerection">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>竖毛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>抚摸
+抚面</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#posterior -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#posterior">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>后</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#postural -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#postural">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>姿势</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#process_boundary -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#process_boundary">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0f9e00ef_3e03_4e41_837a_8fc0ac2afe3f"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>过程边界</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#quality -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#quality">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#specifically_dependent_continuant"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>性质</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#rediating_pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#rediating_pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>放射痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#responsive -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#responsive">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#awareness"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>无呼之不应</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>呼之有反应
+呼之可答
+呼之尚能应
+呼之应答
+呼之能应
+呼之能应答
+呼之可应
+呼之睁眼
+问话回应
+呼之可应答
+呼之可睁眼</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#right -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#right">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#unilateral"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>右</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#ring_finger -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#ring_finger">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#finger"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>无名指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#rocking -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#rocking">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>晃动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>挥动
+摆动
+舞动
+乱舞
+胡乱划圈
+手舞足蹈</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#rubbing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#rubbing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>搓手</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>搓丸样动作
+揉搓
+搓揉
+搓捏</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#salivation -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#salivation">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>流涎</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>流口水
+吐口水
+流清口水
+口水增多
+口吐清水
+口角漏水
+吐唾液</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#sense -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#sense">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassa9755122_bde3_41f4_9427_c575c1c16173"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>感觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#sharp_pain -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#sharp_pain">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>刺痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#shoulder -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#shoulder">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>肩</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#shrug -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#shrug">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#atonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>耸肩</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#spacy -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#spacy">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#impaired_awareness"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>头脑空白</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>大脑空白
+空白感
+大脑一片空白</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#specifically_dependent_continuant -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#specifically_dependent_continuant">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClassec791ee6_e7e3_45d0_9826_ec91c90b1aa8"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>特定他在常体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#stomach -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#stomach">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#epigastrium"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>胃</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#superior -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#superior">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>上</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#swallowing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#swallowing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>吞咽</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>吞口水
+咽口水</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#temporal_region -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#temporal_region">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#OWLClass0f9e00ef_3e03_4e41_837a_8fc0ac2afe3f"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>时间域</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#the_end_of_a_seizure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#the_end_of_a_seizure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#process_boundary"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>癫痫发作的结束</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#the_onset_of_a_seizure -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#the_onset_of_a_seizure">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#process_boundary"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>癫痫发作的开始</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#thigh -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#thigh">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>大腿</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#thrashing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#thrashing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hyperkinetic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>拍打</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>拍打下肢
+拍打胸口
+拍打大腿</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#throbbing -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#throbbing">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#pain"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>跳痛</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#thumb -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#thumb">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#finger"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>拇指</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#toe -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#toe">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#gluteal_region"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>足趾</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#tongue -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#tongue">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#mouth"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>舌</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#tongue-bite -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#tongue-bite">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>口部咬伤</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>口舌咬伤
+口角咬伤
+咬伤舌头
+舌部咬伤
+舌咬伤
+舌头咬伤
+唇咬伤
+粘膜咬伤
+紧咬下唇
+口腔咬伤
+口唇咬伤
+舌尖咬伤
+口咬伤
+牙咬伤
+黏膜咬伤
+舌头及嘴唇咬破
+咬破嘴唇
+咬破唇舌
+咬唇
+舌出血
+嘴唇咬出血
+咬舌
+嘴皮咬破
+咬破舌头
+舌尖咬破
+口角流出粉色液体</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#tonic -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>强直</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>僵直
+僵硬</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#tooth_grinding -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#tooth_grinding">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#oral_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>磨牙</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#trismus -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#trismus">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#tonic"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>牙关紧闭</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>牙关紧咬
+咬牙
+牙关咬紧
+口猛烈闭合</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#trunk -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#trunk">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#anatomical_entity"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>躯干</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#unbotton -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#unbotton">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hand_automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>解衣扣</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>解衣扣
+解纽扣</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#unilateral -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#unilateral">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#quality"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>单侧的</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#unresponsive -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#unresponsive">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#impaired_awareness"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>呼之不应</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>呼之无应答
+呼叫不应
+呼之无反应
+呼之不答
+呼之不能应
+呼之不能应答
+叫不醒
+无法应答
+对外界声音无反应
+无回应
+不能回应
+问话不答
+不能回答
+不能应答
+无对答
+不予回应
+没有反应</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#upper_limb -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#upper_limb">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#limbs"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>上肢</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#versive -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#versive">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#elementary_motor"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>翻转</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#visual_hallucination -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#visual_hallucination">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#hallucination"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>视幻觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>幻视</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#visual_illusory -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#visual_illusory">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#paresthesia"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>视物错觉</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>视物变形
+视物变大
+视物放大
+视物变小
+视物变暗
+视物成双
+视物呈双影
+视物双影
+视物多影
+视物模糊
+视力模糊
+视物不清
+视物晃动
+视物摇晃
+视物跳动
+闪光感
+闪光点
+黑曚
+双眼发黑
+眼前一黑</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#vocal -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#vocal">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>发声</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>发出“啊、啊”声
+发出声响
+发出“哦哦”声
+嘴里发出“渣渣”声
+喉部发出“嗯
+发出叫声
+发出“渣渣”声响
+发出“哎哎”声
+发出“啊”的声音
+吼叫一声
+吼叫
+大喊一声
+叫喊
+喊叫一声
+喊叫
+大声喊叫
+大喊大叫
+高喊
+乱喊
+大声呼喊
+大吼一声
+大吼大叫
+乱吼
+大吼
+喉中有声
+发音
+发生“咿呀”声音
+大叫一声
+尖叫
+惊叫
+大叫
+乱叫
+哭叫
+狂叫</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#vomit -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#vomit">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#autonomic_event"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>呕吐</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>干呕</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#wandering -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#wandering">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#automatism"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>无目的走动</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+        <OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>跑出去
+随处走动
+四处走动
+不自主乱走
+乱走动
+自行走动
+不自主走动
+随意走动
+无意识走动
+不自主行走
+自行外出
+出门
+乱跑
+无目的行走
+走路时无方向性
+无意识行走
+乱走
+游走</OWLAnnotationPropertybbef755c_8e75_4ab9_9c5d_5060f543b252>
+    </owl:Class>
+    
+
+
+    <!-- http://www.semanticweb.org/EpilepsySemiologyOntology#wrist -->
+
+    <owl:Class rdf:about="http://www.semanticweb.org/EpilepsySemiologyOntology#wrist">
+        <rdfs:subClassOf rdf:resource="http://www.semanticweb.org/EpilepsySemiologyOntology#free_upper_limb"/>
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>腕</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Annotations
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    <rdf:Description rdf:about="http://www.w3.org/2002/07/owl#Thing">
+        <OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>实体</OWLAnnotationProperty53dc556a_02f5_4f24_be0b_6122dc77482d>
+    </rdf:Description>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.29) https://github.com/owlcs/owlapi -->
+

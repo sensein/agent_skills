@@ -80,7 +80,7 @@
         "string",
         "null"
       ],
-      "description": "Which source produced the mapping: 'trusted:<name>' (a row of trusted_ontologes/priority.md), 'local_hybrid', 'bioportal', 'ols'."
+      "description": "Which source produced the mapping: 'trusted:<name>' (a row of trusted_ontologies/priority.md), 'local_hybrid', 'bioportal', 'ols'."
     },
     "ontology_match_type": {
       "type": [

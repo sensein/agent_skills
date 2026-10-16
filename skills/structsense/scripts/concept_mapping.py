@@ -2,7 +2,7 @@
 then the remote tools (local hybrid, BioPortal) for whatever they did not resolve.
 
 Everything is read from `concept_mapping.json` (skill root; `--config` for another)
-and from the editable priority table `trusted_ontologes/priority.md`:
+and from the editable priority table `trusted_ontologies/priority.md`:
 
   - which sources run and in what order (`sources_priority`, default
     trusted -> local_hybrid -> bioportal)
@@ -216,7 +216,7 @@ class LexiconSource:
         self.spec = spec
         self.name = spec["name"]
         self.priority = int(spec["priority"])
-        self.path = _resolve(tcfg.get("directory", "trusted_ontologes")) / spec["file"]
+        self.path = _resolve(tcfg.get("directory", "trusted_ontologies")) / spec["file"]
         self.curie_prefix = spec.get("curie_prefix")
         self.labels_scope = set(spec["labels"]) if spec.get("labels") else None
         self.props = {mt: set(v) for mt, v in _clean(tcfg.get("match_properties")).items()}
@@ -357,8 +357,8 @@ class Lexicon:
     def __init__(self, cfg: dict):
         self.cfg = cfg
         tcfg = cfg.get("trusted_ontologies") or {}
-        self.priority_file = _resolve(tcfg.get("priority_file", "trusted_ontologes/priority.md"))
-        self.dir = _resolve(tcfg.get("lexicon_dir", "trusted_ontologes/lexicon"))
+        self.priority_file = _resolve(tcfg.get("priority_file", "trusted_ontologies/priority.md"))
+        self.dir = _resolve(tcfg.get("lexicon_dir", "trusted_ontologies/lexicon"))
         self.db_path = self.dir / "lexicon.sqlite"
         self.sources = [LexiconSource(s, tcfg) for s in read_priority_table(self.priority_file)]
         from prefixes import PrefixRegistry
@@ -912,7 +912,7 @@ def config_hash(cfg: dict) -> str:
     import hashlib
     h = hashlib.sha256()
     for f in (cfg.get("_path"), str(_resolve((cfg.get("trusted_ontologies") or {}).get(
-            "priority_file", "trusted_ontologes/priority.md")))):
+            "priority_file", "trusted_ontologies/priority.md")))):
         if f and Path(f).is_file():
             h.update(Path(f).read_bytes())
     return "sha256:" + h.hexdigest()
@@ -1200,11 +1200,11 @@ def _main() -> int:
     tcfg = cfg.get("trusted_ontologies") or {}
 
     if args.cmd == "init-priorities":
-        out = _resolve(tcfg.get("priority_file", "trusted_ontologes/priority.md"))
+        out = _resolve(tcfg.get("priority_file", "trusted_ontologies/priority.md"))
         if out.is_file() and "| Priority" in out.read_text() and not args.force:
             print(f"{out} already has a table; pass --force to regenerate it", file=sys.stderr)
             return 2
-        n = init_priorities(_resolve(tcfg.get("directory", "trusted_ontologes")), out)
+        n = init_priorities(_resolve(tcfg.get("directory", "trusted_ontologies")), out)
         print(f"wrote {out}: {n} rows", file=sys.stderr)
         return 0
 

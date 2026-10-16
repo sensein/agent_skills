@@ -280,3 +280,58 @@ def test_default_cascade_order():
     cfg = json.loads((SKILL / "concept_mapping.json").read_text())
     assert cfg["sources_priority"] == ["trusted", "local_hybrid", "ols", "bioportal"]
     assert cfg["remote"]["ols_mcp_url"] == "https://www.ebi.ac.uk/ols4/api/mcp"
+
+
+def test_ait_genes_map_to_the_species_annotation_and_remap_there(tmp_path):
+    """A gene row goes to its trusted genome annotation (mouse -> ENSEMBL-10090), never
+    to the general mapper; a remap of its concept row looks the new symbol up there too."""
+    from scripts import ait_tables as at
+    pytest.importorskip("rdflib")
+    if not (SKILL / "trusted_ontologies" / "annotation-ENSEMBL-10090-109.ttl").is_file():
+        pytest.skip("needs the mouse genome annotation")
+    out = ait_dir(tmp_path)
+    data = rl.load("ait", out)
+    gene = dict(data["entities.csv"][0], mention_id="P1:M004", entity_type="gene", label_verbatim="Sst",
+                label_normalized="Sst", hierarchy_level="")
+    data["entities.csv"].append(gene)
+    rl.map_ait(data, rl.Tools(mapper=StubMapper()))
+    row = next(c for c in data[rl.CONCEPT_TABLE] if c["mention_id"] == "P1:M004")
+    assert row["concept_mapping_provenance"] == "tool" and row["ontology_id"].startswith("urn:bkbit:")
+    assert row["mapping_source"] == "trusted:annotation-ENSEMBL-10090-109" and row["match_tier"] == "exactMatch"
+    sst_iri = row["ontology_id"]
+    log = rl.apply_ops("ait", data, [{"id": "P1:M004:C", "action": "remap", "value": "Pvalb",
+                                      "reason": "the paper's marker is Pvalb"}], actor="human")
+    assert log[0]["applied"], log
+    row2 = next(c for c in data[rl.CONCEPT_TABLE] if c["mention_id"] == "P1:M004")
+    assert row2["ontology_label"] == "Pvalb" and row2["ontology_id"] != sst_iri
+    assert row2["mapping_source"] == "trusted:annotation-ENSEMBL-10090-109"
+
+
+def test_ait_gene_not_in_the_annotation_continues_through_the_cascade(tmp_path):
+    """Annotation first; a gene it does not resolve goes through the cascade (label Gene,
+    routed to HGNC / NCBIGene), and the row says it does not join the taxonomy markers."""
+    pytest.importorskip("rdflib")
+    if not (SKILL / "trusted_ontologies" / "annotation-ENSEMBL-10090-109.ttl").is_file():
+        pytest.skip("needs the mouse genome annotation")
+
+    class GeneStub(StubMapper):
+        LEX = {**StubMapper.LEX, "fakegene1": ("http://identifiers.org/ncbigene/999999", "FAKEGENE1", "NCBIGene")}
+
+    out = ait_dir(tmp_path)
+    data = rl.load("ait", out)
+    base = data["entities.csv"][0]
+    data["entities.csv"] += [dict(base, mention_id="P1:M004", entity_type="gene", label_verbatim="Sst",
+                                  label_normalized="Sst", hierarchy_level=""),
+                             dict(base, mention_id="P1:M005", entity_type="gene", label_verbatim="FAKEGENE1",
+                                  label_normalized="FAKEGENE1", hierarchy_level=""),
+                             dict(base, mention_id="P1:M006", entity_type="gene", label_verbatim="NOTAGENE2",
+                                  label_normalized="NOTAGENE2", hierarchy_level="")]
+    stub = GeneStub()
+    rl.map_ait(data, rl.Tools(mapper=stub))
+    rows = {c["mention_id"]: c for c in data[rl.CONCEPT_TABLE]}
+    assert rows["P1:M004"]["mapping_source"] == "trusted:annotation-ENSEMBL-10090-109"
+    assert "sst" not in stub.calls  # resolved by the annotation: never sent to the cascade
+    assert rows["P1:M005"]["ontology_id"] == "http://identifiers.org/ncbigene/999999"
+    assert "does not join the taxonomy's curated_markers" in rows["P1:M005"]["notes"]
+    assert rows["P1:M006"]["concept_mapping_provenance"] == "unmapped"
+    assert "not in the genome annotation" in rows["P1:M006"]["notes"]

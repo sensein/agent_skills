@@ -1,0 +1,1577 @@
+<?xml version="1.0"?>
+<rdf:RDF
+    xmlns:pato="http://purl.org/obo/owl/PATO#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:p4="http://www.owl-ontologies.com/assert.owl#"
+    xmlns:obo="http://purl.org/obo/owl/obo#"
+    xmlns:FMA="http://purl.org/obo/owl/FMA#"
+    xmlns:protege="http://protege.stanford.edu/plugins/owl/protege#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns="http://www.cvrgrid.org/ontologies/Electrophysiology#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:oboInOwl="http://www.geneontology.org/formats/oboInOwl#"
+    xmlns:uo="http://purl.org/obo/owl/UO#"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xml:base="http://www.cvrgrid.org/ontologies/Electrophysiology">
+  <owl:Ontology rdf:about="">
+    <owl:imports rdf:resource="http://protege.stanford.edu/plugins/owl/dc/protege-dc.owl"/>
+    <dc:creator rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Aaron Lucas</dc:creator>
+    <dc:creator rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Gem Yang</dc:creator>
+    <dc:creator rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Raimond Winslow</dc:creator>
+    <dc:rights rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Free, Open source</dc:rights>
+    <owl:imports rdf:resource="http://purl.org/obo/owl/FMA"/>
+    <owl:imports rdf:resource="http://protege.stanford.edu/plugins/owl/protege"/>
+    <dc:description rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This purpose of this ontology is to describe electrophysiological experiments and data.  This ontology was created as part of the CardioVascular Research Grid (CVRG) project which is funded through an R24 Resource from the National Heart Lung and Blood Institute (NHLBI).</dc:description>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Second Revision</rdfs:comment>
+    <dc:contributor rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Advisors to be Named</dc:contributor>
+    <dc:title rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Electrophysiology Ontology</dc:title>
+    <owl:imports rdf:resource="http://purl.org/obo/owl/UO"/>
+    <dc:format rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >OWL-DL, RDF/XML-ABBREV</dc:format>
+  </owl:Ontology>
+  <owl:Class rdf:ID="InsideOutPatchElectrode">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="PatchClampElectrode"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PatchClampElectrode describes an electrode that</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Zygosity">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Qualifier refers to the genetic condition of a zygote. In genetics, zygosity describes the similarity or dissimilarity of DNA between homologous chromosomes at a specific allelic position or gene</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Qualifier"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Fluorometry">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of measuring fluorescence, often as a means of determining the nature of the substance emitting the fluorescence.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumBeta2Subunit">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit describes a sodium channel subunit that when assembled with alpha subunits the resulting complex can display altered voltage dependence and cellular localization</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="BetaSubunit"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Soaking">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of allowing a substance to lie in and become saturated or permeated with a liquid.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumAlpha2Subunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="AlphaSubunit"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of AlphaSubunit describes the subunit that is a highly glycosylated extracellular protein that is attached to the membrane-spanning delta-subunit by means of disulfide bonds[1]. The alpha 2 subunit also provides structural support and increases functionmal diversity of the calcium channel complex[2].</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[1] http://www.chemsoc.org/exemplarchem/entries/2002/tim_smith/channels/calcium/</dc:source>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[2] Tseng TT, McMahon AM, Zahm RJ, Pacold ME, Jakobsson E. Calcium channel auxiliary subunits. J Mol Microbiol Biotechnol. 2006; 11(6):326-44. Review.</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="SerialProcedure">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Procedure describes the procedures that are carried out on a particular biomaterial in a time/order dependent series.  This type of procedure takes into account the order in which procedures are carried out upon a biomaterial, ie the workflow.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Procedure"/>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#List"/>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:allValuesFrom>
+          <owl:Class rdf:about="#Procedure"/>
+        </owl:allValuesFrom>
+        <owl:onProperty rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#first"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"/>
+        <owl:allValuesFrom rdf:resource="#SerialProcedure"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumGlucoseCotransporter">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="IonExchanger"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonExchanger uses energy from a downhill sodium gradient to transport glucose across the apical membrane against an uphill glucose gradient.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Tissue">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class references the Foundation Model of Anatomy class label Tissue. [2]</rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[1] http://en.wikipedia.org</dc:source>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[2] http://sig.biostr.washington.edu/projects/fm/AboutFM.html</dc:source>
+    <owl:equivalentClass>
+      <rdf:Description rdf:about="http://purl.org/obo/owl/FMA#FMA_9637">
+        <owl:equivalentClass rdf:resource="#Tissue"/>
+      </rdf:Description>
+    </owl:equivalentClass>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Biomaterial"/>
+    </rdfs:subClassOf>
+    <dc:description rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomaterial describes a group of biological cells that perform a similar function.  [1]</dc:description>
+  </owl:Class>
+  <owl:Class rdf:ID="ConfocalMicroscope">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="LightMicroscope"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of LightMicroscope is a microscope used to increase micrograph contrast and/or to reconstruct three-dimensional images by using a spatial pinhole to eliminate out-of-focus light or flare in specimens that are thicker than the focal plane.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="ScanningTransmissionElectronMicroscope">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="ElectronMicroscope"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ElectronMicroscope, STEM combines the high resolution of the TEM with the beam rastering functions of the SEM, allowing a range of analytical techniques to be used that are not possible with conventional TEM.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="OmimID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Online Mendelian Inheritance in Man which is a catalog of human genes and genetic disorders authored and edited by Dr. Victor A. McKusick and his colleagues at Johns Hopkins and elsewhere, and developed for the World Wide Web by NCBI, the National Center for Biotechnology Information. The database contains textual information and references. It also contains copious links to MEDLINE and sequence records in the Entrez system, and links to additional related resources at NCBI and elsewhere.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="ID"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="IonChannel">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <owl:equivalentClass>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:ID="RecombinantChannel"/>
+          <owl:Class rdf:ID="WildTypeChannel"/>
+        </owl:unionOf>
+      </owl:Class>
+    </owl:equivalentClass>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomolecule describes pore-forming proteins that help to establish and control the small voltage gradient across the plasma membrane of all living cells by allowing the flow of ions down their electrochemical gradient.  They are found in membrands that surrond all biological cells.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Biomolecule"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="EntrezGeneID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the searchable database of genes, from RefSeq genomes, and defined by sequence and/or located in the NCBI Map Viewer</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ncbi.nlm.nih.gov/sites/entrez?db=gene</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Gene">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomolecule"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomolecule describes a linear sequence of nucleotide along a segment of DNA that is the basic physical unit of heredity.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="MultiPhotonMicroscope">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#LightMicroscope"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of FluorescenceMicroscope is a microscope that uses pulsed long wavelength laser light to excite fluorophores within a specimen. The fluorophore absorbs the energy from two long-wavelength photons that must arrive simultaneously in order to excite an electron into a higher energy state, from which it can decay, emitting a fluorescence signal. It differs from traditional fluorescence microscopy in which the excitation wavelength is shorter than the emission wavelength, as the summed energies of two long-wavelength exciting photons will produce an emission wavelength shorter than the excitation wavelength.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Protein">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomolecule describes large organic compounds made of amino acids arranged in a linear chain and joined together by peptide bonds between the carboxyl and amino groups of adjacent amino acid residues.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomolecule"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="PermeantIon">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Qualifier desscribes they types of ions that can be carried across a membrane by ion channels/pumps.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Qualifier"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="HgncID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.genenames.org/</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the HUGO Gene Nomenclature Committee which for each known human gene, approve a gene name and symbol (short-form abbreviation).</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="InterProID">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to  protein families, domains and functional sites in which identifiable features found in known proteins can be applied to unknown protein sequences.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ebi.ac.uk/interpro/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="PhotoMultiplier">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Device"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device is a device that is an  extremely sensitive detector of light in the ultraviolet, visible and near infrared.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Solute">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class consists of a chemical substance and a SingularMeasurement.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Implantation">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of inserting or grafting a tissue, organ, or inert substance into the body.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Ca">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PermeantIon describes calcium ions.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#PermeantIon"/>
+  </owl:Class>
+  <owl:Class rdf:about="#IonExchanger">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="IonTransporter"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonExchanger uses the gradient of one ion to transport another ion against its gradient, also called a cotransporter.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="ScopID">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Structural Classification of Proteins database that database aims to provide a detailed and comprehensive description of the structural and evolutionary relationships between all proteins whose structure is known, including all entries in the Protein Data Bank (PDB)</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Enzyme">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Protein describes the best known role of a protein which is to catalyze chemical reations.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#Protein"/>
+  </owl:Class>
+  <owl:Class rdf:ID="BinaryQuantity">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Quantity"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Quantity consists of two SingularQuantitys and a relationship between them.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Homozygous">
+    <rdfs:subClassOf rdf:resource="#Zygosity"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Zygosity describes a condition where an organism at a specific locus, carries two identical copies of the gene affecting a given trait on the two corresponding homologous chromosomes.  Example PP or pp - where P and p refer to different alleles of the same gene.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http:\\en.wikipedia.com</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="PrintsID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.bioinf.manchester.ac.uk/dbbrowser/PRINTS/</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references a database that houses a collection of protein fingerprints, which may be used to assign family and functional attributes to uncharacterised sequences, such as those currently emanating from the various genome-sequencing projects</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SingleCellExtracellularRecording">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ExtracellularRecording describes a process one will preserve evidence from measurements made about recordings from outside the cell membrane of a single cell.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="ExtracellularRecording"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="K">
+    <rdfs:subClassOf rdf:resource="#PermeantIon"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PermeantIon describes potassium ions.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="ATPDependentCalciumPump">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of P-TypeIonPump describes a specific type of ion pump that utilizes ATP to transport Ca2+ ions across a membrane.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="P-TypeIonPump"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeProtein">
+    <rdfs:subClassOf rdf:resource="#Protein"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Protein describes proteins that are not man-made, they are not engineered, they are in fact proteins that are typically found/occur in nature.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="CaCh">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes that encode for PM calcium pump subunits.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Filtration">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act or process of filtering.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >The American Heritage Dictionary of the English Language, Fourth Edition</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="PotassiumChannel">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes the group of channels that have a permeability to K+ ions. The pore-forming subunits of potassium channels have a homo- or heterotetrameric arrangement. Four subunits are arranged around a central pore. All potassium channel subunits have a distinctive pore-loop structure that lines the top of the pore and is responsible for potassium selectivity.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+  </owl:Class>
+  <owl:Class rdf:ID="WildType">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="GeneType"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of GeneType describes genes of a type that are not man-made, they are not engineered, they are in fact genes that are typically found/occur in nature.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="FluorescenceImaging">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Technique"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="PatchClamp">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="VoltageClamp"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="ChebiID">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Chemical Entities of Biological Interest (ChEBI) which is a freely available dictionary of molecular entities focused on ‘small’ chemical compounds.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ebi.ac.uk/chebi/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Cloned">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#GeneType"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of GeneType references a gene that has be duplicated from another organism, an exact copy of its DNA makeup.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#GeneType">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Qualifer decribes the linage/origination of a particular gene.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Qualifier"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="VoltageGatedChannel">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes a class of transmembrane ion channels that are activated by changes in electrical potential difference near the channel.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Person">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class reperesents a human being as distinguished from an animal or a thing</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#P-TypeIonPump">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonTransporter describes a group of ion pumps that all utilize ATP as an energy source and all contain phosphorylated intermediates of an aspartyl residue (this is why they are called P-type pumps) The phosphate is donated by an ATP molecule and forces the pump into a high-energy intermediate state. The energy stored in the high energy form of the protein is then used to translocate ions.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonExchanger"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Superfusing">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.m-w.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a procedure to maintain the metabolic or physiological activity of (as an isolated organ) by submitting to a continuous flow of a sustaining medium over the outside</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PairedObservation">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Observation"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Observation describes where one type of observation is described from two sources. e.g. one would like to express that a channel current differs in control versus diseased hearts or, from wildtype vs recombinant channels, or normal vs mutant species.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SingularQuantity">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Quantity"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Quantity describes a class that consists of one number and one unit.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Emplacing">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Wavelength">
+    <rdfs:subClassOf rdf:resource="#SingularQuantity"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingularQuantity describes a class that states measurements of distance between crests of a wave.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PaceMaker">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Device"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device is an implanted medical device which uses electrical impulses, delivered by electrodes contacting the heart muscles, to regulate the beating of the heart.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Pharmacologic">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Qualifier"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Qualifier describes a specific drug that has a desired outcome in the treatment of an organism.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="IonCurrent">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Data defines the electric current resulting from motion of ions.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Observation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="VoltageRegulator">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Regulator"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Regulator, the voltage regulates the ion channel activity.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Biomolecule">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomaterial"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomaterial encompasses chemical molecules that naturally occurs in living organisms. Biomolecules consist primarily of carbon and hydrogen, along with nitrogen, oxygen, phosphorus and sulfur.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="WholeCellRecording">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Recording"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Recording describes a process where one will set down in writing or the like, as for the purpose of preserving evidence, particularly in electrophysiological experiments; measurements before the cell has been dialyzed. Whole-cell recordings involve recording currents through multiple channels at once.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SharpElectrode">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Electrode"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Electrode describes an electrode that</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumHydrogenExchanger">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonExchanger uses energy from a downhill sodium gradient to eject protons from cells therebyregulating pH , cell volume, and cellular response to many different hormones and mitogens.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonExchanger"/>
+  </owl:Class>
+  <owl:Class rdf:ID="SingleElectrodeVoltageClamp">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="SharpElectrodeVoltageClamp"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="I_NaCa">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring the sodium-calcium exchanger current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="I_K">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring delayed rectifier potassium current. Total iK is composed of the rapidly activating iKr and the slowly activating iKs.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Thoracotomy">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the procedure of a sugical incision into the chest wall.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Article">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >The research paper from which this EPStudy is created.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumAlpha1Subunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#AlphaSubunit"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of AlphaSubunit describes the subunit that is responsible for forming the ion conducting pore and has voltage sensing and drug//toxin binding properties in the calcium channel complex, and is considered the primary subunit of the complex.  This subunit is structurally comprised of four homologous domains each containing six transmembrane helices. The fourth transmembrane helix of each domain forms a voltage sensor.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Birnbaumer L, Qin N, Olcese R, Tareilus E, Platano D, Costantin J, Stefani E. Structures and functions of calcium channel beta subunits. J Bioenerg Biomembr. 1998 Aug; 30(4):357-75. Review.</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Depolarization">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes an act whereby an observer decreases the absolute value of a cell's membrane potential. Thus, changes in membrane voltage in which the membrane potential becomes less positive or less negative are both depolarizations.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Amplifier">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com/</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Device"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device describes an electronic component or circuit for amplifying power, current, or voltage</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PdbID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.pdb.org/pdb/home/home.do</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the RCSB Protein Data Bank which is the single worldwide repository for the processing and distribution of 3-D structure data of large molecules of proteins and nucleic acids.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="T-TypeCalciumChannel">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of CalciumChannel describes calcium channels that are transient or low voltage activated and have rapid inactivation kinetics, whereby the T stands for "transient"</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="CalciumChannel"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:about="#CalciumChannel">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes the group of channels that have a permeability to Ca2+ ions.  These channels consist of  a complex of different subunits whereby the alpha-1 subunit forms the ion conducing pore while other associated subunits can modulate gating.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#AlphaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes a naming convention used to allow scientists to explain the different types/kinds of protein subunits that come together to create complexes.  The greek letter alpha in this case denotes a specific subunit with a certain complex</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Subunit"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="RefSeqID">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ncbi.nlm.nih.gov/RefSeq/</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Reference Sequence collection that aims to provide a comprehensive, integrated, non-redundant set of sequences, including genomic DNA, transcript (RNA), and protein products, for major research organisms.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="TwoPhotonMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of MultiPhotonMicroscope is a microscope that uses two photons of low energy that can excite a fluorophore in a quantum event, resulting in the emission of a fluorescence photon, typically at a higher energy than either of the two excitatory photons. The probability of the near-simultaneous absorption of two photons is extremely low. Therefore a high flux of excitation photons is typically required, usually a femtosecond laser, allowing imaging of living tissue up to a depth of one millimeter.  This microscope allows for a viable alternative to confocal microscopes due to deeper tissue penetration and reduced phototoxicity.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#MultiPhotonMicroscope"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Na">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PermeantIon describes sodium ions.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#PermeantIon"/>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantSpliceVariant">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SpliceVariant describes subunits resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that encodes a subunit.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="SpliceVariant"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="#Regulator">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Qualifier describes a substance that affects the amount of product or the progress of a biochemical reaction or process, spefically ion channel activity.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >The American Heritage Dictionary of the English Language, Fourth Edition.</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Qualifier"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Immersion">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of placing a substance below a liquid medium.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="WaveformInjection">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Temperature">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SinglarQuantityis a class that is expressed in a unit of celsius or fahrenheit.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#SingularQuantity"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Isolation">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of to setting or placing something apart; detach or separate so as to be alone.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumAlphaSubunit">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#AlphaSubunit"/>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of AlphaSubunit is the subunit of a the sodium channel that is responsible for selectivity and voltage gating and  has four repeat domains, labeled I through IV, each containing six membrane-spanning regions, labeled S1 through S6. The highly conserved S4 region acts as the channel's voltage sensor.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumBeta4Subunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit describes a sodium channel subunit that when assembled with alpha subunits the resulting complex can display altered voltage dependence and cellular localization</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#BetaSubunit"/>
+    </rdfs:subClassOf>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >**second draft addition</rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Animal">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomaterial"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomaterial represents a multicelular organism that is a  member of the kingdom Animalia.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumChannel">
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes the group of channels that have a permeability to Na+ ions. Sodium channels are a complex of two types of protein subunits, alpha and beta, whereby the former forms the core of the channel.  The alpha subunit contains 4 homologous domains and all of the subunits belonging to a soduim channel can be modified by glycosylation.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Resting">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act ofallowing a substance to remain in place, without activity or movement.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="RectilinearInjection">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#WaveformInjection"/>
+  </owl:Class>
+  <owl:Class rdf:ID="BufferedSolution">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Solution"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="CapacitanceCompensation">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of applying a compensation voltage that causes a current which is equal and opposite to the current through any stray capacitance between terminal leads</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Recording">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a process where one will set down in writing or the like, as for the purpose of preserving evidence, particularly in electrophysiological experiments.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SingleProcedure"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="EPStudy">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class is the main class for an Electrophysiological Study.  A EPStudy has four targets, a Creator, a Biomaterial, a Procedure, and an Observation.  Looking at this ontology at a hierarchical view, the class EPStudy would be the top node.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="ParallelProcedure">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Procedure describes the procedures that are carried out on a particular biomaterial in unison.   A particular biomaterial may have two seperate series of procedures carried out upon it at the same time.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Procedure"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Cell">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class references the Foundation Model of Anatomy class label Cell. [2]</rdfs:comment>
+    <owl:equivalentClass>
+      <rdf:Description rdf:about="http://purl.org/obo/owl/FMA#FMA_68646">
+        <owl:equivalentClass rdf:resource="#Cell"/>
+      </rdf:Description>
+    </owl:equivalentClass>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[1] http://en.wikipedia.org</dc:source>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[2] http://sig.biostr.washington.edu/projects/fm/AboutFM.html</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomaterial describes the structural and functional unit of all known living organisms. It is the simplest unit of an organism that is classified as living, and is sometimes called the building block of life. [1]</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomaterial"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="I_Kr">
+    <rdfs:subClassOf rdf:resource="#I_K"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of I_K is the variable used for measuring rapidly activating potassium current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="I_to2">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring transient outward chloride current.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Compound">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http:en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class describes a substance that arises from the combination of at least two elements that are chemically bonded to one another.</oboInOwl:hasDefinition>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeSubunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Subunit"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes subunits that are not man-made, they are not engineered, they are in fact channels  that are typically found/occur in nature.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#SingleProcedure">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Procedure"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Procedure describes various single procedures that can be carried out upon a biomaterial.  This class only takes into account one procedure at a time.  Thes procedures may be linked in either a time/order dependant (serial) or parallel framework.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Pacing">
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of applying electric shocks to the heart, so that a regular rhythm can be restored</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#SpliceVariant">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#Biomolecule"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomolecule decribes mRNA that is alternatively transcripted from a gene.  The exons from a gene transcripted are arranged alternatively.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="MgiID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.informatics.jax.org/</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Mouse Genome Informatics (MGI) Database that provides integrated access to data on the genetics, genomics and biology of the laboratory mouse.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="WholeCellPatch">
+    <rdfs:subClassOf rdf:resource="#PatchClamp"/>
+  </owl:Class>
+  <owl:Class rdf:ID="BackgroundRegulator">
+    <rdfs:subClassOf rdf:resource="#Regulator"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Regulator is also known as a leaky channel.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#BetaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes a naming convention used to allow scientists to explain the different types/kinds of protein subunits that come together to create complexes.  The greek letter beta in this case denotes a specific subunit with a certain complex.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Subunit"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="Homeostasis">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Observation describes the ability or tendency of an organism or cell to maintain internal equilibrium by adjusting its physiological processes</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Observation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="GeneCardID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to an integrated database of human genes that includes automatically-mined genomic, proteomic and transcriptomic information, as well as orthologies, disease relationships, SNPs, gene expression, gene function, and service links for ordering assays and antibodies.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#ID"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.genecards.org/index.shtml</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Perfusion">
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the passage of fluid through a biomaterial, such as an organ, tissue, or cell.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PerforatedPatchElectrode">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#PatchClampElectrode"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PatchClampElectrode describes an electrode that</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#ExtracellularRecording">
+    <rdfs:subClassOf rdf:resource="#Recording"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Recording describes a process one will preserve evidence from measurements made about recordings from outside the cell membrane.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="MechanoRegulator">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Regulator cellular forces that regulate the ion channel activity, such as membrane stretching.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Regulator"/>
+  </owl:Class>
+  <owl:Class rdf:about="#ElectronMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Microscope is a microscope of extremely high power that uses beams of electrons focused by magnetic lenses instead of rays of light, the magnified image being formed on a fluorescent screen or recorded on a photographic plate: its magnification is substantially greater than that of any optical microscope.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com/</dc:source>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="Microscope"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumCalciumExchanger">
+    <rdfs:subClassOf rdf:resource="#IonExchanger"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonExchanger is an antiporter membrane protein which removes calcium from cells and does not use ATP in the process.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="FluorescenceMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of LightMicroscope is a microscope used to study properties of organic or inorganic substances using the phenomena of fluorescence and phosphorescence instead of, or in addition to, reflection and absorption.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Microscope"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumAlpha2DeltaSubunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Subunit"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Jones, S.W. Overview of voltage-dependent calcium channels. J Bioenerg Biomembr. 1998 Aug; 30(4):299-312. Review.</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes the most often found complex between the alpha 2 and delta subunits that form calcium channel complex. This complex is a proteolytically processed disulfide linked dimer that originates from a single precursor mRNA.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Anesthesia">
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a general or local insensibility, as to pain and other sensation, induced by certain interventions or drugs to permit the performance of surgery or other painful procedures.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#ID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class holds subclass of identifiers to external database references.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="KCh">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes that encode for potassium channel subunits.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Qualifier">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class describes the types other classes, differentiates from the notion of multiple inheritance.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumDeltaSubunit">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >**second draft addition</rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.chemsoc.org/exemplarchem/entries/2002/tim_smith/channels/calcium/</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of DeltaSubunit describes the membrane-spanning calcium channel subunit that modulates the voltage-dependent activation and steady-state inactivation of the channel andt is attached to the alpha 2 subunit by means of disulfide bonds.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="DeltaSubunit"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="UnigeneID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the NCBi's Unigene database that is a set of transcript sequences that appear to come from the same transcription locus (gene or expressed pseudogene), together with information on protein similarities, gene expression, cDNA clone reagents, and genomic location.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ncbi.nlm.nih.gov/sites/entrez?db=unigene</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="PotassiumBetaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit is a potassium channel subunit that determines the potential-sensitivity and inactivation properties of the potassium channel complex.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#BetaSubunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Disaggregation">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a process whereby a component is broken into smaller parts or to subdivide it.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+  </owl:Class>
+  <owl:Class rdf:about="#VoltageClamp">
+    <rdfs:subClassOf rdf:resource="#Technique"/>
+  </owl:Class>
+  <owl:Class rdf:ID="MultipleCellExtracellularRecording">
+    <rdfs:subClassOf rdf:resource="#ExtracellularRecording"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ExtracellularRecording describes a process one will preserve evidence from measurements made about recordings from outside the cell membrane of multiple cells.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="KEGGID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Kyoto Encyclopedia of Genes and Genomes which is a database of biological systems, consisting of genetic building blocks of genes and proteins (KEGG GENES), chemical building blocks of both endogenous and exogenous substances (KEGG LIGAND), molecular wiring diagrams of interaction and reaction networks (KEGG PATHWAY), and hierarchies and relationships of various biological objects (KEGG BRITE). KEGG provides a reference knowledge base for linking genomes to biological systems and also to environments by the processes of PATHWAY mapping and BRITE mapping.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.genome.jp/kegg/</dc:source>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+  </owl:Class>
+  <owl:Class rdf:ID="I_CaT">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring T-type calcium current.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Lamp">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Device"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device describes any of various devices furnishing artificial light.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="TwoElectrodeVoltageClamp">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#SharpElectrodeVoltageClamp"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="PMCA">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes that encode for PM calcium pump subunits.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="L-TypeCalciumChannel">
+    <rdfs:subClassOf rdf:resource="#CalciumChannel"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of CalciumChannel describes calcium channels that are high-voltage activiated and have slow inactivation kinetics, whereby the L stands for "long-lasting".</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="InsideOutPatchClamp">
+    <rdfs:subClassOf rdf:resource="#PatchClamp"/>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumGammaSubunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="GammaSubunit"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of GammaSubunit is a glycoprotein subunit of the calcium channel complex having four transmembrane segments.</oboInOwl:hasDefinition>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >**second draft addition</rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.chemsoc.org/exemplarchem/entries/2002/tim_smith/channels/calcium/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantGene">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene, these genes are not the result of a natural process they are engineered.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="GOID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Gene Ontology Consortium which is a controlled vocabulary to describe gene and gene product attributes in any organism</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.geneontology.org/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Organ">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Biomaterial"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomaterial describes a group of tissues which perform some function. [1]</oboInOwl:hasDefinition>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class references the Foundation Model of Anatomy class label Organ. [2]</rdfs:comment>
+    <owl:equivalentClass>
+      <rdf:Description rdf:about="http://purl.org/obo/owl/FMA#FMA_67498">
+        <owl:equivalentClass rdf:resource="#Organ"/>
+      </rdf:Description>
+    </owl:equivalentClass>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[2] http://sig.biostr.washington.edu/projects/fm/AboutFM.html</dc:source>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >[1] http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="PfamID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://pfam.sanger.ac.uk/</dc:source>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Sanger Institutes database which is a large collection of protein families, each represented by multiple sequence alignments  and hidden Markov models (HMMs)</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#GammaSubunit">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Subunit"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes a naming convention used to allow scientists to explain the different types/kinds of protein subunits that come together to create complexes.  The greek letter gamma in this case denotes a specific subunit with a certain complex.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="CompositeSolution">
+    <rdfs:subClassOf rdf:resource="#Solution"/>
+  </owl:Class>
+  <owl:Class rdf:about="#IonTransporter">
+    <rdfs:subClassOf rdf:resource="#Biomolecule"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Biomolecule describes transmembrane proteins that move ions across the plasma membrane against their concntration gradient, also called "ion pumps"</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Heterozygous">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Zygosity describes a condition when an organism has different alleles occupying a specific gene's position in each of the homologous chromosomes. In other words, it describes an individual that has 2 different alleles for a trait. Example Pp - where P and p refer to different alleles of the same gene.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Zygosity"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.com</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="I_Kur">
+    <rdfs:subClassOf rdf:resource="#I_K"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of I_K is the variable used for measuring ultrarapid outward potassium current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="LigandRegulator">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Regulator is a chemical compound that regulates ion channel activity.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Regulator"/>
+  </owl:Class>
+  <owl:Class rdf:ID="CellAttachedPatchClamp">
+    <rdfs:subClassOf rdf:resource="#PatchClamp"/>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeSpliceVariant">
+    <rdfs:subClassOf rdf:resource="#SpliceVariant"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SpliceVariant describes splice variants  that are not man-made, they are not engineered, they are in fact variants that are typically found/occur in nature</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Mutant">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes a class of genes that have lost, gained, or exchanged some of their DNA that results in the creation of a new trait or character.  These traits differ from the norm.)</oboInOwl:hasDefinition>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantTransporter">
+    <rdfs:subClassOf rdf:resource="#IonExchanger"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonTransporter describes ion transporters resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that encodes a ion transporter.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#LightMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Microscope is a microscope that uses a rays of light instead of electrons to illuminate the subject of interest.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Microscope"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="OutsideOutPatchElectrode">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PatchClampElectrode describes an electrode that</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#PatchClampElectrode"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="I_to1">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring transient outward potassium current. It has at least two distinct transient outward K+ currents, I to, fast and I to, slow.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="I_Na">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring rapid sodium current</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Chamber">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Device"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device describes an appartus that warms, oxygenates, and perfuses tissue.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="IntracellularRecording">
+    <rdfs:subClassOf rdf:resource="#Recording"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Recording describes a process one will preserve evidence from measurements made about recordings from within the cell membrane</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PrositeID">
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references which consists of documentation entries describing protein domains, families and functional sites as well as associated patterns and profiles to identify them</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.expasy.ch/prosite/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeTransporter">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonTranspoter describes ion transporters that are not man-made, they are not engineered, they are in fact transporters that are typically found/occur in nature.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonExchanger"/>
+  </owl:Class>
+  <owl:Class rdf:ID="RgdID">
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Rat Genome Database (RGD) that curates and integrates rat genetic and genomic data and provides access to this data to support research using the rat as a genetic model for the study of human disease</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://rgd.mcw.edu/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="UniProtID">
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Universal Protein Resource which is the world's most comprehensive catalog of information on proteins. It is a central repository of protein sequence and function created by joining the information contained in Swiss-Prot, TrEMBL, and PIR.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.pir.uniprot.org/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:about="#Subunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Protein is a single protein molecule that assembles (or "coassembles") with other protein molecules to form a multimeric or oligomeric protein.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#IonTransporter"/>
+  </owl:Class>
+  <owl:Class rdf:ID="InwardRectifierPotassiumChannel">
+    <rdfs:subClassOf rdf:resource="#PotassiumChannel"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PotassiumChannel describes potassium selective channels that recitfy current in the inward direction, they pass more current inward than outward</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="OtherSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit is a class created for an unclassified type of subunit.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Subunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="InvertedMicroscope">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#LightMicroscope"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of LightMicroscope is a microscope with its light source and condenser on the top above the stage pointing down, and the objectives and turret are below the stage pointing up.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#SharpElectrodeVoltageClamp">
+    <rdfs:subClassOf rdf:resource="#VoltageClamp"/>
+  </owl:Class>
+  <owl:Class rdf:ID="BeforeAfterObservation">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Observation defines where an observable event was measured at two time points in comparative studies.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Observation"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="I_pCa">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring calcium pump current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Quantity">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class is abstract.  The word quantity dose not imply its traditional meaning i.e. one value and one unit.  The subclasses have precise definition of number of values.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="ATPDependentSodiumPump">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of P-TypeIonPump describes a specific type of ion pump that utilizes ATP to transport Na+ ions across the plasma membrane also known as a sodium potassium pump because this type of pump maintains cell potential by contolling the concentrations of both Na+ and K+ ions with the cell.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#P-TypeIonPump"/>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes subunits resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that encodes a subunit.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Subunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="HprdID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Human Protein Reference Database which represents a centralized platform to visually depict and integrate information pertaining to domain architecture, post-translational modifications, interaction networks and disease association for each protein in the human proteome</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.hprd.org/</dc:source>
+  </owl:Class>
+  <owl:Class rdf:about="#DeltaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Subunit describes a naming convention used to allow scientists to explain the different types/kinds of protein subunits that come together to create complexes.  The greek letter delta in this case denotes a specific subunit with a certain complex.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Subunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="SingleCellRecording">
+    <rdfs:subClassOf rdf:resource="#Recording"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Recording describes a process where one will set down in writing or the like, as for the purpose of preserving evidence, particularly in electrophysiological experiments the activity of at most one cell.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Observation">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class describes the deliberate act of an observer who studies events using his or her sensory processes as well as data obtained from scientific recordings/measurements. An observation is usually the first step taken in a scientific investigation.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >"observation." The Oxford Dictionary of Sports Science . Oxford University Press, 1998, 2006, 2007. Answers.com 15 Oct. 2007. http://www.answers.com/topic/observation</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeGene">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes that are the norm in the population (not man made).</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Hyperpolarization">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of increasing the difference in electric potential across (a cell membrane)</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SwissProtID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to a curated protein sequence database which strives to provide a high level of annotation (such as the description of the function of a protein, its domains structure, post-translational modifications, variants, etc.), a minimal level of redundancy and high level of integration with other databases</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://expasy.org/sprot/</dc:source>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+  </owl:Class>
+  <owl:Class rdf:ID="PubMedID">
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the U.S. National Library of Medicine that includes over 17 million citations from MEDLINE and other life science journals for biomedical articles back to the 1950s. PubMed includes links to full text articles and other related resources.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ncbi.nlm.nih.gov/sites/entrez?db=PubMed</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="RawDataFile">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Observation holds the location of the raw data file used during the particular study.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#Observation"/>
+  </owl:Class>
+  <owl:Class rdf:about="#RecombinantChannel">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes ion channels resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that encodes a ion channel.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+  </owl:Class>
+  <owl:Class rdf:ID="I_Ks">
+    <rdfs:subClassOf rdf:resource="#I_K"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of I_K is the variable used for measuring slowly activating potassium current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="CurrentClamp">
+    <rdfs:subClassOf rdf:resource="#Technique"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Transfection">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the procedure of incorporating exogenous DNA into a cell.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.m-w.com</dc:source>
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+  </owl:Class>
+  <owl:Class rdf:about="#WildTypeChannel">
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes ion channels that are not man-made, they are not engineered, they are in fact channels that are typically found/occur in nature.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Excision">
+    <dc:description rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the surgical removal of a substance such as a tissue or organ.</dc:description>
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+  </owl:Class>
+  <owl:Class rdf:about="#Biomaterial">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class represents the important substances such as cells, tissues organs, proteins, etc. Biomaterials can be linked to one another though the subclass PairedBiomaterial which allows exactly 2 different biomaterials to be connected.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Microscope">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#Device"/>
+    </rdfs:subClassOf>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com/</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device is an optical instrument having a magnifying lens or a combination of lenses for inspecting objects too small to be seen or too small to be seen distinctly and in detail by the unaided eye.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Dissection">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes the act of separating or dividing for the purpose of critical examination.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+  </owl:Class>
+  <owl:Class rdf:ID="WildTypeCurrent">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent describes describes current measurements acquired from ion channels/ transporters,  that are not man-made, they are not engineered, they are in fact ion channels or transporters  that are typically found/occur in nature.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+  </owl:Class>
+  <owl:Class rdf:ID="ReflectionElectronMicroscope">
+    <rdfs:subClassOf rdf:resource="#ElectronMicroscope"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ElectronMicroscope is a microscope that involves electron beams incident on a surface, but instead of using the transmission (TEM) or secondary electrons (SEM), the reflected beam is detected.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="I_CaL">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring L-type calcium current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantProtein">
+    <rdfs:subClassOf rdf:resource="#Protein"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Protein describes proteins resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that that is later translated into a protein.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="WeakInwardRectifierPotassiumChannel">
+    <rdfs:subClassOf rdf:resource="#InwardRectifierPotassiumChannel"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of InwardRectifierPotassiumChannel describes a potassium channel that maintain their stabilizing effect virtually over the whole physiological voltage range.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="Species"/>
+  <owl:Class rdf:ID="UprightMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of LightMicroscope is a microscope where the illumination system is below the stage and the lens system is above the stage.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#LightMicroscope"/>
+  </owl:Class>
+  <owl:Class rdf:ID="LigandGatedChannel">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonChannel describes a group of intrinsic transmembrane ion channels that are opened or closed in response to binding of a chemical messenger,  also referred to as LGICs, or ionotropic receptors.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonChannel"/>
+  </owl:Class>
+  <owl:Class rdf:ID="I_Kp">
+    <rdfs:subClassOf rdf:resource="#I_K"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of I_K is the variable used for measuring plateau potassium current</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="StrongInwardRectifierPotassiumChannel">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of InwardRectifierPotassiumChannel describes a potassium channel that maintains a stabilizing effect over a voltage range of 50 mV positive to EK.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#InwardRectifierPotassiumChannel"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Vendor"/>
+  <owl:Class rdf:ID="caTransient">
+    <rdfs:subClassOf rdf:resource="#Observation"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Observation describes the transient change in calcium-mediated light emission.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="EnsemblGeneID">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the joint project between EMBL - European Bioinformatics Institute (EBI) and the Wellcome Trust Sanger Institute (WTSI) to develop a software system which produces and maintains automatic annotation on selected eukaryotic genomes.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ensembl.org/index.html</dc:source>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+  </owl:Class>
+  <owl:Class rdf:ID="PMCalciumPump">
+    <rdfs:subClassOf rdf:resource="#ATPDependentCalciumPump"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ATPDependentCalciumPump describes a class of ion pump that uses ATP to pump Ca2+ ions across the plasma membrane (PM).</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Procedure">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <dc:description rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class describes the sequence of actions or instructions to be followed in solving a problem or accomplishing a task.</dc:description>
+  </owl:Class>
+  <owl:Class rdf:ID="NaKAlphaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of AlphaSubunit desribes the sodium/potassium pump subunit that binds ATP, sodium and potassium ions, and contains the phosphorylation site for the pump.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.vivo.colostate.edu/hbooks/molecules/sodium_pump.html</dc:source>
+    <rdfs:subClassOf rdf:resource="#AlphaSubunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="StandardDeviation">
+    <rdfs:subClassOf rdf:resource="#SingularQuantity"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingularQuantity describes a class with a statistical measure of the dispersion or variation in a distribution</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumBeta1Subunit">
+    <rdfs:subClassOf rdf:resource="#BetaSubunit"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit describes a sodium channel subunit that when assembled with alpha subunits the resulting complex can display altered voltage dependence and cellular localization.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Device">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This class describes a biological instrument that is used to perform one or more relatively simple tasks.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="WholeCellPatchElectrode">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PatchClampElectrode describes an electrode that</oboInOwl:hasDefinition>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#PatchClampElectrode"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="ScanningElectronMicroscope">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ElectronMicroscope is a microscope that is capable of producing high-resolution images of a sample surface. The SEM produces images by detecting low energy secondary electrons which are emitted from the surface of the specimen due to excitation by the primary electron beam</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ElectronMicroscope"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="NaKBetaSubunit">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit  is absolutely necessary for activity of the sodium potassium pump complex. It appears to be critical in facilitating the plasma membrane localization and activation of the alpha subunit.  The beta subunit is can be glycosylated.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#BetaSubunit"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.vivo.colostate.edu/hbooks/molecules/sodium_pump.html</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="CellAttachedPatchElectrode">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#PatchClampElectrode"/>
+    </rdfs:subClassOf>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of PatchClampElectrode describes an electrode that</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="EnsemblProteinID">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    ></rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ensembl.org/index.html</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the joint project between EMBL - European Bioinformatics Institute (EBI) and the Wellcome Trust Sanger Institute (WTSI) to develop a software system which produces and maintains automatic annotation on selected eukaryotic proteomes.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+  </owl:Class>
+  <owl:Class rdf:ID="Cannulation">
+    <rdfs:subClassOf rdf:resource="#SingleProcedure"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of SingleProcedure describes a process whereby a metal tube is inserted into the body to draw off fluid or to introduce medication.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="PotassiumAlphaSubunit">
+    <rdfs:subClassOf rdf:resource="#AlphaSubunit"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of AlphaSubunit is the subunit that is part of the potassium channel comple and is know to have six transmembrane segments, homologous to a single domain of the sodium channels. Correspondingly, they assemble as tetramers to produce a functioning channel and have a distinctive pore-loop structure that lines the top of the pore and is responsible for potassium selectivity.</oboInOwl:hasDefinition>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+  </owl:Class>
+  <owl:Class rdf:ID="Recombinant">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of GeneType decribes genes of a type resulting from the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#GeneType"/>
+  </owl:Class>
+  <owl:Class rdf:ID="HomoloGeneID">
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >www.ncbi.nlm.nih.gov/sites/entrez?db=homologene</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to an anutomated system for detecting homologs among eukaryotic gene sets</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="DbSnpID">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.ncbi.nlm.nih.gov/projects/SNP/</dc:source>
+    <rdfs:subClassOf rdf:resource="#ID"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ID describes external database references to the Single Nucleotide Polymorphism database (dbSNP) which is a public-domain archive for a broad collection of simple genetic polymorphisms.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="SodiumBeta3Subunit">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >**second draft addition</rdfs:comment>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#BetaSubunit"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit describes a sodium channel subunit that when assembled with alpha subunits the resulting complex can display altered voltage dependence and cellular localization</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="TransmissionElectronMicroscope">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ElectronMicroscope is a microscope that uses a beam of electrons is transmitted through a specimen, then an image is formed, magnified and directed to appear either on a fluorescent screen or layer of photographic film, or to be detected by a sensor such as a CCD camera. Also known as TEM, the transmission electrons are what are being detected.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#ElectronMicroscope"/>
+  </owl:Class>
+  <owl:Class rdf:ID="I_NaK">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring the sodium-potassium pump current</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+  </owl:Class>
+  <owl:Class rdf:ID="NaCh">
+    <rdfs:subClassOf rdf:resource="#Gene"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Gene describes genes that encode for sodium channel subunits.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#Electrode">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://dictionary.reference.com</dc:source>
+    <rdfs:subClassOf rdf:resource="#Device"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Device describes a solid electric conductor through which an electric current enters or leaves an electrolytic cell or other medium.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="I_K1">
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent is the variable used for measuring inwardly rectifing potassium current.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="RecombinantCurrent">
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of IonCurrent describes current measurements acquired from ion channels/ transporters,  that have been created by the artificial insertion of DNA into existing DNA coding stands, creating a "man-made" form of a gene that encodes the particular ion channel or transporter</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#IonCurrent"/>
+  </owl:Class>
+  <owl:Class rdf:ID="CalciumBetaSubunit">
+    <rdfs:subClassOf rdf:resource="#BetaSubunit"/>
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://www.chemsoc.org/exemplarchem/entries/2002/tim_smith/channels/calcium/</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of BetaSubunit describes the calcium channel subunit that is situated intracellularly and is involved in the membrane trafficking of alpha 1subunits</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:about="#PatchClampElectrode">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >http://en.wikipedia.org</dc:source>
+    <rdfs:subClassOf rdf:resource="#Electrode"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of Electrode describes an electrode that traditionally uses a glass pipette, with an open tip diameter of about one micrometre, and is made such that the tip forms a smooth surfaced circle, rather than a sharp point.</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:Class rdf:ID="NaKGammaSubunit">
+    <dc:source rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Beguin P, Wang X, Firsov D, Puoti A, Claeys D, Horisberger JD, Geering K. The gamma subunit is a specific component of the Na,K-ATPase and modulates its transport function. EMBO J. 1997 Jul 16; 16(14):4250-60.</dc:source>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of GammaSubunit is has been described since 1978 and to this date can be found in complexes with both the alpha and beta subunits of the sodium potassium pump complex, but yet to date not much is known about it.</oboInOwl:hasDefinition>
+    <rdfs:subClassOf rdf:resource="#GammaSubunit"/>
+  </owl:Class>
+  <owl:Class rdf:ID="SRCalciumPump">
+    <rdfs:subClassOf rdf:resource="#ATPDependentCalciumPump"/>
+    <oboInOwl:hasDefinition rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >This subclass of ATPDependentCalciumPump describes a class of ion pump that uses ATP to pump Ca2+ ions across the sarcoplasmic reticulum (SR)</oboInOwl:hasDefinition>
+  </owl:Class>
+  <owl:FunctionalProperty rdf:ID="hasMicroscopeType">
+    <rdfs:domain rdf:resource="#FluorescenceMicroscope"/>
+    <rdfs:range>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <owl:Class rdf:about="#ConfocalMicroscope"/>
+          <owl:Class rdf:about="#InvertedMicroscope"/>
+          <owl:Class rdf:about="#UprightMicroscope"/>
+          <owl:Class rdf:about="#MultiPhotonMicroscope"/>
+        </owl:unionOf>
+      </owl:Class>
+    </rdfs:range>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+  </owl:FunctionalProperty>
+  <FMA:FMA_20019 rdf:ID="FMA_20019_3"/>
+</rdf:RDF>
+
+<!-- Created with Protege (with OWL Plugin 3.3.1, Build 430)  http://protege.stanford.edu -->
