@@ -483,15 +483,44 @@ other data. Nothing about the ingest itself is special-cased; what this section 
 is the IRI convention and the mistakes that are unrecoverable in an append-only
 store.
 
-**Where the TTL comes from.** Either source, same procedure from step 2 on:
+**Prefer the SynthScholar route: import the output directory, then add it to a
+space.** It keeps the whole review in BrainKB, not just its triples: the
+manuscript, PDF, figures, tables, search log and verification reports are kept with
+the review in SynthScholar (private until the owner publishes it), its provenance
+records the import, what was left out (`work/`), and where the RDF went. Steps 2–7
+below still describe what happens; these tools do them:
 
-- **A local run** (the usual case) — the `synthscholar` skill's
+1. `brainkb_whoami()` — confirm the identity (as in step 1 below).
+2. `brainkb_synthscholar_import("<run>/output")` — the folder holding `review.json`.
+   Returns the new `review_id` (a BrainKB id, `review_import_…`). Reads the MCP
+   server's filesystem, so it works where `brainkb_ingest_files` does (local stdio
+   MCP, or `MCP_INGEST_ROOT`); on the hosted remote, have the user import the folder
+   in the UI instead: **Ingest Knowledge Graph → SynthScholar review**, or
+   SynthScholar → *Import a local run*.
+3. `brainkb_list_writable_spaces()` → confirm the space and its visibility with the
+   user (see *Visibility follows the space* below).
+4. `brainkb_synthscholar_add_to_graph(review_id, space_slug)` — registers the graph,
+   ingests the run's own `review.ttl` as you, records the ingest on the review, and
+   returns the `job_id`. The graph is named by the review's **own** id
+   (`…/reviews/review_local_<ts>/`), not the BrainKB import id, so the same run
+   ingested by hand (steps below) and through SynthScholar lands in one graph — and
+   the second attempt is refused. A 409 here is that refusal.
+5. Steps 6–7 below: poll the job, reconcile the delta against the triple count.
+
+`brainkb_synthscholar_list_reviews()` shows the caller's reviews with `source`
+(`pipeline` | `import`) and `in_graph`; `add_to_graph` works the same for a review
+run on BrainKB.
+
+**Ingesting the TTL by hand** (no import — e.g. only the `.ttl` is at hand).
+Either source, same procedure from step 2 on:
+
+- **A local run** — the `synthscholar` skill's
   `scripts/export_review.py … --formats md ttl` leaves `out/review.ttl` on disk.
 - **A hosted review** on mlservice — export it:
   `GET https://mlservice.brainkb.org/api/synth-scholar/public/reviews/<id>/export?format=ttl`
   (published reviews need no credential; `/api/synth-scholar/public/reviews` lists
-  them). An unpublished one needs an ml_service token, which these MCP tools do not
-  hold — have the user export it from the SynthScholar UI and give you the path.
+  them). For your own unpublished review, `brainkb_synthscholar_add_to_graph` is
+  simpler than exporting it.
 
 **Steps.**
 

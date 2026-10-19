@@ -404,6 +404,14 @@ Hard rules:
   space), the upload path, and the once-per-review rule. Print the export's
   triple count when you hand the file over; that number is what the ingest is
   reconciled against.
+- **Hand over the output directory, not just the `.ttl`.** BrainKB imports a run's
+  whole output folder (`brainkb_synthscholar_import`, or in the UI *Ingest
+  Knowledge Graph → SynthScholar review*): the review then appears in SynthScholar
+  with its manuscript, PDF, figures, tables, search log and verification reports,
+  and its provenance. `work/` is left out (and recorded as left out). So finish the
+  run first — export, manuscript, PDF, checks — then hand over the folder that
+  holds `review.json`. Keep `protocol.review_id` as the run minted it: it names the
+  review's graph.
 
 ## Mode 2 — Provenance queries
 
