@@ -17,6 +17,29 @@
   `--no-check-activity` or `STRUCTSENSE_NO_NETWORK=1` to skip. Stops after 3
   unreachable resources in a row when offline. Library calls stay offline unless
   asked. Thresholds in the same `activity` section.
+- A rate-limited answer is not an observation: no check is recorded for that
+  resource (it would show as `unknown` and mask the last real check), the host is
+  not retried in the run, and the report names the resources to re-check.
+  `GITHUB_TOKEN` or `GH_TOKEN` is used for GitHub.
+- **Beyond code**: ontologies (OBO PURLs/term IRIs, OBO Foundry/OLS pages, exact OBO
+  Foundry titles) get OBO Foundry's curated status, OLS's release date and their
+  repository; tool RRIDs are resolved through SciCrunch for links and a "no longer in
+  service" mark; GEO series are datasets with `available` / `embargoed` (not judged
+  by age); a link-less software library is tried by exact-case name on
+  Bioconductor, then CRAN. Name guesses are marked inferred and record nothing when
+  they find nothing. New terms: `bkr:isEmbargoed`, `bkr:declaredActivityStatus`;
+  statuses `available`, `embargoed`; sources `obofoundry`, `ols`, `rrid`, `geo`.
+- **Provenance-tracked assessments** (PROV-O, structured after NIDM-Experiment):
+  each run is an `ActivityCheckRun` (cf. nidm:Session) with start/end times and a
+  versioned `prov:SoftwareAgent` (`nidm:NIDM_0000122`, version read from SKILL.md);
+  each resource check an `ActivityCheck` (cf. nidm:Acquisition) part of the run; each
+  source's answer an `ActivitySignal` with the time it arrived and the API URLs
+  queried (`prov:hadPrimarySource`); the result an `ActivityAssessment` (cf.
+  nidm:AcquisitionObject) `prov:wasGeneratedBy` the check at `prov:generatedAtTime`,
+  `prov:wasDerivedFrom` its signals. Times are xsd:dateTime to the microsecond (UTC).
+  Runs accumulate — the same-day replacement is gone. SHACL shapes enforce the
+  chain. Older checks are upgraded to assessments in place. BrainKB MCP:
+  activity queries read assessments; new `rs_activity_provenance`.
 - **Ontology**: `bkr:ActivityCheck` (a `ResourceLifecycleActivity`, dated, one per
   check date, kept apart from the paper-stated `bkr:lifecycleStatus`),
   `bkr:ActivitySignal` (one per source), `bkr:hasActivityCheck`,

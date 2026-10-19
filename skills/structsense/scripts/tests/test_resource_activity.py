@@ -140,33 +140,76 @@ def test_no_target_is_no_check():
     assert check(["https://example.org/atlas", "python run.py"], fetch=fake({}), today=TODAY) is None
 
 
-def test_build_adds_dated_activity_checks_and_still_validates():
+PROV = Namespace("http://www.w3.org/ns/prov#")
+DCT = Namespace("http://purl.org/dc/terms/")
+NIDM_VERSION = URIRef("http://purl.org/nidash/nidm#NIDM_0000122")
+
+
+def test_build_adds_provenance_tracked_assessments_and_still_validates():
     rec = record()                       # url: https://github.com/example/cellmapper (stated in TEXT)
     ttl, rep = build(res(rec), source_text=TEXT, check_activity=True,
                      fetch=fake(github("example/cellmapper", commit="2019-01-01T00:00:00Z")))
     g = Graph().parse(data=ttl, format="turtle")
-    checks = list(g.subjects(RDF.type, BKR.ActivityCheck))
-    assert len(checks) == 1 and rep["activity"]["by_status"] == {"inactive": 1}
-    c = checks[0]
-    assert (c, BKR.activityStatus, BKR["activity-status/inactive"]) in g
-    assert (c, BKR.lastActivityDate, Literal("2019-01-01", datatype=XSD.date)) in g
-    resource = g.value(c, URIRef("http://www.w3.org/ns/prov#used"))
-    assert (resource, BKR.hasActivityCheck, c) in g
+    [a] = list(g.subjects(RDF.type, BKR.ActivityAssessment))
+    assert rep["activity"]["by_status"] == {"inactive": 1}
+    assert (a, BKR.activityStatus, BKR["activity-status/inactive"]) in g
+    assert (a, BKR.lastActivityDate, Literal("2019-01-01", datatype=XSD.date)) in g
+    check_node = g.value(a, PROV.wasGeneratedBy)
+    resource = g.value(a, BKR.assessedResource)
+    assert (resource, BKR.hasActivityAssessment, a) in g and (check_node, PROV.used, resource) in g
     v = validate_graph(g)
     assert v["ok"], v
-    assert not any("activity" in u.lower() for u in v.get("undeclared", {}))
+    assert not any("ctivity" in u for u in v.get("undeclared", {}))
 
 
-def test_rerun_on_the_same_day_replaces_the_check():
+def test_assessment_provenance_answers_when_by_what_and_from_where():
+    g = Graph()
+    r = URIRef("https://brainkb.org/kb/resource/x")
+    g.add((r, RDF.type, BKR.Resource))
+    g.add((r, BKR.accessURL, Literal("https://github.com/o/r", datatype=XSD.anyURI)))
+    rep = ra.annotate(g, fetch=fake(github("o/r")), today=TODAY)
+    [a] = list(g.subjects(RDF.type, BKR.ActivityAssessment))
+    when = g.value(a, PROV.generatedAtTime)
+    assert when.datatype == XSD.dateTime                     # a time, not only a day
+    c = g.value(a, PROV.wasGeneratedBy)
+    assert g.value(c, PROV.startedAtTime).datatype == XSD.dateTime and g.value(c, PROV.endedAtTime) is not None
+    run = g.value(c, DCT.isPartOf)
+    assert (run, RDF.type, BKR.ActivityCheckRun) in g and str(run) == rep["run"]["iri"]
+    agent = g.value(c, PROV.wasAssociatedWith)
+    assert (agent, RDF.type, PROV.SoftwareAgent) in g
+    assert str(g.value(agent, NIDM_VERSION)) == ra.skill_version() != "unknown"
+    [sig] = list(g.objects(a, PROV.wasDerivedFrom))
+    assert (sig, PROV.wasGeneratedBy, c) in g and g.value(sig, PROV.generatedAtTime) is not None
+    assert URIRef("https://api.github.com/repos/o/r") in set(g.objects(sig, PROV.hadPrimarySource))
+
+
+def test_reruns_accumulate_and_the_latest_assessment_is_current():
     g = Graph()
     r = URIRef("https://brainkb.org/kb/resource/x")
     g.add((r, RDF.type, BKR.Resource))
     g.add((r, BKR.accessURL, Literal("https://github.com/o/r", datatype=XSD.anyURI)))
     for commit in ("2019-01-01T00:00:00Z", "2026-10-01T00:00:00Z"):
         ra.annotate(g, fetch=fake(github("o/r", commit=commit)), today=TODAY)
-    assert len(set(g.subjects(RDF.type, BKR.ActivityCheck))) == 1
-    assert len(set(g.subjects(RDF.type, BKR.ActivitySignal))) == 1
-    assert set(g.objects(None, BKR.activityStatus)) == {BKR["activity-status/active"]}
+    assessments = list(g.objects(r, BKR.hasActivityAssessment))
+    assert len(assessments) == 2 and len(set(g.subjects(RDF.type, BKR.ActivityCheckRun))) == 2
+    latest = max(assessments, key=lambda a: str(g.value(a, PROV.generatedAtTime)))
+    assert g.value(latest, BKR.activityStatus) == BKR["activity-status/active"]
+
+
+def test_legacy_checks_are_upgraded_not_discarded():
+    g = Graph()
+    r = URIRef("https://brainkb.org/kb/resource/x")
+    c = URIRef(f"{r}/activity-check/2026-04-01")
+    g.add((r, RDF.type, BKR.Resource)); g.add((r, BKR.hasActivityCheck, c))
+    g.add((c, RDF.type, BKR.ActivityCheck)); g.add((c, PROV.used, r))
+    g.add((c, PROV.endedAtTime, Literal("2026-04-01", datatype=XSD.date)))
+    g.add((c, BKR.activityStatus, BKR["activity-status/stale"]))
+    rep = ra.annotate(g, fetch=fake({}), today=TODAY)
+    assert rep["upgraded"] == 1
+    [a] = list(g.objects(r, BKR.hasActivityAssessment))
+    assert g.value(a, BKR.activityStatus) == BKR["activity-status/stale"]
+    assert g.value(a, PROV.generatedAtTime) == Literal("2026-04-01", datatype=XSD.date)
+    assert g.value(c, BKR.activityStatus) is None
 
 
 @pytest.mark.parametrize("code,expected", [
@@ -186,7 +229,7 @@ def test_github_pages_site_points_at_its_repository():
     [t] = targets_from_url("https://deeplabcut.github.io/DeepLabCut/docs/ModelZoo.html")
     assert (t.source, t.key, t.inferred) == ("github", "deeplabcut/DeepLabCut", True)
     r = check([t.found_in], fetch=fake({}), today=TODAY)      # guessed repo does not exist
-    assert r["status"] == "unknown"                            # not "unavailable": it was a guess
+    assert r is None                                           # a failed guess records nothing
 
 
 def test_offline_stops_after_a_few_unreachable_resources():
@@ -201,7 +244,8 @@ def test_offline_stops_after_a_few_unreachable_resources():
         calls.append(url)
         raise FetchError(None, "network unreachable")
     rep = ra.annotate(g, fetch=down, today=TODAY)
-    assert rep["checked"] == 0 and rep["skipped"] == 3 and len(calls) == 3
+    github_calls = [u for u in calls if "api.github.com" in u]
+    assert rep["checked"] == 0 and rep["skipped"] == 3 and len(github_calls) == 3
     assert rep["warnings"] and not list(g.subjects(RDF.type, BKR.ActivityCheck))
 
 
@@ -216,3 +260,142 @@ def test_entry_points_follow_the_config_library_stays_offline(monkeypatch):
     ttl, rep = build(res(record()), source_text=TEXT, check_activity=None,
                      fetch=fake(github("example/cellmapper")))    # entry-point default: config (on)
     assert rep["activity"]["checked"] == 1
+
+
+def test_rate_limited_check_is_not_recorded_and_github_is_not_retried():
+    g = Graph()
+    for i in range(3):
+        r = URIRef(f"https://brainkb.org/kb/resource/r{i}")
+        g.add((r, RDF.type, BKR.Resource))
+        g.add((r, BKR.accessURL, Literal(f"https://github.com/o/r{i}", datatype=XSD.anyURI)))
+    calls = []
+
+    def limited(url):
+        calls.append(url)
+        raise FetchError(403, "HTTP 403 (rate limited: set GITHUB_TOKEN)", rate_limited=True)
+    rep = ra.annotate(g, fetch=limited, today=TODAY)
+    assert rep["checked"] == 0 and len(rep["rate_limited"]) == 3
+    assert len([u for u in calls if "api.github.com" in u]) == 1   # the host is not asked again this run
+    assert not list(g.subjects(RDF.type, BKR.ActivityCheck))  # no "unknown" masking an earlier check
+    assert "GITHUB_TOKEN" in rep["warnings"][0]
+
+
+OBO = {"https://obofoundry.org/registry/ontologies.jsonld": {"ontologies": [
+    {"id": "go", "title": "Gene Ontology", "activity_status": "active",
+     "repository": "https://github.com/geneontology/go-ontology"},
+    {"id": "old", "title": "Old Anatomy Ontology", "activity_status": "inactive"},
+    {"id": "gone", "title": "Gone Ontology", "activity_status": "active", "is_obsolete": True}]}}
+OLS_GO = {"https://www.ebi.ac.uk/ols4/api/ontologies/go": {
+    "config": {"version": "2026-07-26", "versionIri": "http://purl.obolibrary.org/obo/go/releases/2026-07-26/go.owl"},
+    "loaded": "2026-10-16T00:10:06"}}
+
+
+def test_ontology_by_title_gets_obo_status_ols_release_and_its_repository():
+    r = check([], name="Gene Ontology", today=TODAY,
+              fetch=fake({**OBO, **OLS_GO, **github("geneontology/go-ontology", commit="2026-10-10T00:00:00Z")}))
+    assert r["status"] == "active" and r["last_activity"] == "2026-10-10"
+    by = {s["source"]: s for s in r["signals"]}
+    assert set(by) == {"obofoundry", "ols", "github"}
+    assert by["obofoundry"]["declared_status"] == "active" and "matched by title" in by["obofoundry"]["note"]
+    assert by["ols"]["last_release"] == "2026-07-26"       # the release, not OLS's load time
+
+
+def test_ontology_purl_and_obo_declared_inactive_or_obsolete():
+    assert [(t.source, t.key) for t in targets_from_url("http://purl.obolibrary.org/obo/GO_0008150")] == [("obofoundry", "go")]
+    assert [(t.source, t.key) for t in targets_from_url("http://purl.obolibrary.org/obo/uberon.owl")] == [("obofoundry", "uberon")]
+    r = check([], name="Old Anatomy Ontology", fetch=fake(OBO), today=TODAY)
+    assert r["status"] == "inactive"                         # curated status, even without dates
+    r = check(["https://obofoundry.org/ontology/gone"], fetch=fake(OBO), today=TODAY)
+    assert r["status"] == "deprecated"
+
+
+def test_name_that_matches_nothing_records_nothing():
+    assert check([], name="Adobe Illustrator", fetch=fake(OBO), today=TODAY) is None
+
+
+def test_rrid_leads_to_the_repository():
+    rrid = {"https://scicrunch.org/resolver/RRID:SCR_018139.json": {"hits": {"hits": [{"_source": {
+        "distributions": {"current": [{"type": "landing page", "uri": "https://github.com/theislab/scanpy"}],
+                          "alternate": [{"uri": "https://icb-scanpy.readthedocs-hosted.com/"}]},
+        "item": {"availability": [{"keyword": "Free, Available for download"}]}}}]}}}
+    r = check(["RRID:SCR_018139"], fetch=fake({**OBO, **rrid, **github("theislab/scanpy", commit="2026-10-15T00:00:00Z")}),
+              today=TODAY, name="Scanpy", types=["SoftwareLibrary"])
+    assert r["status"] == "active" and [s["source"] for s in r["signals"]] == ["rrid", "github"]
+
+
+def test_rrid_marked_discontinued_is_deprecated():
+    rrid = {"https://scicrunch.org/resolver/RRID:SCR_000001.json": {"hits": {"hits": [{"_source": {
+        "item": {"availability": [{"keyword": "THIS RESOURCE IS NO LONGER IN SERVICE"}]}}}]}}}
+    r = check(["RRID:SCR_000001"], fetch=fake({**OBO, **rrid}), today=TODAY)
+    assert r["status"] == "deprecated"
+
+
+GEO_PUBLIC = """!Series_title = Whole striatum
+!Series_status = Public on Jul 17 2020
+!Series_submission_date = Jun 08 2020
+!Series_last_update_date = Jan 18 2023
+"""
+
+
+def test_geo_dataset_is_judged_by_availability_not_age():
+    url = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE152058"
+    r = check(["GSE152058"], fetch=fake({**OBO, url: GEO_PUBLIC}), today=TODAY)
+    assert r["status"] == "available" and r["last_activity"] == "2023-01-18"   # not "inactive"
+    s = r["signals"][0]
+    assert (s["kind"], s["last_release"], s["embargoed"]) == ("data", "2020-07-17", False)
+    url2 = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE999999"
+    private = "<html>GSE999999 is currently private and is scheduled to be released on Mar 01, 2027.</html>"
+    r = check(["GSE999999"], fetch=fake({**OBO, url2: private}), today=TODAY)
+    assert r["status"] == "embargoed" and r["signals"][0]["last_release"] == "2027-03-01"
+
+
+def test_r_package_by_exact_name_only_for_a_linkless_software_library():
+    bioc = {"https://bioc.r-universe.dev/api/packages/limma": {"Version": "3.62.0",
+            "_commit": {"time": 1790000000, "message": "fix voom weights"}}}
+    r = check([], name="limma", types=["SoftwareLibrary"], fetch=fake({**OBO, **bioc}), today=TODAY)
+    assert r["status"] == "active" and r["signals"][0]["source"] == "bioconductor" and r["signals"][0]["inferred"]
+    assert check([], name="limma", types=["SoftwareResource"], fetch=fake({**OBO, **bioc}), today=TODAY) is None
+    assert check([], name="Limma", types=["SoftwareLibrary"], fetch=fake({**OBO, **bioc}), today=TODAY) is None
+
+
+def test_dataset_and_ontology_checks_validate():
+    url = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE152058"
+    g = Graph()
+    d, o = URIRef("https://brainkb.org/kb/resource/d"), URIRef("https://brainkb.org/kb/resource/o")
+    for r, n in ((d, "Whole striatum data"), (o, "Gene Ontology")):
+        g.add((r, RDF.type, BKR.Resource)); g.add((r, BKR.resourceName, Literal(n)))
+    i = URIRef("https://brainkb.org/kb/resource/d/id")
+    g.add((d, URIRef("http://www.w3.org/ns/adms#identifier"), i))
+    g.add((i, URIRef("http://www.w3.org/2004/02/skos/core#notation"), Literal("GSE152058")))
+    rep = ra.annotate(g, today=TODAY, fetch=fake({**OBO, **OLS_GO, url: GEO_PUBLIC,
+                                                  **github("geneontology/go-ontology")}))
+    assert rep["by_status"] == {"available": 1, "active": 1}
+    assert (None, BKR.isEmbargoed, Literal(False)) in g
+    assert (None, BKR.declaredActivityStatus, Literal("active")) in g
+
+
+def test_name_match_stops_at_the_first_registry_that_has_it():
+    bioc = {"https://bioc.r-universe.dev/api/packages/limma": {"Version": "3.99.2",
+            "_commit": {"time": 1790000000, "message": "fix"}}}
+    cran = {"https://crandb.r-pkg.org/limma/all": {"latest": "2.10.7", "archived": True,
+            "versions": {"2.10.7": {}}, "timeline": {"2.10.7": "2007-09-24", "archived": "2013-08-29"}}}
+    r = check([], name="limma", types=["SoftwareLibrary"], fetch=fake({**OBO, **bioc, **cran}), today=TODAY)
+    assert r["status"] == "active" and [s["source"] for s in r["signals"]] == ["bioconductor"]
+
+
+def test_rrid_naming_a_different_resource_is_not_used():
+    rrid = {"https://scicrunch.org/resolver/RRID:SCR_002001.json": {"hits": {"hits": [{"_source": {
+        "item": {"name": "Neural ElectroMagnetic Ontologies (NEMO) Project", "abbreviations": [{"name": "NEMO"}],
+                 "availability": [{"keyword": "THIS RESOURCE IS NO LONGER IN SERVICE"}]}}}]}}}
+    r = check(["RRID:SCR_002001"], name="NIH Neuroscience Multi-omic Archive (NeMO)",
+              fetch=fake({**OBO, **rrid}), today=TODAY)
+    assert r["status"] == "unknown"                          # not the other project's "deprecated"
+    assert "different resource" in r["signals"][0]["note"]
+
+
+@pytest.mark.parametrize("name,record,ok", [
+    ("Prism", ["GraphPad Prism"], True), ("R", ["R Project for Statistical Computing", "R software"], True),
+    ("Seurat", ["Seurat"], True), ("NIH Neuroscience Multi-omic Archive (NeMO)", ["Neural ElectroMagnetic Ontologies (NEMO) Project", "NEMO"], False),
+])
+def test_names_match(name, record, ok):
+    assert ra.names_match(name, record) is ok

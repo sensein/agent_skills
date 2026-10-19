@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Activity status of software resources: is the code still maintained?
+"""Activity status of resources: is the code or ontology still maintained, is the data released?
 
 A paper says where its code lives; it cannot say whether anyone still works on it.
 This step asks the hosting service and the package registries, and records what they
@@ -10,7 +10,12 @@ Targets come from what the resource graph already states: a resource's
 usage-example code (`pip install X`, `install.packages("X")`,
 `BiocManager::install("X")`, `conda install -c bioconda X`, `npm install X`). A
 package registry that names its own source repository (PyPI `project_urls`, npm
-`repository`, conda `dev_url`) adds that repository as a target too.
+`repository`, conda `dev_url`) adds that repository as a target too. Identifiers:
+an RRID of a tool (`RRID:SCR_…`) is resolved for its links, a GEO series (`GSE…`)
+for its release. Ontology URLs (`purl.obolibrary.org/obo/…`, OBO Foundry, OLS) name
+the ontology. Guesses from the name, marked inferred and dropped when they find
+nothing: an exact OBO Foundry title, and — for a software library with no link at
+all — an exact-case Bioconductor, then CRAN, package name.
 
 Sources, all public GETs (set GITHUB_TOKEN to lift GitHub's 60 requests/hour limit):
 
@@ -24,15 +29,29 @@ Sources, all public GETs (set GITHUB_TOKEN to lift GitHub's 60 requests/hour lim
 | npm           | latest version and date, deprecated flag                         |
 | conda         | latest version, last upload (a packaging signal: rebuilds by     |
 |               | channel bots, so used only when nothing else dates the resource) |
+| OBO Foundry   | curated activity status (active/inactive/orphaned), obsolete,    |
+|               | repository (followed)                                            |
+| OLS           | version of the loaded release; its date is the release date      |
+| RRID resolver | the resource's links (followed), "no longer in service"          |
+| GEO           | public / private, release and last-update dates (a dataset)      |
 
 Status (`https://brainkb.org/resource/activity-status/`), first rule that applies:
-archived (the host says so) > deprecated (a registry says so) > unavailable (every
-target is gone: 404) > unknown (no date could be read) > active (last activity within
+archived (the host says so) > deprecated (a registry says so) > inactive by a
+registry's curated status (OBO Foundry inactive/orphaned) > unavailable (every target
+is gone: 404) > for a dataset, available / embargoed (data is not stale for being
+unchanged) > unknown (no date could be read) > active (last activity within
 `stale_after_days`) > stale (within `inactive_after_days`) > inactive.
 
-The paper-stated `bkr:lifecycleStatus` of a version is left alone: this is a separate,
-dated `bkr:ActivityCheck` on the resource, one per check date, so re-running later
-adds a new observation instead of overwriting the old one.
+The paper-stated `bkr:lifecycleStatus` of a version is left alone. Every run is
+provenance-tracked (PROV-O, structured like NIDM-Experiment): an `ActivityCheckRun`
+(cf. nidm:Session) with start/end times and a `prov:SoftwareAgent` carrying its NIDM
+software version; per resource an `ActivityCheck` (cf. nidm:Acquisition, part of the
+run) that `prov:used` the resource; per source an `ActivitySignal` with the time the
+answer arrived and the API URLs queried (`prov:hadPrimarySource`); and the result, an
+`ActivityAssessment` (cf. nidm:AcquisitionObject) `prov:wasGeneratedBy` the check at
+`prov:generatedAtTime`, `prov:wasDerivedFrom` the signals. Runs accumulate, never
+overwrite; the current status is the latest assessment. Checks written before this
+are upgraded to assessments in place (`upgrade_legacy`), keeping their date.
 
     python scripts/resource_activity.py check https://github.com/org/repo "pip install scanpy"
     python scripts/resource_activity.py annotate resources.ttl --out resources.ttl --report activity.json
@@ -46,6 +65,7 @@ import os
 import re
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
@@ -61,14 +81,35 @@ BKR = Namespace("https://brainkb.org/resource/")
 PROV = Namespace("http://www.w3.org/ns/prov#")
 ADMS = Namespace("http://www.w3.org/ns/adms#")
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-AGENT = URIRef("https://brainkb.org/kb/agent/structsense-resource-activity")
+DCT = Namespace("http://purl.org/dc/terms/")
+NIDM = Namespace("http://purl.org/nidash/nidm#")
+NIDM_SOFTWARE_VERSION = NIDM.NIDM_0000122       # NIDM-Results "software Version" (domain prov:SoftwareAgent)
+KB = "https://brainkb.org/kb/"
+
+
+def skill_version() -> str:
+    """structsense's version, from SKILL.md (one source of truth)."""
+    try:
+        text = (Path(__file__).resolve().parent.parent / "SKILL.md").read_text()
+        m = re.search(r'^\s*version:\s*"?([\w.+-]+)"?\s*$', text, re.M)
+        return m.group(1) if m else "unknown"
+    except OSError:
+        return "unknown"
+
+
+def _now() -> str:
+    """UTC, always to the microsecond: one fixed width, so ISO strings order correctly as
+    text (the MCP queries compare STR()) and back-to-back runs never tie."""
+    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 STALE_AFTER_DAYS = 365
 INACTIVE_AFTER_DAYS = 3 * 365
 _TIMEOUT = 20
 _DELAY_SECONDS = 0.2
-STATUSES = ("active", "stale", "inactive", "archived", "deprecated", "unavailable", "unknown")
+STATUSES = ("active", "stale", "inactive", "archived", "deprecated", "unavailable", "unknown",
+            "available", "embargoed")
 PACKAGING = {"conda"}  # dates that reflect rebuilds, not development
+OBO_REGISTRY = "https://obofoundry.org/registry/ontologies.jsonld"
 OFFLINE_AFTER = 3     # resources in a row with no answer at all: stop, the network is down
 
 
@@ -81,7 +122,7 @@ class Target:
     source: str          # github | gitlab | pypi | cran | bioconductor | npm | conda
     key: str             # owner/repo, package name, channel/name
     found_in: str        # the URL or code it was read from
-    inferred: bool = False   # derived from another address (GitHub Pages): absence is not "gone"
+    inferred: bool = False   # a guess (GitHub Pages address, a name): a failed guess records nothing
 
     @property
     def page(self) -> str:
@@ -93,6 +134,10 @@ class Target:
             "bioconductor": f"https://bioconductor.org/packages/{self.key}",
             "npm": f"https://www.npmjs.com/package/{self.key}",
             "conda": f"https://anaconda.org/{self.key}",
+            "obofoundry": f"https://obofoundry.org/ontology/{self.key}",
+            "ols": f"https://www.ebi.ac.uk/ols4/ontologies/{self.key}",
+            "rrid": f"https://scicrunch.org/resolver/{self.key}",
+            "geo": f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={self.key}",
         }[self.source]
 
 
@@ -107,6 +152,11 @@ _URL_RULES: list[tuple[str, re.Pattern]] = [
     ("bioconductor", re.compile(r"bioconductor\.org/packages/(?:(?:release|devel|[\d.]+)/bioc/html/)?([\w.]+?)(?:\.html)?(?:[/?#]|$)", re.I)),
     ("npm", re.compile(r"npmjs\.(?:com|org)/package/((?:@[\w.-]+/)?[\w.-]+)", re.I)),
     ("conda", re.compile(r"anaconda\.org/([\w-]+/[\w.-]+)", re.I)),
+    ("obofoundry", re.compile(r"purl\.obolibrary\.org/obo/([A-Za-z][A-Za-z0-9]*)(?:_\d|\.owl|\.obo|\.json|/|$)", re.I)),
+    ("obofoundry", re.compile(r"obofoundry\.org/ontology/([\w-]+)", re.I)),
+    ("ols", re.compile(r"ebi\.ac\.uk/ols4?/ontologies/([\w-]+)", re.I)),
+    ("geo", re.compile(r"ncbi\.nlm\.nih\.gov/geo/query/acc\.cgi\?(?:[^#]*&)?acc=(GSE\d+)", re.I)),
+    ("rrid", re.compile(r"(?:scicrunch\.org/resolver/|identifiers\.org/|n2t\.net/)(RRID:SCR_\d+)", re.I)),
 ]
 _BIOC_NOT_PACKAGES = {"release", "devel", "json", "stats", "html"}
 
@@ -190,10 +240,46 @@ def targets_from_url(url: str) -> list[Target]:
             key = f"{owner}/{repo}"
         elif source == "bioconductor" and m.group(1).lower() in _BIOC_NOT_PACKAGES:
             continue
+        elif source in ("obofoundry", "ols"):
+            key = m.group(1).lower()
         else:
             key = m.group(1).rstrip("/")
         out.append(Target(source, key, url))
         break
+    return out
+
+
+_IDENT_RULES: list[tuple[str, re.Pattern]] = [
+    ("rrid", re.compile(r"^\s*(?:RRID:\s*)?(SCR_\d+)\s*$", re.I)),
+    ("geo", re.compile(r"^\s*(GSE\d+)\s*$", re.I)),
+]
+
+
+def targets_from_identifier(value: str) -> list[Target]:
+    """RRIDs of tools (SCR_) and GEO series; other identifiers say nothing about activity."""
+    for source, rx in _IDENT_RULES:
+        m = rx.match(value or "")
+        if m:
+            key = f"RRID:{m.group(1).upper()}" if source == "rrid" else m.group(1).upper()
+            return [Target(source, key, value)]
+    return []
+
+
+# Bioconductor first: a package that moved there (limma, 2013) can linger on CRAN as archived
+_R_NAME_ORDER = ("bioconductor", "cran")
+
+
+def targets_from_name(name: str, types: Iterable[str], have_targets: bool) -> list[Target]:
+    """Guesses from the resource's name, marked inferred: an exact OBO Foundry title
+    (any resource), and — only when nothing else points anywhere — an exact-case
+    Bioconductor or CRAN package name for a software library."""
+    name = (name or "").strip()
+    if not name:
+        return []
+    out = [Target("obofoundry", f"title:{name}", f"name: {name}", inferred=True)]
+    if not have_targets and "SoftwareLibrary" in set(types) and re.fullmatch(r"[A-Za-z][A-Za-z0-9.]*", name):
+        out += [Target("bioconductor", name, f"name: {name}", inferred=True),
+                Target("cran", name, f"name: {name}", inferred=True)]
     return out
 
 
@@ -219,9 +305,36 @@ def _dedupe(targets: Iterable[Target]) -> list[Target]:
 # ---------------------------------------------------------------------------
 
 class FetchError(Exception):
-    def __init__(self, status: Optional[int], message: str):
+    def __init__(self, status: Optional[int], message: str, rate_limited: bool = False):
         super().__init__(message)
         self.status = status
+        self.rate_limited = rate_limited
+
+
+class _RateLimits:
+    """Per-run memory of hosts that rate-limited us: later requests to the same host
+    fail at once instead of spending more of an exhausted quota."""
+
+    def __init__(self, fetch: "Fetch"):
+        self.fetch, self.hosts, self.cache = fetch, set(), {}
+
+    def __call__(self, url: str) -> Any:
+        host = url.split("/")[2] if "://" in url else url
+        if host in self.hosts:
+            raise FetchError(429, f"skipped: {host} rate limit reached earlier in this run", rate_limited=True)
+        if url in self.cache:              # the OBO registry is read once per run
+            if isinstance(self.cache[url], FetchError):
+                raise self.cache[url]
+            return self.cache[url]
+        try:
+            self.cache[url] = self.fetch(url)
+            return self.cache[url]
+        except FetchError as e:
+            if e.rate_limited:
+                self.hosts.add(host)
+            elif url == OBO_REGISTRY:
+                self.cache[url] = e
+            raise
 
 
 Fetch = Callable[[str], Any]   # url -> parsed JSON (or text for .html); raises FetchError
@@ -229,20 +342,28 @@ Fetch = Callable[[str], Any]   # url -> parsed JSON (or text for .html); raises 
 
 def http_fetch(url: str) -> Any:
     headers = {"User-Agent": "structsense-skill/1.0", "Accept": "application/json"}
-    if "api.github.com" in url and os.environ.get("GITHUB_TOKEN"):
-        headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if "api.github.com" in url and token:
+        headers["Authorization"] = f"Bearer {token}"
     time.sleep(_DELAY_SECONDS)
     try:
         with urlopen(Request(url, headers=headers), timeout=_TIMEOUT) as r:
             body = r.read().decode("utf-8", "replace")
     except HTTPError as e:
-        hint = ""
-        if e.code == 403 and "api.github.com" in url:
-            hint = " (rate limited? set GITHUB_TOKEN)"
-        raise FetchError(e.code, f"HTTP {e.code}{hint}") from None
+        try:
+            detail = e.read().decode("utf-8", "replace").lower()
+        except Exception:
+            detail = ""
+        limited = e.code == 429 or (e.code == 403 and (
+            (e.headers.get("X-RateLimit-Remaining") == "0") or "rate limit" in detail))
+        hint = " (rate limited: set GITHUB_TOKEN)" if limited and "api.github.com" in url else (
+            " (rate limited)" if limited else "")
+        raise FetchError(e.code, f"HTTP {e.code}{hint}", rate_limited=limited) from None
     except (URLError, TimeoutError, OSError) as e:
         raise FetchError(None, str(e)) from None
-    return body if url.endswith(".html") else json.loads(body)
+    if url.endswith(".html") or "form=text" in url:
+        return body
+    return json.loads(body)
 
 
 def _date(value: Any) -> Optional[str]:
@@ -262,7 +383,8 @@ def _signal(t: Target, **kw) -> dict:
     s = {"source": t.source, "key": t.key, "page": t.page, "found_in": t.found_in, "inferred": t.inferred,
          "available": True, "archived": False, "deprecated": False,
          "last_commit": None, "last_release": None, "latest_version": None, "last_activity": None,
-         "repository": None, "note": None, "error": None, "http_status": None}
+         "repository": None, "note": None, "error": None, "http_status": None, "rate_limited": False,
+         "kind": "code", "embargoed": False, "declared_status": None, "declared_inactive": False, "links": []}
     s.update(kw)
     return s
 
@@ -388,19 +510,144 @@ def _conda(t: Target, fetch: Fetch) -> dict:
                    note="packaging signal: channel rebuilds, not upstream development")
 
 
+def _date_in(value: Any) -> Optional[str]:
+    m = re.search(r"((?:19|20)\d{2}-\d{2}-\d{2})", str(value or ""))
+    return m.group(1) if m else None
+
+
+def _obo(t: Target, fetch: Fetch) -> dict:
+    """OBO Foundry registry: its curated activity status (active / inactive /
+    orphaned), obsolescence, and the repository; OLS is added for the release date."""
+    onts = (fetch(OBO_REGISTRY) or {}).get("ontologies") or []
+    if t.key.startswith("title:"):
+        want = t.key[6:].strip().lower()
+        hit = next((o for o in onts if (o.get("title") or "").strip().lower() == want), None)
+    else:
+        hit = next((o for o in onts if (o.get("id") or "").lower() == t.key.lower()), None)
+    if not hit:
+        raise FetchError(404, "not in the OBO Foundry registry")
+    oid = hit["id"]
+    status = (hit.get("activity_status") or "").lower() or None
+    obsolete = bool(hit.get("is_obsolete"))
+    note = f"OBO Foundry activity status: {status or 'not given'}" + ("; obsolete" if obsolete else "")
+    if t.inferred:
+        note += f"; matched by title ({hit.get('title')})"
+    return _signal(Target("obofoundry", oid, t.found_in, t.inferred), deprecated=obsolete,
+                   declared_status=status, declared_inactive=status in ("inactive", "orphaned"), note=note,
+                   links=[u for u in (hit.get("repository"),) if u] + [f"https://www.ebi.ac.uk/ols4/ontologies/{oid}"])
+
+
+def _ols(t: Target, fetch: Fetch) -> dict:
+    """OLS: the loaded release's version; its date (from the version or version IRI)
+    is the release date. OLS's own `loaded`/`updated` times are not releases."""
+    d = fetch(f"https://www.ebi.ac.uk/ols4/api/ontologies/{quote(t.key)}")
+    c = d.get("config") or {}
+    version = c.get("version") or d.get("version")
+    released = _date_in(version) or _date_in(c.get("versionIri"))
+    return _signal(t, latest_version=version, last_release=released, last_activity=released,
+                   note=None if released else "OLS gives no release date for this version")
+
+
+def _rrid(t: Target, fetch: Fetch) -> dict:
+    """SciCrunch RRID record: the resource's links (followed: a repository or a
+    package often appears) and whether it is marked as no longer available. An RRID
+    carries no dates itself."""
+    d = fetch(f"https://scicrunch.org/resolver/{quote(t.key, safe=':')}.json")
+    hits = (d.get("hits") or {}).get("hits") or []
+    if not hits:
+        raise FetchError(404, "RRID not found")
+    src = hits[0].get("_source") or {}
+    dist = src.get("distributions") or {}
+    links = [x.get("uri") for k in ("current", "alternate") for x in dist.get(k) or [] if x.get("uri")]
+    avail = " ".join(f"{a.get('keyword', '')} {a.get('description', '')}"
+                     for a in (src.get("item") or {}).get("availability") or [])
+    gone = bool(re.search(r"no longer (?:in service|available|maintained|supported)|discontinued|defunct|retired",
+                          avail, re.I))
+    item = src.get("item") or {}
+    names = [item.get("name")] + [x.get("name") for k in ("synonyms", "abbreviations")
+                                  for x in item.get(k) or [] if isinstance(x, dict)]
+    return _signal(t, deprecated=gone, links=list(dict.fromkeys(links)),
+                   note=f"RRID record: {' '.join(avail.split())[:160]}" if gone else None,
+                   record_names=[n for n in names if n])
+
+
+_STOP = {"the", "of", "for", "and", "a", "an"}
+
+
+def _words(name: str) -> set:
+    core = re.sub(r"\([^)]*\)", " ", name or "")      # an acronym in brackets alone proves nothing
+    return {w for w in re.findall(r"[a-z0-9]+", core.lower()) if w not in _STOP}
+
+
+def names_match(name: str, record_names: Iterable[str]) -> bool:
+    """The RRID record is about this resource: one name's words contain the other's
+    (Prism / GraphPad Prism, R / R software), ignoring bracketed acronyms."""
+    mine = _words(name)
+    for other in record_names:
+        theirs = _words(other)
+        if mine and theirs and (mine <= theirs or theirs <= mine):
+            return True
+    return False
+
+
+def _geo_date(text: Optional[str]) -> Optional[str]:
+    for fmt in ("%b %d %Y", "%b %d, %Y", "%B %d, %Y"):
+        try:
+            return dt.datetime.strptime((text or "").strip(), fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def _geo(t: Target, fetch: Fetch) -> dict:
+    """GEO series: a dataset, so availability and dates, not development activity."""
+    text = fetch(f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={quote(t.key)}&targ=self&form=text&view=brief")
+    text = text if isinstance(text, str) else ""
+    m = re.search(r"scheduled to be released on (\w+ \d{1,2},? \d{4})", text)
+    if "!Series_" not in text:
+        if m or re.search(r"is currently private", text, re.I):
+            rel = _geo_date(m.group(1)) if m else None
+            return _signal(t, kind="data", embargoed=True, last_release=rel,
+                           note=f"GEO: private until {rel}" if rel else "GEO: private")
+        raise FetchError(404, "GEO series not found")
+
+    def field(n):
+        f = re.search(rf"^!Series_{n} = (.+)$", text, re.M)
+        return f.group(1).strip() if f else None
+    status = field("status") or ""
+    sm = re.match(r"(Public|Private)\s+(?:on|until)\s+(\w{3} \d{1,2} \d{4})", status)
+    public = not sm or sm.group(1) == "Public"
+    released = _geo_date(sm.group(2)) if sm else None
+    updated = _geo_date(field("last_update_date"))
+    return _signal(t, kind="data", embargoed=not public, last_release=released,
+                   last_activity=_latest(released, updated), note=f"GEO: {status}" if status else None)
+
+
 FETCHERS = {"github": _github, "gitlab": _gitlab, "pypi": _pypi, "cran": _cran,
-            "bioconductor": _bioconductor, "npm": _npm, "conda": _conda}
+            "bioconductor": _bioconductor, "npm": _npm, "conda": _conda,
+            "obofoundry": _obo, "ols": _ols, "rrid": _rrid, "geo": _geo}
 
 
 def observe(t: Target, fetch: Fetch = http_fetch) -> dict:
+    """One source's answer, with the URLs queried and the time it was received
+    (provenance: `prov:hadPrimarySource`, `prov:generatedAtTime`)."""
+    queried: list[str] = []
+
+    def tracked(url: str) -> Any:
+        queried.append(url)
+        return fetch(url)
     try:
-        return FETCHERS[t.source](t, fetch)
+        s = FETCHERS[t.source](t, tracked)
     except FetchError as e:
         gone = e.status in (404, 410) and not t.inferred   # anything else says nothing about the resource
         note = "no repository at the address the GitHub Pages site suggests" if t.inferred and e.status == 404 else None
-        return _signal(t, available=False if gone else None, error=str(e), http_status=e.status, note=note)
+        s = _signal(t, available=False if gone else None, error=str(e), http_status=e.status, note=note,
+                    rate_limited=e.rate_limited)
     except (KeyError, TypeError, ValueError, IndexError) as e:
-        return _signal(t, available=None, error=f"unexpected response: {e}")
+        s = _signal(t, available=None, error=f"unexpected response: {e}")
+    s["queried"] = list(dict.fromkeys(queried))
+    s["observed_at"] = _now()
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -411,8 +658,13 @@ def classify(signals: list[dict], today: dt.date, stale_after: int = STALE_AFTER
              inactive_after: int = INACTIVE_AFTER_DAYS) -> dict:
     """Combine one resource's signals into a status. See the module docstring."""
     ok = [s for s in signals if s["available"]]
-    primary = [s for s in ok if s["source"] not in PACKAGING and s["last_activity"]]
-    dated = primary or [s for s in ok if s["last_activity"]]
+    code = [s for s in ok if s["kind"] != "data"]
+    data = [s for s in ok if s["kind"] == "data"]
+    primary = [s for s in code if s["source"] not in PACKAGING and s["last_activity"]]
+    dated = primary or [s for s in code if s["last_activity"]]
+    is_data = bool(data) and not dated   # a dataset: judged by availability, not by age
+    if is_data:
+        dated = [s for s in data if s["last_activity"]]
     last = _latest(*(s["last_activity"] for s in dated))
     out = {"last_activity": last, "basis": [s["page"] for s in dated if s["last_activity"] == last],
            "days_since": (today - dt.date.fromisoformat(last)).days if last else None}
@@ -420,8 +672,12 @@ def classify(signals: list[dict], today: dt.date, stale_after: int = STALE_AFTER
         status = "archived"
     elif any(s["deprecated"] for s in ok):
         status = "deprecated"
+    elif any(s["declared_inactive"] for s in ok):     # a registry's curated status (OBO Foundry)
+        status = "inactive"
     elif signals and all(s["available"] is False for s in signals):
         status = "unavailable"
+    elif is_data:
+        status = "embargoed" if any(s["embargoed"] for s in data) else "available"
     elif last is None:
         status = "unknown"
     elif out["days_since"] <= stale_after:
@@ -436,25 +692,49 @@ def classify(signals: list[dict], today: dt.date, stale_after: int = STALE_AFTER
 
 def check(found_in: Iterable[str], *, fetch: Fetch = http_fetch, today: Optional[dt.date] = None,
           stale_after: int = STALE_AFTER_DAYS, inactive_after: int = INACTIVE_AFTER_DAYS,
-          follow_repository: bool = True) -> Optional[dict]:
-    """Check every target found in these URLs / code snippets. None when there is none."""
+          follow_repository: bool = True, name: Optional[str] = None,
+          types: Iterable[str] = ()) -> Optional[dict]:
+    """Check every target found in these URLs, identifiers and code snippets (and, as
+    marked guesses, the resource's name). None when nothing answered about it."""
     today = today or dt.date.today()
-    targets = _dedupe(t for x in found_in if x
-                      for t in (targets_from_url(x) if re.match(r"^\s*https?://", x) else targets_from_code(x)))
+    started_at = _now()
+    found = []
+    for x in found_in:
+        if not x:
+            continue
+        found += targets_from_url(x) if re.match(r"^\s*https?://", x) else (
+            targets_from_identifier(x) or targets_from_code(x))
+    targets = _dedupe(found + (targets_from_name(name, types, bool(found)) if name else []))
     if not targets:
         return None
-    signals, queue = [], list(targets)
+    signals, queue, seen = [], list(targets), set()
     while queue:
         t = queue.pop(0)
+        if t.inferred and t.source in _R_NAME_ORDER and any(
+                x["inferred"] and x["source"] in _R_NAME_ORDER for x in signals):
+            continue                        # the first registry that has the name wins
         s = observe(t, fetch)
+        if t.inferred and s["error"]:
+            continue                        # a guess that found nothing says nothing
+        if s["source"] == "rrid" and name and s.get("record_names") and not names_match(name, s["record_names"]):
+            # a wrong RRID (in the paper or the extraction): keep the finding, use nothing from it
+            s.update(available=None, deprecated=False, links=[],
+                     note=f"RRID names a different resource ({s['record_names'][0]}); not used")
+        if (s["source"], s["key"].lower()) in seen:
+            continue                        # e.g. an ontology reached by URL and by title
+        seen.add((s["source"], s["key"].lower()))
         signals.append(s)
-        if follow_repository and s.get("repository"):
-            for r in targets_from_url(s["repository"]):
+        follow = ([s["repository"]] if s.get("repository") else []) + list(s.get("links") or [])
+        for url in follow if follow_repository else []:
+            for r in targets_from_url(url):
                 if (r.source, r.key.lower()) not in {(x.source, x.key.lower()) for x in targets}:
-                    r = Target(r.source, r.key, f"{t.page} (repository named by {t.source})")
+                    r = Target(r.source, r.key, f"{s['page']} (linked by {t.source})")
                     targets.append(r)
                     queue.append(r)
-    return {"checked_on": today.isoformat(), "stale_after_days": stale_after,
+    if not signals:
+        return None
+    return {"checked_on": today.isoformat(), "started_at": started_at, "ended_at": _now(),
+            "stale_after_days": stale_after,
             "inactive_after_days": inactive_after, **classify(signals, today, stale_after, inactive_after),
             "signals": signals}
 
@@ -466,45 +746,108 @@ def check(found_in: Iterable[str], *, fetch: Fetch = http_fetch, today: Optional
 def _found_in(g: rdflib.Graph, res: URIRef) -> list[str]:
     out = [str(o) for o in g.objects(res, BKR.accessURL)]
     for ident in g.objects(res, ADMS.identifier):
-        out += [str(n) for n in g.objects(ident, SKOS.notation) if str(n).startswith("http")]
+        out += [str(n) for n in g.objects(ident, SKOS.notation)]
     for ex in g.objects(res, BKR.hasUsageExample):
         out += [str(o) for o in g.objects(ex, BKR.exampleURL)]
         out += [str(o) for o in g.objects(ex, BKR.exampleCode)]
     return list(dict.fromkeys(out))
 
 
+def _types(g: rdflib.Graph, res: URIRef) -> list[str]:
+    return [str(t)[len(str(BKR)):] for t in g.objects(res, RDF.type) if str(t).startswith(str(BKR))]
+
+
 def _name(g: rdflib.Graph, res: URIRef) -> str:
     return str(g.value(res, BKR.resourceName) or g.value(res, RDFS.label) or res)
 
 
-def add_to_graph(g: rdflib.Graph, res: URIRef, result: dict) -> URIRef:
-    day = result["checked_on"]
-    node = URIRef(f"{res}/activity-check/{day}")
-    for p, o in list(g.predicate_objects(node)):           # same-day re-run replaces
-        if p == BKR.hasActivitySignal:
-            g.remove((o, None, None))
-    g.remove((node, None, None))
+def _agent(g: rdflib.Graph) -> URIRef:
+    """The versioned software agent (NIDM-Results: prov:SoftwareAgent + software version)."""
+    version = skill_version()
+    agent = URIRef(f"{KB}agent/structsense-resource-activity/{version}")
+    g.add((agent, RDF.type, PROV.SoftwareAgent))
+    g.add((agent, RDFS.label, Literal(f"structsense resource_activity {version}")))
+    g.add((agent, NIDM_SOFTWARE_VERSION, Literal(version)))
+    return agent
+
+
+def new_run(g: rdflib.Graph, *, stale_after: int, inactive_after: int) -> dict:
+    """One invocation of the checker: a `bkr:ActivityCheckRun` (cf. nidm:Session). Every
+    check in it is `dcterms:isPartOf` the run; nothing earlier is overwritten."""
+    started = _now()
+    run_id = re.sub(r"[-:]|\.\d+", "", started) + "-" + uuid.uuid4().hex[:6]
+    return {"iri": URIRef(f"{KB}activity-check-run/{run_id}"), "id": run_id, "started_at": started,
+            "agent": _agent(g), "stale_after_days": stale_after, "inactive_after_days": inactive_after}
+
+
+def close_run(g: rdflib.Graph, run: dict, n_checks: int) -> None:
+    node, lit = run["iri"], (lambda v, t=None: Literal(v, datatype=t))
+    g.add((node, RDF.type, BKR.ActivityCheckRun))
+    g.add((node, RDFS.label, Literal(f"resource activity check run {run['id']}")))
+    g.add((node, PROV.startedAtTime, lit(run["started_at"], XSD.dateTime)))
+    g.add((node, PROV.endedAtTime, lit(_now(), XSD.dateTime)))
+    g.add((node, PROV.wasAssociatedWith, run["agent"]))
+    g.add((node, BKR.staleAfterDays, lit(run["stale_after_days"], XSD.integer)))
+    g.add((node, BKR.inactiveAfterDays, lit(run["inactive_after_days"], XSD.integer)))
+    g.add((node, BKR.checkCount, lit(n_checks, XSD.integer)))
+
+
+def add_to_graph(g: rdflib.Graph, res: URIRef, result: dict, run: Optional[dict] = None) -> URIRef:
+    """Write one check with full provenance, NIDM-style:
+
+        run (ActivityCheckRun, cf. nidm:Session)
+          └ check (ActivityCheck, cf. nidm:Acquisition)  prov:used the resource
+               ├ signal (ActivitySignal) per source      prov:wasGeneratedBy check,
+               │                                         prov:generatedAtTime, prov:hadPrimarySource API URL
+               └ assessment (ActivityAssessment, cf. nidm:AcquisitionObject)
+                                                         prov:wasGeneratedBy check, prov:generatedAtTime,
+                                                         prov:wasDerivedFrom signals, the status
+
+    Returns the assessment."""
+    if run is None:                       # a single check outside annotate(): its own run
+        run = new_run(g, stale_after=result["stale_after_days"], inactive_after=result["inactive_after_days"])
+        close_run(g, run, 1)
     lit = lambda v, t=None: Literal(v, datatype=t)  # noqa: E731
-    g.add((node, RDF.type, BKR.ActivityCheck))
-    g.add((node, PROV.used, res))
-    g.add((node, PROV.wasAssociatedWith, AGENT))
-    g.add((node, PROV.endedAtTime, lit(day, XSD.date)))
-    g.add((node, BKR.activityStatus, BKR[f"activity-status/{result['status']}"]))
+    check_node = URIRef(f"{res}/activity-check/{run['id']}")
+    assessment = URIRef(f"{res}/activity-assessment/{run['id']}")
+    g.add((check_node, RDF.type, BKR.ActivityCheck))
+    g.add((check_node, DCT.isPartOf, run["iri"]))
+    g.add((check_node, PROV.used, res))
+    g.add((check_node, PROV.wasAssociatedWith, run["agent"]))
+    g.add((check_node, PROV.startedAtTime, lit(result["started_at"], XSD.dateTime)))
+    g.add((check_node, PROV.endedAtTime, lit(result["ended_at"], XSD.dateTime)))
+    g.add((res, BKR.hasActivityCheck, check_node))
+
+    g.add((assessment, RDF.type, BKR.ActivityAssessment))
+    g.add((assessment, PROV.wasGeneratedBy, check_node))
+    g.add((assessment, PROV.generatedAtTime, lit(result["ended_at"], XSD.dateTime)))
+    g.add((assessment, PROV.wasAttributedTo, run["agent"]))
+    g.add((assessment, BKR.assessedResource, res))
+    g.add((assessment, BKR.activityStatus, BKR[f"activity-status/{result['status']}"]))
     if result["last_activity"]:
-        g.add((node, BKR.lastActivityDate, lit(result["last_activity"], XSD.date)))
-    g.add((node, BKR.staleAfterDays, lit(result["stale_after_days"], XSD.integer)))
-    g.add((node, BKR.inactiveAfterDays, lit(result["inactive_after_days"], XSD.integer)))
-    g.add((res, BKR.hasActivityCheck, node))
-    g.add((AGENT, RDF.type, PROV.SoftwareAgent))
-    g.add((AGENT, RDFS.label, Literal("structsense resource_activity")))
+        g.add((assessment, BKR.lastActivityDate, lit(result["last_activity"], XSD.date)))
+    g.add((assessment, BKR.staleAfterDays, lit(result["stale_after_days"], XSD.integer)))
+    g.add((assessment, BKR.inactiveAfterDays, lit(result["inactive_after_days"], XSD.integer)))
+    g.add((res, BKR.hasActivityAssessment, assessment))
+
     for s in result["signals"]:
-        n = URIRef(f"{node}/{s['source']}/{re.sub(r'[^A-Za-z0-9._-]+', '-', s['key'])}")
+        n = URIRef(f"{check_node}/{s['source']}/{re.sub(r'[^A-Za-z0-9._-]+', '-', s['key'])}")
         g.add((n, RDF.type, BKR.ActivitySignal))
-        g.add((node, BKR.hasActivitySignal, n))
+        g.add((n, PROV.wasGeneratedBy, check_node))
+        if s.get("observed_at"):
+            g.add((n, PROV.generatedAtTime, lit(s["observed_at"], XSD.dateTime)))
+        for url in s.get("queried") or []:
+            g.add((n, PROV.hadPrimarySource, URIRef(url)))
+        g.add((check_node, BKR.hasActivitySignal, n))
+        g.add((assessment, PROV.wasDerivedFrom, n))
         g.add((n, BKR.activitySource, BKR[f"activity-source/{s['source']}"]))
         g.add((n, BKR.checkedURL, lit(s["page"], XSD.anyURI)))
         g.add((n, BKR.isArchived, lit(bool(s["archived"]))))
         g.add((n, BKR.isDeprecated, lit(bool(s["deprecated"]))))
+        if s["kind"] == "data":
+            g.add((n, BKR.isEmbargoed, lit(bool(s["embargoed"]))))
+        if s["declared_status"]:
+            g.add((n, BKR.declaredActivityStatus, Literal(s["declared_status"])))
         if s["available"] is not None:
             g.add((n, BKR.isAvailable, lit(bool(s["available"]))))
         for key, prop in (("last_commit", BKR.lastCommitDate), ("last_release", BKR.lastReleaseDate),
@@ -516,7 +859,41 @@ def add_to_graph(g: rdflib.Graph, res: URIRef, result: dict) -> URIRef:
         for text in (s["note"], s["error"]):
             if text:
                 g.add((n, RDFS.comment, Literal(text)))
-    return node
+    return assessment
+
+
+def upgrade_legacy(g: rdflib.Graph) -> int:
+    """Checks written before assessments existed carried the status on the activity
+    and only a date. Move it to a generated ActivityAssessment, keeping the date; the
+    history is preserved, not discarded."""
+    n = 0
+    for c in list(g.subjects(RDF.type, BKR.ActivityCheck)):
+        status = g.value(c, BKR.activityStatus)
+        if status is None:
+            continue
+        res = g.value(c, PROV.used)
+        when = g.value(c, PROV.endedAtTime)
+        a = URIRef(f"{c}/assessment")
+        g.add((a, RDF.type, BKR.ActivityAssessment))
+        g.add((a, PROV.wasGeneratedBy, c))
+        if when is not None:
+            g.add((a, PROV.generatedAtTime, when))
+        if res is not None:
+            g.add((a, BKR.assessedResource, res))
+            g.add((res, BKR.hasActivityAssessment, a))
+        for p in (BKR.activityStatus, BKR.lastActivityDate, BKR.staleAfterDays, BKR.inactiveAfterDays):
+            for o in list(g.objects(c, p)):
+                g.add((a, p, o))
+                g.remove((c, p, o))
+        for sig in g.objects(c, BKR.hasActivitySignal):
+            g.add((sig, PROV.wasGeneratedBy, c))
+            g.add((a, PROV.wasDerivedFrom, sig))
+        old_agent = URIRef(f"{KB}agent/structsense-resource-activity")
+        if (c, PROV.wasAssociatedWith, old_agent) in g:
+            g.add((old_agent, RDFS.comment, Literal("checker before versioned agents (structsense ≤ 0.12.0)")))
+        g.add((a, RDFS.comment, Literal("upgraded from a check recorded before assessments; time is a date only")))
+        n += 1
+    return n
 
 
 def annotate(g: rdflib.Graph, *, fetch: Fetch = http_fetch, today: Optional[dt.date] = None,
@@ -525,16 +902,20 @@ def annotate(g: rdflib.Graph, *, fetch: Fetch = http_fetch, today: Optional[dt.d
     cfg = cfg or {}
     stale = int(cfg.get("stale_after_days", STALE_AFTER_DAYS))
     inactive = int(cfg.get("inactive_after_days", INACTIVE_AFTER_DAYS))
-    report: dict[str, Any] = {"checked": 0, "by_status": {}, "resources": [], "warnings": []}
+    report: dict[str, Any] = {"checked": 0, "by_status": {}, "resources": [], "warnings": [],
+                              "rate_limited": [], "upgraded": upgrade_legacy(g)}
     unreachable = 0
+    fetch = _RateLimits(fetch)
+    run = new_run(g, stale_after=stale, inactive_after=inactive)
     for res in sorted(set(g.subjects(RDF.type, BKR.Resource)), key=str):
         targets = _found_in(g, res)
         if unreachable >= OFFLINE_AFTER:
-            if check(targets, fetch=lambda _u: {}, today=today) is not None:
+            if any(targets_from_url(x) or targets_from_identifier(x) or targets_from_code(x) for x in targets):
                 report["skipped"] = report.get("skipped", 0) + 1
             continue
         result = check(targets, fetch=fetch, today=today, stale_after=stale, inactive_after=inactive,
-                       follow_repository=bool(cfg.get("follow_repository", True)))
+                       follow_repository=bool(cfg.get("follow_repository", True)),
+                       name=_name(g, res), types=_types(g, res))
         if result is None:
             continue
         # no answer at all (no HTTP status): the network, not the resource
@@ -546,10 +927,24 @@ def annotate(g: rdflib.Graph, *, fetch: Fetch = http_fetch, today: Optional[dt.d
                     "in a row); the rest are unchecked — re-run resource_activity annotate when online")
             continue
         unreachable = 0
-        add_to_graph(g, res, result)
+        if any(s["rate_limited"] for s in result["signals"]):
+            # a partial answer could hide an archived repository: record nothing, so the
+            # latest check on record stays the last complete one
+            report["rate_limited"].append(_name(g, res))
+            continue
+        assessment = add_to_graph(g, res, result, run)
+        result["assessment"] = str(assessment)
         report["checked"] += 1
         report["by_status"][result["status"]] = report["by_status"].get(result["status"], 0) + 1
         report["resources"].append({"resource": str(res), "name": _name(g, res), **result})
+    if report["checked"]:
+        close_run(g, run, report["checked"])
+        report["run"] = {"iri": str(run["iri"]), "started_at": run["started_at"], "agent": str(run["agent"])}
+    if report["rate_limited"]:
+        report["warnings"].append(
+            f"{len(report['rate_limited'])} resource(s) not checked: rate limited "
+            f"({', '.join(sorted(fetch.hosts)) or 'a registry'}). Nothing was recorded for them. Set GITHUB_TOKEN "
+            "(5000 requests/hour) and re-run: python -m scripts.resource_activity annotate <ttl>")
     return report
 
 
@@ -584,6 +979,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     for r in rep["resources"]:
         print(summary_line(r))
     print(f"{rep['checked']} resource(s) checked: {rep['by_status']}", file=sys.stderr)
+    for w in rep["warnings"]:
+        print(f"warning: {w}", file=sys.stderr)
     return 0
 
 

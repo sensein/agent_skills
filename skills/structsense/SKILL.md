@@ -60,7 +60,9 @@ applicable.
 
    For resources, the conversion also checks whether each resource's code or
    package is still maintained (active, stale, inactive, archived, deprecated),
-   by asking GitHub/GitLab and PyPI/CRAN/Bioconductor/npm/conda over the network.
+   by asking GitHub/GitLab and PyPI/CRAN/Bioconductor/npm/conda over the network;
+   ontologies through OBO Foundry and OLS, tools through their RRIDs, and GEO
+   datasets for whether they are released (available, embargoed).
    It is on by default; `--no-check-activity` (or `STRUCTSENSE_NO_NETWORK=1`)
    skips it, and `python -m scripts.resource_activity annotate <output.ttl>` adds
    it to an existing graph. Report each status with its last activity date, and

@@ -413,3 +413,42 @@ bkrsh:ResourceObservationShape a sh:NodeShape ;
     sh:severity sh:Violation ;
     sh:property [ sh:path bkr:observationSource ; sh:minCount 1 ; sh:severity sh:Warning ;
         sh:message "Record where the observation was read from, so a disagreeing series can be attributed." ] .
+
+################################################################################
+# Activity checks: every assessment is provenance-tracked (NIDM-style)
+################################################################################
+
+bkrsh:ActivityAssessmentShape a sh:NodeShape ;
+    sh:targetClass bkr:ActivityAssessment ;
+    rdfs:label "Activity assessment provenance"@en ;
+    sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ; sh:class bkr:ActivityCheck ;
+        sh:message "An activity assessment must name the check that generated it." ] ;
+    sh:property [ sh:path prov:generatedAtTime ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "An activity assessment must say when it was made (prov:generatedAtTime)." ] ;
+    sh:property [ sh:path bkr:activityStatus ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "An activity assessment states exactly one status." ] ;
+    sh:property [ sh:path bkr:assessedResource ; sh:minCount 1 ;
+        sh:message "An activity assessment must name the resource it is about." ] ;
+    sh:property [ sh:path prov:wasAttributedTo ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "An activity assessment should be attributed to the (versioned) software agent." ] .
+
+bkrsh:ActivityCheckShape a sh:NodeShape ;
+    sh:targetClass bkr:ActivityCheck ;
+    rdfs:label "Activity check provenance"@en ;
+    sh:property [ sh:path prov:endedAtTime ; sh:minCount 1 ;
+        sh:message "An activity check must say when it ran." ] ;
+    sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ;
+        sh:message "An activity check must name the software agent that ran it." ] ;
+    sh:property [ sh:path prov:used ; sh:minCount 1 ;
+        sh:message "An activity check must name the resource it checked (prov:used)." ] ;
+    sh:property [ sh:path prov:startedAtTime ; sh:minCount 1 ; sh:severity sh:Warning ;
+        sh:message "An activity check should say when it started (absent on checks upgraded from before assessments)." ] ;
+    sh:property [ sh:path dcterms:isPartOf ; sh:minCount 1 ; sh:class bkr:ActivityCheckRun ; sh:severity sh:Warning ;
+        sh:message "An activity check should be part of an ActivityCheckRun." ] .
+
+bkrsh:ActivityCheckRunShape a sh:NodeShape ;
+    sh:targetClass bkr:ActivityCheckRun ;
+    sh:property [ sh:path prov:startedAtTime ; sh:minCount 1 ; sh:message "A run must say when it started." ] ;
+    sh:property [ sh:path prov:endedAtTime ; sh:minCount 1 ; sh:message "A run must say when it ended." ] ;
+    sh:property [ sh:path prov:wasAssociatedWith ; sh:minCount 1 ;
+        sh:message "A run must name the software agent (with its version) that ran it." ] .
