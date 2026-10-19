@@ -40,6 +40,10 @@
   Runs accumulate — the same-day replacement is gone. SHACL shapes enforce the
   chain. Older checks are upgraded to assessments in place. BrainKB MCP:
   activity queries read assessments; new `rs_activity_provenance`.
+- Each assessment says **how** it reached its status: `bkr:statusReason` (the rule
+  and evidence, e.g. "last activity 2019-07-03 (github), 2665 days before the check:
+  over 1095 days") and `bkr:statusDecidedBy` → the deciding signal(s) (a
+  sub-property of `prov:wasDerivedFrom`).
 - **Ontology**: `bkr:ActivityCheck` (a `ResourceLifecycleActivity`, dated, one per
   check date, kept apart from the paper-stated `bkr:lifecycleStatus`),
   `bkr:ActivitySignal` (one per source), `bkr:hasActivityCheck`,

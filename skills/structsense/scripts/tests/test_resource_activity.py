@@ -399,3 +399,19 @@ def test_rrid_naming_a_different_resource_is_not_used():
 ])
 def test_names_match(name, record, ok):
     assert ra.names_match(name, record) is ok
+
+
+def test_assessment_records_why_and_which_signal_decided():
+    pypi = {"https://pypi.org/pypi/oldpkg/json": {
+        "info": {"version": "0.3", "classifiers": [], "project_urls": {"Source": "https://github.com/o/oldpkg"}},
+        "releases": {"0.3": [{"upload_time_iso_8601": "2018-03-01T00:00:00Z"}]}}}
+    r = check(["pip install oldpkg"], today=TODAY, fetch=fake({**OBO, **pypi, **github("o/oldpkg", commit="2018-02-01T00:00:00Z")}))
+    assert r["decided_by"] == ["pypi:oldpkg"] and "2018-03-01" in r["reason"] and "over 1095 days" in r["reason"]
+    g = Graph()
+    res_ = URIRef("https://brainkb.org/kb/resource/x"); g.add((res_, RDF.type, BKR.Resource))
+    a = ra.add_to_graph(g, res_, r)
+    decided = list(g.objects(a, BKR.statusDecidedBy))
+    assert len(decided) == 1 and g.value(decided[0], BKR.activitySource) == BKR["activity-source/pypi"]
+    assert "over 1095 days" in str(g.value(a, BKR.statusReason))
+    r = check(["https://github.com/o/r"], fetch=fake(github("o/r", archived=True)), today=TODAY)
+    assert r["status"] == "archived" and r["decided_by"] == ["github:o/r"] and "archived" in r["reason"]

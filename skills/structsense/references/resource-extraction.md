@@ -232,7 +232,9 @@ ActivityCheckRun (cf. nidm:Session)      prov:startedAtTime / endedAtTime (xsd:d
    │                                     prov:hadPrimarySource each API URL queried
    └─ ActivityAssessment                 prov:wasGeneratedBy check; prov:generatedAtTime;
       (cf. nidm:AcquisitionObject)       prov:wasAttributedTo agent; prov:wasDerivedFrom signals;
-                                         bkr:activityStatus, bkr:lastActivityDate, bkr:assessedResource
+                                         bkr:activityStatus, bkr:lastActivityDate, bkr:assessedResource;
+                                         bkr:statusReason (the rule and evidence, as text);
+                                         bkr:statusDecidedBy → the signal(s) that decided it
 resource ── bkr:hasActivityAssessment ──▶ assessment;  resource ── bkr:hasActivityCheck ──▶ check
 ```
 

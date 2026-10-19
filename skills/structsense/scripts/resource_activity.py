@@ -668,24 +668,43 @@ def classify(signals: list[dict], today: dt.date, stale_after: int = STALE_AFTER
     last = _latest(*(s["last_activity"] for s in dated))
     out = {"last_activity": last, "basis": [s["page"] for s in dated if s["last_activity"] == last],
            "days_since": (today - dt.date.fromisoformat(last)).days if last else None}
+    def ids(xs):
+        return [f"{x['source']}:{x['key']}" for x in xs]
+
+    def src(xs):
+        return ", ".join(sorted({x["source"] for x in xs}))
+    newest = [s for s in dated if s["last_activity"] == last]
     if any(s["archived"] for s in ok):
-        status = "archived"
+        hit = [s for s in ok if s["archived"]]
+        status, reason = "archived", f"{src(hit)} marks the repository archived"
     elif any(s["deprecated"] for s in ok):
-        status = "deprecated"
+        hit = [s for s in ok if s["deprecated"]]
+        status, reason = "deprecated", f"{src(hit)} marks it deprecated, archived or obsolete"
     elif any(s["declared_inactive"] for s in ok):     # a registry's curated status (OBO Foundry)
+        hit = [s for s in ok if s["declared_inactive"]]
         status = "inactive"
+        reason = f"{src(hit)} lists it as {', '.join(sorted({x['declared_status'] for x in hit}))}"
     elif signals and all(s["available"] is False for s in signals):
-        status = "unavailable"
+        hit, status, reason = signals, "unavailable", "every source answered that it does not exist (404/410)"
     elif is_data:
-        status = "embargoed" if any(s["embargoed"] for s in data) else "available"
+        emb = [s for s in data if s["embargoed"]]
+        hit = emb or data
+        status = "embargoed" if emb else "available"
+        reason = (f"{src(hit)}: held back, not yet released" if emb else
+                  f"{src(hit)}: publicly released" + (f", last updated {last}" if last else ""))
     elif last is None:
-        status = "unknown"
-    elif out["days_since"] <= stale_after:
-        status = "active"
-    elif out["days_since"] <= inactive_after:
-        status = "stale"
+        hit, status, reason = [], "unknown", "no source gave a date (or none could be reached)"
     else:
-        status = "inactive"
+        hit, d = newest, out["days_since"]
+        if d <= stale_after:
+            status, rule = "active", f"within {stale_after} days"
+        elif d <= inactive_after:
+            status, rule = "stale", f"over {stale_after} days, within {inactive_after}"
+        else:
+            status, rule = "inactive", f"over {inactive_after} days"
+        reason = f"last activity {last} ({src(hit)}), {d} days before the check: {rule}"
+    out["reason"] = reason
+    out["decided_by"] = ids(hit)
     out["status"] = status
     return out
 
@@ -824,6 +843,8 @@ def add_to_graph(g: rdflib.Graph, res: URIRef, result: dict, run: Optional[dict]
     g.add((assessment, PROV.wasAttributedTo, run["agent"]))
     g.add((assessment, BKR.assessedResource, res))
     g.add((assessment, BKR.activityStatus, BKR[f"activity-status/{result['status']}"]))
+    if result.get("reason"):
+        g.add((assessment, BKR.statusReason, Literal(result["reason"])))
     if result["last_activity"]:
         g.add((assessment, BKR.lastActivityDate, lit(result["last_activity"], XSD.date)))
     g.add((assessment, BKR.staleAfterDays, lit(result["stale_after_days"], XSD.integer)))
@@ -840,6 +861,8 @@ def add_to_graph(g: rdflib.Graph, res: URIRef, result: dict, run: Optional[dict]
             g.add((n, PROV.hadPrimarySource, URIRef(url)))
         g.add((check_node, BKR.hasActivitySignal, n))
         g.add((assessment, PROV.wasDerivedFrom, n))
+        if f"{s['source']}:{s['key']}" in result.get("decided_by", []):
+            g.add((assessment, BKR.statusDecidedBy, n))
         g.add((n, BKR.activitySource, BKR[f"activity-source/{s['source']}"]))
         g.add((n, BKR.checkedURL, lit(s["page"], XSD.anyURI)))
         g.add((n, BKR.isArchived, lit(bool(s["archived"]))))
