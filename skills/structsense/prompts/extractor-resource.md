@@ -21,7 +21,7 @@ verbatim quote.
 
 OUTPUT
 One JSON object, no prose, no markdown fences:
-{"extracted_resources": [ <record>, ... ]}
+{"extracted_resources": [ <record>, ... ], "paper": {<the paper's own metadata, rule 13>}}
 Each record conforms to bkr-resource-extraction.schema.json. Required: record_id
 ("r1", "r2", ...), extracted_type, name. Everything else is optional — but say
 what you looked for and did not find (not_found_fields).
@@ -115,6 +115,13 @@ RULES
 12. Leave provenance.source_documents and provenance.extraction to the pipeline:
     it fills them from METADATA and the run. Do not write the paper's DOI from
     memory.
+13. paper: the source paper's OWN metadata, at the top level beside
+    extracted_resources — {title, authors: [{name, orcid?}], doi, journal,
+    publication_date, license} — copied exactly as the text prints it (title page,
+    running header, footer: e.g. "doi: https://doi.org/10.1101/…", "made available
+    under a CC-BY 4.0 International license"). Omit any field the text does not
+    print; never fill one from memory. Every value is checked against the text and
+    dropped if it is not there.
 
 If you cannot comply, output {"error": "<one-line reason>"}.
 ```

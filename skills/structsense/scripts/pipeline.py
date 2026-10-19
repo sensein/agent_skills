@@ -141,6 +141,15 @@ def extract(text: str, *, model: str, task: str, ner_domain: str = "general",
         out["key_terms"] = dedupe(valid, key_fields=("term", "start", "end"))
     if resources:
         out["extracted_resources"] = resources  # BKR records (resource_kg merges chunk duplicates)
+    # the paper's own bibliographic block, as printed: the earliest chunk (the front
+    # matter) wins per field; resource_kg checks every value against the text
+    paper: dict[str, Any] = {}
+    for _start, r in sorted(results, key=lambda x: x[0]):
+        for k, v in (r.get("paper") or {}).items() if isinstance(r.get("paper"), dict) else ():
+            if v and k not in paper:
+                paper[k] = v
+    if paper:
+        out["paper"] = paper
     out["task_type"] = task
     return out
 
@@ -844,9 +853,10 @@ def _main():
                 (work_root / f"{in_path.stem}_kg_plan.json").write_text(json.dumps(kg_plan, indent=2))
             from json_to_ttl import result_to_ttl
             from validate_ttl import validate_file
-            ttl, conv = result_to_ttl(result, kg_plan=kg_plan, source_path=in_path,
-                                      check_activity=args.check_activity)
             out_path = Path(args.out) if args.out else out_dir / f"{in_path.stem}.ttl"
+            ttl, conv = result_to_ttl(result, kg_plan=kg_plan, source_path=in_path,
+                                      check_activity=args.check_activity, resolve_doi=None,
+                                      text_out=out_path.with_suffix(".source.txt"))
             out_path.write_text(ttl)
             gate = validate_file(out_path)
             if not gate["ok"]:

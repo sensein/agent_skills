@@ -644,7 +644,8 @@ def paper_identity(result: dict, source_path: Optional[Path]) -> tuple[str, str,
     doi = _doi(meta)
     checksum = sha256_of(source_path) if source_path and Path(source_path).is_file() else meta.get("sha256")
     slug_ = paper_slug_for(meta, fallback=json.dumps(meta, sort_keys=True) or "paper")
-    paper_id = str(meta.get("source_id") or doi or meta.get("source_path") or meta.get("sha256")
+    preprint = f"preprint:{meta['preprint_id']}" if meta.get("preprint_id") else None   # same rule as json_to_ttl
+    paper_id = str(meta.get("source_id") or doi or preprint or meta.get("source_path") or meta.get("sha256")
                    or checksum or slug_)
     tc = TtlConfig()
     kb = tc.iri_base if tc.iri_base.endswith("/") else tc.iri_base + "/"
@@ -847,18 +848,34 @@ def activity_enabled(cfg: dict) -> bool:
     return bool((cfg.get("activity") or {}).get("enabled", False))
 
 
+def metadata_resolution_enabled(cfg: dict) -> bool:
+    """Whether entry points look the paper's DOI up: `metadata.resolve_doi`, unless
+    STRUCTSENSE_NO_NETWORK is set."""
+    if os.environ.get("STRUCTSENSE_NO_NETWORK"):
+        return False
+    return bool((cfg.get("metadata") or {}).get("resolve_doi", True))
+
+
 def build(result: dict, *, source_path: Optional[Path] = None, source_text: Optional[str] = None,
           mapper=None, cfg: Optional[dict] = None, alias: Optional[dict] = None,
           validate_schema: bool = True, check_activity: Optional[bool] = False,
-          fetch=None) -> tuple[str, dict]:
+          fetch=None, text_out: Optional[Path] = None,
+          resolve_doi: Optional[bool] = False) -> tuple[str, dict]:
     """Library entry point: a resource result -> (BKR Turtle, report).
 
     check_activity: True/False, or None to follow `activity.enabled` in the config
     (what the command-line, pipeline and batch entry points pass). The library
-    default stays False, so a caller never reaches the network unasked."""
+    default stays False, so a caller never reaches the network unasked.
+    resolve_doi: look the paper's DOI up (Crossref / bioRxiv) for title, authors, date,
+    venue and licence — True/False, or None to follow `metadata.resolve_doi`.
+    text_out: where to preserve the processed text when it exists only in memory
+    (extracted from a PDF/DOCX with no text file on disk); the entry points pass
+    `<out>.source.txt`."""
     cfg = cfg or load_config()
     if check_activity is None:
         check_activity = activity_enabled(cfg)
+    if resolve_doi is None:
+        resolve_doi = metadata_resolution_enabled(cfg)
     if source_text is None and source_path is not None:
         from json_to_ttl import load_source_text
         source_text = load_source_text(Path(source_path))
@@ -877,6 +894,16 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
     report["warnings"].extend(report["grounding"]["warnings"])
     if mapper is not None:
         report["mapping"] = map_concepts(records, mapper, cfg)
+    result = dict(result)
+    meta, docs, meta_notes = enrich_metadata(result, source_path, source_text, online=bool(resolve_doi))
+    result["source_metadata"] = meta
+    report["warnings"].extend(meta_notes)
+    docs = preserve_text(docs, source_text, text_out)
+    report["document"] = {k: (str(v) if isinstance(v, Path) else v) for k, v in docs.items()}
+    report["paper_metadata"] = {k: meta.get(k) for k in ("doi", "preprint_id", "title", "journal", "publication_date",
+                                                          "license") if meta.get(k)}
+    report["paper_metadata"]["authors"] = len(meta.get("authors") or [])
+    report["paper_metadata"]["sources"] = meta.get("metadata_sources") or {}
     paper_id, pub_iri, doi = paper_identity(result, source_path)
     attach_provenance(records, result, paper_id, doi)
     records = [_strip_nulls(r) for r in records]
@@ -914,7 +941,7 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
             for i, _x in enumerate(rec.get(direction) or []):
                 conv.g.add((conv.iri(rec["record_id"], direction[:-1], i), PROV_SRC, URIRef(pub_iri)))
     g = conv.g
-    _describe_publication(g, URIRef(pub_iri), result, doi, paper_id)
+    _describe_publication(g, URIRef(pub_iri), result, doi, paper_id, docs)
     merged, n_stubs, unmatched = bkr_stubs.resolve(g, alias)
     if check_activity:
         # network: what the code hosts and registries say today (not the paper)
@@ -934,31 +961,218 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
     return g.serialize(format="turtle"), report
 
 
-def _describe_publication(g: rdflib.Graph, pub: URIRef, result: dict, doi: Optional[str], paper_id: str) -> None:
+_BIBLIO_FIELDS = ("title", "doi", "pmid", "pmcid", "preprint_id", "year", "publication_date", "journal",
+                  "authors", "license", "source_type")
+_TEXT_SUFFIXES = (".txt", ".md")
+_ORIGINAL_SUFFIXES = (".pdf", ".docx", ".doc", ".xml", ".html", ".htm", ".odt", ".rtf")
+
+
+def document_files(source_path: Optional[Path], meta: dict) -> dict:
+    """The document as received and the text actually processed. A text source
+    named like `<stem>_text.txt` / `<stem>.txt` is matched to `<stem>.pdf` (etc.) next
+    to it, which is then the document it was derived from."""
+    sp = Path(str(meta.get("source_path") or source_path)) if (meta.get("source_path") or source_path) else None
+    tp = Path(str(meta["text_path"])) if meta.get("text_path") else None
+    original = text = None
+    if sp is not None and sp.suffix.lower() in _TEXT_SUFFIXES:
+        text = sp
+        stem = re.sub(r"[._-](text|txt|extracted|fulltext)$", "", sp.stem, flags=re.I)
+        for suf in _ORIGINAL_SUFFIXES:
+            for cand in (sp.with_name(stem + suf), sp.with_name(stem.upper() + suf)):
+                if cand.is_file():
+                    original = cand
+                    break
+            if original:
+                break
+    elif sp is not None:
+        original = sp
+        text = tp if tp else (sp.with_suffix(".txt") if sp.with_suffix(".txt").is_file() else None)
+    return {"original": original, "text": text}
+
+
+def _paper_block(result: dict, src: Optional[Source]) -> tuple[dict, list[str]]:
+    """The extractor's `paper` block (bibliographic data as printed on the paper),
+    keeping only what the source text states — the same rule as resource URLs."""
+    paper = dict(result.get("paper") or {})
+    if not paper:
+        return {}, []
+    if src is None:
+        return {}, ["paper metadata from the extractor not used: no source text to check it against"]
+    out, dropped = {}, []
+    for k in ("title", "journal", "license"):
+        v = str(paper.get(k) or "").strip()
+        if v:
+            (out.__setitem__(k, v) if src.names(v) else dropped.append(k))
+    for k in ("doi", "pmid", "pmcid"):
+        v = re.sub(r"^(https?://(dx\.)?doi\.org/|doi:\s*)", "", str(paper.get(k) or "").strip(), flags=re.I)
+        if v:
+            (out.__setitem__(k, v) if src.states(v) or src.names(v) else dropped.append(k))
+    date = str(paper.get("publication_date") or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        out["publication_date"] = date          # dates are printed in many formats; keep the ISO value
+    authors = [a if isinstance(a, dict) else {"name": a} for a in paper.get("authors") or []]
+    kept = [a for a in authors if isinstance(a, dict) and a.get("name") and src.names(str(a["name"]).split()[-1])]
+    if kept:
+        out["authors"] = kept
+    if len(kept) < len(authors):
+        dropped.append(f"{len(authors) - len(kept)} author(s)")
+    notes = [f"paper metadata not in the source text, dropped: {', '.join(dropped)}"] if dropped else []
+    return out, notes
+
+
+def enrich_metadata(result: dict, source_path: Optional[Path], source_text: Optional[str], *,
+                    online: bool = False) -> tuple[dict, dict, list[str]]:
+    """The paper's bibliographic metadata, from (in order of trust for identifiers)
+    the document itself (JATS, the DOI printed in the text, PDF metadata, the file
+    name), the registry its DOI resolves at (Crossref / bioRxiv; `online` only), and
+    the extractor's `paper` block (checked against the text). Returns (metadata,
+    document files, notes); `metadata_sources` says where each field came from."""
+    from doc_metadata import harvest, merge
+    meta = dict(result.get("source_metadata") or {})
+    docs = document_files(source_path, meta)
+    src = Source(source_text) if source_text else None
+    paper, notes = _paper_block(result, src)
+    target = docs["original"] or docs["text"] or (Path(str(meta["source_path"])) if meta.get("source_path") else None)
+    harvested = harvest(target, source_text or "", resolve_doi=online) if target else {"metadata_sources": {}}
+    merged = merge({**meta, **paper}, harvested)
+    for k, v in paper.items():                 # say the extractor read it off the paper
+        if merged.get(k) == v and (merged.get("metadata_sources") or {}).get(k) == "model":
+            merged["metadata_sources"][k] = "paper text (extractor, checked)"
+    if source_path and "source_path" not in merged:
+        merged["source_path"] = str(Path(source_path).resolve())
+    return merged, docs, notes
+
+
+def preserve_text(docs: dict, source_text: Optional[str], text_out: Optional[Path]) -> dict:
+    """Keep the exact text the extraction (and its quotes/offsets) refers to. When it
+    already is a file it is only recorded; when it exists only in memory it is
+    written to `text_out`."""
+    docs = dict(docs)
+    if source_text is None:
+        return docs
+    text = docs.get("text")
+    if text and Path(text).is_file():
+        return docs
+    if text_out:
+        Path(text_out).write_text(source_text, encoding="utf-8")
+        docs["text"] = Path(text_out)
+        docs["text_written"] = True
+    return docs
+
+
+def _sha256_file(path: Optional[Path]) -> Optional[str]:
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest() if path and Path(path).is_file() else None
+    except OSError:
+        return None
+
+
+def _describe_publication(g: rdflib.Graph, pub: URIRef, result: dict, doi: Optional[str], paper_id: str,
+                          docs: Optional[dict] = None) -> None:
     """The work node, described as json_to_ttl describes it (ner:Publication), so the two
-    graphs agree on the node they share."""
+    graphs agree on the node they share: title, identifiers, date, venue, licence and
+    authors, plus the document as received and the text actually processed."""
+    from json_to_ttl import TtlConfig
     meta = result.get("source_metadata") or {}
+    tc = TtlConfig()
+    kb = tc.iri_base if tc.iri_base.endswith("/") else tc.iri_base + "/"
     g.add((pub, RDF.type, NER.SourceDocument))
     g.add((pub, RDF.type, OBO.IAO_0000310))
     g.add((pub, RDF.type, PROV.Entity))
-    if doi or meta.get("pmid") or meta.get("journal"):
+    if doi or meta.get("pmid") or meta.get("journal") or meta.get("preprint_id"):
         g.add((pub, RDF.type, NER.Publication))
     g.add((pub, NER.sourceIdentifier, Literal(display_id(paper_id))))
     title = meta.get("paper_title") or meta.get("title")
     if title:
         g.add((pub, NER.title, Literal(title)))  # plain, as json_to_ttl writes it
         g.add((pub, RDFS.label, Literal(title)))
+        g.add((pub, DCT.title, Literal(title)))
     if doi:
         g.add((pub, NER.doi, Literal(doi)))
+    for k in ("pmid", "pmcid"):
+        if meta.get(k):
+            g.add((pub, NER[k], Literal(str(meta[k]))))
+    if meta.get("preprint_id") and not doi:
+        g.add((pub, RDFS.comment, Literal(f"preprint id {meta['preprint_id']} (from the file name; "
+                                          "no registered DOI found)")))
+    pdate = str(meta.get("publication_date") or "")
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", pdate):
+        g.add((pub, NER.publicationDate, Literal(pdate, datatype=XSD.date)))
+    year = meta.get("year") or (pdate[:4] if re.match(r"^\d{4}", pdate) else None)
+    if year and re.match(r"^\d{4}", str(year)):
+        g.add((pub, DCT.issued, Literal(str(year)[:4], datatype=XSD.gYear)))
+    if meta.get("journal"):
+        g.add((pub, DCT.bibliographicCitation, Literal(str(meta["journal"]))))
+    lic = str(meta.get("license") or "").strip()
+    if lic:
+        g.add((pub, DCT.license, URIRef(lic) if re.match(r"^https?://\S+$", lic) else Literal(lic)))
+    names = []
+    for a in meta.get("authors") or []:
+        a = {"name": a} if isinstance(a, str) else a
+        name = " ".join(str((a or {}).get("name") or "").split())
+        if not name:
+            continue
+        orcid = re.sub(r"^https?://orcid\.org/", "", str(a.get("orcid") or "")).strip()
+        key = f"orcid:{orcid}" if orcid else "person:" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+        person = URIRef(kb + str(uuid.uuid5(tc.uuid_ns, tc.global_names.get("agent", "agent|{key}").format(key=key))))
+        g.add((person, RDF.type, PROV.Person))
+        g.add((person, RDFS.label, Literal(name)))
+        if orcid:
+            g.add((person, DCT.identifier, Literal(f"https://orcid.org/{orcid}")))
+        g.add((pub, PROV.wasAttributedTo, person))
+        g.add((pub, DCT.creator, person))
+        names.append(name)
+    if names:
+        g.add((pub, RDFS.comment, Literal("authors, in order: " + "; ".join(names))))
+    srcs = meta.get("metadata_sources") or {}
+    shown = [f"{k} <- {v}" for k, v in sorted(srcs.items()) if k in _BIBLIO_FIELDS]
+    if shown:
+        g.add((pub, RDFS.comment, Literal("metadata read from: " + "; ".join(shown))))
     # what KIND of source this is, so a catalogue mixing papers and curated tables can be
-    # queried by it: a DataCite general type (BKR's resource-type vocabulary) and the media type
+    # queried by it: a DataCite general type (BKR's resource-type vocabulary)
     g.add((pub, DCT.type, URIRef(f"https://brainkb.org/resource/resource-type/{source_kind(meta, doi, paper_id)}")))
-    media = _media_type(str(meta.get("source_path") or paper_id))
-    if media:
-        g.add((pub, BKR.mediaType, Literal(media)))
+    _document_versions(g, pub, paper_id, docs or {}, tc, kb)
     g.bind("ner", NER)
     g.bind("kb", Namespace(str(pub).rsplit("/", 1)[0] + "/"))
 
+
+def _document_versions(g: rdflib.Graph, pub: URIRef, paper_id: str, docs: dict, tc, kb: str) -> None:
+    """As json_to_ttl: the document as received and, when the text was extracted from
+    it, the text actually processed (prov:wasDerivedFrom the original). The record's
+    quotes and offsets belong to the text version."""
+    def node(local: str) -> URIRef:
+        return URIRef(kb + str(uuid.uuid5(tc.uuid_ns, f"document_version|{paper_id}|{local}")))
+
+    def version(n: URIRef, path: Path, label: str) -> None:
+        g.add((n, RDF.type, NER.DocumentVersion))
+        g.add((n, NER.versionOfDocument, pub))
+        g.add((pub, NER.hasDocumentVersion, n))
+        g.add((n, RDFS.label, Literal(label)))
+        g.add((n, NER.sourcePath, Literal(Path(path).name)))   # the name only: a local path is private
+        media = _media_type(str(path))
+        if media:
+            g.add((n, NER.mediaType, Literal(media)))
+            g.add((n, BKR.mediaType, Literal(media)))
+        sha = _sha256_file(path)
+        if sha:
+            g.add((n, NER.checksum, Literal(sha)))
+
+    original, text = docs.get("original"), docs.get("text")
+    orig_node = None
+    if original:
+        orig_node = node("source")
+        version(orig_node, Path(original), "source document")
+    if text:
+        t = node("text")
+        version(t, Path(text), "processed text" if original else "source text")
+        if orig_node is not None:
+            g.add((t, PROV.wasDerivedFrom, orig_node))
+        try:
+            n_chars = len(Path(text).read_text(encoding="utf-8"))
+            g.add((t, RDFS.comment, Literal(f"{n_chars} characters; the text the extraction's quotes refer to"
+                                            + ("; preserved by structsense" if docs.get("text_written") else ""))))
+        except (OSError, UnicodeDecodeError):
+            pass
 
 TABLE_SUFFIXES = (".xlsx", ".xls", ".xlsm", ".csv", ".tsv", ".ods")
 _KIND = {"spreadsheet": "Dataset", "table": "Dataset", "curated_table": "Dataset", "dataset": "Dataset",
@@ -977,7 +1191,8 @@ def source_kind(meta: dict, doi: Optional[str], paper_id: str) -> str:
     name = str(meta.get("source_path") or meta.get("source_id") or paper_id).lower()
     if name.endswith(TABLE_SUFFIXES):
         return "Dataset"
-    if re.match(r"^10\.1101/", doi or ""):
+    if re.match(r"^10\.(1101|64898)/", doi or "") or meta.get("preprint_id") or \
+            str(meta.get("source_type") or "").lower() == "preprint":
         return "Preprint"
     if doi or meta.get("pmid") or meta.get("journal"):
         return "JournalArticle"
@@ -1128,6 +1343,9 @@ def _main(argv=None) -> int:
     b = sub.add_parser("build", help="resource result JSON -> BKR Turtle")
     b.add_argument("result", type=Path)
     b.add_argument("--source", type=Path, help="the source document (grounding needs its text)")
+    b.add_argument("--text", type=Path,
+                   help="the text extracted from --source, when it isn't <source>.txt next to it: recorded "
+                        "as the processed text, derived from the source document")
     b.add_argument("--out", type=Path)
     b.add_argument("--report", type=Path)
     b.add_argument("--map", action="store_true",
@@ -1138,6 +1356,9 @@ def _main(argv=None) -> int:
                    help="ask GitHub/GitLab and the package registries whether each resource is still "
                         "active (network; adds dated bkr:ActivityCheck nodes). Default: activity.enabled "
                         "in resource_kg_config.json (on); --no-check-activity to skip")
+    b.add_argument("--resolve-doi", action=argparse.BooleanOptionalAction, default=None,
+                   help="look the paper's DOI up (Crossref / bioRxiv) for title, authors, date, venue and "
+                        "licence (network). Default: metadata.resolve_doi in resource_kg_config.json (on)")
     b.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     v = sub.add_parser("validate", help="gate a BKR Turtle file (SHACL + vocabulary + connectivity)")
     v.add_argument("ttl", type=Path, nargs="+")
@@ -1169,9 +1390,14 @@ def _main(argv=None) -> int:
                   "start the local mapper or set BIOPORTAL_API_KEY)", file=sys.stderr)
             return 1
     alias = json.loads(args.alias.read_text()) if args.alias else None
-    ttl, report = build(result, source_path=args.source, mapper=mapper, cfg=cfg, alias=alias,
-                        check_activity=args.check_activity)
     out = args.out or _default_out(args.result)
+    source_text = None
+    if args.text:
+        result.setdefault("source_metadata", {})["text_path"] = str(args.text.resolve())
+        source_text = args.text.read_text(encoding="utf-8")
+    ttl, report = build(result, source_path=args.source, source_text=source_text, mapper=mapper, cfg=cfg, alias=alias,
+                        check_activity=args.check_activity, text_out=out.with_suffix(".source.txt"),
+                        resolve_doi=args.resolve_doi)
     out.write_text(ttl)
     if args.report:
         args.report.write_text(json.dumps(report, indent=2) + "\n")

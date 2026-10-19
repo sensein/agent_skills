@@ -547,7 +547,8 @@ def finish(job: Job, result: dict, plan: Optional[dict]) -> dict:
                               "variant": variant, **({} if job.domain == "resource" else {"ner_domain": job.domain})}
     write_json(job.final_json, result)
     ttl, conv = result_to_ttl(result, kg_plan=plan, source_path=job.text_path, variant=variant,
-                              check_activity=job.settings.get("check_activity"))  # None: config
+                              check_activity=job.settings.get("check_activity"),  # None: config
+                              resolve_doi=None, text_out=job.ttl.with_suffix(".source.txt"))
     job.ttl.write_text(ttl)
     gate = validate_file(job.ttl)
     if gate["ok"]:

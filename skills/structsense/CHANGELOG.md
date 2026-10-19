@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased — The source is the paper: DOI, title, authors, licence; the text is a version of it
+
+- **Resource KGs named the extracted text file as the paper** (`bkr:resourceName
+  "…_text.txt"`, `bkr:mediaType "text/plain"` on the publication). Now the
+  publication is identified by its DOI (or `preprint:<id>` until one is registered)
+  with title, authors, date, venue and licence: `doc_metadata.harvest` runs in the
+  resource path too (it ran only in `batch`), DOIs are cleaned of what text
+  extraction fuses onto them (`…703645doi:`), licences printed in the text are
+  recognised (`aCC-BY-NC-ND 4.0 International license`), and the DOI is resolved at
+  Crossref / bioRxiv's API (`metadata.resolve_doi`, `--resolve-doi/--no-resolve-doi`).
+  bioRxiv/medRxiv ids in a file name become a DOI only when a registry confirms it,
+  under the new `10.64898` prefix or `10.1101`.
+- The extractor reports the paper's own metadata as printed (`paper` block, prompt
+  rule 13, schema); values the text doesn't print are dropped.
+- The processed text is a `ner:DocumentVersion` (sha256, length) derived from the
+  source document's version; `resource_kg build --text` pairs a PDF with its text;
+  in-memory text is preserved as `<out>.source.txt`.
+- `json_to_ttl` and `resource_kg` share the `preprint:<id>` identity rule.
+- Tests: `scripts/tests/test_paper_metadata.py`; `scripts/tests/conftest.py` keeps
+  the suite offline.
+
 ## Unreleased — Is the resource still maintained? Activity status from code hosts and registries
 
 - **`scripts/resource_activity.py`** (new, network, opt-in): for every resource that

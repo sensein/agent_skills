@@ -557,7 +557,9 @@ class TurtleBuilder:
         self.EX = Namespace(f"{kb_ns.rstrip('/')}/{paper_slug}/")   # slug scheme only
         self.KB = Namespace(kb_ns if kb_ns.endswith("/") else kb_ns + "/")
         doi = re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", (result.get("source_metadata") or {}).get("doi") or "", flags=re.I)
-        self.paper_id = str(self.meta.get("source_id") or doi or self.meta.get("source_path")
+        # a preprint not yet registered is named by its server id, not by a file path
+        preprint = f"preprint:{self.meta['preprint_id']}" if self.meta.get("preprint_id") else None
+        self.paper_id = str(self.meta.get("source_id") or doi or preprint or self.meta.get("source_path")
                             or self.meta.get("sha256") or source_checksum or paper_slug)
         # Entities and source occurrences share identity across extraction variants.
         # Annotation/classification/review records retain their separate readings.
@@ -2031,7 +2033,9 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
                   media_type: Optional[str] = None,
                   ttl_config: Path = DEFAULT_TTL_CONFIG,
                   variant: Optional[str] = None,
-                  check_activity: Optional[bool] = False) -> tuple[str, dict]:
+                  check_activity: Optional[bool] = False,
+                  text_out: Optional[Path] = None,
+                  resolve_doi: Optional[bool] = False) -> tuple[str, dict]:
     """Library entry point. Returns (turtle_text, report).
 
     check_activity applies to a resource result only (resource_kg.build): None
@@ -2045,7 +2049,7 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
     if is_resource_result(result) and not (result.get("entities") or result.get("key_terms")):
         from resource_kg import build as build_resource_kg
         return build_resource_kg(result, source_path=Path(source_path) if source_path else None,
-                                 check_activity=check_activity)
+                                 check_activity=check_activity, text_out=text_out, resolve_doi=resolve_doi)
     if source_path:
         result = {**result, "source_metadata": {"source_path": str(Path(source_path).resolve()),
                                                 **(result.get("source_metadata") or {})}}
@@ -2135,7 +2139,8 @@ def _main() -> int:
         synonyms=args.synonyms, paper_slug=args.paper_slug, kb_ns=args.kb_ns,
         profile=args.profile, run_id=args.run_id, checked_date=args.date,
         source_path=args.source, ttl_config=args.ttl_config, variant=args.variant,
-        check_activity=args.check_activity)
+        check_activity=args.check_activity, resolve_doi=None,
+        text_out=(args.out or default_ttl_path(args.result)).with_suffix(".source.txt"))
     out = args.out or default_ttl_path(args.result)
     out.write_text(ttl)
     if report.get("kind") == "resource_kg":

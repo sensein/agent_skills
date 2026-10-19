@@ -130,9 +130,30 @@ scope. A tie between two classes is `ambiguous`, with the candidates named.
 ### 4. Provenance and identity
 
 - The paper is the **same node** the NER graph of that paper uses: its
-  `ner:Publication` IRI is derived exactly as `json_to_ttl` derives it (DOI, else
-  source id/path), so the resource KG and the NER KG join on it. Every resource is
+  `ner:Publication` IRI is derived exactly as `json_to_ttl` derives it (source id,
+  else DOI, else `preprint:<id>` for an unregistered bioRxiv/medRxiv preprint, else
+  the source path), so the resource KG and the NER KG join on it. Every resource is
   `dcterms:isReferencedBy` it; every record `prov:hadPrimarySource` it.
+- **The paper, not the text file.** Its identity and bibliographic metadata come from
+  the document first — JATS front matter, the DOI and licence printed in the text
+  (bioRxiv headers: `doi.org/10.64898/…`, "made available under a CC-BY-NC-ND 4.0
+  International license"), PDF metadata, the file name (a bioRxiv/medRxiv id becomes
+  a DOI only once a registry confirms it, under `10.64898` or `10.1101`) — then from
+  the registry the DOI resolves at (Crossref; bioRxiv's API) for title, authors (with
+  ORCID), date, venue and licence (`metadata.resolve_doi`, on; `--no-resolve-doi` or
+  `STRUCTSENSE_NO_NETWORK=1` keeps it offline). The extractor's `paper` block (rule
+  13: what the paper prints) fills gaps, and every value is checked against the
+  text. The publication carries `ner:title`, `ner:doi`, `ner:publicationDate`,
+  `dcterms:issued`, `dcterms:bibliographicCitation` (venue), `dcterms:license`,
+  `dcterms:creator` / `prov:wasAttributedTo` each author (`prov:Person`, the same IRI
+  the NER graph mints), and an `rdfs:comment` saying where each field came from.
+- **The text actually processed** is a `ner:DocumentVersion` of the paper (name,
+  `text/plain`, sha256, length) — `prov:wasDerivedFrom` the source document (the PDF
+  etc., also a `ner:DocumentVersion` with its own checksum) when there is one. A
+  `<stem>_text.txt` is matched to `<stem>.pdf` beside it; otherwise pass both:
+  `resource_kg build result.json --source paper.pdf --text paper_text.txt`. Text that
+  existed only in memory is preserved as `<out>.source.txt`, so every quote can be
+  checked against the exact text.
 - The run is a `bkr:AutomatedExtraction` associated with the structsense
   `ner:PipelineAgent` and the extractor model.
 - A **resource is one node across papers** (UUIDv5 of its normalised name), so
