@@ -314,7 +314,12 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   Needs manage rights on the parent; it takes the parent's space type. **Roles
   inherit downward:** anyone with a role in a space (or any space above it) has the
   same role in its subspaces; the strongest role wins, and roles never flow up.
-  Visibility is per space (a private space may hold a public subspace). The parent
+  **Visibility flows down from a public space:** everything in a public space is
+  public — making a space public makes all its subspaces public, a subspace created
+  under a public space is public, and a subspace of a public space can't be made
+  private (409; make the public space private first). Under a private space each
+  subspace is public or private on its own. Making a space private again leaves its
+  subspaces as they are — say so to the user, it can surprise. The parent
   is fixed at creation. To see the structure: `brainkb_space_tree(slug)` (nested,
   with the caller's role in each and whether it's inherited) or
   `brainkb_get_space(slug)` (one space: graphs, direct and `inherited_members`,
@@ -483,33 +488,32 @@ other data. Nothing about the ingest itself is special-cased; what this section 
 is the IRI convention and the mistakes that are unrecoverable in an append-only
 store.
 
-**Prefer the SynthScholar route: import the output directory, then add it to a
-space.** It keeps the whole review in BrainKB, not just its triples: the
-manuscript, PDF, figures, tables, search log and verification reports are kept with
-the review in SynthScholar (private until the owner publishes it), its provenance
-records the import, what was left out (`work/`), and where the RDF went. Steps 2–7
-below still describe what happens; these tools do them:
+**Prefer ingesting the output directory.** One call puts the review in the
+graph *and* keeps the whole review in BrainKB: query_service registers the review's
+graph in the space, ingests `review.ttl` plus an import record (PROV-O: who, when,
+every kept file with media type, size and sha256, what was left out) as an ordinary
+job, and keeps the files — manuscript, PDF, figures, tables, search log,
+verification reports, everything but `work/` — for the review's page, readable by
+whoever can read the space. Steps 2–7 below still describe what happens; this does
+them:
 
 1. `brainkb_whoami()` — confirm the identity (as in step 1 below).
-2. `brainkb_synthscholar_import("<run>/output")` — the folder holding `review.json`.
-   Returns the new `review_id` (a BrainKB id, `review_import_…`). Reads the MCP
-   server's filesystem, so it works where `brainkb_ingest_files` does (local stdio
-   MCP, or `MCP_INGEST_ROOT`); on the hosted remote, have the user import the folder
-   in the UI instead: **Ingest Knowledge Graph → SynthScholar review**, or
-   SynthScholar → *Import a local run*.
-3. `brainkb_list_writable_spaces()` → confirm the space and its visibility with the
-   user (see *Visibility follows the space* below).
-4. `brainkb_synthscholar_add_to_graph(review_id, space_slug)` — registers the graph,
-   ingests the run's own `review.ttl` as you, records the ingest on the review, and
-   returns the `job_id`. The graph is named by the review's **own** id
-   (`…/reviews/review_local_<ts>/`), not the BrainKB import id, so the same run
-   ingested by hand (steps below) and through SynthScholar lands in one graph — and
-   the second attempt is refused. A 409 here is that refusal.
-5. Steps 6–7 below: poll the job, reconcile the delta against the triple count.
+2. `brainkb_list_writable_spaces()` → confirm the space and its visibility with the
+   user (see *Visibility follows the space* below). You need to be its owner or an
+   editor.
+3. `brainkb_synthscholar_ingest("<run>/output", space_slug)` — the folder holding
+   `review.json` and `review.ttl`. The graph is named by the run's own
+   `protocol.review_id` (`…/reviews/review_local_<ts>/`), the same IRI the by-hand
+   route uses, so the review lands in one graph whichever way it came in, and a
+   second attempt is refused (409). Returns the `job_id`. Reads the MCP server's
+   filesystem, so it works where `brainkb_ingest_files` does (local stdio MCP, or
+   `MCP_INGEST_ROOT`); on the hosted remote, have the user do it in the UI:
+   **Ingest Knowledge Graph → SynthScholar review**.
+4. Steps 6–7 below: poll the job, reconcile the delta against the triple count.
 
-`brainkb_synthscholar_list_reviews()` shows the caller's reviews with `source`
-(`pipeline` | `import`) and `in_graph`; `add_to_graph` works the same for a review
-run on BrainKB.
+`brainkb_synthscholar_list_reviews(space?)` and `brainkb_synthscholar_get_review(id)`
+show ingested reviews the caller can read (graph, space, files, the run's search
+log and checks). The review's page is `/knowledge-base/synth-scholar/ingested/<id>`.
 
 **Ingesting the TTL by hand** (no import — e.g. only the `.ttl` is at hand).
 Either source, same procedure from step 2 on:
@@ -519,8 +523,8 @@ Either source, same procedure from step 2 on:
 - **A hosted review** on mlservice — export it:
   `GET https://mlservice.brainkb.org/api/synth-scholar/public/reviews/<id>/export?format=ttl`
   (published reviews need no credential; `/api/synth-scholar/public/reviews` lists
-  them). For your own unpublished review, `brainkb_synthscholar_add_to_graph` is
-  simpler than exporting it.
+  them). An unpublished one needs an ml_service token, which these MCP tools do not
+  hold — have the user export it from the SynthScholar UI and give you the path.
 
 **Steps.**
 
