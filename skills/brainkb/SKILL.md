@@ -322,6 +322,17 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   and a named-graph IRI is **globally unique** (one graph belongs to exactly one
   space). Creating a space with a taken slug, or binding an already-registered
   graph, returns **409** — pick a different slug / IRI. Don't retry the same value.
+- **Reserved graphs:** an Admin/SuperAdmin can reserve a graph IRI (`exact`) or
+  every IRI under a prefix (`prefix`), optionally for one space, so nobody else can
+  register or bind it: `brainkb_reserve_graph(iri, match_type, reason, space_slug?)`,
+  `brainkb_list_reserved_graphs()`, `brainkb_unreserve_graph(reservation_id)`.
+  BrainKB's own `https://brainkb.org/metadata/…` and `…/provenance/…` graphs are
+  always reserved; nobody can bind them. A **403 that says "reserved"** when binding
+  or registering a graph is this, not a token or role problem: tell the user the
+  reason from the message, and suggest a different graph IRI, or asking an admin
+  (or, if it's reserved for a space, binding it from that space). Don't retry, and
+  don't try to get around it with a near-identical IRI. Always give a `reason` when
+  reserving — it's what refused users see.
 - **Deletion — what is and isn't removable:** anyone who manages a space can remove
   a **space member** (`brainkb_remove_*`/members endpoint) or a **fine-grained
   access rule** (`brainkb_remove_access_rule`), or retire it by setting it private.
