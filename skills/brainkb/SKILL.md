@@ -322,13 +322,23 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   and a named-graph IRI is **globally unique** (one graph belongs to exactly one
   space). Creating a space with a taken slug, or binding an already-registered
   graph, returns **409** — pick a different slug / IRI. Don't retry the same value.
-- **Deletion — what is and isn't removable:** spaces and named graphs are
-  **permanent — there is NO delete** (preserves provenance/history, same "we don't
-  hard-delete" policy as user accounts). What you *can* remove: a **space member**
-  (`brainkb_remove_*`/members endpoint) and a **fine-grained access rule**
-  (`brainkb_remove_access_rule`). To retire a space in practice, set it private
-  and/or remove members — you cannot delete it. So choose slugs/graph IRIs
-  deliberately: a typo can't be deleted, only abandoned.
+- **Deletion — what is and isn't removable:** anyone who manages a space can remove
+  a **space member** (`brainkb_remove_*`/members endpoint) or a **fine-grained
+  access rule** (`brainkb_remove_access_rule`), or retire it by setting it private.
+  **Deleting a space is SuperAdmin-only and irreversible:**
+  `brainkb_delete_space(slug, confirm_slug=slug)` drops its named graphs and their
+  ingestion-history (delta) graphs, the graphs' registry entries and the space's RDF
+  manifest, then its members, access rules and search entries. Only the deletion
+  record survives, in provenance (who, when, which graphs: `prov:invalidated`).
+  Rules: (1) only when the user explicitly asks to delete that space — never to
+  tidy up on your own initiative; (2) first show them the space
+  (`brainkb_read_space` / `brainkb_list_spaces`: its graphs and members) and what
+  will be lost, and get an explicit yes in this conversation; (3) a non-SuperAdmin
+  gets 403 — say so, and offer to set it private instead; (4) a 502 means the
+  triplestore step failed and **nothing** was deleted: it is safe to retry. Do not
+  delete a graph with raw SPARQL `DROP GRAPH`: that leaves the space, its
+  registry entry and search index behind (the space still shows in the UI). Choose
+  slugs/graph IRIs deliberately anyway: only a SuperAdmin can remove a typo.
 - **See what's available to the user + their permission:** `brainkb_list_spaces()`
   returns each visible space annotated with the caller's own permission —
   `your_role` (`owner`/`editor`/`viewer`/`null`), `is_owner`, `access`
