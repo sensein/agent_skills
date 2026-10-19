@@ -52,6 +52,17 @@ _FOLD = {
 _DROP = {"­", "​", "‌", "‍", "﻿"}
 
 
+def normalize_chars(raw: str) -> str:
+    """NFKC + quote/dash folding + invisible characters dropped; no dehyphenation and
+    no whitespace change (callers matching URLs and identifiers need every hyphen)."""
+    out: List[str] = []
+    for ch in raw or "":
+        for c in unicodedata.normalize("NFKC", ch):
+            if c not in _DROP:
+                out.append(_FOLD.get(c, c))
+    return "".join(out)
+
+
 class Normalized:
     """Normalised text plus a map from every normalised character to its raw offset,
     so a hit in normalised space reports offsets a reader can slice the source with."""

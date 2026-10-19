@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Resource links split across PDF lines are kept
+
+- **`scripts/resource_kg.py` grounding** no longer drops a URL, DOI or accession that
+  the PDF wraps across a line break (e.g. `…/Cross-species-single-` ⏎ `cell-atlas-of-the-striatum`).
+  The normalised text joined the URL's own hyphen away and turned the break into a
+  space, so neither spelling matched. Values without whitespace (≥ 12 characters) are
+  now also matched against the source with all whitespace removed, a hyphen at the
+  break optional; the source's spelling is adopted, so an extracted value that lost
+  the hyphen (or kept the break as a space) is repaired, not dropped. Nested links
+  (`usage_examples[].url`, `access.request_url`, `provenance.source_documents[].url`)
+  are respelled the same way. Every rescue or respelling is listed in the grounding
+  report under `rejoined`. A URL the source does not state is still removed.
+- `scripts/ait_evidence.py`: `normalize_chars()` (NFKC + folding, no dehyphenation).
+
 ## Unreleased — One review loop for every mode: the judge and the human both correct
 
 Every mode — NER, ABCD/HBCD, AIT — now runs extract → concept map → judge → human

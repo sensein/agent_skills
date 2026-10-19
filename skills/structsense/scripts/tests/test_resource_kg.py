@@ -285,3 +285,39 @@ def test_resource_cqs_parse_and_answer(src, tmp_path):
     assert len(results) == 21 and not [r for r in results.values() if r["status"] == "error"]
     for cq in ("CQ02", "CQ04", "CQ10", "CQ17", "CQ19"):  # scope split, assumptions, mapping audit, failure, work
         assert results[cq]["status"] == "answered", cq
+
+
+BROKEN = ("Analysis code is available at https://github.com/MITHeimanLab/Cross-species-single-\n"
+          "cell-atlas-of-the-striatum. Raw data: https://doi.org/10.1038/s41586-\n024-07001-5.")
+
+
+@pytest.mark.parametrize("url", [
+    "https://github.com/MITHeimanLab/Cross-species-single-cell-atlas-of-the-striatum",
+    "https://github.com/MITHeimanLab/Cross-species-singlecell-atlas-of-the-striatum",   # hyphen lost
+    "https://github.com/MITHeimanLab/Cross-species-single- cell-atlas-of-the-striatum",  # break kept
+])
+def test_url_split_across_a_line_break_is_kept(url):
+    rec = record(url=url, stable_identifiers=[{"value": "10.1038/s41586-024-07001-5", "scheme": "DOI"}])
+    records, _ = to_records(res(rec))
+    rep = ground(records, TEXT + "\n" + BROKEN, load_config())
+    r = records[0]
+    assert r["url"] == "https://github.com/MITHeimanLab/Cross-species-single-cell-atlas-of-the-striatum"
+    assert [i["value"] for i in r["stable_identifiers"]] == ["10.1038/s41586-024-07001-5"]
+    assert not any(x["field"] in ("url", "stable_identifiers[0]") for x in rep["removed"])
+    assert "stable_identifiers[0]" in {x["field"] for x in rep["rejoined"]}
+
+
+def test_line_break_tolerance_does_not_invent_urls():
+    rec = record(url="https://github.com/MITHeimanLab/Cross-species-atlas-of-the-striatum")
+    records, _ = to_records(res(rec))
+    ground(records, TEXT + "\n" + BROKEN, load_config())
+    assert "url" not in records[0]
+
+
+def test_nested_link_takes_the_source_spelling():
+    rec = record(usage_examples=[{"title": "atlas code",
+                                  "url": "https://github.com/MITHeimanLab/Cross-species-singlecell-atlas-of-the-striatum"}])
+    records, _ = to_records(res(rec))
+    ground(records, TEXT + "\n" + BROKEN, load_config())
+    assert records[0]["usage_examples"][0]["url"] == \
+        "https://github.com/MITHeimanLab/Cross-species-single-cell-atlas-of-the-striatum"

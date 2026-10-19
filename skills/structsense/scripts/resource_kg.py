@@ -296,14 +296,23 @@ def to_records(result: dict) -> tuple[list[dict], list[str]]:
 # Grounding: only what the source states
 # ---------------------------------------------------------------------------
 
+# shorter values (versions, small accessions) are only matched as whole tokens
+_MIN_UNBROKEN = 12
+
+
 class Source:
     """The normalised source text (the same normalisation the AIT evidence check uses:
     NFKC, quotes/dashes folded, soft hyphens and line-break hyphenation removed)."""
 
     def __init__(self, text: str):
-        from ait_evidence import Normalized
+        from ait_evidence import Normalized, normalize_chars
         self.doc = Normalized(text)
         self.lower = self.doc.text.lower()
+        # PDF text wraps long URLs and DOIs across lines, sometimes at a hyphen of the
+        # value itself (`…/Cross-species-single-\ncell-atlas`). The normalised text
+        # joins that hyphen away and turns the break into a space, so neither form
+        # matches. `unbroken` keeps every character but drops all whitespace.
+        self.unbroken = re.sub(r"\s+", "", normalize_chars(text))
 
     def has_quote(self, quote: str) -> bool:
         from ait_evidence import verify_sentence
@@ -321,6 +330,19 @@ class Source:
         from ait_evidence import normalize
         v = normalize(str(label)).lower()
         return bool(v) and v in self.lower
+
+    def states_unbroken(self, value: str) -> Optional[str]:
+        """The source's own spelling of a whitespace-free `value` (URL, DOI, accession)
+        that a line break split, or None. A hyphen at the break is matched whether the
+        extracted value kept it or not, and the source's form is returned, so a value
+        that lost the URL's own hyphen to dehyphenation is repaired, not dropped."""
+        from ait_evidence import normalize_chars
+        v = re.sub(r"\s+", "", normalize_chars(str(value))).strip("-")
+        if len(v) < _MIN_UNBROKEN or not self.unbroken:
+            return None
+        pattern = "-?".join(re.escape(c) for c in v)
+        m = re.search(pattern, self.unbroken, re.I)
+        return m.group(0) if m else None
 
 
 def _url_forms(url: str) -> list[str]:
@@ -354,6 +376,50 @@ def _evidence_lists(rec: dict) -> Iterable[tuple[str, list]]:
                 yield f"applicability.{kind}[{i}].evidence", sc["evidence"]
 
 
+def _nested_links(rec: dict) -> Iterable[tuple[str, dict, str]]:
+    for i, ex in enumerate(rec.get("usage_examples") or []):
+        if isinstance(ex, dict) and ex.get("url"):
+            yield f"usage_examples[{i}].url", ex, "url"
+    acc = rec.get("access")
+    if isinstance(acc, dict) and acc.get("request_url"):
+        yield "access.request_url", acc, "request_url"
+    for i, doc in enumerate((rec.get("provenance") or {}).get("source_documents") or []):
+        if isinstance(doc, dict) and doc.get("url"):
+            yield f"provenance.source_documents[{i}].url", doc, "url"
+
+
+def _unbroken(src: Source, forms: list[str]) -> Optional[tuple[str, str]]:
+    """(form, source spelling) for the first form the source states across a line break."""
+    for f in forms:
+        if found := src.states_unbroken(f):
+            return f, found
+    return None
+
+
+def _rejoin(report: dict, rec: dict, field: str, holder: dict, key: str,
+            found: Optional[tuple[str, str]], stated: bool) -> bool:
+    """A URL or identifier the source splits across a line break. The normalised text
+    joins a hyphen at the break away, so a value can look stated while missing the
+    URL's own hyphen (`single-\\ncell` -> `singlecell`): when the source's whitespace-free
+    spelling differs from the value only by hyphens or whitespace, adopt the source's.
+    True when the value was rescued or respelled (and reported); False leaves the
+    ordinary check to decide."""
+    if not found:
+        return False
+    form, spelled = found
+    old = str(holder[key])
+    bare = lambda x: re.sub(r"[\s-]", "", x).lower()  # noqa: E731
+    if bare(form) == bare(spelled) and old.endswith(form):
+        holder[key] = old[: len(old) - len(form)] + spelled
+    if stated and holder[key] == old:
+        return False
+    report.setdefault("rejoined", []).append({
+        "record": rec.get("record_id"), "resource": rec.get("name"), "field": field,
+        "value": holder[key], **({"extracted": old} if holder[key] != old else {}),
+        "reason": "stated in the source across a line break"})
+    return True
+
+
 def ground(records: list[dict], source_text: Optional[str], cfg: dict) -> dict:
     """Remove what the source does not state. Returns a report; records change in place."""
     gcfg = cfg.get("grounding") or {}
@@ -381,7 +447,11 @@ def ground(records: list[dict], source_text: Optional[str], cfg: dict) -> dict:
         if "stable_identifiers" in verify:
             kept = []
             for i, ident in enumerate(rec.get("stable_identifiers") or []):
-                if src is not None and any(src.states(f) for f in _identifier_forms(ident)):
+                stated = src is not None and any(src.states(f) for f in _identifier_forms(ident))
+                if src is not None and _rejoin(report, rec, f"stable_identifiers[{i}]", ident, "value",
+                                               _unbroken(src, _identifier_forms(ident)), stated):
+                    kept.append(ident)
+                elif stated:
                     kept.append(ident)
                 else:
                     drop(rec, f"stable_identifiers[{i}]", ident.get("value"), "identifier not stated in the source")
@@ -404,10 +474,22 @@ def ground(records: list[dict], source_text: Optional[str], cfg: dict) -> dict:
                     drop(rec, "versions", None, "no stated version left")
         for field in ("url", "license"):
             if field in verify and rec.get(field):
-                forms = _url_forms(rec[field]) if field == "url" or rec[field].startswith("http") else [rec[field]]
-                if src is None or not any(src.names(f) for f in forms):
+                is_url = field == "url" or rec[field].startswith("http")
+                forms = _url_forms(rec[field]) if is_url else [rec[field]]
+                stated = src is not None and any(src.names(f) for f in forms)
+                if src is not None and is_url and _rejoin(report, rec, field, rec, field,
+                                                          _unbroken(src, forms), stated):
+                    pass
+                elif not stated:
                     value = rec.pop(field)
                     drop(rec, field, value, f"{field} not stated in the source")
+        # links that are not verified (usage examples, access requests, source documents)
+        # still take the source's spelling when a line break split them
+        if src is not None:
+            for path, holder, key in _nested_links(rec):
+                if str(holder[key]).startswith("http"):
+                    _rejoin(report, rec, path, holder, key, _unbroken(src, _url_forms(holder[key])),
+                            any(src.names(f) for f in _url_forms(holder[key])))
         kept_mentions = []
         for m in rec.get("mentions") or []:
             if src is None or src.names(m.get("name", "")) or any(src.names(k) for k in bkr_stubs.keys_for(m.get("name", ""))):
