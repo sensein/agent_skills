@@ -382,10 +382,14 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   stuck.
 - **Ingesting "into a space" → resolve the graph first.** Ingest targets a
   **named graph IRI**, not a space. When the user says "ingest into the *hmba*
-  space", first find that space's graph: `brainkb_list_spaces()` (or
-  `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
-  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
-  (owner/editor). Then ingest into that `graph_iri`.
+  space", first call **`brainkb_list_writable_spaces()`**: it lists only the spaces
+  this user can actually ingest into (same checks as ingestion — membership,
+  inherited roles, write access rules, admin) with each space's graphs. Use that
+  space's graph IRI. If the space isn't listed, the user can't write to it: say so
+  (they need an editor role or a write rule) instead of trying. If it's listed with
+  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first. If
+  `can_ingest` is false, the user has no write-capable role at all — an admin must
+  give them one.
 - **A file, on the hosted remote: upload it, then ingest by id.** Run this (or have
   the user run it) — the HTTP library reads the file off disk, so not one byte enters
   your context:
