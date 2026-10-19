@@ -47,11 +47,12 @@
   },
   "_absence_shapes": "Shapes whose violation is a source-silence finding only when the gap is DECLARED: the resource's record lists the field in not_found_fields (bkr:notFoundField, invariant 7: the extractor looked and the source does not say), or the node is a mention stub (named, never described). Otherwise it is an extraction gap and fails the gate.",
   "activity": {
+    "enabled": true,
     "stale_after_days": 365,
     "inactive_after_days": 1095,
     "follow_repository": true
   },
-  "_activity": "build --check-activity (scripts/resource_activity.py): ask GitHub/GitLab and PyPI/CRAN/Bioconductor/npm/conda whether each resource is still developed. active: last commit/release within stale_after_days; stale: within inactive_after_days; inactive: older. archived/deprecated when the host or registry says so. follow_repository: also check the source repository a registry names. Recorded as dated bkr:ActivityCheck nodes, separate from the paper-stated lifecycle status. Set GITHUB_TOKEN to lift GitHub's 60 requests/hour limit.",
+  "_activity": "Runs on every resource build from the command line, pipeline and batch (enabled; --no-check-activity, enabled: false or STRUCTSENSE_NO_NETWORK=1 to skip). scripts/resource_activity.py: ask GitHub/GitLab and PyPI/CRAN/Bioconductor/npm/conda whether each resource is still developed. active: last commit/release within stale_after_days; stale: within inactive_after_days; inactive: older. archived/deprecated when the host or registry says so. follow_repository: also check the source repository a registry names. Recorded as dated bkr:ActivityCheck nodes, separate from the paper-stated lifecycle status. Set GITHUB_TOKEN to lift GitHub's 60 requests/hour limit.",
   "extraction_chunk_chars": 60000,
   "_extraction_chunk_chars": "The resource extractor reads whole documents (one record per resource, deep records need Methods + Availability + Limitations together). Longer texts are split at this size and records are merged by name."
 }

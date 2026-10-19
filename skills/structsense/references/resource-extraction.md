@@ -37,7 +37,7 @@ The four-way scope split is the reason for the ontology: a catalogue that collap
 | `schemas/bkr-resource-extraction.schema.json` | the extraction contract (30 fields per record) |
 | `prompts/extractor-resource.md` | the extractor prompt |
 | `scripts/resource_kg.py` | records → ground → map → convert → stubs → link; and `validate` |
-| `scripts/resource_activity.py` | optional, network: is each resource still maintained? (GitHub/GitLab, PyPI, CRAN, Bioconductor, npm, conda) |
+| `scripts/resource_activity.py` | network, on by default: is each resource still maintained? (GitHub/GitLab, PyPI, CRAN, Bioconductor, npm, conda) |
 | `scripts/bkr_convert.py`, `scripts/bkr_stubs.py` | the BKR converter and mention-stub resolver (vendored from bkr-0.5.6) |
 | `cqs/brainkb_resource_ontology_CQs.md` | 21 competency questions, runnable with `cqs/run_cqs.py --entail` |
 
@@ -56,7 +56,7 @@ python -m scripts.pipeline --task resource --input paper.txt --mapper config
 # or, with a result JSON in hand (host-model mode, or an earlier run)
 python -m scripts.json_to_ttl result_final.json --source paper.pdf         # auto-detects resources
 python -m scripts.resource_kg build result_final.json --source paper.pdf --map   # same, with concept mapping
-python -m scripts.resource_kg build result_final.json --source paper.pdf --check-activity  # + is the code maintained?
+python -m scripts.resource_kg build result_final.json --source paper.pdf --no-check-activity  # offline: skip the activity check
 python -m scripts.validate_ttl result.ttl                                    # gate: must exit 0
 python cqs/run_cqs.py result.ttl --cqs cqs/brainkb_resource_ontology_CQs.md \
     --with-ontology default_ontology/brainkb_resource_ontology.owl --entail  # competency questions
@@ -159,11 +159,11 @@ is a fact. Pass `--alias aliases.json` (`{mention: resource name}`) for variants
 rules miss; run `python -m scripts.bkr_stubs corpus.ttl --out corpus.ttl` over a
 merged corpus to join a stub in one paper onto another paper's record.
 
-### 6. Activity — is the resource still maintained? (optional, network)
+### 6. Activity — is the resource still maintained? (network, on by default)
 
 A paper says where its code lives; it cannot say whether anyone still works on it.
-`build --check-activity` (or `python -m scripts.resource_activity annotate x.ttl`
-on an existing graph) asks the code hosts and package registries and records the
+Every resource conversion — `json_to_ttl`, `resource_kg build`, `pipeline --task
+resource`, `batch` — asks the code hosts and package registries and records the
 answer as a dated `bkr:ActivityCheck` on the resource — an observation, not a claim
 of the paper, and separate from the paper-stated `bkr:lifecycleStatus` of a version.
 
@@ -191,7 +191,13 @@ bump is not a commit. Thresholds are in `resource_kg_config.json` (`activity`) a
 recorded on each check (`bkr:staleAfterDays`, `bkr:inactiveAfterDays`). Each source's
 answer is a `bkr:ActivitySignal` (`bkr:lastCommitDate`, `bkr:lastReleaseDate`,
 `bkr:latestVersion`, `bkr:isArchived`, `bkr:isDeprecated`, `bkr:isAvailable`,
-`bkr:checkedURL`). Checks accumulate, one per date, so re-running months later shows
+`bkr:checkedURL`). It is on by default (`activity.enabled`); skip it with `--no-check-activity`,
+`"enabled": false`, or `STRUCTSENSE_NO_NETWORK=1`, and add it later with
+`python -m scripts.resource_activity annotate x.ttl`. Offline, it stops after 3
+resources in a row get no answer and says so in the report, rather than waiting on
+every timeout. The library calls (`resource_kg.build`, `json_to_ttl.result_to_ttl`)
+stay offline unless passed `check_activity=True` (or `None`: follow the config).
+Checks accumulate, one per date, so re-running months later shows
 the trend; a same-day re-run replaces that day's check. Set `GITHUB_TOKEN` to lift
 GitHub's 60 requests/hour limit. Quick look without a graph:
 `python -m scripts.resource_activity check https://github.com/org/repo "pip install x"`.

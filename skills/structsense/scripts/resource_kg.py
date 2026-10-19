@@ -45,6 +45,7 @@ import copy
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import sys
 import uuid
@@ -838,11 +839,26 @@ def _drop_none_items(x):
             _drop_none_items(v)
 
 
+def activity_enabled(cfg: dict) -> bool:
+    """Whether resource runs check activity by default: `activity.enabled` in the
+    config, unless STRUCTSENSE_NO_NETWORK is set."""
+    if os.environ.get("STRUCTSENSE_NO_NETWORK"):
+        return False
+    return bool((cfg.get("activity") or {}).get("enabled", False))
+
+
 def build(result: dict, *, source_path: Optional[Path] = None, source_text: Optional[str] = None,
           mapper=None, cfg: Optional[dict] = None, alias: Optional[dict] = None,
-          validate_schema: bool = True, check_activity: bool = False, fetch=None) -> tuple[str, dict]:
-    """Library entry point: a resource result -> (BKR Turtle, report)."""
+          validate_schema: bool = True, check_activity: Optional[bool] = False,
+          fetch=None) -> tuple[str, dict]:
+    """Library entry point: a resource result -> (BKR Turtle, report).
+
+    check_activity: True/False, or None to follow `activity.enabled` in the config
+    (what the command-line, pipeline and batch entry points pass). The library
+    default stays False, so a caller never reaches the network unasked."""
     cfg = cfg or load_config()
+    if check_activity is None:
+        check_activity = activity_enabled(cfg)
     if source_text is None and source_path is not None:
         from json_to_ttl import load_source_text
         source_text = load_source_text(Path(source_path))
@@ -905,6 +921,7 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
         import resource_activity
         report["activity"] = resource_activity.annotate(
             g, cfg=cfg.get("activity"), **({"fetch": fetch} if fetch else {}))
+        report["warnings"].extend(report["activity"]["warnings"])
     report.update({
         "paper_id": paper_id, "publication": pub_iri, "triples": len(g),
         "counts": {"resources": len(set(g.subjects(RDF.type, BKR.Resource))),
@@ -1117,9 +1134,10 @@ def _main(argv=None) -> int:
                    help="map scope-dimension labels with the ConceptMapper (concept_mapping.json cascade)")
     b.add_argument("--sources", help="mapper sources, e.g. trusted,bioportal (default concept_mapping.json)")
     b.add_argument("--alias", type=Path, help="JSON {mention name: resource name} for stub variants")
-    b.add_argument("--check-activity", action="store_true",
+    b.add_argument("--check-activity", action=argparse.BooleanOptionalAction, default=None,
                    help="ask GitHub/GitLab and the package registries whether each resource is still "
-                        "active (network; adds dated bkr:ActivityCheck nodes)")
+                        "active (network; adds dated bkr:ActivityCheck nodes). Default: activity.enabled "
+                        "in resource_kg_config.json (on); --no-check-activity to skip")
     b.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     v = sub.add_parser("validate", help="gate a BKR Turtle file (SHACL + vocabulary + connectivity)")
     v.add_argument("ttl", type=Path, nargs="+")

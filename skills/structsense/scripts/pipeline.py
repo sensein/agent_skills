@@ -635,6 +635,9 @@ def default_output_path(input_path: Optional[str], explicit_out: Optional[str]) 
 def _main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["ner", "resource", "structured"], default="ner")
+    ap.add_argument("--check-activity", action=argparse.BooleanOptionalAction, default=None,
+                    help="resource task: check whether each resource is still maintained (network). "
+                         "Default: activity.enabled in resource_kg_config.json")
     ap.add_argument("--input", required=True, action="append",
                     help="path to a .txt input, or a directory of them. Repeatable. "
                          "More than one input runs each in turn and then merges the "
@@ -841,7 +844,8 @@ def _main():
                 (work_root / f"{in_path.stem}_kg_plan.json").write_text(json.dumps(kg_plan, indent=2))
             from json_to_ttl import result_to_ttl
             from validate_ttl import validate_file
-            ttl, conv = result_to_ttl(result, kg_plan=kg_plan, source_path=in_path)
+            ttl, conv = result_to_ttl(result, kg_plan=kg_plan, source_path=in_path,
+                                      check_activity=args.check_activity)
             out_path = Path(args.out) if args.out else out_dir / f"{in_path.stem}.ttl"
             out_path.write_text(ttl)
             gate = validate_file(out_path)

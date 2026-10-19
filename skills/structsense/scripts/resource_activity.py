@@ -69,6 +69,7 @@ _TIMEOUT = 20
 _DELAY_SECONDS = 0.2
 STATUSES = ("active", "stale", "inactive", "archived", "deprecated", "unavailable", "unknown")
 PACKAGING = {"conda"}  # dates that reflect rebuilds, not development
+OFFLINE_AFTER = 3     # resources in a row with no answer at all: stop, the network is down
 
 
 # ---------------------------------------------------------------------------
@@ -524,12 +525,27 @@ def annotate(g: rdflib.Graph, *, fetch: Fetch = http_fetch, today: Optional[dt.d
     cfg = cfg or {}
     stale = int(cfg.get("stale_after_days", STALE_AFTER_DAYS))
     inactive = int(cfg.get("inactive_after_days", INACTIVE_AFTER_DAYS))
-    report: dict[str, Any] = {"checked": 0, "by_status": {}, "resources": []}
+    report: dict[str, Any] = {"checked": 0, "by_status": {}, "resources": [], "warnings": []}
+    unreachable = 0
     for res in sorted(set(g.subjects(RDF.type, BKR.Resource)), key=str):
-        result = check(_found_in(g, res), fetch=fetch, today=today, stale_after=stale, inactive_after=inactive,
+        targets = _found_in(g, res)
+        if unreachable >= OFFLINE_AFTER:
+            if check(targets, fetch=lambda _u: {}, today=today) is not None:
+                report["skipped"] = report.get("skipped", 0) + 1
+            continue
+        result = check(targets, fetch=fetch, today=today, stale_after=stale, inactive_after=inactive,
                        follow_repository=bool(cfg.get("follow_repository", True)))
         if result is None:
             continue
+        # no answer at all (no HTTP status): the network, not the resource
+        if all(s["error"] and s["http_status"] is None for s in result["signals"]):
+            unreachable += 1
+            if unreachable >= OFFLINE_AFTER:
+                report["warnings"].append(
+                    f"activity check stopped: no code host or registry reachable ({OFFLINE_AFTER} resources "
+                    "in a row); the rest are unchecked — re-run resource_activity annotate when online")
+            continue
+        unreachable = 0
         add_to_graph(g, res, result)
         report["checked"] += 1
         report["by_status"][result["status"]] = report["by_status"].get(result["status"], 0) + 1

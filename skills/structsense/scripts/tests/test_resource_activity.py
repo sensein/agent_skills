@@ -187,3 +187,32 @@ def test_github_pages_site_points_at_its_repository():
     assert (t.source, t.key, t.inferred) == ("github", "deeplabcut/DeepLabCut", True)
     r = check([t.found_in], fetch=fake({}), today=TODAY)      # guessed repo does not exist
     assert r["status"] == "unknown"                            # not "unavailable": it was a guess
+
+
+def test_offline_stops_after_a_few_unreachable_resources():
+    g = Graph()
+    for i in range(6):
+        r = URIRef(f"https://brainkb.org/kb/resource/r{i}")
+        g.add((r, RDF.type, BKR.Resource))
+        g.add((r, BKR.accessURL, Literal(f"https://github.com/o/r{i}", datatype=XSD.anyURI)))
+    calls = []
+
+    def down(url):
+        calls.append(url)
+        raise FetchError(None, "network unreachable")
+    rep = ra.annotate(g, fetch=down, today=TODAY)
+    assert rep["checked"] == 0 and rep["skipped"] == 3 and len(calls) == 3
+    assert rep["warnings"] and not list(g.subjects(RDF.type, BKR.ActivityCheck))
+
+
+def test_entry_points_follow_the_config_library_stays_offline(monkeypatch):
+    from resource_kg import activity_enabled, load_config
+    assert activity_enabled(load_config()) is True
+    monkeypatch.setenv("STRUCTSENSE_NO_NETWORK", "1")
+    assert activity_enabled(load_config()) is False
+    monkeypatch.delenv("STRUCTSENSE_NO_NETWORK")
+    ttl, rep = build(res(record()), source_text=TEXT)            # library default: no network
+    assert "activity" not in rep
+    ttl, rep = build(res(record()), source_text=TEXT, check_activity=None,
+                     fetch=fake(github("example/cellmapper")))    # entry-point default: config (on)
+    assert rep["activity"]["checked"] == 1

@@ -12,8 +12,11 @@
   `repository`, conda `dev_url`) is followed. Conda rebuilds and Bioconductor version
   bumps are not counted as development. `check` (URLs / commands → JSON) and
   `annotate` (existing Turtle → Turtle) subcommands; `GITHUB_TOKEN` lifts rate limits.
-- **`resource_kg build --check-activity`**; thresholds in `resource_kg_config.json`
-  (`activity`).
+- **On by default** for every resource conversion (`json_to_ttl`, `resource_kg build`,
+  `pipeline --task resource`, `batch`): `activity.enabled` in `resource_kg_config.json`;
+  `--no-check-activity` or `STRUCTSENSE_NO_NETWORK=1` to skip. Stops after 3
+  unreachable resources in a row when offline. Library calls stay offline unless
+  asked. Thresholds in the same `activity` section.
 - **Ontology**: `bkr:ActivityCheck` (a `ResourceLifecycleActivity`, dated, one per
   check date, kept apart from the paper-stated `bkr:lifecycleStatus`),
   `bkr:ActivitySignal` (one per source), `bkr:hasActivityCheck`,
