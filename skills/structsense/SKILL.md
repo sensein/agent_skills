@@ -58,6 +58,14 @@ applicable.
    Hand back a Turtle file only when validation succeeds. ABCD/HBCD and AIT have
    their own output and validation contracts; follow their references.
 
+   For resources, when the user asks whether the code or package is still
+   maintained (active, stale, archived), add `--check-activity` to
+   `python -m scripts.resource_kg build`, or run
+   `python -m scripts.resource_activity annotate <output.ttl>` on an existing graph.
+   It queries GitHub/GitLab and PyPI/CRAN/Bioconductor/npm/conda over the network;
+   report each status with its last activity date, and say it is today's
+   observation, not something the paper states.
+
 For multiple papers, use `scripts/batch.py` for NER or the bulk workflow in
 `references/abcd-extraction.md` for ABCD/HBCD. Keep each paper's evidence and
 results distinct; use the mode's synthesis step for cross-paper conclusions.

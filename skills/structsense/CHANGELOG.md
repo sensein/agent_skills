@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — Is the resource still maintained? Activity status from code hosts and registries
+
+- **`scripts/resource_activity.py`** (new, network, opt-in): for every resource that
+  names a repository or package — `url`, URL identifiers, usage-example URLs, install
+  commands in usage-example code, GitHub Pages sites — asks GitHub/GitLab (archived
+  flag, last commit on the default branch, latest release), PyPI, CRAN (crandb),
+  Bioconductor (r-universe), npm and conda. Status: `archived` > `deprecated` >
+  `unavailable` > `unknown` > `active` (≤ 365 days) / `stale` (≤ 1095) / `inactive`.
+  A registry's own repository link (PyPI `project_urls`, CRAN/Bioc `URL`, npm
+  `repository`, conda `dev_url`) is followed. Conda rebuilds and Bioconductor version
+  bumps are not counted as development. `check` (URLs / commands → JSON) and
+  `annotate` (existing Turtle → Turtle) subcommands; `GITHUB_TOKEN` lifts rate limits.
+- **`resource_kg build --check-activity`**; thresholds in `resource_kg_config.json`
+  (`activity`).
+- **Ontology**: `bkr:ActivityCheck` (a `ResourceLifecycleActivity`, dated, one per
+  check date, kept apart from the paper-stated `bkr:lifecycleStatus`),
+  `bkr:ActivitySignal` (one per source), `bkr:hasActivityCheck`,
+  `bkr:hasActivitySignal`, `bkr:activityStatus`, `bkr:activitySource`,
+  `bkr:lastActivityDate`, `bkr:lastCommitDate`, `bkr:lastReleaseDate`,
+  `bkr:latestVersion`, `bkr:isArchived`, `bkr:isDeprecated`, `bkr:isAvailable`,
+  `bkr:checkedURL`, `bkr:staleAfterDays`, `bkr:inactiveAfterDays`; schemes
+  `activity-status/` and `activity-source/`.
+- Tests: `scripts/tests/test_resource_activity.py` (offline fixtures).
+
 ## Unreleased — Resource links split across PDF lines are kept
 
 - **`scripts/resource_kg.py` grounding** no longer drops a URL, DOI or accession that

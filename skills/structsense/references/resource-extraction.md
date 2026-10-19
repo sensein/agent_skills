@@ -37,6 +37,7 @@ The four-way scope split is the reason for the ontology: a catalogue that collap
 | `schemas/bkr-resource-extraction.schema.json` | the extraction contract (30 fields per record) |
 | `prompts/extractor-resource.md` | the extractor prompt |
 | `scripts/resource_kg.py` | records → ground → map → convert → stubs → link; and `validate` |
+| `scripts/resource_activity.py` | optional, network: is each resource still maintained? (GitHub/GitLab, PyPI, CRAN, Bioconductor, npm, conda) |
 | `scripts/bkr_convert.py`, `scripts/bkr_stubs.py` | the BKR converter and mention-stub resolver (vendored from bkr-0.5.6) |
 | `cqs/brainkb_resource_ontology_CQs.md` | 21 competency questions, runnable with `cqs/run_cqs.py --entail` |
 
@@ -55,6 +56,7 @@ python -m scripts.pipeline --task resource --input paper.txt --mapper config
 # or, with a result JSON in hand (host-model mode, or an earlier run)
 python -m scripts.json_to_ttl result_final.json --source paper.pdf         # auto-detects resources
 python -m scripts.resource_kg build result_final.json --source paper.pdf --map   # same, with concept mapping
+python -m scripts.resource_kg build result_final.json --source paper.pdf --check-activity  # + is the code maintained?
 python -m scripts.validate_ttl result.ttl                                    # gate: must exit 0
 python cqs/run_cqs.py result.ttl --cqs cqs/brainkb_resource_ontology_CQs.md \
     --with-ontology default_ontology/brainkb_resource_ontology.owl --entail  # competency questions
@@ -90,6 +92,7 @@ normalisation the AIT evidence check uses):
 | `stable_identifiers[].value` | stated as a complete token (DOI with or without `https://doi.org/`, RRID with or without `RRID:`) | removed; field added to `not_found_fields` |
 | `versions[].version` | stated as a complete token (`1.4` is not `1.4.0`) | removed |
 | `url`, `license` | stated in the text | removed |
+| a URL / identifier the PDF wraps across lines | also matched with all whitespace removed and a hyphen at the break optional (values ≥ 12 characters); the source's spelling is adopted, so `…single-` ⏎ `cell-atlas` keeps its hyphen | kept; listed under `rejoined` |
 | every evidence `quote` | found verbatim (fuzzy ≥ 0.95 tolerated for extraction noise) | quote dropped |
 | `start` / `end` | never trusted (model-computed offsets) | removed; the quote is the anchor |
 | a `ValidatedScope` | must keep evidence or a benchmark result (BKR invariant 2) | demoted to a declared scope |
@@ -156,7 +159,56 @@ is a fact. Pass `--alias aliases.json` (`{mention: resource name}`) for variants
 rules miss; run `python -m scripts.bkr_stubs corpus.ttl --out corpus.ttl` over a
 merged corpus to join a stub in one paper onto another paper's record.
 
-### 6. Validate
+### 6. Activity — is the resource still maintained? (optional, network)
+
+A paper says where its code lives; it cannot say whether anyone still works on it.
+`build --check-activity` (or `python -m scripts.resource_activity annotate x.ttl`
+on an existing graph) asks the code hosts and package registries and records the
+answer as a dated `bkr:ActivityCheck` on the resource — an observation, not a claim
+of the paper, and separate from the paper-stated `bkr:lifecycleStatus` of a version.
+
+Targets come from the graph: `bkr:accessURL`, URL identifiers, usage-example URLs,
+and install commands in usage-example code (`pip install`, `install.packages`,
+`BiocManager::install`, `conda install -c <channel>`, `npm install`). A GitHub Pages
+site (`owner.github.io/repo`) points at `github.com/owner/repo` (inferred: a missing
+repository there is not "unavailable"). A registry that names its source repository
+(PyPI `project_urls`, CRAN/Bioconductor `URL`, npm `repository`, conda `dev_url`)
+adds it as a target.
+
+| status | rule (first that applies) |
+|---|---|
+| `archived` | the code host marks the repository archived |
+| `deprecated` | a registry says so: npm `deprecated`, CRAN archived, PyPI `Development Status :: 7 - Inactive` |
+| `unavailable` | every target answered 404/410 |
+| `unknown` | no date could be read (unreachable, rate limited) |
+| `active` | last commit / release / upload within `stale_after_days` (365) |
+| `stale` | within `inactive_after_days` (1095) |
+| `inactive` | older |
+
+Dates that do not mean development are not used: conda uploads (channel rebuilds)
+count only when nothing else dates the resource, and a Bioconductor release version
+bump is not a commit. Thresholds are in `resource_kg_config.json` (`activity`) and
+recorded on each check (`bkr:staleAfterDays`, `bkr:inactiveAfterDays`). Each source's
+answer is a `bkr:ActivitySignal` (`bkr:lastCommitDate`, `bkr:lastReleaseDate`,
+`bkr:latestVersion`, `bkr:isArchived`, `bkr:isDeprecated`, `bkr:isAvailable`,
+`bkr:checkedURL`). Checks accumulate, one per date, so re-running months later shows
+the trend; a same-day re-run replaces that day's check. Set `GITHUB_TOKEN` to lift
+GitHub's 60 requests/hour limit. Quick look without a graph:
+`python -m scripts.resource_activity check https://github.com/org/repo "pip install x"`.
+
+```sparql
+PREFIX bkr: <https://brainkb.org/resource/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+SELECT ?name ?status ?last WHERE {            # latest check per resource, not active
+  ?r bkr:resourceName ?name ; bkr:hasActivityCheck ?c .
+  ?c prov:endedAtTime ?d ; bkr:activityStatus ?status .
+  OPTIONAL { ?c bkr:lastActivityDate ?last }
+  FILTER NOT EXISTS { ?r bkr:hasActivityCheck ?c2 . ?c2 prov:endedAtTime ?d2 . FILTER(?d2 > ?d) }
+  FILTER(?status != <https://brainkb.org/resource/activity-status/active>)
+} ORDER BY ?last
+```
+
+### 7. Validate
 
 `python -m scripts.validate_ttl x.ttl` recognises a resource KG and gates it with
 `resource_kg.validate_graph`:
@@ -174,7 +226,7 @@ record lists `applicability` in `not_found_fields`, or the node is a mention stu
 otherwise it is an extraction gap and fails. **Never fix a finding by inventing a
 licence or a scope.**
 
-### 7. Query
+### 8. Query
 
 `cqs/brainkb_resource_ontology_CQs.md` holds the 21 BKR competency questions
 (resources for a species, declared vs validated, applied outside declared scope,

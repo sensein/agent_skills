@@ -840,7 +840,7 @@ def _drop_none_items(x):
 
 def build(result: dict, *, source_path: Optional[Path] = None, source_text: Optional[str] = None,
           mapper=None, cfg: Optional[dict] = None, alias: Optional[dict] = None,
-          validate_schema: bool = True) -> tuple[str, dict]:
+          validate_schema: bool = True, check_activity: bool = False, fetch=None) -> tuple[str, dict]:
     """Library entry point: a resource result -> (BKR Turtle, report)."""
     cfg = cfg or load_config()
     if source_text is None and source_path is not None:
@@ -900,6 +900,11 @@ def build(result: dict, *, source_path: Optional[Path] = None, source_text: Opti
     g = conv.g
     _describe_publication(g, URIRef(pub_iri), result, doi, paper_id)
     merged, n_stubs, unmatched = bkr_stubs.resolve(g, alias)
+    if check_activity:
+        # network: what the code hosts and registries say today (not the paper)
+        import resource_activity
+        report["activity"] = resource_activity.annotate(
+            g, cfg=cfg.get("activity"), **({"fetch": fetch} if fetch else {}))
     report.update({
         "paper_id": paper_id, "publication": pub_iri, "triples": len(g),
         "counts": {"resources": len(set(g.subjects(RDF.type, BKR.Resource))),
@@ -1112,6 +1117,9 @@ def _main(argv=None) -> int:
                    help="map scope-dimension labels with the ConceptMapper (concept_mapping.json cascade)")
     b.add_argument("--sources", help="mapper sources, e.g. trusted,bioportal (default concept_mapping.json)")
     b.add_argument("--alias", type=Path, help="JSON {mention name: resource name} for stub variants")
+    b.add_argument("--check-activity", action="store_true",
+                   help="ask GitHub/GitLab and the package registries whether each resource is still "
+                        "active (network; adds dated bkr:ActivityCheck nodes)")
     b.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     v = sub.add_parser("validate", help="gate a BKR Turtle file (SHACL + vocabulary + connectivity)")
     v.add_argument("ttl", type=Path, nargs="+")
@@ -1143,7 +1151,8 @@ def _main(argv=None) -> int:
                   "start the local mapper or set BIOPORTAL_API_KEY)", file=sys.stderr)
             return 1
     alias = json.loads(args.alias.read_text()) if args.alias else None
-    ttl, report = build(result, source_path=args.source, mapper=mapper, cfg=cfg, alias=alias)
+    ttl, report = build(result, source_path=args.source, mapper=mapper, cfg=cfg, alias=alias,
+                        check_activity=args.check_activity)
     out = args.out or _default_out(args.result)
     out.write_text(ttl)
     if args.report:
@@ -1159,6 +1168,10 @@ def _print_build(out: Path, report: dict) -> None:
           f"{c['evidence_mentions']} evidence quotes, {c['stubs_merged']} mention stubs merged, "
           f"{c['stubs_kept']} kept; grounding removed {report['grounding']['n_removed']} unsupported value(s)",
           file=sys.stderr)
+    if report.get("activity"):
+        import resource_activity
+        for r in report["activity"]["resources"]:
+            print(f"  activity: {resource_activity.summary_line(r)}", file=sys.stderr)
     for w in report["warnings"][:20]:
         print(f"  warning: {w}", file=sys.stderr)
     if len(report["warnings"]) > 20:

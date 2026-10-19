@@ -5961,4 +5961,226 @@ via bkr:instantiatesClass and to BKR extracted types via skos:broadMatch.</skos:
   <rdf:Description rdf:about="http://www.w3.org/ns/dqv#computedOn">
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
   </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/ActivityCheck">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="https://brainkb.org/resource/ResourceLifecycleActivity"/>
+    <rdfs:label xml:lang="en">activity check</rdfs:label>
+    <skos:definition xml:lang="en">A dated observation of whether a resource is still developed or distributed, read from its hosting service and package registries. Records what those sources answered on that day, never a claim of a publication.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/ActivitySignal">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#Class"/>
+    <rdfs:subClassOf rdf:resource="http://www.w3.org/ns/prov#Entity"/>
+    <rdfs:label xml:lang="en">activity signal</rdfs:label>
+    <skos:definition xml:lang="en">What one source (a code host or a package registry) reported during an activity check.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/hasActivityCheck">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/Resource"/>
+    <rdfs:range rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:label xml:lang="en">has activity check</rdfs:label>
+    <skos:definition xml:lang="en">An activity check made on this resource. Checks accumulate: one per check date.</skos:definition>
+    <skos:note xml:lang="en">Kept apart from bkr:lifecycleStatus, which is what a publication states about a version.</skos:note>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/hasActivitySignal">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:range rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:label xml:lang="en">has activity signal</rdfs:label>
+    <skos:definition xml:lang="en">A source's answer used by this activity check.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activityStatus">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdfs:label xml:lang="en">activity status</rdfs:label>
+    <skos:definition xml:lang="en">The combined status of the resource on the check date.</skos:definition>
+    <skos:note xml:lang="en">Values from &lt;https://brainkb.org/resource/activity-status/&gt;: active, stale, inactive, archived, deprecated, unavailable, unknown.</skos:note>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activitySource">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#ObjectProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <rdfs:label xml:lang="en">activity source</rdfs:label>
+    <skos:definition xml:lang="en">The code host or package registry that answered.</skos:definition>
+    <skos:note xml:lang="en">Values from &lt;https://brainkb.org/resource/activity-source/&gt;.</skos:note>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/checkedURL">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#anyURI"/>
+    <rdfs:label xml:lang="en">checked URL</rdfs:label>
+    <skos:definition xml:lang="en">The page of the repository or package that was checked.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/lastActivityDate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#date"/>
+    <rdfs:label xml:lang="en">last activity date</rdfs:label>
+    <skos:definition xml:lang="en">Date of the most recent commit, release or upload seen. On a check, the latest over its non-packaging signals.</skos:definition>
+    <skos:note xml:lang="en">Also used on bkr:ActivitySignal for that source's own latest date.</skos:note>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/lastCommitDate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#date"/>
+    <rdfs:label xml:lang="en">last commit date</rdfs:label>
+    <skos:definition xml:lang="en">Date of the latest commit on the default branch.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/lastReleaseDate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#date"/>
+    <rdfs:label xml:lang="en">last release date</rdfs:label>
+    <skos:definition xml:lang="en">Date of the latest release or registry upload.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/latestVersion">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+    <rdfs:label xml:lang="en">latest version</rdfs:label>
+    <skos:definition xml:lang="en">The latest version or release tag the source reported.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/isArchived">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <rdfs:label xml:lang="en">is archived</rdfs:label>
+    <skos:definition xml:lang="en">The code host marks the repository archived (read-only).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/isDeprecated">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <rdfs:label xml:lang="en">is deprecated</rdfs:label>
+    <skos:definition xml:lang="en">The registry marks the package deprecated, archived or inactive.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/isAvailable">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivitySignal"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+    <rdfs:label xml:lang="en">is available</rdfs:label>
+    <skos:definition xml:lang="en">False when the source answered that the repository or package does not exist (HTTP 404/410). Absent when the source could not be asked.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/staleAfterDays">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    <rdfs:label xml:lang="en">stale after days</rdfs:label>
+    <skos:definition xml:lang="en">Days without activity after which the check calls a resource stale.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/inactiveAfterDays">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:domain rdf:resource="https://brainkb.org/resource/ActivityCheck"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+    <rdfs:label xml:lang="en">inactive after days</rdfs:label>
+    <skos:definition xml:lang="en">Days without activity after which the check calls a resource inactive.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <dcterms:title xml:lang="en">BKR activity status</dcterms:title>
+    <skos:scopeNote xml:lang="en">Whether a resource is still developed, observed by an activity check. Precedence: archived, deprecated, unavailable, unknown, then by days since the last activity.</skos:scopeNote>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/active">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">active</skos:prefLabel>
+    <skos:notation>active</skos:notation>
+    <skos:definition xml:lang="en">Activity within the check's stale-after period.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/stale">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">stale</skos:prefLabel>
+    <skos:notation>stale</skos:notation>
+    <skos:definition xml:lang="en">No activity within the stale-after period, some within the inactive-after period.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/inactive">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">inactive</skos:prefLabel>
+    <skos:notation>inactive</skos:notation>
+    <skos:definition xml:lang="en">No activity within the inactive-after period.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/archived">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">archived</skos:prefLabel>
+    <skos:notation>archived</skos:notation>
+    <skos:definition xml:lang="en">The code host marks the repository archived.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/deprecated">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">deprecated</skos:prefLabel>
+    <skos:notation>deprecated</skos:notation>
+    <skos:definition xml:lang="en">A package registry marks the package deprecated, archived or inactive.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/unavailable">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">unavailable</skos:prefLabel>
+    <skos:notation>unavailable</skos:notation>
+    <skos:definition xml:lang="en">Every checked repository or package is gone (HTTP 404/410).</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-status/unknown">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-status/"/>
+    <skos:prefLabel xml:lang="en">unknown</skos:prefLabel>
+    <skos:notation>unknown</skos:notation>
+    <skos:definition xml:lang="en">No source could give a date: unreachable, rate limited, or dateless.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+    <dcterms:title xml:lang="en">BKR activity source</dcterms:title>
+    <skos:scopeNote xml:lang="en">Code hosts and package registries an activity check reads.</skos:scopeNote>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/github">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">github</skos:prefLabel>
+    <skos:notation>github</skos:notation>
+    <skos:definition xml:lang="en">GitHub REST API.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/gitlab">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">gitlab</skos:prefLabel>
+    <skos:notation>gitlab</skos:notation>
+    <skos:definition xml:lang="en">GitLab.com REST API.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/pypi">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">pypi</skos:prefLabel>
+    <skos:notation>pypi</skos:notation>
+    <skos:definition xml:lang="en">PyPI JSON API.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/cran">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">cran</skos:prefLabel>
+    <skos:notation>cran</skos:notation>
+    <skos:definition xml:lang="en">CRAN through crandb.r-pkg.org.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/bioconductor">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">bioconductor</skos:prefLabel>
+    <skos:notation>bioconductor</skos:notation>
+    <skos:definition xml:lang="en">Bioconductor through its r-universe mirror.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/npm">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">npm</skos:prefLabel>
+    <skos:notation>npm</skos:notation>
+    <skos:definition xml:lang="en">npm registry.</skos:definition>
+  </rdf:Description>
+  <rdf:Description rdf:about="https://brainkb.org/resource/activity-source/conda">
+    <rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+    <skos:inScheme rdf:resource="https://brainkb.org/resource/activity-source/"/>
+    <skos:prefLabel xml:lang="en">conda</skos:prefLabel>
+    <skos:notation>conda</skos:notation>
+    <skos:definition xml:lang="en">anaconda.org API; a packaging signal (channel rebuilds).</skos:definition>
+  </rdf:Description>
 </rdf:RDF>
