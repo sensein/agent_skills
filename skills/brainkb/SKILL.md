@@ -309,6 +309,19 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_create_space(slug, name, "private", description, space_type="team")`.
   If the user isn't authorized you'll get a 403 — an Admin can grant them
   `create_team_space` (see "Manage & delegate").
+- **Subspace** inside an existing space (any depth): pass `parent_slug` —
+  `brainkb_create_space(slug, name, "private", description, parent_slug="lab")`.
+  Needs manage rights on the parent; it takes the parent's space type. **Roles
+  inherit downward:** anyone with a role in a space (or any space above it) has the
+  same role in its subspaces; the strongest role wins, and roles never flow up.
+  Visibility is per space (a private space may hold a public subspace). The parent
+  is fixed at creation. To see the structure: `brainkb_space_tree(slug)` (nested,
+  with the caller's role in each and whether it's inherited) or
+  `brainkb_get_space(slug)` (one space: graphs, direct and `inherited_members`,
+  `ancestors`, `subspaces`). In `brainkb_list_spaces()`, `parent_slug` links a
+  subspace to its parent and `role_inherited` marks inherited roles. A space with
+  subspaces can't be deleted (409): delete the subspaces first, deepest first.
+  Inherited members are changed in the space they come from, not in the subspace.
 - Bind a named graph to it (required before ingesting into that graph):
   `brainkb_add_space_graph(slug, graph_iri, description)` — `graph_iri` like
   `https://brainkb.org/graph/<slug>/`.
