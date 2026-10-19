@@ -511,9 +511,23 @@ them:
    **Ingest Knowledge Graph → SynthScholar review**.
 4. Steps 6–7 below: poll the job, reconcile the delta against the triple count.
 
-`brainkb_synthscholar_list_reviews(space?)` and `brainkb_synthscholar_get_review(id)`
-show ingested reviews the caller can read (graph, space, files, the run's search
-log and checks). The review's page is `/knowledge-base/synth-scholar/ingested/<id>`.
+**Answering questions about an ingested review** — no SPARQL or admin role needed;
+these read under the space's rules (public spaces: no login) and page at ≤200:
+
+| Question | Call |
+|---|---|
+| Which reviews are there / about X? | `brainkb_synthscholar_list_reviews(q="X")` |
+| Overview: graph, files, search log, checks | `brainkb_synthscholar_get_review(id)` |
+| Which inclusions were read from the abstract only? via EZproxy? high RoB? | `brainkb_synthscholar_studies(id, full_text=False)` / `source="ezproxy"` / `rob="high"` |
+| Why were studies excluded? Which full-text decisions rested on the abstract? | `brainkb_synthscholar_screening(id, decision="exclude")` (see `counts.exclusion_reasons`) / `stage="full_text", assessed_on="abstract_only"` |
+| What evidence supports claim C? Which quotes were not matched in the source? | `brainkb_synthscholar_evidence(id, claim="C")` / `grounded=False` |
+| Which studies report Neo4j / what did study S-001 chart? | `brainkb_synthscholar_records(id, "charting", q="neo4j")` / `study="S-001"`; also `"appraisal"`, `"narrative"` |
+| The synthesis, limitations, search queries, per-group analysis | `brainkb_synthscholar_text(id, "synthesis")` (empty `section` = all) |
+| Which reviews include this paper? | `brainkb_synthscholar_find_study(doi=…)` / `pmid=…` / `title=…` |
+
+Quote counts from the `total` and `counts` the tools return, not from a page of
+items. The review's page is `/knowledge-base/synth-scholar/ingested/<id>`; the site
+search lists matching reviews above the records.
 
 **Ingesting the TTL by hand** (no import — e.g. only the `.ttl` is at hand).
 Either source, same procedure from step 2 on:
