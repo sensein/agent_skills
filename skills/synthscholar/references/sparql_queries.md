@@ -300,3 +300,38 @@ Both work on any review exported since the research-question merge landed (see
 `references/byo_corpus_review.md` § 5). Older exports carry the answers only
 inside the charting rubrics — re-export, or run
 `scripts/research_questions.py review.json --outdir out/`, to get these nodes.
+
+## Which SynthScholar version and model produced the review, and when
+
+```sparql
+PREFIX slr:  <https://w3id.org/slr-ontology/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX nidm: <http://purl.org/nidash/nidm#>
+
+SELECT ?review ?generatedAt ?softwareVersion ?model
+WHERE {
+  ?review a slr:SystematicReview ;
+          prov:wasGeneratedBy ?run .
+  OPTIONAL { ?review prov:generatedAtTime ?generatedAt }
+  OPTIONAL { ?run prov:wasAssociatedWith ?sw . ?sw nidm:NIDM_0000122 ?softwareVersion }
+  OPTIONAL { ?run prov:wasAssociatedWith ?m . ?m slr:model_name ?model }
+}
+```
+
+## The review's provenance as NIDM-Experiment (via the ontology's skos:closeMatch)
+
+Load the SLR ontology (`synthscholar/ontology/slr_ontology.owl.ttl`) with the
+review, then list each node with its NIDM counterpart class:
+
+```sparql
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?node ?slrClass ?nidmClass
+WHERE {
+  ?node a ?slrClass .
+  ?slrClass skos:closeMatch ?nidmClass .
+  FILTER(STRSTARTS(STR(?nidmClass), "http://purl.org/nidash/nidm#"))
+}
+ORDER BY ?nidmClass ?slrClass
+```
+
