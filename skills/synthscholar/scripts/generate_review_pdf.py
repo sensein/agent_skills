@@ -60,6 +60,7 @@ Needs ``pandoc`` and one engine; stdlib only otherwise.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -67,6 +68,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 import urllib.error
 import urllib.request
@@ -434,8 +436,92 @@ def _norm_title(s: str) -> str:
 
 
 def base_stem(md: Path) -> str:
-    """``review.manuscript.md`` → ``review``: the manuscript shares the review's siblings."""
-    return md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
+    """``review.manuscript.md`` / ``review.delivered.md`` → ``review``: they share the review's siblings."""
+    stem = md.stem
+    for suffix in (".manuscript", ".delivered"):
+        if stem.endswith(suffix):
+            stem = stem[:-len(suffix)]
+    return stem
+
+
+RELEASE_SIDECARS = ("json", "claims.json", "evidence-ledger.json", "studies.json", "revalidation.json",
+                    "extraction.json", "pages.json", "grounding.json", "grounding.md", "ungrounded.json",
+                    "references.apa.md", "references.vancouver.md", "references.nature.md", "references.ieee.md")
+
+
+def release(md: Path, delivered: Path, pdf: Optional[Path], notice: Optional[str]) -> Path:
+    """Save this delivery as a new numbered version; never overwrite an earlier one.
+
+    ``releases/<stem>-vN/`` holds the delivered manuscript (the exact text that
+    passed the gates), the PDF when one was built, the citation and grounding
+    reports, the ledgers and the review JSON they were checked against, and
+    ``manifest.json``: each file's SHA-256, both verdicts, any override used,
+    and the previous version's manifest hash, so the versions form a chain.
+    A delivery built with an override is saved too, marked ``-UNVERIFIED``.
+    """
+    stem = base_stem(md)
+    root = md.parent / "releases"
+    root.mkdir(exist_ok=True)
+    nums = [int(m.group(1)) for d in root.iterdir()
+            if (m := re.match(rf"{re.escape(stem)}-v(\d+)(?:-UNVERIFIED)?$", d.name))]
+    n = max(nums, default=0) + 1
+    prev = sorted((d for d in root.iterdir() if re.match(rf"{re.escape(stem)}-v{n - 1}(?:-UNVERIFIED)?$", d.name)),
+                  key=lambda d: d.name)
+    dest = root / f"{stem}-v{n}{'-UNVERIFIED' if notice else ''}"
+    dest.mkdir()
+    files = {f"{stem}.manuscript.md": delivered,
+             f"{delivered.stem}.citations.json": delivered.with_name(f"{delivered.stem}.citations.json"),
+             f"{delivered.stem}.citations.md": delivered.with_name(f"{delivered.stem}.citations.md")}
+    if pdf is not None and pdf.is_file():
+        files[f"{stem}.pdf"] = pdf
+    for suffix in RELEASE_SIDECARS:
+        files[f"{stem}.{suffix}"] = md.with_name(f"{stem}.{suffix}")
+    manifest_files = {}
+    for name, src in files.items():
+        if src.is_file():
+            shutil.copy2(src, dest / name)
+            manifest_files[name] = hashlib.sha256((dest / name).read_bytes()).hexdigest()
+
+    def verdict(name: str) -> Optional[str]:
+        try:
+            return json.loads((dest / name).read_text(encoding="utf-8"))["summary"]["verdict"]
+        except (OSError, ValueError, KeyError):
+            return None
+
+    prev_manifest = prev[-1] / "manifest.json" if prev else None
+    manifest = {
+        "review": stem, "version": n,
+        "released_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "verified": not notice,
+        "citations_verdict": verdict(f"{delivered.stem}.citations.json"),
+        "grounding_verdict": verdict(f"{stem}.grounding.json"),
+        "override_notice": notice or "",
+        "pdf": f"{stem}.pdf" if f"{stem}.pdf" in manifest_files else None,
+        "files": manifest_files,
+        "previous_version": prev[-1].name if prev else None,
+        "previous_manifest_sha256": hashlib.sha256(prev_manifest.read_bytes()).hexdigest()
+        if prev_manifest and prev_manifest.is_file() else None,
+    }
+    (dest / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"Released v{n}{' (UNVERIFIED)' if notice else ''}: {dest}", file=sys.stderr)
+    return dest
+
+
+def prepare_delivery(md: Path, family: str, references: Optional[str],
+                     include: list[str]) -> tuple[Path, str]:
+    """Write ``<stem>.delivered.md``: exactly the text the PDF will carry.
+
+    The gates run on this, not on the manuscript, because the build adds to the
+    manuscript — the styled reference list (``--references``) and the sidecar
+    appendices (``--include``). Each appendix is marked with its file's hash so
+    the grounding audit can check it is what the exporter renders from the
+    current review. ``_build`` re-assembles and refuses if the text differs.
+    """
+    text = assemble(md, family, references, include, None)[0]
+    dest = md.with_name(f"{base_stem(md)}.delivered.md")
+    if not dest.is_file() or dest.read_text(encoding="utf-8") != text:
+        dest.write_text(text, encoding="utf-8")
+    return dest, text
 
 
 def grounding_gate(md: Path, allow: bool, run: bool = True) -> tuple[Optional[str], Optional[str]]:
@@ -788,8 +874,11 @@ def assemble(md: Path, family: str, references: Optional[str],
         if side_hs and _norm_title(side_hs[0][1]) in present:
             notes.append(f"skipped {side.name} (already in {md.name} as “{side_hs[0][1]}”)")
             continue
-        # Sidecars open with "# …": a top-level section, like the review's own.
-        text += "\n" + PAGE_BREAK + "\n" + side_text + "\n"
+        # Sidecars open with "# …": a top-level section, like the review's own. The
+        # marker (an HTML comment: no engine prints it) lets the audit verify it.
+        sha = hashlib.sha256(side.read_bytes()).hexdigest()
+        text += ("\n" + PAGE_BREAK + "\n" + f"<!-- sidecar: {side.name} sha256={sha} -->\n"
+                 + side_text + "\n")
         notes.append(f"appendix: {side.name}")
     if flow_image is not None:
         text, placed = insert_flow_diagram(text, flow_image)
@@ -969,7 +1058,8 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
                  toc: Optional[bool] = None, number_sections: bool = False,
                  pdf_engine: Optional[str] = None, bibliography: Optional[str] = None,
                  citations: Optional[str] = None, allow_citation_errors: bool = False,
-                 allow_ungrounded: bool = False,
+                 allow_ungrounded: bool = False, prepare_only: bool = False,
+                 no_pdf: bool = False, no_release: bool = False,
                  mainfont: Optional[str] = None, dry_run: bool = False,
                  keep_source: bool = False, timeout: int = 900,
                  flow_diagram: bool = True, flow_json: Optional[str] = None,
@@ -992,6 +1082,29 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
     if toc is None:
         # a journal manuscript has no contents page: front matter and abstract open page 1
         toc = not md.stem.endswith(".manuscript")
+    if no_pdf or prepare_only:
+        # the manuscript is delivered on its own: same assembly, same gates, a release
+        try:
+            delivered, _ = prepare_delivery(md, "plain", references, include or [])
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return False
+        if prepare_only:
+            print(f"Wrote {delivered} — the text that will be delivered. Judge its claims "
+                  f"(audit_grounding.py {base_stem(md)}.json --init-claims) and verify it "
+                  f"(verify_citations.py {delivered.name}), then build.", file=sys.stderr)
+            return True
+        refusal, notice = citation_gate(delivered, Path(citations) if citations else None,
+                                        allow_citation_errors)
+        if refusal:
+            print(f"Error: {refusal}", file=sys.stderr)
+            return False
+        refusal, g_notice = grounding_gate(delivered, allow_ungrounded)
+        if refusal:
+            print(f"Error: {refusal}", file=sys.stderr)
+            return False
+        release(md, delivered, None, " ".join(x for x in (notice, g_notice) if x) or None)
+        return True
     if not shutil.which("pandoc"):
         print("Error: pandoc not found. Install with:\n"
               "  conda install -c conda-forge pandoc   # or: brew / apt install pandoc",
@@ -1026,12 +1139,17 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
         print(f"  warning: '{engine}' is not an engine this script knows; "
               "no engine-specific options are applied", file=sys.stderr)
 
-    refusal, notice = citation_gate(md, Path(citations) if citations else None,
+    try:
+        delivered, delivered_text = prepare_delivery(md, family, references, include or [])
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return False
+    refusal, notice = citation_gate(delivered, Path(citations) if citations else None,
                                     allow_citation_errors or dry_run, verify=not dry_run)
     if refusal:
         print(f"Error: {refusal}", file=sys.stderr)
         return False
-    refusal, g_notice = grounding_gate(md, allow_ungrounded or dry_run, run=not dry_run)
+    refusal, g_notice = grounding_gate(delivered, allow_ungrounded or dry_run, run=not dry_run)
     if refusal:
         print(f"Error: {refusal}", file=sys.stderr)
         return False
@@ -1039,16 +1157,19 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
 
     tmpdir = tempfile.TemporaryDirectory(prefix="review-pdf-")
     try:
-        return _build(md, output_pdf, Path(tmpdir.name), engine=engine, family=family,
+        ok = _build(md, output_pdf, Path(tmpdir.name), engine=engine, family=family,
                       page_limit=page_limit, allow_over_limit=allow_over_limit, keep_tex=keep_tex,
                       citation_style=citation_style, references=references, include=include,
                       template=template, toc=toc, number_sections=number_sections,
                       bibliography=bibliography, mainfont=mainfont, dry_run=dry_run,
                       keep_source=keep_source, timeout=timeout, flow_diagram=flow_diagram,
                       flow_json=Path(flow_json) if flow_json else None, layout=layout,
-                      notice=notice)
+                      notice=notice, checked_sha=hashlib.sha256(delivered_text.encode()).hexdigest())
     finally:
         tmpdir.cleanup()
+    if ok and not dry_run and not no_release:
+        release(md, delivered, Path(output_pdf) if output_pdf else md.with_suffix(".pdf"), notice)
+    return ok
 
 
 def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, family: str,
@@ -1057,7 +1178,7 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
            template: Optional[str], toc: bool, number_sections: bool, bibliography: Optional[str],
            mainfont: Optional[str], dry_run: bool, keep_source: bool, timeout: int,
            flow_diagram: bool, flow_json: Optional[Path], layout: str = "plain",
-           notice: Optional[str] = None) -> bool:
+           notice: Optional[str] = None, checked_sha: Optional[str] = None) -> bool:
     # #3: a kept .tex must still compile after the temp dir is gone, so images
     # converted for it live in <name>_files/ beside it, not in the temp dir.
     out_path = Path(output_pdf) if output_pdf else md.with_suffix(".pdf")
@@ -1068,6 +1189,12 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
     flow_image, flow_note = (flow_figure(md, flow_json, family, assets)
                              if flow_diagram and not has_flow else (None, ""))
     try:
+        if checked_sha and hashlib.sha256(assemble(md, family, references, include or [], None)[0]
+                                          .encode()).hexdigest() != checked_sha:
+            print("Error: the assembled text changed after it was verified (a manuscript, reference "
+                  "list or appendix file was modified during the build) — run the build again",
+                  file=sys.stderr)
+            return False
         text, title, notes = assemble(md, family, references, include or [], flow_image)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -1270,9 +1397,9 @@ def latex_route(cmd: list[str], out: Path, engine: str, family: str, tmp: Path,
 
 # ─────────────────────────── batch ────────────────────────────
 
-SIDECAR_MD = re.compile(r"\.(charting|appraisal|per-group|narrative|citations|writing|pandoc|"
+SIDECAR_MD = re.compile(r"\.(charting|appraisal|per-group|narrative|citations|writing|pandoc|delivered|"
                         r"references\.[\w-]+|manuscript\.md\.writing)$")
-SKIP_DIRS = {"work", "figures", "node_modules", "__pycache__", ".git"}
+SKIP_DIRS = {"work", "figures", "node_modules", "__pycache__", ".git", "releases"}
 
 
 def is_review_json(path: Path) -> bool:
@@ -1412,6 +1539,14 @@ def main() -> int:
     p.add_argument("--allow-citation-errors", action="store_true",
                    help="build even if citations are not verified (FAIL/INCOMPLETE); the PDF "
                         "then carries an 'unverified' notice")
+    p.add_argument("--no-pdf", action="store_true",
+                   help="deliver the manuscript without building a PDF: same assembly and gates, "
+                        "then a release (no pandoc/TeX needed)")
+    p.add_argument("--no-release", action="store_true",
+                   help="build the PDF without saving a numbered release")
+    p.add_argument("--prepare", action="store_true",
+                   help="write <stem>.delivered.md (the exact text the PDF will carry: styled "
+                        "references and --include appendices) and stop, so its claims can be judged")
     p.add_argument("--allow-ungrounded", action="store_true",
                    help="build even if the grounding audit (audit_grounding.py) is not PASS; the "
                         "PDF then carries a 'grounding not verified' notice")
@@ -1471,7 +1606,8 @@ def main() -> int:
                       toc=args.toc, number_sections=args.number_sections,
                       pdf_engine=args.pdf_engine, bibliography=args.bibliography,
                       citations=args.citations, allow_citation_errors=args.allow_citation_errors,
-                      allow_ungrounded=args.allow_ungrounded,
+                      allow_ungrounded=args.allow_ungrounded, prepare_only=args.prepare,
+                      no_pdf=args.no_pdf, no_release=args.no_release,
                       mainfont=args.mainfont, dry_run=args.dry_run,
                       keep_source=args.keep_source, timeout=args.timeout,
                       flow_diagram=not args.no_flow_diagram, flow_json=args.flow_json,

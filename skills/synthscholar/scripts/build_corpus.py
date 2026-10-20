@@ -434,6 +434,35 @@ def mark_duplicates(items: list[dict]) -> int:
     return unresolved
 
 
+# ── Page map ───────────────────────────────────────────────────────────
+
+
+def page_texts(pdf: Path) -> list[str]:
+    """Each page's text (PyMuPDF), so a quote's stated page can be checked.
+
+    Kept apart from ``full_text``: the app's parser joins pages and strips the
+    form feeds, so page boundaries survive only here.
+    """
+    try:
+        try:
+            import pymupdf as fitz  # type: ignore
+        except ImportError:
+            import fitz  # type: ignore
+        with fitz.open(str(pdf)) as doc:
+            return [page.get_text("text") or "" for page in doc]
+    except Exception:
+        return []
+
+
+def write_page_map(items: list[dict], out: Path) -> Path:
+    """``<corpus stem>.pages.json``: ``{pmid: {pdf_sha256, pages: [text, …]}}``."""
+    pm = {it["pmid"]: {"pdf_sha256": it.get("_pdf_sha256", ""), "pages": it.pop("_page_texts", [])}
+          for it in items if it.get("_page_texts")}
+    dest = out.with_name(f"{out.stem}.pages.json")
+    dest.write_text(json.dumps(pm, ensure_ascii=False), encoding="utf-8")
+    return dest
+
+
 # ── Corpus building ────────────────────────────────────────────────────
 
 
@@ -494,6 +523,7 @@ def build_item(
             # fetch_ezproxy.py: what was cited vs what was actually read
             item[f"_{k}"] = v
 
+    item["_page_texts"] = page_texts(pdf)
     item["_pdf_path"] = str(pdf)
     item["_pdf_sha256"] = file_sha
     item["_pdf_pages"] = pdf_meta.get("_pages", 0)
@@ -693,6 +723,7 @@ def main() -> int:
         print(f"  WARN  manifest row '{name}' matched no PDF", file=sys.stderr)
 
     dups = report_duplicates(items)
+    pages_file = write_page_map(items, Path(args.out))
 
     corpus = {
         "corpus_version": 1,
@@ -708,6 +739,7 @@ def main() -> int:
     if needs or dups:
         print("Resolve them (read each entry's `_head_text`), then re-check with "
               f"`--check {args.out}`.")
+    print(f"Page map: {pages_file} (keep it beside the review: page-level evidence is checked against it).")
     print(f"`--check {args.out}` also verifies every DOI/PMID against Crossref/PubMed — "
           "run it before the review.")
     return 0

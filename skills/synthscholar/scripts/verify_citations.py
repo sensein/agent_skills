@@ -92,6 +92,7 @@ E-utilities rate limit. Needs only ``httpx``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -1297,7 +1298,8 @@ class Verifier:
         body, refs_text = (text[:m.start()], text[m.end():]) if m else (text, "")
         # The next top-level heading (an appendix) ends the reference list.
         ref_block = refs_text.splitlines()
-        end = next((i for i, ln in enumerate(ref_block) if ln.startswith("## ")), len(ref_block))
+        end = next((i for i, ln in enumerate(ref_block)
+                    if re.match(r"#{1,2} ", ln) or ln.startswith("<!-- sidecar:")), len(ref_block))
         return body, [ln.strip() for ln in ref_block[:end] if ln.strip()]
 
     @staticmethod
@@ -1560,7 +1562,10 @@ def manuscript_inputs(md: Path, review_json: Optional[Path]) -> list[Path]:
 
 def review_for_markdown(md: Path) -> Optional[Path]:
     """``review.manuscript.md`` / ``review.md`` → the ``review.json`` beside it, if any."""
-    stem = md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
+    stem = md.stem
+    for suffix in (".manuscript", ".delivered"):
+        if stem.endswith(suffix):
+            stem = stem[:-len(suffix)]
     js = md.with_name(f"{stem}.json")
     return js if js.is_file() else None
 
@@ -1823,6 +1828,10 @@ def apply_fixes(review: dict, report: dict) -> list[dict]:
                     entry["references_updated"] = _rekey(review, str(old), value, skip=a)
                 if field == "doi" and rec.get("version") == "published":
                     entry["version_switch"] = True
+                    # the text read so far — clearing the change needs a different one
+                    entry["old_text_sha256"] = hashlib.sha256("\n".join(
+                        x for x in (a.get("abstract"), a.get("full_text")) if x).encode(
+                        "utf-8", errors="replace")).hexdigest()
                 applied.append(entry)
         for e in applied:
             if e["key"] == rec["key"] and e.get("version_switch"):
@@ -1839,6 +1848,7 @@ def record_version_changes(applied: list[dict], review_json: Path) -> Optional[P
     until its evidence is re-extracted from the new version.
     """
     changes = [{"pmid": e["study"], "old_doi": e["old"], "new_doi": e["new"],
+                "old_text_sha256": e.get("old_text_sha256", ""),
                 "reason": "preprint replaced by its published version (verify_citations --apply)",
                 "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
                for e in applied if e.get("version_switch")]

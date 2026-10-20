@@ -27,8 +27,9 @@ DEPS = [
      {"corpus", "review", "verify", "pdf", "fetch"},
      "registry lookups: verify_citations, audit_grounding, corpus and export gates, PDF gate"),
     ("synthscholar (dev checkout)", "py", "synthscholar.text_windows",
-     "pip install -e /path/to/prisma-review-agent", {"review"},
-     "run_local_review / export_review drive the app's own pipeline and exporters"),
+     "pip install -e /path/to/prisma-review-agent", {"review", "pdf"},
+     "the app's pipeline and exporters: run_local_review, export_review, extract_evidence, and the "
+     "appendix check (sidecars are re-rendered from review.json before delivery)"),
     ("rapidfuzz", "py", "rapidfuzz", "pip install 'rapidfuzz>=3.0'", {"review"},
      "the pipeline's evidence-span grounding filter (refuses to run without it)"),
     ("pymupdf", "py", "fitz", "pip install pymupdf", {"corpus"},

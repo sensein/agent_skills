@@ -466,6 +466,12 @@ async def run(args: argparse.Namespace) -> int:
     themes = json.loads(Path(args.rq_themes).read_text(encoding="utf-8")) if args.rq_themes else None
     written = write_exports(result, args.outdir, args.formats, base=args.base,
                             rq_themes=themes)
+    # the page map travels with the review: page-level evidence is checked against it
+    pages = Path(args.corpus).with_name(f"{Path(args.corpus).stem}.pages.json")
+    if pages.is_file():
+        dest = Path(args.outdir) / f"{args.base}.pages.json"
+        dest.write_bytes(pages.read_bytes())
+        written.append(str(dest))
     f = result.flow
     print(f"\nIncluded {len(result.included_articles)} of {len(articles)} articles.")
     print(f"Full text:  {f.full_text_retrieved} of {f.sought_fulltext} available"

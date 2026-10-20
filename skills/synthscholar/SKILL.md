@@ -133,7 +133,9 @@ Full workflow, schemas, and the PRISMA-flow accounting rules:
 **[references/byo_corpus_review.md](references/byo_corpus_review.md)** — read
 it before running this mode.
 
-### The five steps
+### The steps
+
+Steps 6–9 (citations, source grounding, manuscript, delivery) apply to every review, including one from the hosted app's online search: export it to `out/review.json` and start at step 6.
 
 ```bash
 # 1. Protocol — the Mode 1 intake, unchanged, then gate it
@@ -185,32 +187,51 @@ python scripts/verify_citations.py out/review.json --apply out/review.verified.j
 python scripts/export_review.py out/review.verified.json --outdir out/ --formats md ttl json
 python scripts/verify_citations.py out/review.json --style vancouver
 
-# 7. Manuscript — the paper, in the template's order (references/review_template.md).
+# 7. Source grounding — everything delivered rests on verbatim text of a paper
+#    or on an explicit computation over the review's data; what is not grounded
+#    is not delivered (references/validation.md).
+#    a. Evidence spans from the current text of every study (the app's extraction):
+python scripts/extract_evidence.py spans  out/review.json
+#    b. Every structured value — charting answers, appraisal ratings, RoB
+#       judgements, narrative cells, GRADE domains — needs verbatim evidence.
+#       `quote` asks the model; without a key, write the quotes into
+#       out/review.evidence-ledger.json yourself. `locate` sets section/page
+#       labels from where the text is. `apply` removes whatever stays ungrounded.
+python scripts/extract_evidence.py items  out/review.json
+python scripts/extract_evidence.py quote  out/review.json
+python scripts/extract_evidence.py locate out/review.json
+python scripts/extract_evidence.py apply  out/review.json --out out/review.grounded.json
+python scripts/export_review.py out/review.grounded.json --outdir out/ --formats md ttl json charting appraisal per-group
+#    c. After `verify_citations --apply` switched a preprint to its published
+#       version: fetch the published text into the corpus, then
+python scripts/extract_evidence.py refresh out/review.json --only <id>
+
+# 8. Manuscript — the paper, in the template's order (references/review_template.md).
 #    Draw the figures, write out/review.manuscript.json (Discussion 4.1–4.8,
 #    prior reviews, gaps, confidence, figure interpretations, declarations),
 #    assemble, and clear the gates. Re-run check_writing on the manuscript.
-python scripts/export_review.py out/review.json --outdir out/ --formats md ttl json charting appraisal per-group
 python scripts/review_figures.py out/review.json                 # out/figures/*.svg + figures.json
 python scripts/assemble_manuscript.py out/review.json --check    # out/review.manuscript.md
 python scripts/check_writing.py out/review.manuscript.md
-#    Grounding — evidence spans are text of their papers, every substantive
-#    claim is judged against verbatim quotes (numbers included), counts and
-#    percentages reconcile, version changes re-extracted, overlapping reports
-#    grouped (references/validation.md). Judge each study claim in
-#    out/review.claims.json; repeat until PASS.
+
+# 9. Delivery — the manuscript and the PDF, as a numbered release.
+#    a. Assemble exactly what will be delivered (styled references and
+#       appendices included) → out/review.delivered.md
+python scripts/generate_review_pdf.py out/review.manuscript.md --include charting appraisal --prepare
+#    b. Every sentence, table row and caption of it is a claim: judge each in
+#       out/review.claims.json (quotes verbatim; every number quoted or derived
+#       by an evaluated derivation), resolve overlapping reports in
+#       out/review.studies.json; repeat until PASS.
 python scripts/audit_grounding.py out/review.json --init-claims
 python scripts/audit_grounding.py out/review.json
-python scripts/verify_citations.py out/review.manuscript.md      # the delivered text
-
-# 8. PDF — Markdown → LaTeX → PDF (the .tex is kept), in the ACM journals
-#    layout (acmart acmsmall, bundled in assets/acmart/). Refuses past
-#    page_limit (estimated before rendering, counted after), and unless the
-#    manuscript's citation verdict is PASS: it (re-)verifies the manuscript
-#    itself, and the report is bound by hash to review.manuscript.md,
-#    review.json and review.manuscript.json, so a later edit is re-checked.
-#    The grounding audit must be PASS and current too (--allow-ungrounded
-#    builds with a notice on the first page).
-python scripts/generate_review_pdf.py out/review.manuscript.md
+python scripts/verify_citations.py out/review.delivered.md
+#    c. Release: re-assembles, re-verifies citations and grounding for exactly
+#       that text (hash-bound), builds the PDF (ACM layout; page limit) and
+#       saves releases/review-vN/ — the manuscript, the PDF, both reports, the
+#       ledgers and a manifest chained to the previous version. --no-pdf
+#       releases the manuscript alone. Overrides (--allow-citation-errors,
+#       --allow-ungrounded) print a notice in the PDF and save -UNVERIFIED.
+python scripts/generate_review_pdf.py out/review.manuscript.md --include charting appraisal
 # Existing reviews with no PDF yet (or an outdated one): find and build them all
 python scripts/generate_review_pdf.py --batch out/ ~/reviews/
 ```
