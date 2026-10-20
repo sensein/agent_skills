@@ -25,6 +25,16 @@ Two layers, run over a ``PRISMAReviewResult`` JSON (``review.json``):
    * PMID → NCBI E-utilities ``esummary`` (batched): exists, title matches,
      PubMed's DOI agrees with the claimed one, not a "Retracted Publication".
      BYO-corpus ids (``local_…``) are not PMIDs and are skipped.
+   * **Fallback indexes.** When Crossref, the DOI handle server or PubMed
+     cannot answer (outage, throttling, a DOI agency with no metadata), the id
+     is looked up in **OpenAlex**, then **Semantic Scholar**, and compared the
+     same way. They can confirm what a paper is, never that a DOI does not
+     exist; an id neither knows stays unverified. OpenAlex carries a retraction
+     flag; Semantic Scholar does not, so a record confirmed only there is
+     ``retraction-unchecked`` (unverified). DOI-less references are also
+     title-searched in both when Crossref has no match. ``OPENALEX_API_KEY`` /
+     ``SEMANTIC_SCHOLAR_API_KEY`` raise their rate limits. (Google Scholar has
+     no API and forbids automated access, so it is not used.)
    * No DOI → a Crossref bibliographic search proposes a *candidate*, shown only
      when its title matches near-exactly. Candidates are never applied.
 
@@ -102,6 +112,12 @@ HANDLE = "https://doi.org/api/handles/"
 DOI_RESOLVER = "https://doi.org/"
 ESUMMARY = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+# Fallback registries: indexes, not DOI agencies. They confirm what a paper is
+# when Crossref or PubMed cannot answer, but never that a DOI is *unregistered*
+# (only the DOI handle server can say that).
+OPENALEX = "https://api.openalex.org/works"
+SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper"
+S2_FIELDS = "title,year,authors,venue,journal,externalIds,publicationTypes"
 
 # DOI = "10." + registrant + "/" + suffix. The suffix may legally contain
 # ".", ";", "(" and ")" (Elsevier's 10.1016/S0140-6736(09)60937-1), so
@@ -160,7 +176,7 @@ QUOTED = {"evidence_spans"}
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "error": 2}
 # Findings that mean "this reference was not checked", whatever their severity.
-UNVERIFIED_CODES = {"lookup-failed", "doi-missing"}
+UNVERIFIED_CODES = {"lookup-failed", "doi-missing", "retraction-unchecked"}
 # Exit codes: the verdict, so a caller can tell a failure from an unfinished check.
 EXIT = {"PASS": 0, "FAIL": 1, "INCOMPLETE": 3}
 # Preprint servers, by DOI prefix and by venue name. A preprint is cited only
@@ -288,6 +304,8 @@ class Registry:
         self.http = httpx.Client(timeout=timeout, follow_redirects=True,
                                  headers={"User-Agent": ua})
         self.ncbi_key = (os.environ.get("NCBI_API_KEY") or "").strip()
+        self.openalex_key = (os.environ.get("OPENALEX_API_KEY") or "").strip()
+        self.s2_key = (os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or "").strip()
 
     def close(self) -> None:
         self.http.close()
@@ -321,23 +339,25 @@ class Registry:
         """
         r = self._get(f"{CROSSREF}/{quote(doi, safe='')}", self._crossref_params())
         time.sleep(self.delay)
-        if r is None:
-            return "error", {"detail": "Crossref unreachable"}
+        if r is None or (r.status_code != 200 and r.status_code != 404):
+            why = "Crossref unreachable" if r is None else f"Crossref HTTP {r.status_code}"
+            return self._fallback("doi", doi, why)
         if r.status_code == 200:
             body = _json(r)
             if body is None:
                 return "error", {"detail": "Crossref returned a non-JSON response"}
             meta = parse_crossref(body.get("message") or {})
             if check_updates:
-                meta["updates"] = _merge_updates(meta["updates"], self._notices_for(doi))
+                notices = self._notices_for(doi)
+                if notices is None:      # the notice query failed: retractions unknown
+                    meta["retraction_checked"] = False
+                else:
+                    meta["updates"] = _merge_updates(meta["updates"], notices)
             return "crossref", meta
-        if r.status_code != 404:
-            return "error", {"detail": f"Crossref HTTP {r.status_code}"}
-
         # Not in Crossref: wrong DOI, or a DataCite / mEDRA / JaLC registration.
         h = self._get(HANDLE + quote(doi, safe="/"))
         if h is None:
-            return "error", {"detail": "doi.org handle server unreachable"}
+            return self._fallback("doi", doi, "doi.org handle server unreachable")
         if h.status_code != 200:
             return "not-found", {}
         c = self._get(DOI_RESOLVER + quote(doi, safe="/"),
@@ -345,17 +365,64 @@ class Registry:
         csl = _json(c) if c is not None and c.status_code == 200 else None
         if csl is not None:
             return "other-registry", parse_csl(csl)
-        return "other-registry", {"doi": doi}
+        # registered, but the agency serves no metadata: an index may know the paper
+        status, meta = self._fallback("doi", doi, "no CSL metadata")
+        return ("other-registry", meta) if status != "error" else ("other-registry", {"doi": doi})
 
-    def _notices_for(self, doi: str) -> list[dict]:
-        """Editorial notices (retraction, correction, …) that point at ``doi``."""
+    # ---- fallback indexes: OpenAlex, then Semantic Scholar ----
+
+    def openalex(self, kind: str, value: str) -> tuple[str, dict]:
+        """``kind`` is ``doi`` or ``pmid``. → (``found``|``not-found``|``error``, record)."""
+        params = {"mailto": self.mailto} if self.mailto else {}
+        if self.openalex_key:
+            params["api_key"] = self.openalex_key
+        r = self._get(f"{OPENALEX}/{kind}:{quote(value, safe='/')}", params)
+        time.sleep(self.delay)
+        if r is None or r.status_code not in (200, 404):
+            return "error", {}
+        body = _json(r) if r.status_code == 200 else None
+        return ("found", parse_openalex(body)) if body else ("not-found", {})
+
+    def semantic_scholar(self, kind: str, value: str) -> tuple[str, dict]:
+        headers = {"x-api-key": self.s2_key} if self.s2_key else None
+        r = self._get(f"{SEMANTIC_SCHOLAR}/{kind.upper()}:{quote(value, safe='/')}",
+                      {"fields": S2_FIELDS}, headers=headers)
+        time.sleep(self.delay if self.s2_key else 1.0)   # 1 req/s without a key
+        if r is None or r.status_code not in (200, 404):
+            return "error", {}
+        body = _json(r) if r.status_code == 200 else None
+        return ("found", parse_semantic_scholar(body)) if body else ("not-found", {})
+
+    def _fallback(self, kind: str, value: str, why: str) -> tuple[str, dict]:
+        """Crossref/PubMed could not answer: ask OpenAlex, then Semantic Scholar.
+
+        A record found there is a real answer (status ``openalex`` /
+        ``semanticscholar``); neither index knowing the id is *not* proof it is
+        unregistered, so that stays an ``error`` (lookup failed → INCOMPLETE).
+        """
+        for name, fn in (("openalex", self.openalex), ("semanticscholar", self.semantic_scholar)):
+            status, meta = fn(kind, value)
+            if status == "found":
+                meta["fallback_reason"] = why
+                return name, meta
+        return "error", {"detail": f"{why}; not found in OpenAlex or Semantic Scholar either"}
+
+    def lookup_pmid_fallback(self, pmid: str) -> Optional[dict]:
+        """PubMed could not answer for ``pmid``: a PubMed-shaped record from an index."""
+        status, meta = self._fallback("pmid", pmid, "PubMed lookup failed")
+        if status == "error" or (meta.get("pmid") and meta["pmid"] != pmid):
+            return None
+        return as_pubmed_record(meta)
+
+    def _notices_for(self, doi: str) -> Optional[list[dict]]:
+        """Editorial notices (retraction, correction, …) that point at ``doi``; None if the query failed."""
         r = self._get(CROSSREF, self._crossref_params(
             {"filter": f"updates:{doi}", "rows": 20,
              "select": "DOI,type,update-to,title"}))
         time.sleep(self.delay)
         body = _json(r) if r is not None and r.status_code == 200 else None
         if body is None:
-            return []
+            return None
         out = []
         for item in (body.get("message") or {}).get("items") or []:
             for u in item.get("update-to") or []:
@@ -378,15 +445,38 @@ class Registry:
         body = _json(r) if r is not None and r.status_code == 200 else None
         if body is None:
             return []
-        cands = []
-        for item in (body.get("message") or {}).get("items") or []:
-            m = parse_crossref(item)
+        records = [parse_crossref(item) for item in (body.get("message") or {}).get("items") or []]
+        if not any(title_similarity(title, m["title"]) >= TITLE_MATCH for m in records):
+            records += self._index_title_search(title)
+        cands, seen = [], set()
+        for m in records:
+            if not m.get("doi") or m["doi"].lower() in seen:
+                continue
+            seen.add(m["doi"].lower())
             fam = m["authors"][0][0] if m["authors"] else ""
             cands.append({"doi": m["doi"], "title": m["title"], "year": m["year"],
-                          "first_author": fam,
+                          "first_author": fam, "source": m.get("registry", "crossref"),
                           "author_match": bool(fam) and surname_matches(fam, authors),
                           "title_similarity": round(title_similarity(title, m["title"]), 3)})
         return sorted(cands, key=lambda c: -c["title_similarity"])
+
+    def _index_title_search(self, title: str) -> list[dict]:
+        """OpenAlex and Semantic Scholar title matches, for papers Crossref misses."""
+        out = []
+        params = {"search": title, "per-page": 3}
+        if self.mailto:
+            params["mailto"] = self.mailto
+        r = self._get(OPENALEX, params)
+        time.sleep(self.delay)
+        body = _json(r) if r is not None and r.status_code == 200 else None
+        out += [parse_openalex(w) for w in (body or {}).get("results") or []]
+        headers = {"x-api-key": self.s2_key} if self.s2_key else None
+        r = self._get(f"{SEMANTIC_SCHOLAR}/search/match", {"query": title, "fields": S2_FIELDS},
+                      headers=headers)
+        time.sleep(self.delay if self.s2_key else 1.0)
+        body = _json(r) if r is not None and r.status_code == 200 else None
+        out += [parse_semantic_scholar(p) for p in (body or {}).get("data") or []]
+        return out
 
     def find_published_version(self, title: str, authors: str, year: str) -> list[dict]:
         """Peer-reviewed records matching a preprint by title, first author and year.
@@ -624,6 +714,66 @@ def parse_csl(csl: dict) -> dict:
         "publisher": csl.get("publisher", ""),
         "notice_for": [], "updates": [], "published_as": [],
     }
+
+
+def _split_name(name: str) -> tuple[str, str]:
+    """"Jane A. Smith" → ("Smith", "Jane A.")."""
+    parts = (name or "").strip().split()
+    return (parts[-1], " ".join(parts[:-1])) if parts else ("", "")
+
+
+def parse_openalex(w: dict) -> dict:
+    """An OpenAlex work in the shape ``check_registry_record`` reads."""
+    year = w.get("publication_year")
+    src = ((w.get("primary_location") or {}).get("source") or {})
+    ids = w.get("ids") or {}
+    return {
+        "registry": "openalex",
+        "doi": clean_doi(w.get("doi") or ""),
+        "title": (w.get("title") or w.get("display_name") or "").strip(),
+        "authors": [_split_name((a.get("author") or {}).get("display_name", ""))
+                    for a in w.get("authorships") or []],
+        "year": year, "years": [year] if year else [],
+        "journal": src.get("display_name") or "",
+        "type": "posted-content" if w.get("type") == "preprint" else (w.get("type") or ""),
+        "subtype": "preprint" if w.get("type") == "preprint" else "",
+        "pmid": str(ids.get("pmid") or "").rstrip("/").rsplit("/", 1)[-1],
+        # OpenAlex carries a retraction flag (Retraction Watch-backed), not notices
+        "updates": [{"type": "retraction", "notice_doi": "", "date": "", "source": "openalex"}]
+                   if w.get("is_retracted") else [],
+        "retraction_checked": True,
+        "notice_for": [], "published_as": [], "has_preprint": [],
+    }
+
+
+def parse_semantic_scholar(p: dict) -> dict:
+    """A Semantic Scholar paper in the same shape. It has no retraction data."""
+    ext = p.get("externalIds") or {}
+    year = p.get("year")
+    types = p.get("publicationTypes") or []
+    return {
+        "registry": "semanticscholar",
+        "doi": clean_doi(ext.get("DOI") or ""),
+        "title": (p.get("title") or "").strip(),
+        "authors": [_split_name(a.get("name", "")) for a in p.get("authors") or []],
+        "year": year, "years": [year] if year else [],
+        "journal": (p.get("journal") or {}).get("name") or p.get("venue") or "",
+        "type": "journal-article" if "JournalArticle" in types else "",
+        "subtype": "",
+        "pmid": str(ext.get("PubMed") or ""),
+        "updates": [], "retraction_checked": False,
+        "notice_for": [], "published_as": [], "has_preprint": [],
+    }
+
+
+def as_pubmed_record(meta: dict) -> dict:
+    """A fallback registry record in ``parse_pubmed``'s shape, for PMID checks."""
+    return {"title": meta.get("title", "").rstrip("."), "year": meta.get("year"),
+            "first_author": (meta.get("authors") or [("", "")])[0][0],
+            "journal": meta.get("journal", ""), "doi": meta.get("doi", ""),
+            "retracted": any(u.get("type") == "retraction" for u in meta.get("updates") or []),
+            "source": meta.get("registry", ""),
+            "retraction_checked": meta.get("retraction_checked", True)}
 
 
 def parse_pubmed(rec: dict) -> dict:
@@ -918,9 +1068,17 @@ class Verifier:
             return rec
 
         # PubMed side.
+        if REAL_PMID.match(c["pmid"]) and c["pmid"] not in pubmed:
+            fb = getattr(self.reg, "lookup_pmid_fallback", lambda _p: None)(c["pmid"])
+            if fb:
+                pubmed[c["pmid"]] = fb
+                findings.append(finding("pmid-via-index", "info",
+                                        f"PubMed did not answer; PMID confirmed via {fb['source']}"))
         if REAL_PMID.match(c["pmid"]):
             if c["pmid"] not in pubmed:
-                findings.append(finding("lookup-failed", "warning", "PubMed lookup failed"))
+                findings.append(finding("lookup-failed", "warning",
+                                        "PubMed lookup failed (OpenAlex and Semantic Scholar "
+                                        "did not know it either)"))
             elif pubmed[c["pmid"]] is None:
                 findings.append(finding("pmid-not-found", "error",
                                         f"PMID {c['pmid']} is not in PubMed"))
@@ -946,6 +1104,14 @@ class Verifier:
                                         f"{doi} is not registered with any DOI agency"))
             else:
                 rec["registry"] = meta
+                rec["source"] = status
+                if meta.get("fallback_reason"):
+                    findings.append(finding("doi-via-index", "info",
+                                            f"{meta['fallback_reason']}; DOI confirmed via {status}"))
+                if self.check_updates and meta.get("retraction_checked") is False:
+                    findings.append(finding("retraction-unchecked", "warning",
+                                            f"confirmed via {status}, which has no retraction data "
+                                            "— re-run when Crossref answers"))
                 findings += check_registry_record(c, meta)
                 if _record_confirmed(c, meta):
                     rec["suggested"].update(_fill_empty(c, meta))
@@ -1062,7 +1228,7 @@ class Verifier:
                 report["review_findings"].append(finding(
                     "uncited-included", "info",
                     f"{c['key']} ({first_author_segment(c['authors']).strip()} {c['year']}) is "
-                    "included but never cited in the generated text"))
+                    "included but never cited in the generated text", key=c["key"]))
 
     @staticmethod
     def _judge_citation(ct: dict, by_pmid: dict, by_doi: dict, refs: list[dict],
@@ -1173,9 +1339,66 @@ class Verifier:
                         "location": "body", "snippet": ct["snippet"]})
         return report
 
+    # ---- resource catalog (mapping reviews) ----
+
+    @staticmethod
+    def _verify_resource_citations(catalog: list[dict], body: str, refs: list[dict],
+                                   report: dict) -> None:
+        """A mapping review cites *resources* (``NKG-029``), each standing for its
+        publications in ``resource_catalog``. A cited resource credits those
+        studies; a resource id not in the catalog, or a catalog link that names
+        no included study, is an error — the claim cannot be traced to evidence.
+        """
+        keys = {c["key"].lower(): c["key"] for c in refs}
+        by_doi = {clean_doi(c["doi"]).lower(): c["key"] for c in refs if c["doi"]}
+
+        def resolve(pid: str) -> Optional[str]:
+            p = str(pid).strip().lower()
+            return keys.get(p) or keys.get(f"local_{p}") or by_doi.get(clean_doi(p).lower())
+
+        studies: dict[str, list[str]] = {}
+        for row in catalog:
+            rid = str(row.get("resource_id") or "").strip()
+            if not rid:
+                continue
+            pids = row.get("publication_ids") or []
+            if isinstance(pids, str):
+                pids = [x.strip() for x in re.split(r"[;,]", pids) if x.strip()]
+            got = [resolve(x) for x in pids]
+            studies[rid.upper()] = [g for g in got if g]
+            missing = [str(x) for x, g in zip(pids, got) if not g]
+            if missing:
+                report["review_findings"].append(finding(
+                    "catalog-publication-unknown", "error",
+                    f"resource {rid} lists publication(s) {', '.join(missing)} that match no "
+                    "included study (use the study's pmid/DOI in publication_ids)"))
+            if not pids:
+                report["review_findings"].append(finding(
+                    "catalog-no-publications", "error", f"resource {rid} lists no publications"))
+        prefixes = sorted({m.group(1) for rid in studies
+                           if (m := re.match(r"([A-Za-z]+-)\d+$", rid))})
+        credited: set[str] = set()
+        if prefixes:
+            pat = re.compile(rf"\b((?:{'|'.join(map(re.escape, prefixes))})\d+)\b", re.I)
+            for m in pat.finditer(body):
+                rid = m.group(1).upper()
+                if rid in studies:
+                    credited.update(k.lower() for k in studies[rid])
+                else:
+                    report["in_text"].append({**finding(
+                        "resource-unknown", "error",
+                        f"{m.group(1)} is cited but is not in the resource catalog"),
+                        "location": "manuscript", "snippet": snippet(body, m.start(), m.end()),
+                        "cited": {"kind": "resource", "id": rid}})
+        report["review_findings"] = [
+            f for f in report["review_findings"]
+            if not (f["code"] == "uncited-included" and f.get("key", "").lower() in credited)]
+        report["resources"] = {"catalog": len(studies), "cited_studies_via_resources": len(credited)}
+
     # ---- assembled manuscript ----
 
-    def verify_manuscript(self, review: dict, text: str) -> dict:
+    def verify_manuscript(self, review: dict, text: str,
+                          catalog: Optional[list[dict]] = None) -> dict:
         """The delivered manuscript, checked against the review it was built from.
 
         Prose written after the export (Discussion, prior reviews, figure
@@ -1226,6 +1449,8 @@ class Verifier:
             return False
 
         report["in_text"] = [f for f in report["in_text"] if not is_background(f)]
+        if catalog:
+            self._verify_resource_citations(catalog, body, refs, report)
         if not ref_lines:
             report["review_findings"].append(finding(
                 "no-reference-list", "warning", "the manuscript has no References section"))
@@ -1340,7 +1565,20 @@ def review_for_markdown(md: Path) -> Optional[Path]:
     return js if js.is_file() else None
 
 
+def load_catalog(review_json: Optional[Path]) -> list:
+    """``resource_catalog`` from the authored ``<stem>.manuscript.json``, if any."""
+    if not review_json:
+        return []
+    ms = review_json.with_name(f"{review_json.stem}.manuscript.json")
+    try:
+        return (json.loads(ms.read_text(encoding="utf-8")).get("resource_catalog") or []) \
+            if ms.is_file() else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
 def gate(data: Any, base: Path, *, corpus: bool = False, manuscript: Optional[str] = None,
+         catalog: Optional[list] = None,
          inputs: Iterable[Path] = (), offline: bool = False, mailto: str = "",
          delay: float = 0.2, labels: Optional[dict] = None, registry: Any = None) -> dict:
     """Verify, write ``<base>.citations.json|md``, print the outcome; return the report.
@@ -1366,7 +1604,8 @@ def gate(data: Any, base: Path, *, corpus: bool = False, manuscript: Optional[st
             report = v.verify_references(data, mode="corpus")
         elif manuscript is not None:
             # no review JSON to check it against: the Markdown's own DOIs and reference list
-            report = v.verify_manuscript(data, manuscript) if data else v.verify_markdown(manuscript)
+            report = (v.verify_manuscript(data, manuscript, catalog) if data
+                      else v.verify_markdown(manuscript))
         else:
             report = v.verify_review(data)
     finally:
@@ -1582,8 +1821,37 @@ def apply_fixes(review: dict, report: dict) -> list[dict]:
                 entry = {"key": rec["key"], "field": field, "old": old, "new": value}
                 if field == "pmid" and old:
                     entry["references_updated"] = _rekey(review, str(old), value, skip=a)
+                if field == "doi" and rec.get("version") == "published":
+                    entry["version_switch"] = True
                 applied.append(entry)
+        for e in applied:
+            if e["key"] == rec["key"] and e.get("version_switch"):
+                e["study"] = str(a.get("pmid") or rec["key"])   # its id after any re-key
     return applied
+
+
+def record_version_changes(applied: list[dict], review_json: Path) -> Optional[Path]:
+    """Write ``<stem>.revalidation.json``: studies whose cited version changed.
+
+    A switch from a preprint to its published version changes what the review
+    is reporting, but the charting, appraisal and evidence spans were extracted
+    from the version read before. ``audit_grounding.py`` fails each listed study
+    until its evidence is re-extracted from the new version.
+    """
+    changes = [{"pmid": e["study"], "old_doi": e["old"], "new_doi": e["new"],
+                "reason": "preprint replaced by its published version (verify_citations --apply)",
+                "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+               for e in applied if e.get("version_switch")]
+    if not changes:
+        return None
+    out = review_json.with_name(f"{review_json.stem}.revalidation.json")
+    try:
+        prev = json.loads(out.read_text(encoding="utf-8")).get("changes") or [] if out.is_file() else []
+    except (OSError, json.JSONDecodeError):
+        prev = []
+    keep = [c for c in prev if c.get("pmid") not in {x["pmid"] for x in changes}]
+    out.write_text(json.dumps({"changes": keep + changes}, indent=2) + "\n", encoding="utf-8")
+    return out
 
 
 def _rekey(review: dict, old: str, new: str, skip: dict) -> int:
@@ -1687,7 +1955,7 @@ def main() -> int:
                  search_missing=not args.no_search)
     try:
         report = (v.verify_review(review) if is_json
-                  else v.verify_manuscript(review, text) if review_json
+                  else v.verify_manuscript(review, text, load_catalog(review_json)) if review_json
                   else v.verify_markdown(text))
         if args.check_urls and reg:
             prose = (" ".join(str(x[2]) for x in walk_prose(review) if isinstance(x[2], str))
@@ -1716,6 +1984,11 @@ def main() -> int:
         Path(args.apply).write_text(json.dumps(review, indent=2, ensure_ascii=False),
                                     encoding="utf-8")
         print(f"applied {len(report['applied'])} fix(es) → {args.apply}", file=sys.stderr)
+        reval = record_version_changes(report["applied"], src)
+        if reval:
+            print(f"version changes recorded → {reval}: re-extract those studies from the "
+                  "published version before release (audit_grounding.py fails them until then)",
+                  file=sys.stderr)
     if args.style:
         refs = [r["claimed"] for r in report["references"]]
         ref_md = render_reference_list(report, args.style, citation_order(review, refs))

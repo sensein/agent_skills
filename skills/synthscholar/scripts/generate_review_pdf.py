@@ -27,6 +27,11 @@ What a SynthScholar review needs beyond a plain pandoc call:
   (offline, failed lookups, references with no identifier) stops the build;
   ``--allow-citation-errors`` builds anyway and prints an "unverified" notice
   on the first page.
+* **Grounding gate.** The same for ``audit_grounding.py``: evidence spans found
+  in the source text, every substantive claim judged with verbatim quotes and
+  sourced numbers, flow counts and percentages reconciled, version changes
+  re-extracted, overlapping reports resolved. Only PASS, for exactly these
+  inputs, builds; ``--allow-ungrounded`` builds with a notice.
 * **Verified reference list.** ``--references vancouver`` swaps the review's
   References list for ``<stem>.references.vancouver.md``, the list
   ``verify_citations.py --style vancouver`` rendered from registry metadata.
@@ -433,6 +438,51 @@ def base_stem(md: Path) -> str:
     return md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
 
 
+def grounding_gate(md: Path, allow: bool, run: bool = True) -> tuple[Optional[str], Optional[str]]:
+    """``(refusal, notice)`` from ``audit_grounding.py`` over the delivered ``md``.
+
+    Builds only when the grounding audit — evidence spans in the source, every
+    substantive claim judged with real quotes and sourced numbers, flow and
+    percentages reconciled, version changes re-extracted, overlapping reports
+    resolved — is PASS for exactly these inputs. A stale report is re-run here
+    (it is local and deterministic). ``allow`` builds anyway with a notice.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import audit_grounding as ag
+        import verify_citations as vc
+    except ImportError as e:
+        problem = f"grounding cannot be audited here ({e})"
+        return (None, f"Grounding not audited: {problem}.") if allow else (problem, None)
+    review_json = vc.review_for_markdown(md)
+    if not review_json:
+        problem = f"no review JSON beside {md.name}: its claims cannot be traced to evidence"
+    else:
+        rep = ag.is_current(review_json)
+        if rep is None or rep.get("delivered") != str(md.resolve()):
+            if not run:
+                rep = None
+            else:
+                print(f"  auditing grounding of {md.name}", file=sys.stderr)
+                rep = ag.audit(review_json, md)
+                ag.write(rep, review_json)
+        if rep is None:
+            problem = f"{review_json.stem}.grounding.json is missing or stale — run audit_grounding.py"
+        else:
+            s = rep["summary"]
+            problem = None if s["verdict"] == "PASS" else (
+                f"grounding audit {s['verdict']} — {s['errors']} error(s), {s['unresolved']} "
+                f"unresolved ({', '.join(f'{k} {v}' for k, v in list(s['by_code'].items())[:6])}); "
+                f"see {review_json.stem}.grounding.md")
+    if not problem:
+        return None, None
+    if not allow:
+        return (problem + "\n  Resolve it (references/validation.md), or pass --allow-ungrounded "
+                "to build a PDF marked as not grounding-audited."), None
+    print(f"  warning: building anyway — {problem}", file=sys.stderr)
+    return None, f"Grounding not verified: {problem}. Built with --allow-ungrounded."
+
+
 def citation_gate(md: Path, report: Optional[Path], allow: bool,
                   verify: bool = True) -> tuple[Optional[str], Optional[str]]:
     """``(refusal, notice)`` for building ``md``: the release gate.
@@ -473,6 +523,7 @@ def citation_gate(md: Path, report: Optional[Path], allow: bool,
             review = json.loads(review_json.read_text(encoding="utf-8")) if review_json else None
             data = vc.gate(review, report.with_name(report.name[:-len(".citations.json")]),
                            manuscript=md.read_text(encoding="utf-8"),
+                           catalog=vc.load_catalog(review_json),
                            inputs=vc.manuscript_inputs(md, review_json))
         elif stale:
             problems.append(f"{report.name} is missing or stale — run verify_citations.py {md.name}")
@@ -918,6 +969,7 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
                  toc: Optional[bool] = None, number_sections: bool = False,
                  pdf_engine: Optional[str] = None, bibliography: Optional[str] = None,
                  citations: Optional[str] = None, allow_citation_errors: bool = False,
+                 allow_ungrounded: bool = False,
                  mainfont: Optional[str] = None, dry_run: bool = False,
                  keep_source: bool = False, timeout: int = 900,
                  flow_diagram: bool = True, flow_json: Optional[str] = None,
@@ -979,6 +1031,11 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
     if refusal:
         print(f"Error: {refusal}", file=sys.stderr)
         return False
+    refusal, g_notice = grounding_gate(md, allow_ungrounded or dry_run, run=not dry_run)
+    if refusal:
+        print(f"Error: {refusal}", file=sys.stderr)
+        return False
+    notice = " ".join(x for x in (notice, g_notice) if x) or None
 
     tmpdir = tempfile.TemporaryDirectory(prefix="review-pdf-")
     try:
@@ -1355,6 +1412,9 @@ def main() -> int:
     p.add_argument("--allow-citation-errors", action="store_true",
                    help="build even if citations are not verified (FAIL/INCOMPLETE); the PDF "
                         "then carries an 'unverified' notice")
+    p.add_argument("--allow-ungrounded", action="store_true",
+                   help="build even if the grounding audit (audit_grounding.py) is not PASS; the "
+                        "PDF then carries a 'grounding not verified' notice")
     p.add_argument("--citation-style", default="apa",
                    help="CSL style id or .csl path, for [@key] citations only (default: apa)")
     p.add_argument("--bibliography", help="explicit .bib for [@key] citations")
@@ -1398,7 +1458,8 @@ def main() -> int:
                        citation_style=args.citation_style, references=args.references, include=args.include,
                        template=args.template, toc=args.toc, number_sections=args.number_sections,
                        pdf_engine=args.pdf_engine, citations=None,
-                       allow_citation_errors=args.allow_citation_errors, mainfont=args.mainfont,
+                       allow_citation_errors=args.allow_citation_errors,
+                       allow_ungrounded=args.allow_ungrounded, mainfont=args.mainfont,
                        dry_run=args.dry_run, keep_source=args.keep_source, timeout=args.timeout,
                        flow_diagram=not args.no_flow_diagram, page_limit=args.page_limit,
                        allow_over_limit=args.allow_over_limit, keep_tex=not args.no_tex, layout=args.layout)
@@ -1410,6 +1471,7 @@ def main() -> int:
                       toc=args.toc, number_sections=args.number_sections,
                       pdf_engine=args.pdf_engine, bibliography=args.bibliography,
                       citations=args.citations, allow_citation_errors=args.allow_citation_errors,
+                      allow_ungrounded=args.allow_ungrounded,
                       mainfont=args.mainfont, dry_run=args.dry_run,
                       keep_source=args.keep_source, timeout=args.timeout,
                       flow_diagram=not args.no_flow_diagram, flow_json=args.flow_json,
