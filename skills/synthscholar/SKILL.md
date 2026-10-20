@@ -400,7 +400,7 @@ Hard rules:
   (`--force` rebuilds all).
 - **Ingesting into BrainKB is the `brainkb` skill's job — hand off, don't
   improvise.** Its *"Ingest a SynthScholar review"* section owns the graph IRI
-  (`https://brainkb.org/synthscholar/reviews/<review_id>/`, registered to a
+  (`https://brainkb.org/synthscholar/<space>/reviews/<review_id>/`, registered to a
   space), the upload path, and the once-per-review rule. Print the export's
   triple count when you hand the file over; that number is what the ingest is
   reconciled against.
@@ -412,7 +412,7 @@ Hard rules:
   left out). `review.json` and `review.ttl` are required. So finish the run first —
   export with `--formats md ttl`, manuscript, PDF, checks — then hand over the
   folder that holds them. Keep `protocol.review_id` as the run minted it: it names
-  the review's graph, and a review is ingested once.
+  the review's graph, and a review is ingested once per space.
 
 ## Mode 2 — Provenance queries
 

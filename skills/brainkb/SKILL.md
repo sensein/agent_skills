@@ -139,7 +139,8 @@ window. Never retry-loop, and never split one job into many calls to get around 
 - **A SynthScholar review reaches BrainKB by being ingested, like any other RDF.**
   The `synthscholar` skill runs the review and writes `review.ttl`; a user with
   write access ingests it here, into the graph
-  `https://brainkb.org/synthscholar/reviews/<review_id>/` bound to a space. Going
+  `https://brainkb.org/synthscholar/<space>/reviews/<review_id>/` bound to that space
+  (a review is unique per space; the same run can go into several). Going
   through the ingest pipeline is what gives the review a job, PROV-O provenance and
   a search index. See "Ingest a SynthScholar review".
 
@@ -324,8 +325,8 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   with the caller's role in each and whether it's inherited) or
   `brainkb_get_space(slug)` (one space: graphs, direct and `inherited_members`,
   `ancestors`, `subspaces`). In `brainkb_list_spaces()`, `parent_slug` links a
-  subspace to its parent and `role_inherited` marks inherited roles. A space with
-  subspaces can't be deleted (409): delete the subspaces first, deepest first.
+  subspace to its parent and `role_inherited` marks inherited roles. Deleting a space
+  deletes every subspace below it too (see below).
   Inherited members are changed in the space they come from, not in the subspace.
 - Bind a named graph to it (required before ingesting into that graph):
   `brainkb_add_space_graph(slug, graph_iri, description)` — `graph_iri` like
@@ -357,12 +358,14 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   **Deleting a space is SuperAdmin-only and irreversible:**
   `brainkb_delete_space(slug, confirm_slug=slug)` drops its named graphs and their
   ingestion-history (delta) graphs, the graphs' registry entries and the space's RDF
-  manifest, then its members, access rules and search entries. Only the deletion
-  record survives, in provenance (who, when, which graphs: `prov:invalidated`).
+  manifest, then its members, access rules, search entries and SynthScholar reviews
+  — and does the same to **every subspace below it, at any depth** (deepest first;
+  `subspaces_deleted` lists them). Only the deletion records survive, in provenance
+  (who, when, which graphs: `prov:invalidated`).
   Rules: (1) only when the user explicitly asks to delete that space — never to
-  tidy up on your own initiative; (2) first show them the space
-  (`brainkb_read_space` / `brainkb_list_spaces`: its graphs and members) and what
-  will be lost, and get an explicit yes in this conversation; (3) a non-SuperAdmin
+  tidy up on your own initiative; (2) first show them the space and its subspaces
+  (`brainkb_space_tree`: graphs and members of each) and what will be lost, and get
+  an explicit yes in this conversation; (3) a non-SuperAdmin
   gets 403 — say so, and offer to set it private instead; (4) a 502 means the
   triplestore step failed and **nothing** was deleted: it is safe to retry. Do not
   delete a graph with raw SPARQL `DROP GRAPH`: that leaves the space, its
@@ -502,10 +505,11 @@ them:
    user (see *Visibility follows the space* below). You need to be its owner or an
    editor.
 3. `brainkb_synthscholar_ingest("<run>/output", space_slug)` — the folder holding
-   `review.json` and `review.ttl`. The graph is named by the run's own
-   `protocol.review_id` (`…/reviews/review_local_<ts>/`), the same IRI the by-hand
-   route uses, so the review lands in one graph whichever way it came in, and a
-   second attempt is refused (409). Returns the `job_id`. Reads the MCP server's
+   `review.json` and `review.ttl`. The graph is named by the space and the run's
+   own `protocol.review_id` (`…/synthscholar/<space>/reviews/review_local_<ts>/`),
+   the same IRI the by-hand route uses, so in one space the review lands in one
+   graph whichever way it came in, and a second attempt there is refused (409). The
+   same run can go into other spaces, each its own graph. Returns the `job_id`. Reads the MCP server's
    filesystem, so it works where `brainkb_ingest_files` does (local stdio MCP, or
    `MCP_INGEST_ROOT`); on the hosted remote, have the user do it in the UI:
    **Ingest Knowledge Graph → SynthScholar review**.
@@ -554,16 +558,18 @@ Either source, same procedure from step 2 on:
    export, so the number may already be in hand.
 3. Pick the space and confirm it with the user. `brainkb_list_spaces()` shows
    `can_write` and `visibility` — see the visibility note below before choosing.
-4. **Derive the graph IRI from the review id — don't invent one.** It is always:
+4. **Derive the graph IRI from the space and the review id — don't invent one.** It is always:
    ```
-   https://brainkb.org/synthscholar/reviews/<review_id>/
+   https://brainkb.org/synthscholar/<space_slug>/reviews/<review_id>/
    ```
    `<review_id>` is the review's own id, verbatim: `review_0001_20260505234027`
    from mlservice, `review_local_<timestamp>` from a local run. It is
    `protocol.review_id` in the TTL and the `review_id` field in the API — read it,
-   don't compose one. One review, one graph, one IRI, wherever it ran; that is what
-   makes a review addressable across spaces and re-findable later. (The registry
-   normalises to a trailing slash, so include it.)
+   don't compose one. A review is unique per space: one review, one graph per
+   space, the same IRI the output-directory ingest uses, so it is re-findable and a
+   second ingest into that space is caught. (The registry normalises to a trailing
+   slash, so include it.) Reviews ingested before this convention keep
+   `https://brainkb.org/synthscholar/reviews/<review_id>/`.
 
    Then register it (owner/editor):
    `brainkb_add_space_graph(slug, graph_iri, "PRISMA review — <research question>")`.
@@ -580,7 +586,7 @@ Either source, same procedure from step 2 on:
    import requests, hashlib, pathlib
 
    f = pathlib.Path("out/review.ttl")
-   GRAPH = "https://brainkb.org/synthscholar/reviews/review_0001_20260505234027/"
+   GRAPH = "https://brainkb.org/synthscholar/my-space/reviews/review_0001_20260505234027/"
 
    print(requests.post(
        "https://mcp.brainkb.org/upload",
@@ -607,8 +613,10 @@ SPARQL recipes still run against the **exported `.ttl`**, not the graph — arbi
 SPARQL on BrainKB needs an Admin role. Keep the file; ingesting doesn't replace it as
 the analysis surface.
 
-**Ingest each review exactly once.** Review ids are unique, so distinct reviews never
-collide — the hazard is re-ingesting the *same* review into the *same* graph. Ingest
+**Ingest each review exactly once per space.** Review ids are unique, so distinct
+reviews never collide, and the space is part of the graph IRI, so one review in two
+spaces is two graphs — the hazard is re-ingesting the *same* review into the *same*
+space's graph. Ingest
 is append-only with no replace, and a review export hangs its `content_text` literals
 off **blank nodes**, whose identity is per-parse: the second pass does not
 de-duplicate, it creates a disconnected copy of every abstract, permanently. So a
