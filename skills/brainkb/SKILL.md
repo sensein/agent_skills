@@ -782,6 +782,9 @@ missing domain timestamp, and vice versa.
 - Publish: `brainkb_set_space_visibility(slug, "public")` (owner/manager). Warn that
   a public space is readable by **anyone, including unauthenticated clients**.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
+- Rename or re-describe: `brainkb_update_space(slug, name=…, description=…)`
+  (owner/manager). Only the display name and description change; the slug is the
+  space's IRI and can't be renamed. Confirm the new name with the user first.
 
 ### 8. Manage & delegate (RBAC)
 - **Admin vs SuperAdmin:** **SuperAdmin** is bootstrapped at deployment (env
