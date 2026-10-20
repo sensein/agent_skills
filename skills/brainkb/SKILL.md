@@ -783,8 +783,12 @@ missing domain timestamp, and vice versa.
   a public space is readable by **anyone, including unauthenticated clients**.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
 - Rename or re-describe: `brainkb_update_space(slug, name=…, description=…)`
-  (owner/manager). Only the display name and description change; the slug is the
-  space's IRI and can't be renamed. Confirm the new name with the user first.
+  (owner/manager). To change the slug too, pass `new_slug=…`: the space's IRI and every
+  graph whose IRI is built from the old slug (`https://brainkb.org/graph/<slug>/…`,
+  `…/synthscholar/<slug>/…`) move to the new slug, with their history and reviews;
+  graphs with other IRIs keep theirs. Old slugs and IRIs stay as aliases (they resolve,
+  but ingest into an old IRI is refused with the new one). Before a slug change, list
+  the graphs that will move (`brainkb_get_space`) and confirm with the user.
 
 ### 8. Manage & delegate (RBAC)
 - **Admin vs SuperAdmin:** **SuperAdmin** is bootstrapped at deployment (env
