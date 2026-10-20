@@ -800,9 +800,21 @@ class Verifier:
     # ---- review JSON ----
 
     def verify_review(self, review: dict) -> dict:
-        arts = review.get("included_articles") or []
+        report = self.verify_references(review.get("included_articles") or [])
+        refs = [r["claimed"] for r in report["references"]]
+        self._verify_in_text(review, refs, report)
+        report["grounding_validation"] = _grounding_summary(review.get("grounding_validation"))
+        return report
+
+    def verify_references(self, arts: list[dict], mode: str = "review") -> dict:
+        """Layer 1 only: each article's identifiers against the registries.
+
+        Also the corpus gate for supplied PDFs (``build_corpus.py --check``,
+        ``run_local_review.py``): run before the review, a guessed DOI that
+        belongs to another paper is caught before anything is written around it.
+        """
         refs = [self._claimed(a) for a in arts]
-        report: dict = {"mode": "review", "references": [], "in_text": [],
+        report: dict = {"mode": mode, "references": [], "in_text": [],
                         "review_findings": [], "urls": {}}
 
         # Duplicates across included articles.
@@ -830,8 +842,6 @@ class Verifier:
                   + (f"  {rec['doi']}" if rec["doi"] else ""), file=sys.stderr)
 
         self._flag_duplicate_versions(report)
-        self._verify_in_text(review, refs, report)
-        report["grounding_validation"] = _grounding_summary(review.get("grounding_validation"))
         return report
 
     @staticmethod
@@ -1185,6 +1195,45 @@ def summarise(report: dict) -> dict:
                             if any(f["code"] == "retracted" for f in r.get("findings", []))),
         "dead_urls": sorted(u for u, v in report["urls"].items() if not v["accessible"]),
     }
+
+
+def gate(data: Any, base: Path, *, corpus: bool = False, offline: bool = False,
+         mailto: str = "", delay: float = 0.2, labels: Optional[dict] = None) -> dict:
+    """Verify, write ``<base>.citations.json|md``, print the errors; return the report.
+
+    The entry point the other scripts call: ``corpus=True`` takes a list of
+    corpus items and checks their metadata only (run before the review);
+    otherwise ``data`` is a review dict and in-text citations are checked too.
+    ``labels`` maps a reference key to what to print for it (a PDF's filename).
+    The caller fails on ``report["summary"]["errors"]``.
+    """
+    mailto = mailto or os.environ.get("SYNTHSCHOLAR_EMAIL") or os.environ.get("NCBI_EMAIL") or ""
+    reg = None if offline else Registry(mailto=mailto, delay=delay)
+    try:
+        v = Verifier(reg)
+        report = v.verify_references(data, mode="corpus") if corpus else v.verify_review(data)
+    finally:
+        if reg:
+            reg.close()
+    report = {"file": str(base), "offline": offline, **report}
+    report["summary"] = s = summarise(report)
+    base.parent.mkdir(parents=True, exist_ok=True)
+    Path(f"{base}.citations.json").write_text(json.dumps(report, indent=2, ensure_ascii=False),
+                                              encoding="utf-8")
+    Path(f"{base}.citations.md").write_text(render_markdown(report, str(base)), encoding="utf-8")
+
+    labels = labels or {}
+    print(f"Citations: {s['references']} reference(s) — {s['errors']} error(s), "
+          f"{s['warnings']} warning(s)" + (" [offline: syntax only]" if offline else ""))
+    for r in report["references"]:
+        for f in r.get("findings", []):
+            if f["severity"] == "error":
+                print(f"  ERROR {labels.get(r['key'], r['key'])}: {f['message']}")
+    for f in report["in_text"] + report["review_findings"]:
+        if f["severity"] == "error":
+            print(f"  ERROR {f.get('location', 'review')}: {f['message']}")
+    print(f"  report: {base}.citations.md")
+    return report
 
 
 # ─────────────────────────── reference styles ────────────────────────────

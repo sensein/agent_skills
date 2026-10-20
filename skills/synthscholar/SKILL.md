@@ -146,6 +146,11 @@ python scripts/build_corpus.py --dir ./pdfs --out corpus.json
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json --no-docling
 #    …then YOU complete each entry's metadata by reading its `_head_text`…
 python scripts/build_corpus.py --check corpus.json          # exit 1 until complete
+#    --check is the corpus gate: metadata complete, no duplicate studies
+#    (matched on content, not filename — a preprint and its published version
+#    are one study), and every DOI/PMID verified against Crossref/PubMed. A
+#    guessed DOI that belongs to another paper is an error: fix it from the
+#    paper or clear it. run_local_review.py repeats the gate before any LLM call.
 
 # 2b. Papers the user has a DOI but no PDF for — open access, then institutional
 python scripts/fetch_ezproxy.py --status
@@ -171,6 +176,8 @@ python scripts/check_writing.py out/review.json
 python scripts/export_review.py out/review.json --outdir out/ --formats md ttl json
 
 # 6b. Citations — gate before handing the review over (exit 1 on errors).
+#    run_local_review.py and export_review.py already run this check after
+#    every export (out/review.citations.md); the commands below fix what it found.
 #    --apply writes registry-confirmed fixes to a copy; re-export it over the
 #    review, then verify again so the report describes what will ship.
 python scripts/verify_citations.py out/review.json
@@ -635,8 +642,9 @@ scripts) to see every named recipe.
   as an irrelevant paper rather than as a failed extraction. Each paper is
   read **in full** (evidence extraction processes every chunk), so a long corpus
   costs real tokens; `run_local_review.py` prints the call estimate before
-  spending, and `protocol.evidence_max_chars` bounds it. It never deduplicates
-  the supplied corpus; that stays the user's responsibility.
+  spending, and `protocol.evidence_max_chars` bounds it. It never removes an
+  entry itself: likely duplicates (matched on content) stop the run until the
+  user says which version to keep.
 - Open-access retrieval reaches only what has been deposited somewhere; a
   paywalled paper with no repository copy misses on all three providers.
   Unpaywall additionally needs `SYNTHSCHOLAR_EMAIL` (their ToS) and is skipped

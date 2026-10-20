@@ -15,7 +15,16 @@ For each PDF this script:
      SHA-256 content hash, retrieval timestamp),
   4. best-effort guesses ``doi`` / ``title`` / ``year`` / ``abstract``, and
   5. flags whatever is still missing in ``_needs_metadata`` so the agent can
-     complete it by reading ``_head_text``.
+     complete it by reading ``_head_text``, and
+  6. flags entries that look like one study in ``_duplicates`` — matched on
+     content (shared wording of the extracted text, same DOI/PMID, near-equal
+     title), not on filename, so a preprint and its published version are
+     caught as well as a re-downloaded copy.
+
+``--check`` gates the corpus before the review: metadata complete, duplicates
+resolved, and every DOI/PMID verified against Crossref/PubMed
+(``verify_citations.py``) — a guessed DOI that resolves to a different paper is
+an error, since the review would otherwise be written around that paper.
 
 Keys prefixed with ``_`` are skill bookkeeping — ``run_local_review.py``
 strips them before building ``synthscholar.models.Article`` objects.
@@ -28,8 +37,10 @@ Usage:
     python build_corpus.py --pdf a.pdf --pdf b.pdf \
         --manifest metadata.csv --out corpus.json
 
-    # report which entries still need metadata (exit 1 if any do)
+    # gate before the review (exit 1 on missing metadata, unresolved
+    # duplicates, or a DOI/PMID that belongs to another paper)
     python build_corpus.py --check corpus.json
+    python build_corpus.py --check corpus.json --offline   # no network
 
 Manifest formats (all columns optional, matched to PDFs by ``file``):
     CSV   file,pmid,doi,title,authors,journal,year,abstract,source
@@ -335,6 +346,94 @@ def _load_manifest(path: str) -> dict[str, dict]:
     return out
 
 
+# ── Duplicate detection ────────────────────────────────────────────────
+# Two PDFs of one study — a preprint and its published version, a re-download,
+# an author copy — differ in bytes, filename and layout but not in wording, so
+# they are matched on content: word 5-grams of the extracted text, plus the
+# identifiers and title. Flagged pairs are left for the agent to resolve
+# (drop one, or record `_distinct_from` once confirmed different works).
+
+_SHINGLE_N = 5
+# Keep one shingle hash in this many: an unbiased containment estimate at a
+# fraction of the cost, so a few hundred PDFs compare pairwise in seconds.
+_SHINGLE_SAMPLE = 8
+# Share of the smaller document's shingles found in the other. Unrelated papers
+# on one topic share well under 5%; two versions of one paper share most.
+_TEXT_DUP = 0.5
+_TITLE_DUP = 0.9
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _shingles(text: str) -> set[int]:
+    words = _WORD_RE.findall(text.lower())
+    grams = (hash(" ".join(words[i:i + _SHINGLE_N]))
+             for i in range(max(0, len(words) - _SHINGLE_N + 1)))
+    return {h for h in grams if h % _SHINGLE_SAMPLE == 0}
+
+
+def _norm_title(t: str) -> str:
+    return " ".join(_WORD_RE.findall((t or "").lower()))
+
+
+def _norm_doi(d: str) -> str:
+    d = (d or "").strip().lower()
+    return re.sub(r"^(https?://(dx\.)?doi\.org/|doi:\s*)", "", d)
+
+
+def find_duplicates(items: list[dict]) -> list[tuple[int, int, str]]:
+    """Pairs ``(i, j, basis)`` of corpus entries that look like one study."""
+    from difflib import SequenceMatcher
+
+    sh = [_shingles(it.get("full_text") or it.get("abstract") or "") for it in items]
+    titles = [_norm_title(it.get("title", "")) for it in items]
+    pairs: list[tuple[int, int, str]] = []
+    for i in range(len(items)):
+        for j in range(i + 1, len(items)):
+            a, b = items[i], items[j]
+            basis = []
+            if a.get("_pdf_sha256") and a.get("_pdf_sha256") == b.get("_pdf_sha256"):
+                basis.append("identical file")
+            elif a.get("content_sha256") and a.get("content_sha256") == b.get("content_sha256"):
+                basis.append("identical text")
+            elif sh[i] and sh[j]:
+                overlap = len(sh[i] & sh[j]) / min(len(sh[i]), len(sh[j]))
+                if overlap >= _TEXT_DUP:
+                    basis.append(f"{overlap:.0%} shared text")
+            if _norm_doi(a.get("doi", "")) and _norm_doi(a.get("doi", "")) == _norm_doi(b.get("doi", "")):
+                basis.append("same DOI")
+            pa, pb = str(a.get("pmid", "")), str(b.get("pmid", ""))
+            if pa.isdigit() and pa == pb:
+                basis.append("same PMID")
+            if len(titles[i]) >= 20 and len(titles[j]) >= 20:
+                sim = SequenceMatcher(None, titles[i], titles[j]).ratio()
+                if sim >= _TITLE_DUP:
+                    basis.append("same title" if sim == 1 else f"title {sim:.0%} similar")
+            if basis:
+                pairs.append((i, j, ", ".join(basis)))
+    return pairs
+
+
+def mark_duplicates(items: list[dict]) -> int:
+    """Write ``_duplicates`` onto each entry; return the unresolved pair count.
+
+    A pair is resolved when either side lists the other's pmid in
+    ``_distinct_from`` (confirmed different works, e.g. companion papers).
+    """
+    for it in items:
+        it.pop("_duplicates", None)
+    unresolved = 0
+    for i, j, basis in find_duplicates(items):
+        a, b = items[i], items[j]
+        if b.get("pmid") in (a.get("_distinct_from") or []) or \
+                a.get("pmid") in (b.get("_distinct_from") or []):
+            continue
+        unresolved += 1
+        for x, y in ((a, b), (b, a)):
+            x.setdefault("_duplicates", []).append(
+                {"pmid": y.get("pmid"), "file": Path(y.get("_pdf_path", "")).name, "basis": basis})
+    return unresolved
+
+
 # ── Corpus building ────────────────────────────────────────────────────
 
 
@@ -431,12 +530,52 @@ def collect_pdfs(dirs: list[str], files: list[str]) -> list[Path]:
     return unique
 
 
-def check(path: str) -> int:
-    """Report entries with missing metadata. Exit 1 when any are incomplete."""
+def report_duplicates(items: list[dict]) -> int:
+    """Mark and print duplicate pairs; return how many are unresolved."""
+    n = mark_duplicates(items)
+    if n:
+        print(f"\n  {n} likely duplicate pair(s) — one study counted twice:")
+        shown: set[frozenset] = set()
+        for it in items:
+            for d in it.get("_duplicates", []):
+                key = frozenset((it.get("pmid"), d["pmid"]))
+                if key not in shown:
+                    shown.add(key)
+                    print(f"    - {Path(it.get('_pdf_path', '')).name or it.get('pmid')} "
+                          f"≡ {d['file'] or d['pmid']}  ({d['basis']})")
+        print("    Keep the version of record (published over preprint), remove the other "
+              "entry and count it under `duplicates_removed`; if two really are different "
+              "works, add the other's pmid to `_distinct_from` on one of them.")
+    return n
+
+
+def citation_gate(items: list[dict], base: Path, offline: bool = False) -> int:
+    """Check every entry's DOI/PMID against Crossref and PubMed; return the error count."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        from verify_citations import gate
+    except ImportError as e:
+        print(f"\n✗ Citation check needs httpx ({e}): `pip install httpx`, "
+              "or pass --offline to check identifier syntax only.")
+        return 1
+    labels = {str(it.get("pmid", "")): Path(it.get("_pdf_path", "")).name or str(it.get("pmid"))
+              for it in items}
+    print()
+    report = gate(items, base, corpus=True, offline=offline, labels=labels)
+    return report["summary"]["errors"]
+
+
+def check(path: str, offline: bool = False, verify: bool = True) -> int:
+    """Validate a corpus: metadata complete, no duplicates, identifiers verified.
+
+    Exit 1 when any entry is incomplete, a duplicate pair is unresolved, or a
+    DOI/PMID does not belong to the paper it is attached to.
+    """
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     items = data.get("items", data if isinstance(data, list) else [])
     incomplete = [it for it in items if it.get("_needs_metadata")]
     no_text = [it for it in items if not (it.get("full_text") or "").strip()]
+    failed = False
 
     print(f"{len(items)} corpus entries")
     if no_text:
@@ -444,6 +583,7 @@ def check(path: str) -> int:
         for it in no_text:
             print(f"    - {it.get('_pdf_path', it.get('pmid'))}")
     if incomplete:
+        failed = True
         print(f"\n  {len(incomplete)} needing metadata:")
         for it in incomplete:
             missing = ", ".join(it["_needs_metadata"])
@@ -455,13 +595,24 @@ def check(path: str) -> int:
             print("  Entries with a DOI but no text: if the paper is paywalled, "
                   "retrieve it with `fetch_ezproxy.py --corpus <this file>` "
                   "(institutional access); if it is a scanned PDF, OCR it first.")
-        return 1
     guessed = [it for it in items if it.get("_metadata_guesses")]
-    if guessed:
+    if guessed and not incomplete:
         print(f"\n  {len(guessed)} entries carry auto-guessed fields — verify them:")
         for it in guessed[:20]:
             print(f"    - {it.get('pmid')}: {', '.join(it['_metadata_guesses'])}")
-    print("\n✓ Every entry has title, authors, year, abstract and full text.")
+
+    if report_duplicates(items):
+        failed = True
+    if verify and not incomplete and citation_gate(items, Path(path).with_suffix(""), offline):
+        failed = True
+        print("\n✗ Fix the identifiers above from the paper itself (its first page, or the "
+              "user's manifest): a DOI or PMID that belongs to another paper puts that "
+              "paper's details into the review. Clear a DOI you cannot confirm — never "
+              "adopt a `doi-candidate` unchecked.")
+    if failed:
+        return 1
+    print("\n✓ Every entry has title, authors, year, abstract and full text; no duplicates"
+          + ("; identifiers verified." if verify else "."))
     return 0
 
 
@@ -491,11 +642,17 @@ def main() -> int:
                          "for a large corpus of clean text-layer PDFs, or when the "
                          "corpus must match the hosted app's parser byte for byte.")
     ap.add_argument("--check", metavar="CORPUS",
-                    help="validate an existing corpus file instead of building one")
+                    help="validate an existing corpus file instead of building one: "
+                         "metadata complete, no duplicate studies, and every DOI/PMID "
+                         "verified against Crossref/PubMed (writes <corpus>.citations.md)")
+    ap.add_argument("--offline", action="store_true",
+                    help="with --check: identifier syntax only, no registry lookups")
+    ap.add_argument("--no-verify", action="store_true",
+                    help="with --check: skip the identifier check entirely")
     args = ap.parse_args()
 
     if args.check:
-        return check(args.check)
+        return check(args.check, offline=args.offline, verify=not args.no_verify)
 
     if not args.dir and not args.pdf:
         ap.error("give --dir and/or --pdf (or --check CORPUS)")
@@ -523,6 +680,8 @@ def main() -> int:
     for name in sorted(unmatched):
         print(f"  WARN  manifest row '{name}' matched no PDF", file=sys.stderr)
 
+    dups = report_duplicates(items)
+
     corpus = {
         "corpus_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -532,10 +691,13 @@ def main() -> int:
     }
     Path(args.out).write_text(json.dumps(corpus, indent=2), encoding="utf-8")
     needs = sum(1 for it in items if it["_needs_metadata"])
-    print(f"\nWrote {args.out} — {len(items)} entries, {needs} needing metadata.")
-    if needs:
-        print("Complete them (read each entry's `_head_text`), then re-check with "
+    print(f"\nWrote {args.out} — {len(items)} entries, {needs} needing metadata"
+          f", {dups} duplicate pair(s).")
+    if needs or dups:
+        print("Resolve them (read each entry's `_head_text`), then re-check with "
               f"`--check {args.out}`.")
+    print(f"`--check {args.out}` also verifies every DOI/PMID against Crossref/PubMed — "
+          "run it before the review.")
     return 0
 
 

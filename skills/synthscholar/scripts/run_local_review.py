@@ -31,6 +31,11 @@ Usage:
     # cheap pre-flight: build everything, make no LLM calls
     python run_local_review.py --protocol protocol.json --corpus corpus.json --dry-run
 
+Before any LLM call the corpus is gated: duplicate studies (matched on content)
+or a DOI/PMID that belongs to another paper stop the run (exit 1;
+``--allow-citation-errors`` to proceed). After export the review's citations
+are verified (``<base>.citations.md``); errors exit 1.
+
     # blank provenance file to fill in
     python run_local_review.py --print-provenance-template > search_provenance.json
 
@@ -48,7 +53,8 @@ from pathlib import Path
 
 # Sibling helper — the single export surface for both BYO-corpus paths.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_review import ALL_FORMATS, write_exports  # noqa: E402
+from export_review import ALL_FORMATS, check_citations, write_exports  # noqa: E402
+from build_corpus import citation_gate, report_duplicates  # noqa: E402
 
 # Corpus keys that are skill bookkeeping, not Article fields.
 _INTERNAL_PREFIX = "_"
@@ -354,6 +360,26 @@ async def run(args: argparse.Namespace) -> int:
         print(f"  WARN  {len(missing)} article(s) have neither abstract nor full text "
               f"and will screen out: {', '.join(missing[:5])}")
 
+    # Corpus gate, before any LLM spend: the review is written around whatever
+    # metadata each entry carries, so a guessed DOI that belongs to another
+    # paper, or one study supplied twice, is caught here or not at all.
+    items = corpus.get("items", corpus if isinstance(corpus, list) else [])
+    blocked = []
+    if report_duplicates(items):
+        blocked.append("duplicate studies")
+    if args.skip_citation_check:
+        print("  WARN  corpus identifiers NOT verified (--skip-citation-check)")
+    elif citation_gate(items, Path(args.corpus).with_suffix(""), args.offline_citations):
+        blocked.append("citation errors")
+    if blocked:
+        if args.allow_citation_errors:
+            print(f"  WARN  proceeding despite {' and '.join(blocked)} (--allow-citation-errors)")
+        else:
+            print(f"\n✗ Corpus has {' and '.join(blocked)} — fix corpus.json and re-run "
+                  "(build_corpus.py --check), or pass --allow-citation-errors if the "
+                  "user accepts them.", file=sys.stderr)
+            return 1
+
     if args.dry_run:
         print("\n--dry-run: no LLM calls made. Everything above is what would be run.")
         return 0
@@ -460,6 +486,13 @@ async def run(args: argparse.Namespace) -> int:
         print("\nProvenance is still incomplete — add the search strategy with:\n"
               f"  python update_provenance.py {args.outdir}/{args.base}.json "
               "--provenance search_provenance.json --outdir " + str(args.outdir))
+    if args.skip_citation_check:
+        print("\nCitations NOT verified (--skip-citation-check).")
+        return 0
+    if check_citations(result, args.outdir, args.base, offline=args.offline_citations):
+        print("\n✗ Citation errors in the review — fix them "
+              "(references/citation_verification.md) before handing it over.")
+        return 1
     return 0
 
 
@@ -487,6 +520,12 @@ def main() -> int:
                     choices=["paragraph", "bullet"], help="synthesis prose style")
     ap.add_argument("--no-per-group", action="store_true",
                     help="skip the per-group analysis pass")
+    ap.add_argument("--skip-citation-check", action="store_true",
+                    help="don't verify identifiers (before the run) or citations (after)")
+    ap.add_argument("--offline-citations", action="store_true",
+                    help="verify without registry lookups: identifier syntax and in-text only")
+    ap.add_argument("--allow-citation-errors", action="store_true",
+                    help="run even when the corpus has duplicates or identifier errors")
     ap.add_argument("--dry-run", action="store_true",
                     help="build corpus/protocol/flow and report, without LLM calls")
     ap.add_argument("--print-provenance-template", action="store_true",

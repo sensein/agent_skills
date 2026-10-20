@@ -15,7 +15,8 @@ Usage:
     # validate + report what the result contains
     python export_review.py review.json --check
 
-    # export (default: md + ttl + json)
+    # export (default: md + ttl + json), then verify citations: exit 1 when a
+    # DOI/PMID belongs to another paper or the text cites a study not included
     python export_review.py review.json --outdir out/
     python export_review.py review.json --formats md ttl jsonld bib \
         charting appraisal per-group narrative --outdir out/
@@ -198,6 +199,30 @@ def write_exports(result, outdir: str | Path, formats: list[str], base: str = "r
         if index:
             rq.merge_into_files(written, index, base=base)
     return written
+
+
+def check_citations(result, outdir: str | Path, base: str = "review",
+                    offline: bool = False) -> int:
+    """Verify the exported review's citations; return the error count.
+
+    Every included study's DOI/PMID against Crossref/PubMed, and every PMID,
+    DOI and author–year citation in the generated text against the included
+    set. Writes ``<base>.citations.json|md`` beside the export — the report
+    ``generate_review_pdf.py`` gates on.
+    """
+    import json
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        from verify_citations import gate
+    except ImportError as e:
+        print(f"\n  FAIL  citation check needs httpx ({e}): `pip install httpx`, "
+              "or rerun with --offline-citations")
+        return 1
+    review = json.loads(result.model_dump_json())
+    print()
+    report = gate(review, Path(outdir) / base, offline=offline)
+    return report["summary"]["errors"]
 
 
 def template_check(review_path: Path, page_limit: int | None, template: str) -> int:
@@ -562,6 +587,10 @@ def main() -> int:
     ap.add_argument("--rq-themes", metavar="PATH",
                     help='JSON map {"RQ1": "Participants", …} relabelling the '
                          "research-question sections, by id or major group")
+    ap.add_argument("--skip-citation-check", action="store_true",
+                    help="don't verify citations after exporting (verify_citations.py)")
+    ap.add_argument("--offline-citations", action="store_true",
+                    help="verify citations without registry lookups (syntax + in-text only)")
     args = ap.parse_args()
 
     _require_synthscholar()
@@ -594,6 +623,13 @@ def main() -> int:
     if "ttl" in args.formats:
         print("\nThe .ttl is SLR-ontology RDF — ingest it into a triple store "
               "(e.g. the brainkb skill's ingest tools) as-is.")
+    if args.skip_citation_check:
+        print("\nCitations NOT verified (--skip-citation-check).")
+        return 0
+    if check_citations(result, args.outdir, args.base, offline=args.offline_citations):
+        print("\n✗ Citation errors — fix them (references/citation_verification.md) "
+              "before handing the review over.")
+        return 1
     return 0
 
 
