@@ -162,6 +162,65 @@ def test_sign_is_preserved_in_matching():
     assert [q["text"] for q in gc.quantities("changed by -5 points")] == ["-5 points"]
 
 
+@pytest.mark.parametrize("quote,source", [
+    ("5 mg", "15 mg"), ("5 mg", "-5 mg"), ("5 mg", "0.5 mg"),
+    ("5", "5%"), ("5", "50"),
+    ("Recruitment began 2025-09-30.", "Recruitment began 2020-01-01."),
+])
+def test_changed_dates_and_partial_numbers_are_not_verbatim(quote, source):
+    assert not gc.verbatim(quote, source)
+
+
+def test_matching_can_find_a_later_complete_numeric_token():
+    assert gc.locate("5 mg", "15 mg, then 5 mg")["offset"] == 12
+    assert gc.verbatim("Recruitment began 2020/01/01.", "Recruitment began 2020-01-01.")
+
+
+@pytest.mark.parametrize("claim,value,expr", [
+    ("The mean change was -2 mg.", "-2 mg", {"value": {"path": "flow.included_synthesis"}}),
+    ("The mean dose was 2 mg.", "2 mg", {"value": {"path": "flow.included_synthesis"}}),
+    ("The mean dose was 2 mg.", "2 mg", {"count": {"from": "included_articles"}}),
+])
+def test_derivation_cannot_change_sign_or_turn_counts_into_doses(tmp_path, claim, value, expr):
+    js = write_review(tmp_path, extra=claim)
+    init(js)
+    judge(js, **{"91.2%": SUPPORTED, claim: {
+        "support": "derived", "derivations": [{"value": value, "metric": "dose",
+        "population": "participants", "expr": expr}]}})
+    rep = run(js)
+    assert rep["summary"]["verdict"] == "FAIL"
+    assert "derivation-wrong" in codes(rep)
+
+
+def test_signed_measurement_derivation_uses_source_unit():
+    q = gc.quantities("-2 mg")[0]
+    d = {"metric": "dose change", "population": "participants",
+         "expr": {"value": {"path": "dose"}}}
+    assert ag.check_derivation("The change was -2 mg.", q, d, {},
+                               {"dose": -2, "dose_unit": "mg"}) is None
+    assert ag.check_derivation("The change was -2 mg.", q, d, {},
+                               {"dose": -2, "dose_unit": "g"}) is not None
+    positive = gc.quantities("2 mg")[0]
+    assert ag.check_derivation("The change was 2 mg.", positive, d, {},
+                               {"dose": -2, "dose_unit": "mg"}) is not None
+
+
+def test_catalog_copy_still_requires_source_evidence(tmp_path):
+    js = write_review(tmp_path, extra=(
+        "| resource_id | description |\n| --- | --- |\n"
+        "| NKG-001 | Cures every cancer with 99% success |"))
+    ms = {"resource_catalog": [{"resource_id": "NKG-001",
+          "description": "Cures every cancer with 99% success", "publication_ids": ["local_a1"]}]}
+    js.with_name("review.manuscript.json").write_text(json.dumps(ms))
+    ag.init_claims(json.loads(js.read_text()), js.with_name("review.manuscript.md"), ms,
+                   js.with_name("review.claims.json"))
+    judge(js, **{"91.2%": SUPPORTED})
+    rep = run(js)
+    assert rep["summary"]["verdict"] == "INCOMPLETE"
+    assert rep["claims"]["by_kind"]["table"] == 1
+    assert "claim-unjudged" in codes(rep)
+
+
 def test_quote_with_flipped_sign_fails(tmp_path):
     js = write_review(tmp_path, extra="Scores rose by +5 points (Doe et al., 2023).")
     init(js)
@@ -582,3 +641,9 @@ def test_apply_drops_spans_that_are_not_verbatim(tmp_path):
     review = json.loads(js.read_text())
     out, removed = ee.apply_grounding(review, ee.verify_items(review, {"items": []}))
     assert len(out["evidence_spans"]) == 2 and any(r["kind"] == "evidence_span" for r in removed)
+
+
+def test_dates_are_one_token_not_quantities():
+    assert [q["text"] for q in gc.quantities("Searches ran on 2026-10-15; 12 of 40.")] == ["12", "40"]
+    assert gc.verbatim("ran on 2026/10/15", "searches ran on 2026-10-15 daily")
+    assert not gc.verbatim("ran on 2026-10-15", "searches ran on 2026-10-16 daily")

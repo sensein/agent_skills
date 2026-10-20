@@ -196,8 +196,8 @@ Full detail: [citation_verification.md](citation_verification.md).
 `audit_grounding.py --init-claims` makes every unit of the delivered text a
 claim: each prose sentence, each table row ("Header: cell; …") and each figure
 or table caption. Headings, code, the reference list and appended sidecars
-(§12) are not claims. The only exemption is a table row that reproduces a
-resource-catalog record field for field: it is checked against the record.
+(§12) are not claims. Resource-catalog rows require the same source evidence
+and judgement as other table rows; copying a record does not establish support.
 
 Each claim must be judged:
 
@@ -208,6 +208,14 @@ Each claim must be judged:
 | `not_empirical` | `explanation` (aim, definition, structure) | only allowed when the claim has no number and no citation; listed for review |
 | `contradicted` / `insufficient_evidence` | — | fail: correct or remove the sentence |
 | none | — | unresolved |
+
+Derivations compare signed results: a positive result cannot establish a negative
+claim. Measurement units must come from the source expression, not the ledger's
+metric label. Numeric fields can declare a sibling `<field>_unit` or `unit`;
+recorded text supplies its printed unit, and aggregations require consistent
+source units. Counts cannot establish doses or other measurements. Unknown or
+mismatched units block the claim. Quotes preserve dates and numeric-token
+boundaries as well as signs, so `5 mg` is not a quote of `15 mg`.
 
 A claim may combine quotes and derivations, but every number must be covered by
 one or the other. **Derivations** are explicit and evaluated:

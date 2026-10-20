@@ -30,7 +30,7 @@ UNGROUNDED = "NR (not source-grounded)"
 _MINUS = "−‒–—‐‑﹣－"
 _DATE = re.compile(r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b")
 _RANGE = re.compile(r"(?<=\d)\s*-\s*(?=\d)")
-_TOKEN = re.compile(r"[<>≤≥±]|(?<![\w.])[+-]?\d+(?:\.\d+)?%?|[a-z]+")
+_TOKEN = re.compile(r"date\d{8}|[<>≤≥±]|(?<![\w.])[+-]?\d+(?:\.\d+)?%?|[a-z]+")
 # Measurement units kept with a number: "5 mg" is not "5 g".
 _UNITS = (r"%|‰|mg/kg|mg/dl|mmol/l|µg|μg|ug|ng|mg|kg|g|ml|µl|μl|dl|l|mmol|µmol|μmol|nmol|mol|"
           r"nm|µm|μm|mm|cm|km|m|ms|msec|sec|s|min|mins|minutes?|h|hr|hrs|hours?|days?|weeks?|"
@@ -53,7 +53,10 @@ def canon(s: str) -> str:
     s = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", s)                     # PDF hyphenation
     s = re.sub(f"[{_MINUS}]", "-", s)                                  # every minus is "-"
     s = s.replace("<=", "≤").replace(">=", "≥").replace("+/-", "±").replace("+-", "±")
-    s = _DATE.sub(" DATE ", s)
+    # Dates are evidence too: one token per date, its value kept and its
+    # separators folded (2026/10/15 ≡ 2026-10-15), so the range rule below does
+    # not split it and its month and day are not read as quantities.
+    s = _DATE.sub(lambda m: " DATE%04d%02d%02d " % tuple(int(x) for x in re.split(r"[-/]", m.group(0))), s)
     s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)                          # 34,771 → 34771
     s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)
     s = _RANGE.sub(" to ", s)                                           # 10-20 is a range
@@ -88,9 +91,18 @@ def locate(quote: str, source: str, nsource: Optional[str] = None) -> dict:
     q = (quote or "").strip().strip("\"'“”‘’")
     if not q:
         return {"match": "absent", "coverage": 0.0}
+    # A substring of a numeric token is not an exact quote (5 mg in 15 mg,
+    # or 5 in -5). Apply the same token boundaries as normalized matching.
     i = source.find(q)
-    if i >= 0:
-        return {"match": "exact", "offset": i, "length": len(q), "coverage": 1.0}
+    while i >= 0:
+        left, right = source[:i], source[i + len(q):]
+        left_ok = not (q[0].isalnum() and left and
+                       (left[-1].isalnum() or (q[0].isdigit() and left[-1] in ".,+-−<>≤≥±")))
+        right_ok = not (q[-1].isalnum() and right and
+                        (right[0].isalnum() or (q[-1].isdigit() and right[0] in ".,%")))
+        if left_ok and right_ok:
+            return {"match": "exact", "offset": i, "length": len(q), "coverage": 1.0}
+        i = source.find(q, i + 1)
     nq = norm(q)
     ns = nsource if nsource is not None else norm(source)
     if nq and f" {nq} " in f" {ns} ":

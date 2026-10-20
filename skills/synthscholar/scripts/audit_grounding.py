@@ -27,8 +27,8 @@ else ``<stem>.md`` — and checks:
    structure: no number and no citation allowed), or ``contradicted`` /
    ``insufficient_evidence`` (fails). Every number in a claim must be in one
    of its quotes or produced by one of its derivations. Nothing is judged by
-   default. Table rows that reproduce a resource-catalog record field for
-   field are checked against the record instead.
+   default. Resource-catalog table rows are claims like any other: copying a
+   record is not evidence that it is true.
 4. **Numbers.** PRISMA flow arithmetic, the screening log against the flow,
    "N of M (P%)" percentages and stated totals.
 5. **Version changes** (``<stem>.revalidation.json``, from
@@ -489,29 +489,6 @@ def _plain(cell: str) -> str:
     return re.sub(r"[\[\]*_`]", "", str(cell)).strip().lower()
 
 
-def rendered_row(unit: dict, catalog: list[dict]) -> bool:
-    """A table row that reproduces one resource-catalog record, field for field."""
-    if unit["kind"] != "table" or not catalog:
-        return False
-    rows = {str(r.get("resource_id") or "").lower(): r for r in catalog}
-    hdr = [_plain(h) for h in unit["header"]]
-    for cell in unit["row"]:
-        rec = rows.get(_plain(cell))
-        if rec is None:
-            continue
-        keys = {_plain(k): k for k in rec}
-        for h, c in zip(hdr, unit["row"]):
-            k = keys.get(h) or next((keys[x] for x in keys if x.startswith(h) or h.startswith(x)), None)
-            if k is None:
-                return False
-            v = rec[k]
-            v = ", ".join(map(str, v)) if isinstance(v, list) else str(v)
-            if _plain(c).rstrip(".…") not in (_plain(v), _plain(v)[:len(_plain(c).rstrip('.…'))]):
-                return False
-        return True
-    return False
-
-
 def unit_quantities(unit: dict) -> list[dict]:
     if unit["kind"] != "table":
         return quantities(unit["text"])
@@ -522,14 +499,12 @@ def unit_quantities(unit: dict) -> list[dict]:
     return out
 
 
-def build_claims(md: str, arts: dict, ms: dict) -> tuple[list[dict], int]:
+def build_claims(md: str, arts: dict, ms: dict) -> list[dict]:
     cmap = catalog_studies(ms, arts)
-    catalog = ms.get("resource_catalog") or []
-    claims, seen, rendered = [], set(), 0
+    claims, seen = [], set()
     for u in delivered_units(md):
-        if rendered_row(u, catalog):
-            rendered += 1
-            continue
+        # Reproducing a catalog value is not evidence that the value is true.
+        # Catalog rows require the same judgement and quotes as other rows.
         cid = claim_id(f"{u['location']}|{u['text']}")
         if cid in seen:
             continue
@@ -538,7 +513,7 @@ def build_claims(md: str, arts: dict, ms: dict) -> tuple[list[dict], int]:
         claims.append({"id": cid, "kind": u["kind"], "location": u["location"], "text": u["text"],
                        "numbers": [q["text"] for q in qs], "_q": qs,
                        "cites": cited_studies(u["text"], arts, cmap)})
-    return claims, rendered
+    return claims
 
 
 # ---- derivations ----
@@ -655,6 +630,47 @@ def noun_after(text: str, q: dict) -> str:
     return ""
 
 
+def derivation_unit(expr: Any, ctx: dict, root: dict) -> Optional[str]:
+    """Infer dimensions from source data, never from the claim's own label.
+
+    Bare numeric fields have unknown dimensions. Measurement fields can record
+    a sibling ``<field>_unit`` (or ``unit``); recorded text carries its own unit.
+    Counts are dimensionless. Percent and ratio require compatible operands.
+    """
+    if not isinstance(expr, dict) or len(expr) != 1:
+        return None
+    (op, arg), = expr.items()
+
+    def field_unit(row, field):
+        parent_path, _, name = field.rpartition(".")
+        parent = _field(row, parent_path) if parent_path else row
+        if not isinstance(parent, dict):
+            return None
+        label = parent.get(f"{name}_unit", parent.get("unit"))
+        qs = quantities(f"1 {label}", True) if label else []
+        return ("%" if qs[0]["pct"] else qs[0].get("unit") or None) if qs else None
+
+    try:
+        if op in ("count", "distinct", "len"):
+            return ""
+        if op in ("percent", "ratio"):
+            a, b = (derivation_unit(x, ctx, root) for x in arg)
+            return ("%" if op == "percent" else "") if a is not None and a == b else None
+        if op == "recorded":
+            qs = quantities(str(arg.get("text") or ""), True)
+            return ("%" if qs[0]["pct"] else qs[0].get("unit") or None) if qs else None
+        if op == "value":
+            return field_unit(root, arg["path"])
+        if op in ("sum", "mean", "median", "min", "max"):
+            rows = [r for r in ctx.get(arg["from"], [])
+                    if all(_match(_field(r, k), c) for k, c in (arg.get("where") or {}).items())]
+            units = {field_unit(r, arg["field"]) for r in rows}
+            return next(iter(units)) if len(units) == 1 else None
+    except (KeyError, TypeError, ValueError):
+        return None
+    return None
+
+
 def check_derivation(claim_text: str, q: dict, d: dict, ctx: dict, root: dict) -> Optional[str]:
     """None when derivation ``d`` produces quantity ``q``; otherwise why not."""
     for f in ("metric", "population"):
@@ -663,11 +679,14 @@ def check_derivation(claim_text: str, q: dict, d: dict, ctx: dict, root: dict) -
     got = evaluate(d.get("expr"), ctx, root)
     if got is None:
         return f"derivation for {q['text']} does not evaluate ({json.dumps(d.get('expr'))[:120]})"
-    if q["sign"]:
-        got = -got if got > 0 else got
     tol = 0.5 * 10 ** -q["decimals"] + 1e-9
-    if abs(abs(got) - q["value"]) > tol:
+    want = -q["value"] if q["sign"] else q["value"]
+    if abs(got - want) > tol:
         return f"derivation for {q['text']} computes {got:.4g}"
+    unit = derivation_unit(d.get("expr"), ctx, root)
+    wanted_unit = "%" if q["pct"] else q.get("unit", "")
+    if wanted_unit and unit != wanted_unit:
+        return f"derivation for {q['text']} has unit {unit or 'unknown/unitless'}, not {wanted_unit}"
     src = expr_source(d.get("expr"))
     if src in NOUNS and not q["pct"]:
         noun = noun_after(claim_text, q)
@@ -707,7 +726,7 @@ def init_claims(review: dict, md_path: Path, ms: dict, ledger_path: Path,
         except (OSError, ValueError, KeyError):
             old = {}
     ctx = sources(review, ms, arts, study_info or {"groups": [{"study_id": p, "reports": [p]} for p in arts]})
-    current, rendered = build_claims(md, arts, ms)
+    current = build_claims(md, arts, ms)
     claims = []
     for c in current:
         c.pop("_q", None)
@@ -728,7 +747,6 @@ def init_claims(review: dict, md_path: Path, ms: dict, ledger_path: Path,
         claims.append(c)
     ledger = {"delivered": str(md_path.resolve()), "delivered_sha256": sha256_text(md),
               "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-              "rendered_rows_checked_against_records": rendered,
               "instructions": (
                   "Judge every claim. support: supported | partially_supported (evidence: [{study, quote}] "
                   "copied verbatim from that study), derived (derivations: [{value, metric, population, "
@@ -745,13 +763,13 @@ def init_claims(review: dict, md_path: Path, ms: dict, ledger_path: Path,
 def audit_claims(review: dict, md: str, md_path: Path, ms: dict, ledger: Optional[dict],
                  study_info: dict, findings: list, pages: Optional[dict] = None) -> dict:
     arts = {str(a.get("pmid")): a for a in review.get("included_articles") or []}
-    current, rendered = build_claims(md, arts, ms)
+    current = build_claims(md, arts, ms)
     stats: Counter = Counter()
     if ledger is None:
         findings.append(f_("claims-not-audited", "unresolved", md_path.name,
                            f"no claim ledger: run audit_grounding.py --init-claims and judge all "
                            f"{len(current)} claims"))
-        return {"claims": len(current), "rendered_rows": rendered}
+        return {"claims": len(current)}
     if ledger.get("delivered_sha256") != sha256_text(md):
         findings.append(f_("claims-stale", "unresolved", md_path.name,
                            "the delivered text changed since the ledger was written: re-run --init-claims "
@@ -847,7 +865,7 @@ def audit_claims(review: dict, md: str, md_path: Path, ms: dict, ledger: Optiona
                                f"partially supported: {j.get('explanation') or 'no explanation'}"))
         if not (j.get("judged_by") or "").strip():
             findings.append(f_("claim-judge-unrecorded", "warning", where, "judged_by is empty"))
-    return {"claims": len(current), "rendered_rows": rendered,
+    return {"claims": len(current),
             "by_kind": dict(Counter(c["kind"] for c in current)), "outcomes": dict(stats),
             "ledger_entries_no_longer_in_text": len(set(judged) - {c["id"] for c in current})}
 
@@ -969,8 +987,7 @@ def render(rep: dict) -> str:
            f"{len(rep['studies']['unresolved'])} unresolved overlap group(s) |",
            f"| Numbers | {rep['numbers'].get('checks', 0)} checks |",
            f"| Claims | {cl.get('claims', 0)} ({', '.join(f'{k} {v}' for k, v in (cl.get('by_kind') or {}).items())}); "
-           f"{', '.join(f'{k} {v}' for k, v in sorted((cl.get('outcomes') or {}).items())) or '—'}; "
-           f"{cl.get('rendered_rows', 0)} table rows checked against records |",
+           f"{', '.join(f'{k} {v}' for k, v in sorted((cl.get('outcomes') or {}).items())) or '—'}; " "|",
            f"| Appendices | {rep['appendices'].get('sidecars', 0)} |", ""]
     order = {"error": 0, "unresolved": 1, "warning": 2}
     rows = sorted(rep["findings"], key=lambda f: order.get(f["severity"], 3))
