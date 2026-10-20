@@ -53,7 +53,7 @@ from pathlib import Path
 
 # Sibling helper — the single export surface for both BYO-corpus paths.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_review import ALL_FORMATS, check_citations, write_exports  # noqa: E402
+from export_review import ALL_FORMATS, check_citations, citation_outcome, write_exports  # noqa: E402
 from build_corpus import citation_gate, report_duplicates  # noqa: E402
 
 # Corpus keys that are skill bookkeeping, not Article fields.
@@ -369,8 +369,10 @@ async def run(args: argparse.Namespace) -> int:
         blocked.append("duplicate studies")
     if args.skip_citation_check:
         print("  WARN  corpus identifiers NOT verified (--skip-citation-check)")
-    elif citation_gate(items, Path(args.corpus).with_suffix(""), args.offline_citations):
-        blocked.append("citation errors")
+    else:
+        verdict = citation_gate(items, Path(args.corpus).with_suffix(""), args.offline_citations)
+        if verdict != "PASS":
+            blocked.append("citation errors" if verdict == "FAIL" else "unverified identifiers")
     if blocked:
         if args.allow_citation_errors:
             print(f"  WARN  proceeding despite {' and '.join(blocked)} (--allow-citation-errors)")
@@ -489,11 +491,8 @@ async def run(args: argparse.Namespace) -> int:
     if args.skip_citation_check:
         print("\nCitations NOT verified (--skip-citation-check).")
         return 0
-    if check_citations(result, args.outdir, args.base, offline=args.offline_citations):
-        print("\n✗ Citation errors in the review — fix them "
-              "(references/citation_verification.md) before handing it over.")
-        return 1
-    return 0
+    return citation_outcome(check_citations(result, args.outdir, args.base,
+                                            offline=args.offline_citations))
 
 
 def main() -> int:
@@ -525,7 +524,8 @@ def main() -> int:
     ap.add_argument("--offline-citations", action="store_true",
                     help="verify without registry lookups: identifier syntax and in-text only")
     ap.add_argument("--allow-citation-errors", action="store_true",
-                    help="run even when the corpus has duplicates or identifier errors")
+                    help="run even when the corpus has duplicates, identifier errors or "
+                         "unverified identifiers")
     ap.add_argument("--dry-run", action="store_true",
                     help="build corpus/protocol/flow and report, without LLM calls")
     ap.add_argument("--print-provenance-template", action="store_true",

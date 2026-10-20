@@ -18,10 +18,15 @@ What a SynthScholar review needs beyond a plain pandoc call:
   only a log line. On TeX engines the script picks an installed font that
   covers the characters the review actually uses (``fc-list``), maps
   ``✓ ✗ ⚠`` to TeX symbols, and reports any glyph still missing.
-* **Citation gate.** If ``verify_citations.py`` has been run
-  (``<stem>.citations.json`` next to the Markdown, or ``--citations``) and
-  found errors, or its report is older than the Markdown, the build stops.
-  ``--allow-citation-errors`` overrides; with no report at all it warns.
+* **Citation gate.** The PDF is built only from a manuscript whose citation
+  report (``<md stem>.citations.json``, or ``--citations``) says **PASS** and
+  whose recorded SHA-256 hashes still match the Markdown, ``<stem>.json`` and
+  ``<stem>.manuscript.json``. A missing or stale report is regenerated first
+  (``verify_citations.py`` in manuscript mode, so the Discussion and other
+  prose authored after the export are checked too). FAIL or INCOMPLETE
+  (offline, failed lookups, references with no identifier) stops the build;
+  ``--allow-citation-errors`` builds anyway and prints an "unverified" notice
+  on the first page.
 * **Verified reference list.** ``--references vancouver`` swaps the review's
   References list for ``<stem>.references.vancouver.md``, the list
   ``verify_citations.py --style vancouver`` rendered from registry metadata.
@@ -428,36 +433,68 @@ def base_stem(md: Path) -> str:
     return md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
 
 
-def citation_gate(md: Path, report: Optional[Path], allow: bool) -> Optional[str]:
-    """Refusal message if the citation report has errors or predates ``md``."""
-    report = report or md.with_name(f"{base_stem(md)}.citations.json")
-    if not report.is_file():
-        print(f"  warning: {report} not found — citations unverified; run "
-              f"verify_citations.py on {base_stem(md)}.json first (or point --citations at its report)",
-              file=sys.stderr)
-        return None
+def citation_gate(md: Path, report: Optional[Path], allow: bool,
+                  verify: bool = True) -> tuple[Optional[str], Optional[str]]:
+    """``(refusal, notice)`` for building ``md``: the release gate.
+
+    Builds only on a citation report whose verdict is PASS and whose recorded
+    input hashes still match the manuscript, the review JSON and the authored
+    ``<stem>.manuscript.json``. A missing or stale report is regenerated here
+    (``verify_citations.py`` in manuscript mode, so prose written after the
+    export is checked too) when ``verify``; anything else — FAIL, INCOMPLETE,
+    unverifiable — refuses. ``allow`` builds anyway and returns a ``notice``
+    the PDF prints, so an unverified document never looks like a verified one.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
-        summary = json.loads(report.read_text(encoding="utf-8")).get("summary") or {}
-    except (OSError, json.JSONDecodeError) as e:
-        return f"{report.name} is unreadable ({e}); re-run verify_citations.py"
-    problems = []
-    # The report verifies the review JSON's references; a manuscript re-assembled
-    # from the same JSON is not new citations. Compare against the JSON when present.
-    basis = md.with_name(f"{base_stem(md)}.json")
-    basis = basis if basis.is_file() else md
-    if report.stat().st_mtime < basis.stat().st_mtime:
-        problems.append(f"{report.name} is older than {basis.name} — it describes an earlier "
-                        "export; re-run verify_citations.py on the re-exported review.json")
-    errors = int(summary.get("errors") or 0)
-    if errors:
-        codes = ", ".join(f"{k} {v}" for k, v in (summary.get("by_code") or {}).items())
-        problems.append(f"{report.name} reports {errors} citation error(s) ({codes})")
-    if problems and not allow:
+        import verify_citations as vc
+    except ImportError as e:
+        problems = [f"citations cannot be verified here ({e}; `pip install httpx`)"]
+        vc = None
+    else:
+        problems = []
+    report = report or md.with_name(f"{md.stem}.citations.json")
+    review_json = vc.review_for_markdown(md) if vc else None
+    data = None
+    if vc:
+        try:
+            data = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None
+        except (OSError, json.JSONDecodeError):
+            data = None
+        stale = vc.stale_inputs(data) if data else ["(no report)"]
+        if data and str(md.resolve()) not in (data.get("inputs") or {}):
+            stale.append(f"(report does not cover {md.name})")
+        if stale and verify:
+            print(f"  verifying citations of {md.name}"
+                  + (f" against {review_json.name}" if review_json else "")
+                  + (" — the report is missing" if not data else
+                     f" — the report is stale: {', '.join(Path(x).name for x in stale[:4])}"),
+                  file=sys.stderr)
+            review = json.loads(review_json.read_text(encoding="utf-8")) if review_json else None
+            data = vc.gate(review, report.with_name(report.name[:-len(".citations.json")]),
+                           manuscript=md.read_text(encoding="utf-8"),
+                           inputs=vc.manuscript_inputs(md, review_json))
+        elif stale:
+            problems.append(f"{report.name} is missing or stale — run verify_citations.py {md.name}")
+    if data:
+        s = data.get("summary") or {}
+        verdict = s.get("verdict") or "INCOMPLETE"
+        if verdict == "FAIL":
+            codes = ", ".join(f"{k} {v}" for k, v in (s.get("by_code") or {}).items())
+            problems.append(f"{report.name}: FAIL — {s.get('errors')} citation error(s) ({codes})")
+        elif verdict != "PASS":
+            problems.append(f"{report.name}: {verdict} — {len(s.get('unverified') or [])} "
+                            "reference(s) could not be checked"
+                            + (" (offline run)" if data.get("offline") else ""))
+    if not problems:
+        return None, None
+    if not allow:
         return ("\n  ".join(problems) + "\n  Fix them (see references/citation_verification.md) "
-                "and re-export, or pass --allow-citation-errors to build anyway.")
+                "and rebuild, or pass --allow-citation-errors to build an unverified PDF."), None
     for p in problems:
         print(f"  warning: building anyway — {p}", file=sys.stderr)
-    return None
+    return None, ("Citations not verified: " + "; ".join(problems)
+                  + ". This PDF was built with --allow-citation-errors.")
 
 
 def image_size(path: Path) -> Optional[tuple[float, float]]:
@@ -937,7 +974,8 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
         print(f"  warning: '{engine}' is not an engine this script knows; "
               "no engine-specific options are applied", file=sys.stderr)
 
-    refusal = citation_gate(md, Path(citations) if citations else None, allow_citation_errors)
+    refusal, notice = citation_gate(md, Path(citations) if citations else None,
+                                    allow_citation_errors or dry_run, verify=not dry_run)
     if refusal:
         print(f"Error: {refusal}", file=sys.stderr)
         return False
@@ -950,7 +988,8 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
                       template=template, toc=toc, number_sections=number_sections,
                       bibliography=bibliography, mainfont=mainfont, dry_run=dry_run,
                       keep_source=keep_source, timeout=timeout, flow_diagram=flow_diagram,
-                      flow_json=Path(flow_json) if flow_json else None, layout=layout)
+                      flow_json=Path(flow_json) if flow_json else None, layout=layout,
+                      notice=notice)
     finally:
         tmpdir.cleanup()
 
@@ -960,7 +999,8 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
            citation_style: str, references: Optional[str], include: Optional[list[str]],
            template: Optional[str], toc: bool, number_sections: bool, bibliography: Optional[str],
            mainfont: Optional[str], dry_run: bool, keep_source: bool, timeout: int,
-           flow_diagram: bool, flow_json: Optional[Path], layout: str = "plain") -> bool:
+           flow_diagram: bool, flow_json: Optional[Path], layout: str = "plain",
+           notice: Optional[str] = None) -> bool:
     # #3: a kept .tex must still compile after the temp dir is gone, so images
     # converted for it live in <name>_files/ beside it, not in the temp dir.
     out_path = Path(output_pdf) if output_pdf else md.with_suffix(".pdf")
@@ -984,6 +1024,12 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
         text, acm_meta = split_front_matter(text)
         text, _ = small_wide_tables(text)
         notes.append(f"layout: ACM acmsmall ({n_floats} figure float(s))")
+    if notice:
+        # before the first section, so it is on the first page of the body
+        m = re.search(r"^## ", text, re.MULTILINE)
+        at = m.start() if m else 0
+        text = text[:at] + f"> **{notice}**\n\n" + text[at:]
+        notes.append("UNVERIFIED notice printed on the first page")
     text, img_notes = prepare_images(text, [md.parent], family, assets)
     for n in img_notes:
         print(f"  {n}", file=sys.stderr)
@@ -1307,7 +1353,8 @@ def main() -> int:
     p.add_argument("--citations", metavar="REPORT_JSON",
                    help="citation report to gate on (default: <stem>.citations.json beside the Markdown)")
     p.add_argument("--allow-citation-errors", action="store_true",
-                   help="build even if the citation report has errors or is stale")
+                   help="build even if citations are not verified (FAIL/INCOMPLETE); the PDF "
+                        "then carries an 'unverified' notice")
     p.add_argument("--citation-style", default="apa",
                    help="CSL style id or .csl path, for [@key] citations only (default: apa)")
     p.add_argument("--bibliography", help="explicit .bib for [@key] citations")

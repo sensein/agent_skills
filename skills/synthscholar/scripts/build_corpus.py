@@ -549,20 +549,23 @@ def report_duplicates(items: list[dict]) -> int:
     return n
 
 
-def citation_gate(items: list[dict], base: Path, offline: bool = False) -> int:
-    """Check every entry's DOI/PMID against Crossref and PubMed; return the error count."""
+def citation_gate(items: list[dict], base: Path, offline: bool = False) -> str:
+    """Check every entry's DOI/PMID against Crossref and PubMed; return the verdict.
+
+    PASS, FAIL or INCOMPLETE — offline, a failed lookup or an entry with no
+    identifier is INCOMPLETE, and only PASS clears the gate.
+    """
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
         from verify_citations import gate
     except ImportError as e:
-        print(f"\n✗ Citation check needs httpx ({e}): `pip install httpx`, "
-              "or pass --offline to check identifier syntax only.")
-        return 1
+        print(f"\n✗ Citation check needs httpx ({e}): `pip install httpx`.")
+        return "INCOMPLETE"
     labels = {str(it.get("pmid", "")): Path(it.get("_pdf_path", "")).name or str(it.get("pmid"))
               for it in items}
     print()
     report = gate(items, base, corpus=True, offline=offline, labels=labels)
-    return report["summary"]["errors"]
+    return report["summary"]["verdict"]
 
 
 def check(path: str, offline: bool = False, verify: bool = True) -> int:
@@ -603,16 +606,24 @@ def check(path: str, offline: bool = False, verify: bool = True) -> int:
 
     if report_duplicates(items):
         failed = True
-    if verify and not incomplete and citation_gate(items, Path(path).with_suffix(""), offline):
+    verdict = citation_gate(items, Path(path).with_suffix(""), offline) \
+        if verify and not incomplete else None
+    if verdict == "FAIL":
         failed = True
         print("\n✗ Fix the identifiers above from the paper itself (its first page, or the "
               "user's manifest): a DOI or PMID that belongs to another paper puts that "
               "paper's details into the review. Clear a DOI you cannot confirm — never "
               "adopt a `doi-candidate` unchecked.")
+    elif verdict == "INCOMPLETE":
+        failed = True
+        print("\n✗ Identifiers not fully verified (offline, a registry lookup failed, or an "
+              "entry has no DOI/PMID). Re-run online; add a missing identifier from the "
+              "paper where it has one. run_local_review.py --allow-citation-errors proceeds "
+              "only if the user accepts unverified entries.")
     if failed:
         return 1
     print("\n✓ Every entry has title, authors, year, abstract and full text; no duplicates"
-          + ("; identifiers verified." if verify else "."))
+          + ("; identifiers verified (PASS)." if verify else "; identifiers NOT verified (--no-verify)."))
     return 0
 
 
@@ -646,7 +657,8 @@ def main() -> int:
                          "metadata complete, no duplicate studies, and every DOI/PMID "
                          "verified against Crossref/PubMed (writes <corpus>.citations.md)")
     ap.add_argument("--offline", action="store_true",
-                    help="with --check: identifier syntax only, no registry lookups")
+                    help="with --check: identifier syntax only, no registry lookups "
+                         "(the verdict is then INCOMPLETE and --check exits 1)")
     ap.add_argument("--no-verify", action="store_true",
                     help="with --check: skip the identifier check entirely")
     args = ap.parse_args()

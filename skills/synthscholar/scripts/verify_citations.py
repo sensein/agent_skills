@@ -51,9 +51,23 @@ Usage:
     python verify_citations.py out/review.json --offline              # in-text only
     python verify_citations.py manuscript.md --check-urls
 
+A manuscript (``review.manuscript.md``) with its ``review.json`` beside it, or
+named with ``--review``, is checked in **manuscript mode**: the included studies
+as above, every other reference-list entry verified as background literature,
+and every citation in the manuscript's own prose — the Discussion, prior-review
+comparison and figure interpretations exist only there — matched to one or the
+other.
+
+Every report ends in one verdict: **PASS** (everything checked, no errors),
+**FAIL** (errors), or **INCOMPLETE** (no errors, but something could not be
+checked: ``--offline``, a registry lookup that failed, a reference with no DOI
+or PMID). It also records the SHA-256 of every input it vouches for, so a gate
+(``generate_review_pdf.py``) refuses a report that no longer describes what is
+delivered.
+
 Writes ``<base>.citations.json`` and ``<base>.citations.md`` next to the input
-(``--outdir`` to change). Exit 0 = no errors, 1 = errors (or warnings with
-``--strict``), 2 = bad input.
+(``--outdir`` to change). Exit 0 = PASS, 1 = FAIL (or warnings with
+``--strict``), 2 = bad input, 3 = INCOMPLETE.
 
 ``--apply`` writes a corrected copy, changing only what a registry confirms:
 DOI spelling normalised, empty title/year/journal/authors filled from a record
@@ -145,6 +159,10 @@ STRUCTURED_ID_KEYS = {"paper_pmid", "pmid"}  # plus any key ending in "_pmids"
 QUOTED = {"evidence_spans"}
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "error": 2}
+# Findings that mean "this reference was not checked", whatever their severity.
+UNVERIFIED_CODES = {"lookup-failed", "doi-missing"}
+# Exit codes: the verdict, so a caller can tell a failure from an unfinished check.
+EXIT = {"PASS": 0, "FAIL": 1, "INCOMPLETE": 3}
 # Preprint servers, by DOI prefix and by venue name. A preprint is cited only
 # when no peer-reviewed version exists; see preferred_versions().
 PREPRINT_DOI_PREFIXES = (
@@ -1035,7 +1053,9 @@ class Verifier:
             for ct in cites:
                 f = self._judge_citation(ct, by_pmid, by_doi, refs, screened, cited)
                 if f:
-                    report["in_text"].append({**f, "location": path, "snippet": ct["snippet"]})
+                    report["in_text"].append({**f, "location": path, "snippet": ct["snippet"],
+                                              "cited": {k: ct[k] for k in ("kind", "id", "surname", "year")
+                                                        if k in ct}})
 
         for c in refs:
             if c["key"].lower() not in cited:
@@ -1082,16 +1102,50 @@ class Verifier:
 
     # ---- generic Markdown ----
 
-    def verify_markdown(self, text: str) -> dict:
-        report: dict = {"mode": "markdown", "references": [], "in_text": [],
-                        "review_findings": [], "urls": {}}
+    def _verify_line_doi(self, doi: str, line: str) -> dict:
+        """One DOI from a reference-list line (or the body) against the registries."""
+        claimed = {"key": doi, "pmid": "", "doi": doi, "title": line,
+                   "authors": "", "year": "", "journal": ""}
+        findings: list[dict] = []
+        rec = {"key": doi, "pmid": "", "doi": doi, "claimed": claimed, "registry": None,
+               "pubmed": None, "candidates": [], "suggested": {}}
+        if self.reg:
+            status, meta = self.reg.lookup_doi(doi, self.check_updates)
+            if status == "error":
+                findings.append(finding("lookup-failed", "warning", meta.get("detail", "")))
+            elif status == "not-found":
+                findings.append(finding("doi-not-found", "error",
+                                        f"{doi} is not registered with any DOI agency"))
+            else:
+                rec["registry"] = meta
+                findings += check_registry_record(claimed, meta, line_mode=bool(line))
+        rec["findings"] = findings
+        rec["status"] = worst(findings) if self.reg else "offline"
+        return rec
+
+    @staticmethod
+    def _reference_list(text: str) -> tuple[str, list[str]]:
+        """Split a Markdown document into its body and its reference-list lines."""
         m = re.search(r"^#{1,3}\s*(?:\d+\.?\s*)?(References|Bibliography)\s*$", text,
                       re.MULTILINE | re.IGNORECASE)
         body, refs_text = (text[:m.start()], text[m.end():]) if m else (text, "")
         # The next top-level heading (an appendix) ends the reference list.
         ref_block = refs_text.splitlines()
         end = next((i for i, ln in enumerate(ref_block) if ln.startswith("## ")), len(ref_block))
-        ref_lines = [ln.strip() for ln in ref_block[:end] if ln.strip()]
+        return body, [ln.strip() for ln in ref_block[:end] if ln.strip()]
+
+    @staticmethod
+    def _in_reference_list(ct: dict, ref_lines: list[str]) -> bool:
+        return any(surname_matches(ct["surname"], ln.split("(")[0]) or
+                   (norm_text(ct["surname"]) in norm_text(ln[:120]).split())
+                   for ln in ref_lines if ct["year"] in ln)
+
+    # ---- generic Markdown ----
+
+    def verify_markdown(self, text: str) -> dict:
+        report: dict = {"mode": "markdown", "references": [], "in_text": [],
+                        "review_findings": [], "urls": {}}
+        body, ref_lines = self._reference_list(text)
 
         lines_by_doi = {}
         for ln in ref_lines:
@@ -1104,24 +1158,7 @@ class Verifier:
                 all_dois.append(d)
 
         for n, doi in enumerate(all_dois, 1):
-            line = lines_by_doi.get(doi.lower(), "")
-            claimed = {"key": doi, "pmid": "", "doi": doi, "title": line,
-                       "authors": "", "year": "", "journal": ""}
-            findings: list[dict] = []
-            rec = {"key": doi, "pmid": "", "doi": doi, "claimed": claimed, "registry": None,
-                   "pubmed": None, "candidates": [], "suggested": {}}
-            if self.reg:
-                status, meta = self.reg.lookup_doi(doi, self.check_updates)
-                if status == "error":
-                    findings.append(finding("lookup-failed", "warning", meta.get("detail", "")))
-                elif status == "not-found":
-                    findings.append(finding("doi-not-found", "error",
-                                            f"{doi} is not registered with any DOI agency"))
-                else:
-                    rec["registry"] = meta
-                    findings += check_registry_record(claimed, meta, line_mode=bool(line))
-            rec["findings"] = findings
-            rec["status"] = worst(findings) if self.reg else "offline"
+            rec = self._verify_line_doi(doi, lines_by_doi.get(doi.lower(), ""))
             report["references"].append(rec)
             print(f"[{n:>3}/{len(all_dois)}] {rec['status']:>9}  {doi}", file=sys.stderr)
 
@@ -1129,14 +1166,70 @@ class Verifier:
             for ct in extract_citations(body):
                 if ct["kind"] != "author_year":
                     continue
-                ok = any(surname_matches(ct["surname"], ln.split("(")[0]) or
-                         (norm_text(ct["surname"]) in norm_text(ln[:120]).split())
-                         for ln in ref_lines if ct["year"] in ln)
-                if not ok:
+                if not self._in_reference_list(ct, ref_lines):
                     report["in_text"].append({**finding(
                         "author-year-unmatched", "warning",
                         f"“{ct['surname']} {ct['year']}” matches no reference-list entry"),
                         "location": "body", "snippet": ct["snippet"]})
+        return report
+
+    # ---- assembled manuscript ----
+
+    def verify_manuscript(self, review: dict, text: str) -> dict:
+        """The delivered manuscript, checked against the review it was built from.
+
+        Prose written after the export (Discussion, prior reviews, figure
+        interpretations) is only in the manuscript, so this is the check that
+        covers what is actually handed over. Every included study is verified
+        as in review mode, and every reference-list entry that is not an
+        included study is verified as **background** literature. In the body,
+        a PMID/DOI must be an included study or a background reference; a
+        study the screening excluded is an error either way, unless it is in
+        the reference list as a background citation.
+        """
+        body, ref_lines = self._reference_list(text)
+        report = self.verify_references(review.get("included_articles") or [], mode="manuscript")
+        for r in report["references"]:
+            r["role"] = "included"
+        refs = [r["claimed"] for r in report["references"]]
+        included_dois = {clean_doi(c["doi"]).lower() for c in refs if c["doi"]}
+        included_dois |= {r["doi"].lower() for r in report["references"] if r["doi"]}
+
+        background: dict[str, str] = {}
+        background_pmids: set[str] = set()
+        for ln in ref_lines:
+            for d in DOI_RE.findall(ln):
+                d = _trim(d)
+                if d.lower() not in included_dois:
+                    background.setdefault(d.lower(), ln)
+            for m in PMID_RE.finditer(ln):
+                background_pmids |= {x.lower() for x in PMID_ID.findall(m.group(1))}
+        for n, (doi, line) in enumerate(background.items(), 1):
+            rec = self._verify_line_doi(doi, line)
+            rec["role"] = "background"
+            report["references"].append(rec)
+            print(f"[bg {n:>3}/{len(background)}] {rec['status']:>9}  {doi}", file=sys.stderr)
+
+        scope = {"included_articles": review.get("included_articles") or [],
+                 "screening_log": review.get("screening_log") or [],
+                 "manuscript": body}
+        self._verify_in_text(scope, refs, report)
+
+        def is_background(f: dict) -> bool:
+            ct = f.get("cited") or {}
+            if ct.get("kind") == "doi":
+                return ct.get("id", "") in background
+            if ct.get("kind") == "pmid":
+                return ct.get("id", "") in background_pmids
+            if ct.get("kind") == "author_year":
+                return self._in_reference_list(ct, ref_lines)
+            return False
+
+        report["in_text"] = [f for f in report["in_text"] if not is_background(f)]
+        if not ref_lines:
+            report["review_findings"].append(finding(
+                "no-reference-list", "warning", "the manuscript has no References section"))
+        report["grounding_validation"] = _grounding_summary(review.get("grounding_validation"))
         return report
 
 
@@ -1186,10 +1279,25 @@ def summarise(report: dict) -> dict:
     statuses: dict[str, int] = {}
     for r in refs:
         statuses[r["status"]] = statuses.get(r["status"], 0) + 1
+    # A reference nobody could check is not a verified one: offline runs,
+    # registry outages and identifier-less entries make the result INCOMPLETE,
+    # never PASS, so a release gate cannot mistake "not checked" for "clean".
+    unverified = sorted(r["key"] for r in refs
+                        if r["status"] == "offline"
+                        or any(f["code"] in UNVERIFIED_CODES for f in r.get("findings", [])))
+    errors = count("error")
+    if errors:
+        verdict = "FAIL"
+    elif report.get("offline") or unverified or not refs:
+        verdict = "INCOMPLETE"
+    else:
+        verdict = "PASS"
     return {
+        "verdict": verdict,
+        "unverified": unverified,
         "references": len(refs),
         "reference_status": statuses,
-        "errors": count("error"), "warnings": count("warning"), "info": count("info"),
+        "errors": errors, "warnings": count("warning"), "info": count("info"),
         "by_code": dict(sorted(by_code.items())),
         "retracted": sorted(r["key"] for r in refs
                             if any(f["code"] == "retracted" for f in r.get("findings", []))),
@@ -1197,25 +1305,76 @@ def summarise(report: dict) -> dict:
     }
 
 
-def gate(data: Any, base: Path, *, corpus: bool = False, offline: bool = False,
-         mailto: str = "", delay: float = 0.2, labels: Optional[dict] = None) -> dict:
-    """Verify, write ``<base>.citations.json|md``, print the errors; return the report.
+def sha256_file(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
-    The entry point the other scripts call: ``corpus=True`` takes a list of
-    corpus items and checks their metadata only (run before the review);
-    otherwise ``data`` is a review dict and in-text citations are checked too.
+
+def bind_inputs(paths: Iterable[Path]) -> dict:
+    """``{path: sha256}`` for every file a report vouches for."""
+    return {str(Path(p).resolve()): sha256_file(p) for p in paths if Path(p).is_file()}
+
+
+def stale_inputs(report: dict) -> list[str]:
+    """Inputs the report vouches for that changed or vanished since it was written."""
+    inputs = report.get("inputs") or {}
+    if not inputs:
+        return ["(report records no input hashes — written by an older verify_citations.py)"]
+    return [p for p, h in inputs.items() if not Path(p).is_file() or sha256_file(Path(p)) != h]
+
+
+def manuscript_inputs(md: Path, review_json: Optional[Path]) -> list[Path]:
+    """What a manuscript's report must cover: the text, the review, the authored sidecar."""
+    out = [md]
+    if review_json:
+        out.append(review_json)
+        stem = review_json.stem
+        out += [p for p in (review_json.with_name(f"{stem}.manuscript.json"),) if p.is_file()]
+    return out
+
+
+def review_for_markdown(md: Path) -> Optional[Path]:
+    """``review.manuscript.md`` / ``review.md`` → the ``review.json`` beside it, if any."""
+    stem = md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
+    js = md.with_name(f"{stem}.json")
+    return js if js.is_file() else None
+
+
+def gate(data: Any, base: Path, *, corpus: bool = False, manuscript: Optional[str] = None,
+         inputs: Iterable[Path] = (), offline: bool = False, mailto: str = "",
+         delay: float = 0.2, labels: Optional[dict] = None, registry: Any = None) -> dict:
+    """Verify, write ``<base>.citations.json|md``, print the outcome; return the report.
+
+    The entry point the other scripts call:
+
+    * ``corpus=True`` — ``data`` is a list of corpus items; their identifiers only;
+    * ``manuscript=<text>`` — ``data`` is the review dict and the text the
+      assembled manuscript (``verify_manuscript``);
+    * otherwise ``data`` is a review dict, references and in-text citations.
+
+    ``inputs`` are the files the report vouches for; their hashes are recorded
+    so a gate can refuse a report that no longer describes what ships.
     ``labels`` maps a reference key to what to print for it (a PDF's filename).
-    The caller fails on ``report["summary"]["errors"]``.
+    Callers act on ``report["summary"]["verdict"]``: anything but PASS blocks.
     """
     mailto = mailto or os.environ.get("SYNTHSCHOLAR_EMAIL") or os.environ.get("NCBI_EMAIL") or ""
-    reg = None if offline else Registry(mailto=mailto, delay=delay)
+    own = registry is None and not offline
+    reg = None if offline else (registry or Registry(mailto=mailto, delay=delay))
     try:
         v = Verifier(reg)
-        report = v.verify_references(data, mode="corpus") if corpus else v.verify_review(data)
+        if corpus:
+            report = v.verify_references(data, mode="corpus")
+        elif manuscript is not None:
+            # no review JSON to check it against: the Markdown's own DOIs and reference list
+            report = v.verify_manuscript(data, manuscript) if data else v.verify_markdown(manuscript)
+        else:
+            report = v.verify_review(data)
     finally:
-        if reg:
+        if reg and own:
             reg.close()
-    report = {"file": str(base), "offline": offline, **report}
+    report = {"file": str(base), "offline": offline,
+              "verified_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "inputs": bind_inputs(inputs), **report}
     report["summary"] = s = summarise(report)
     base.parent.mkdir(parents=True, exist_ok=True)
     Path(f"{base}.citations.json").write_text(json.dumps(report, indent=2, ensure_ascii=False),
@@ -1223,8 +1382,9 @@ def gate(data: Any, base: Path, *, corpus: bool = False, offline: bool = False,
     Path(f"{base}.citations.md").write_text(render_markdown(report, str(base)), encoding="utf-8")
 
     labels = labels or {}
-    print(f"Citations: {s['references']} reference(s) — {s['errors']} error(s), "
-          f"{s['warnings']} warning(s)" + (" [offline: syntax only]" if offline else ""))
+    print(f"Citations: {s['verdict']} — {s['references']} reference(s), {s['errors']} error(s), "
+          f"{s['warnings']} warning(s), {len(s['unverified'])} unverified"
+          + (" [offline: nothing checked against the registries]" if offline else ""))
     for r in report["references"]:
         for f in r.get("findings", []):
             if f["severity"] == "error":
@@ -1232,6 +1392,12 @@ def gate(data: Any, base: Path, *, corpus: bool = False, offline: bool = False,
     for f in report["in_text"] + report["review_findings"]:
         if f["severity"] == "error":
             print(f"  ERROR {f.get('location', 'review')}: {f['message']}")
+    if s["unverified"] and not offline:
+        shown = ", ".join(labels.get(k, k) for k in s["unverified"][:10])
+        print(f"  UNVERIFIED {len(s['unverified'])}: {shown}"
+              + (" …" if len(s["unverified"]) > 10 else "")
+              + " — lookup failed or no DOI/PMID; re-run when the registries answer, "
+                "or add the identifier from the paper")
     print(f"  report: {base}.citations.md")
     return report
 
@@ -1353,6 +1519,13 @@ def citation_order(review: dict, refs: list[dict]) -> list[str]:
 def render_markdown(report: dict, source: str) -> str:
     s = report["summary"]
     out = [f"# Citation verification — {Path(source).name}\n"]
+    out.append(f"**Verdict: {s.get('verdict', '?')}**"
+               + (" — nothing was checked against the registries (offline)" if report.get("offline")
+                  else f" — {len(s.get('unverified') or [])} reference(s) could not be checked"
+                  if s.get("unverified") else "") + "\n")
+    if s.get("unverified") and not report.get("offline"):
+        out.append("Unverified (lookup failed, or no DOI/PMID): "
+                   + ", ".join(f"`{k}`" for k in s["unverified"]) + "\n")
     out.append(f"**{s['errors']} error(s), {s['warnings']} warning(s), {s['info']} note(s)** "
                f"across {s['references']} reference(s).  ")
     out.append("Reference status: " + ", ".join(f"{k} {v}" for k, v in sorted(s["reference_status"].items())) + "\n")
@@ -1470,6 +1643,10 @@ def main() -> int:
                     help="also write a reference list in this style from verified metadata")
     ap.add_argument("--apply", metavar="OUT_JSON",
                     help="write a copy of the review with registry-confirmed fixes")
+    ap.add_argument("--review", metavar="REVIEW_JSON",
+                    help="for a Markdown manuscript: the review it was built from (default: "
+                         "<stem>.json beside it) — checks the manuscript against its included "
+                         "studies, with other reference-list entries verified as background")
     ap.add_argument("--strict", action="store_true", help="warnings also fail the exit code")
     ap.add_argument("--delay", type=float, default=0.2, help="seconds between Crossref calls")
     args = ap.parse_args()
@@ -1493,6 +1670,14 @@ def main() -> int:
     if (args.apply or args.style) and not is_json:
         print("--apply and --style need the review JSON", file=sys.stderr)
         return 2
+    review_json = None if is_json else (Path(args.review) if args.review else review_for_markdown(src))
+    if review_json:
+        try:
+            review = json.loads(review_json.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"{review_json}: unreadable ({e})", file=sys.stderr)
+            return 2
+        print(f"manuscript mode: checking {src.name} against {review_json.name}", file=sys.stderr)
 
     reg = None if args.offline else Registry(mailto=args.mailto, delay=args.delay)
     if reg and not args.mailto:
@@ -1501,7 +1686,9 @@ def main() -> int:
     v = Verifier(reg, check_updates=not args.no_retraction_check,
                  search_missing=not args.no_search)
     try:
-        report = v.verify_review(review) if is_json else v.verify_markdown(text)
+        report = (v.verify_review(review) if is_json
+                  else v.verify_manuscript(review, text) if review_json
+                  else v.verify_markdown(text))
         if args.check_urls and reg:
             prose = (" ".join(str(x[2]) for x in walk_prose(review) if isinstance(x[2], str))
                      if is_json else text)
@@ -1515,7 +1702,10 @@ def main() -> int:
         if reg:
             reg.close()
 
-    report = {"file": str(src), "offline": args.offline, **report}
+    inputs = [src] if is_json else manuscript_inputs(src, review_json)
+    report = {"file": str(src), "offline": args.offline,
+              "verified_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "inputs": bind_inputs(inputs), **report}
     report["summary"] = summarise(report)
 
     outdir = Path(args.outdir) if args.outdir else src.parent
@@ -1535,7 +1725,10 @@ def main() -> int:
     Path(f"{base}.citations.md").write_text(render_markdown(report, str(src)), encoding="utf-8")
 
     s = report["summary"]
-    print(f"\n{s['references']} reference(s): "
+    print(f"\nVerdict: {s['verdict']}"
+          + (f" — {len(s['unverified'])} reference(s) unverified" if s["unverified"] else ""),
+          file=sys.stderr)
+    print(f"{s['references']} reference(s): "
           + ", ".join(f"{k} {n}" for k, n in sorted(s["reference_status"].items()))
           + f" | {s['errors']} error(s), {s['warnings']} warning(s)", file=sys.stderr)
     for code, n in s["by_code"].items():
@@ -1544,7 +1737,9 @@ def main() -> int:
     if args.style:
         print(f"references: {base}.references.{args.style}.md", file=sys.stderr)
 
-    return 1 if s["errors"] or (args.strict and s["warnings"]) else 0
+    if s["verdict"] == "PASS" and args.strict and s["warnings"]:
+        return 1
+    return EXIT[s["verdict"]]
 
 
 if __name__ == "__main__":

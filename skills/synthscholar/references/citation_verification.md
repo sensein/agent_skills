@@ -12,12 +12,64 @@ python scripts/verify_citations.py out/review.json                      # gate
 python scripts/verify_citations.py out/review.json --apply out/review.verified.json
 python scripts/verify_citations.py out/review.json --style vancouver    # + reference list
 python scripts/verify_citations.py out/review.json --offline            # no network
+python scripts/verify_citations.py out/review.manuscript.md            # the delivered manuscript
 python scripts/verify_citations.py manuscript.md --check-urls           # any Markdown
 ```
 
 Output: `<base>.citations.md` (show this to the user), `<base>.citations.json`
-(machine-readable, every registry record it compared against). Exit `0` = no
-errors, `1` = errors (or warnings under `--strict`), `2` = bad input.
+(machine-readable, every registry record it compared against).
+
+## Verdict and release
+
+Every report ends in one verdict, and only **PASS** is releasable:
+
+| Verdict | Meaning | Exit |
+| --- | --- | --- |
+| PASS | every reference checked against its registry, no errors | 0 |
+| FAIL | at least one error (wrong-paper DOI, unregistered id, retraction, a cited study that is excluded or unknown, …) | 1 |
+| INCOMPLETE | no errors, but something was not checked: `--offline`, a registry lookup that failed, a reference with no DOI or PMID, or nothing to check | 3 |
+
+INCOMPLETE is not a pass. A registry outage or an offline run produces no
+errors, and before the verdict existed that looked clean. `summary.unverified`
+lists the references that could not be checked: re-run when the registries
+answer, or add the identifier from the paper. `--strict` additionally fails a
+PASS that carries warnings. Exit `2` = bad input.
+
+The report records the SHA-256 of every input it vouches for (`inputs`). It
+describes those bytes and nothing else: edit any of them and it is stale.
+
+**This applies to every review, whatever its search.** Reviews from the hosted
+app's online database search and reviews over supplied PDFs pass the same gates:
+
+| Step | Gate |
+| --- | --- |
+| `build_corpus.py --check`, start of `run_local_review.py` (supplied PDFs) | the corpus identifiers: anything but PASS stops the run before LLM spend |
+| `export_review.py`, end of `run_local_review.py` | the exported `review.json`: exit 1 unless PASS (the export is then a draft) |
+| `generate_review_pdf.py` | the **delivered manuscript** (below): no PDF unless PASS and current |
+
+### Manuscript mode
+
+A Markdown file with its `review.json` beside it (`review.manuscript.md`,
+`review.md`), or named with `--review`, is checked against the review it was
+built from. The Discussion, the prior-review comparison and the figure
+interpretations are written into `review.manuscript.json` after the export, so
+they exist only in the manuscript. Verifying `review.json` alone never sees them.
+
+- Every included study is verified as in review mode (`role: included`).
+- Every reference-list entry that is not an included study is verified as
+  **background** literature (`role: background`): it must resolve, and its DOI
+  must belong to the paper the line names.
+- In the prose, a PMID/DOI must be an included study or a background reference.
+  An id that is neither (`citation-unknown`) or a screened-out study cited as
+  evidence (`citation-excluded`) is an error; listing it in the References as
+  background is how a legitimate background citation is declared.
+
+The report (`review.manuscript.citations.json`) binds the manuscript Markdown,
+`review.json` and `review.manuscript.json`. `generate_review_pdf.py` re-verifies
+when it is missing or any of the three has changed, and refuses to build on
+anything but PASS. `--allow-citation-errors` builds anyway and prints a
+"Citations not verified" notice on the first page of the body: use it only when
+the user accepts an unverified document, and say so when you hand it over.
 
 Set `SYNTHSCHOLAR_EMAIL` (or `--mailto`): Crossref's polite pool and NCBI both
 want a contact address. `NCBI_API_KEY` raises the PubMed rate limit. Cost is

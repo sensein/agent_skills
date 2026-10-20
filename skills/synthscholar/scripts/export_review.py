@@ -202,8 +202,8 @@ def write_exports(result, outdir: str | Path, formats: list[str], base: str = "r
 
 
 def check_citations(result, outdir: str | Path, base: str = "review",
-                    offline: bool = False) -> int:
-    """Verify the exported review's citations; return the error count.
+                    offline: bool = False) -> str:
+    """Verify the exported review's citations; return the verdict (PASS/FAIL/INCOMPLETE).
 
     Every included study's DOI/PMID against Crossref/PubMed, and every PMID,
     DOI and author–year citation in the generated text against the included
@@ -216,13 +216,28 @@ def check_citations(result, outdir: str | Path, base: str = "review",
     try:
         from verify_citations import gate
     except ImportError as e:
-        print(f"\n  FAIL  citation check needs httpx ({e}): `pip install httpx`, "
-              "or rerun with --offline-citations")
-        return 1
+        print(f"\n  FAIL  citation check needs httpx ({e}): `pip install httpx`")
+        return "INCOMPLETE"
     review = json.loads(result.model_dump_json())
     print()
-    report = gate(review, Path(outdir) / base, offline=offline)
-    return report["summary"]["errors"]
+    exported = Path(outdir) / f"{base}.json"
+    report = gate(review, Path(outdir) / base, offline=offline,
+                  inputs=[exported] if exported.is_file() else [])
+    return report["summary"]["verdict"]
+
+
+def citation_outcome(verdict: str) -> int:
+    """Print what a non-PASS verdict means for delivery; return the exit code."""
+    if verdict == "PASS":
+        return 0
+    if verdict == "FAIL":
+        print("\n✗ Citation errors — fix them (references/citation_verification.md) "
+              "before handing the review over.")
+    else:
+        print("\n✗ Citations INCOMPLETE — some references could not be checked (offline, a "
+              "registry lookup failed, or no DOI/PMID). The export is a draft until a "
+              "verification run returns PASS.")
+    return 1
 
 
 def template_check(review_path: Path, page_limit: int | None, template: str) -> int:
@@ -590,7 +605,8 @@ def main() -> int:
     ap.add_argument("--skip-citation-check", action="store_true",
                     help="don't verify citations after exporting (verify_citations.py)")
     ap.add_argument("--offline-citations", action="store_true",
-                    help="verify citations without registry lookups (syntax + in-text only)")
+                    help="verify citations without registry lookups (syntax + in-text only; "
+                         "the verdict is then INCOMPLETE, so the export stays a draft)")
     args = ap.parse_args()
 
     _require_synthscholar()
@@ -626,11 +642,8 @@ def main() -> int:
     if args.skip_citation_check:
         print("\nCitations NOT verified (--skip-citation-check).")
         return 0
-    if check_citations(result, args.outdir, args.base, offline=args.offline_citations):
-        print("\n✗ Citation errors — fix them (references/citation_verification.md) "
-              "before handing the review over.")
-        return 1
-    return 0
+    return citation_outcome(check_citations(result, args.outdir, args.base,
+                                            offline=args.offline_citations))
 
 
 if __name__ == "__main__":

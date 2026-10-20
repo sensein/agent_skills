@@ -196,8 +196,10 @@ python scripts/check_writing.py out/review.manuscript.md
 
 # 8. PDF — Markdown → LaTeX → PDF (the .tex is kept), in the ACM journals
 #    layout (acmart acmsmall, bundled in assets/acmart/). Refuses past
-#    page_limit (estimated before rendering, counted after), and while
-#    out/review.citations.json has errors or is older than review.json.
+#    page_limit (estimated before rendering, counted after), and unless the
+#    manuscript's citation verdict is PASS: it (re-)verifies the manuscript
+#    itself, and the report is bound by hash to review.manuscript.md,
+#    review.json and review.manuscript.json, so a later edit is re-checked.
 python scripts/generate_review_pdf.py out/review.manuscript.md
 # Existing reviews with no PDF yet (or an outdated one): find and build them all
 python scripts/generate_review_pdf.py --batch out/ ~/reviews/
@@ -375,8 +377,14 @@ Hard rules:
   rewriting, re-run the checker until it reports no errors, then re-export
   and re-verify citations. The checker catches patterns, not argument, so
   read the prose through once as well.
-- **Verify citations before handing the review over.** Run
-  `verify_citations.py` on `review.json` after every export. It resolves each
+- **Verify citations before handing the review over** — for every review,
+  online search or supplied PDFs alike. Only a **PASS** verdict is releasable:
+  FAIL means errors, INCOMPLETE means something was not checked (offline, a
+  failed registry lookup, a reference with no identifier), and neither is
+  "verified". The exporters run the check after every export; verify the
+  assembled manuscript too (`verify_citations.py review.manuscript.md`, which
+  the PDF build does itself), since the Discussion and other authored prose
+  exist only there. It resolves each
   included article's DOI and PMID against Crossref / DataCite / PubMed, compares
   the registered title, author and year with the review's, flags retractions,
   and checks that every PMID, DOI and author–year citation in the generated
