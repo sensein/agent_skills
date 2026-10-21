@@ -6,6 +6,9 @@ check into "not checked" (or, in older code, into "passed"). So the agent runs
 this first, asks the user to install whatever is missing (the commands are
 printed), installs on their confirmation, and re-runs it until it passes.
 
+Every Python library is in ``requirements.txt`` (``pip install -r
+requirements.txt``); the SynthScholar package itself is vendored in the skill.
+
 Usage:
     python check_deps.py                 # everything a review needs, end to end
     python check_deps.py --for verify    # one stage: corpus|review|verify|pdf|query|tests
@@ -26,8 +29,8 @@ DEPS = [
     ("httpx", "py", "httpx", "pip install httpx",
      {"corpus", "review", "verify", "pdf", "fetch"},
      "registry lookups: verify_citations, audit_grounding, corpus and export gates, PDF gate"),
-    ("synthscholar (dev checkout)", "py", "synthscholar.text_windows",
-     "pip install -e /path/to/prisma-review-agent", {"review", "pdf"},
+    ("synthscholar (vendored in the skill)", "vendored", "synthscholar.text_windows",
+     "restore the skill folder: vendor/synthscholar is part of it (vendor/VENDORED.md)", {"review", "pdf"},
      "the app's pipeline and exporters: run_local_review, export_review, extract_evidence, and the "
      "appendix check (sidecars are re-rendered from review.json before delivery)"),
     ("rapidfuzz", "py", "rapidfuzz", "pip install 'rapidfuzz>=3.0'", {"review"},
@@ -59,6 +62,9 @@ def present(kind: str, check: str) -> bool:
             return importlib.util.find_spec(check) is not None
         except (ImportError, ValueError):
             return False
+    if kind == "vendored":
+        vendor = Path(__file__).resolve().parent.parent / "vendor"
+        return (vendor / Path(*check.split("."))).with_suffix(".py").is_file()
     if kind == "bin":
         return shutil.which(check) is not None
     # any PDF engine generate_review_pdf.py can use

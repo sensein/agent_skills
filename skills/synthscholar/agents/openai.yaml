@@ -37,14 +37,12 @@ dependencies:
     pdf_engine: "one of xelatex, lualatex, tectonic, pdflatex, typst, weasyprint, wkhtmltopdf, prince — lightest: conda install -c conda-forge typst (or tectonic)"
     fc-list: "optional; picks a Unicode font for TeX engines — part of fontconfig (brew install fontconfig | apt-get install fontconfig)"
 
-  # The application this skill drives. The released package on PyPI (0.0.11)
-  # predates the whole-document reading, full-text-based eligibility screening,
-  # and retrieval/screening provenance that Mode 3 records, so the pipeline and
-  # export scripts require the development checkout and refuse to run without
-  # it rather than silently dropping those fields.
+  # The package this skill drives is vendored: vendor/synthscholar (see
+  # vendor/VENDORED.md). Nothing is installed from the application repository;
+  # PyPI's synthscholar 0.0.11 predates features the skill needs and is not used.
   synthscholar:
-    released: "pip install 'synthscholar[fulltext]'   # sufficient for Modes 1-2"
-    development: "pip install -e /path/to/prisma-review-agent   # required for Mode 3"
+    vendored: "vendor/synthscholar — part of the skill, imported first by the scripts"
+    libraries: "pip install -r requirements.txt"
 
   # Which scripts need which of the above.
   scripts:
@@ -54,8 +52,8 @@ dependencies:
     ezproxy_login.py: "playwright + Chrome/Edge (or playwright's Chromium); saves the session under ~/.config/synthscholar"
     oa_client.py: "httpx; vendored Unpaywall/OpenAlex/Semantic Scholar DOI chain, imported by fetch_ezproxy.py"
     ezproxy_client.py: "httpx; vendored EZproxy client, used when synthscholar.ezproxy is absent"
-    run_local_review.py: "synthscholar development checkout + OPENROUTER_API_KEY"
-    export_review.py: "synthscholar development checkout"
+    run_local_review.py: "vendored synthscholar + requirements.txt + OPENROUTER_API_KEY"
+    export_review.py: "vendored synthscholar + requirements.txt"
     update_provenance.py: "synthscholar (models only)"
     check_writing.py: "stdlib only"
     review_figures.py: "stdlib only (SVG)"

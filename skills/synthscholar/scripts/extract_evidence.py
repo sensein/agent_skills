@@ -73,6 +73,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from grounding_core import (  # noqa: E402
     UNGROUNDED, check_page, check_section, is_absent, missing_quantities, norm, rubric_for,
     source_text, text_sha256, unpaired, verbatim,

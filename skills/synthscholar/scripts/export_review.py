@@ -47,14 +47,17 @@ question-first into md / json / ttl / jsonld — an appendix, a
 do that themselves, so it holds for any review; ``--rq-themes`` relabels the
 sections when the protocol's questions carry no theme of their own.
 
-Requires the ``synthscholar`` package importable (``pip install synthscholar``
-or run from a checkout).
+Uses the skill's own copy of the ``synthscholar`` package (``vendor/``, see
+``vendor/VENDORED.md``); its libraries: ``pip install -r requirements.txt``.
 """
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
 
 ALL_FORMATS = [
     "md", "ttl", "jsonld", "json", "bib",
@@ -96,8 +99,7 @@ def _require_synthscholar():
     except ImportError as e:
         print(
             f"synthscholar is not importable ({e}).\n"
-            "Install it with `pip install synthscholar` (add the [fulltext] extra "
-            "for PDF parsing) or run this script from a checkout of the repo.",
+            "the skill's own copy is vendor/synthscholar (vendor/VENDORED.md); install its libraries with `pip install -r requirements.txt`.",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -120,9 +122,9 @@ def _require_synthscholar():
             + "\n  ".join(missing)
             + "\n\nPydantic discards unknown fields silently, so exports would look "
               "complete while recording nothing about which reports were retrieved "
-              "or whether each decision was made on the full text. Install the "
-              "development checkout instead:\n"
-              "  pip install -e /path/to/prisma-review-agent",
+              "or whether each decision was made on the full text. The skill's own "
+              "copy (vendor/synthscholar) has these fields: restore the skill folder "
+              "if that copy is missing or was replaced (vendor/VENDORED.md).",
             file=sys.stderr,
         )
         raise SystemExit(3)

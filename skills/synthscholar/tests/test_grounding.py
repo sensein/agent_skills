@@ -722,3 +722,20 @@ def test_extraction_refuses_without_rapidfuzz(monkeypatch):
     with pytest.raises(SystemExit) as e:
         ee._deps({}, type("A", (), {"api_key": "k", "model": "m"})())
     assert "rapidfuzz" in str(e.value)
+
+
+# ── self-contained ───────────────────────────────────────────────────
+
+def test_the_skill_imports_its_own_synthscholar():
+    import _vendor
+    import synthscholar
+    assert Path(synthscholar.__file__).resolve().is_relative_to(_vendor.VENDOR.resolve())
+    import synthscholar.text_windows  # noqa: F401  (whole-document reading: not in PyPI 0.0.11)
+    from synthscholar.models import PRISMAFlowCounts
+    assert "assessed_on_full_text" in PRISMAFlowCounts.model_fields
+
+
+def test_no_script_tells_anyone_to_install_the_application():
+    root = SCRIPTS.parent
+    for f in [root / "SKILL.md", root / "README.md", *SCRIPTS.glob("*.py"), *(root / "references").glob("*.md")]:
+        assert "pip install -e /path/to/prisma-review-agent" not in f.read_text(), f.name

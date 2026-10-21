@@ -51,6 +51,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
 # Sibling helper — the single export surface for both BYO-corpus paths.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from export_review import ALL_FORMATS, check_citations, citation_outcome, write_exports  # noqa: E402
@@ -577,13 +580,12 @@ def main() -> int:
     try:
         import synthscholar  # noqa: F401
     except ImportError as e:
-        print(f"synthscholar is not importable ({e}). "
-              "`pip install 'synthscholar[fulltext]'`", file=sys.stderr)
+        print(f"synthscholar is not importable ({e}): the skill's own copy is vendor/synthscholar (vendor/VENDORED.md); install its libraries with `pip install -r requirements.txt`.", file=sys.stderr)
         return 2
 
-    # This path drives the app's own pipeline, so it needs the whole-document
-    # reading and screening-basis work — not just the released package. Checked
-    # by feature rather than version, and before any LLM spend.
+    # This path drives the pipeline (the skill's vendored copy), which must have
+    # the whole-document reading and screening-basis work. Checked by feature
+    # rather than version, and before any LLM spend.
     from export_review import _require_synthscholar
     _require_synthscholar()
     try:
@@ -591,8 +593,8 @@ def main() -> int:
     except ImportError:
         print("The installed synthscholar has no synthscholar/text_windows.py, so "
               "evidence extraction would read only the opening pages of each "
-              "article. Install the development checkout:\n"
-              "  pip install -e /path/to/prisma-review-agent", file=sys.stderr)
+              "article. The skill's own copy (vendor/synthscholar) has it: restore "
+              "the skill folder (vendor/VENDORED.md).", file=sys.stderr)
         return 3
     # The app scores every span as grounded when rapidfuzz is missing; the skill
     # does not run the pipeline in that state.

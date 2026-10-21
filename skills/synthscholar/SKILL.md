@@ -581,7 +581,7 @@ dependencies (`docling`, `playwright`, `psycopg`) may be skipped.
 | `query_sparql.py` | `rdflib` | `python -c "import rdflib"` | `pip install rdflib` |
 | `query_postgres.py`, `backfill_full_text.py` | `psycopg` | `python -c "import psycopg"` | `pip install "psycopg[binary]>=3.1"` |
 | `build_corpus.py` | `pymupdf`; `docling` optional | `python -c "import fitz"` | `pip install pymupdf` (+ `pip install docling` for scans/tables) |
-| `export_review.py`, `run_local_review.py`, `update_provenance.py` | `synthscholar` dev checkout | the script refuses with a message | `pip install -e /path/to/prisma-review-agent` (ask for the path) |
+| `export_review.py`, `run_local_review.py`, `update_provenance.py`, `extract_evidence.py`, `backfill_full_text.py` | the `synthscholar` package — **vendored in the skill** (`vendor/synthscholar`), nothing to install | `python scripts/check_deps.py` | its libraries: `pip install -r requirements.txt` |
 | `generate_review_pdf.py` | `pandoc` + a **TeX engine** (xelatex, lualatex, pdflatex or tectonic) for the ACM layout; `rsvg-convert` (or `cairosvg`/`typst`) to convert SVG figures for TeX; `fc-list` optional. Without TeX: `typst` or an HTML engine, plain layout only | `python scripts/generate_review_pdf.py --check-deps` (also finds a TeX Live/MacTeX install that is not on `PATH`) | TeX: `brew install --cask mactex-no-gui` (macOS), `apt-get install texlive-xetex texlive-fonts-extra texlive-latex-extra` (Debian/Ubuntu), or `conda install -c conda-forge tectonic` (smallest; fetches packages once into its cache). Then `conda install -c conda-forge pandoc librsvg` (or `brew install pandoc librsvg`). The ACM class itself is bundled in `assets/acmart/` |
 | `validate_protocol.py`, `research_questions.py`, `check_writing.py`, `review_figures.py`, `assemble_manuscript.py`, `check_deps.py` | stdlib | — | — |
 
@@ -589,18 +589,20 @@ Network services (Crossref, PubMed, Unpaywall) and `OPENROUTER_API_KEY` are
 not installs: mention them if a run will need them, and ask the user for any
 key. Never invent one.
 
-All live in [scripts/](scripts/). Run them from an environment where the
-project's deps are importable (`rdflib` for SPARQL, `psycopg[binary]>=3.1` for
-SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`). The
-Mode 3 scripts need `synthscholar` importable too — plus `pymupdf` for PDF text
-and `OPENROUTER_API_KEY` for `run_local_review.py`. `docling` is the first
+All live in [scripts/](scripts/). **The skill is self-contained**: the
+SynthScholar package it drives is vendored in `vendor/synthscholar`
+([vendor/VENDORED.md](vendor/VENDORED.md): source commit, licence), and the
+scripts import that copy first. No application checkout, `pip install -e` or
+`PYTHONPATH` is needed. Every Python library is in `requirements.txt`
+(`pip install -r requirements.txt`); `OPENROUTER_API_KEY` is needed for the
+model-calling steps. `docling` is the first
 extraction backend `build_corpus.py` reaches for; without it the script says so
 and uses the PyMuPDF chain, and `--no-docling` skips it deliberately.
 
-**`export_review.py` and `run_local_review.py` need the development checkout,
-not the released package** — `pip install -e /path/to/prisma-review-agent`. The
-PyPI build predates the whole-document reading and screening-basis provenance,
-and they refuse to run on it rather than silently dropping those fields.
+The vendored copy, not PyPI's `synthscholar` 0.0.11, is what the skill runs:
+that release predates the whole-document reading and screening-basis
+provenance. The scripts check those features and refuse to run without them
+rather than silently dropping the fields.
 `fetch_ezproxy.py` and `verify_citations.py` work anywhere — they need only `httpx`, since the skill
 vendors both `scripts/oa_client.py` (the open-access DOI chain) and
 `scripts/ezproxy_client.py` (`synthscholar.ezproxy` ships only in the checkout).

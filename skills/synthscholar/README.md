@@ -144,24 +144,23 @@ python scripts/query_postgres.py get-content --pmid 39012345
 python scripts/backfill_full_text.py
 ```
 
-## Which SynthScholar build you need
+## Self-contained
 
-Modes 1 and 3's corpus/EZproxy steps run anywhere. **Everything that touches the
-review pipeline or the provenance fields needs the development checkout, not the
-released package** — PyPI's latest (0.0.11) predates the whole-document reading,
-full-text screening and retrieval-provenance work:
+The skill carries the SynthScholar package it drives: `vendor/synthscholar`, an
+unmodified copy pinned to a recorded application commit
+([vendor/VENDORED.md](vendor/VENDORED.md), Apache-2.0). The scripts import that
+copy first, ahead of any installed `synthscholar`. Nothing is installed from the
+application repository, and no `PYTHONPATH` is set. The only installs are
+third-party libraries:
 
 ```bash
-pip install -e /path/to/prisma-review-agent    # the checkout, not `pip install synthscholar`
+pip install -r requirements.txt
+python scripts/check_deps.py
 ```
 
-| Script | Runs on released 0.0.11? |
-| --- | --- |
-| `validate_protocol.py`, `build_corpus.py`, `update_provenance.py` | yes — no app import, or models only |
-| `fetch_ezproxy.py` | yes — the skill vendors `oa_client.py` and `ezproxy_client.py`, so it needs only `httpx` |
-| `export_review.py`, `run_local_review.py` | **no** — they refuse to run and say what's missing |
-
-That refusal is deliberate. Pydantic drops unknown fields silently, so an older
+PyPI's `synthscholar` 0.0.11 is not used: it predates the whole-document
+reading, full-text screening and retrieval-provenance work. If the vendored
+copy is missing or replaced, the scripts refuse to run. Pydantic drops unknown fields silently, so an older
 package would accept a review and quietly discard `assessed_on`,
 `full_text_retrieved`, `full_text_sources` and the rest — producing an export
 that looks complete but records nothing about what was actually read. The check
@@ -172,11 +171,11 @@ is by feature, not version string (the package's `__version__` and its
 
 - SPARQL scripts: `rdflib`.
 - SQL scripts: `psycopg[binary]>=3.1`.
-- Backfill: the `synthscholar` package importable, and migration 006 applied.
+- Backfill: migration 006 applied (the package is vendored).
 - BYO corpus: `pip install docling` (the first extraction backend — layout and
-  table-structure models plus OCR, the only one that reads a scanned PDF) and
-  `pip install 'synthscholar[fulltext]'` (adds `pymupdf`, the fallback chain and
-  what `--no-docling` leaves you with). `run_local_review.py` also needs
+  table-structure models plus OCR, the only one that reads a scanned PDF);
+  `pymupdf` (in `requirements.txt`) is the fallback chain and what
+  `--no-docling` leaves you with. `run_local_review.py` also needs
   `OPENROUTER_API_KEY`; without a key,
   the agent authors the result JSON itself and `export_review.py` serialises it
   through the same exporters.

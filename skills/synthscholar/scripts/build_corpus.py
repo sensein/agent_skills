@@ -81,6 +81,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
 # Fields the review pipeline genuinely needs per article. `abstract` is not
 # strictly required (title/abstract screening falls back to the full text)
 # but a missing abstract measurably weakens screening, so it is requested.

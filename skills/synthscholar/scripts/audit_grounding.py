@@ -912,7 +912,8 @@ def audit_sidecars(review_json: Path, md: str, md_path: Path, findings: list) ->
     except (Exception, SystemExit) as e:  # synthscholar missing, or the review does not load
         findings.append(f_("sidecar-unverifiable", "unresolved", md_path.name,
                            f"appendices cannot be re-rendered from {review_json.name} ({e!r:.160}); "
-                           "install the synthscholar dev checkout (check_deps.py) and export a valid review"))
+                           "install the skill's libraries (pip install -r requirements.txt; check_deps.py) "
+                           "and export a valid review"))
         return {"sidecars": len(marks)}
     for name in to_render:
         if rendered.get(name) != md_path.with_name(name).read_text(encoding="utf-8"):

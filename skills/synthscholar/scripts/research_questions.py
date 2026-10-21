@@ -36,6 +36,9 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
 try:  # canonical implementation — shared with the package's own exporters
     from synthscholar.research_questions import (  # noqa: F401
         APPENDIX_TITLE, add_to_graph, build_index, merge_json, merge_markdown,
@@ -47,8 +50,8 @@ except ImportError:  # pragma: no cover - only on a synthscholar predating it
 _STALE = (
     "The installed synthscholar has no research_questions module, so the "
     "exports carry the charted answers only inside each study's custom_fields.\n"
-    "Install the development checkout to get the question-first view:\n"
-    "  pip install -e /path/to/prisma-review-agent"
+    "The skill's own copy (vendor/synthscholar) has it: restore the skill folder "
+    "(vendor/VENDORED.md) to get the question-first view."
 )
 
 
