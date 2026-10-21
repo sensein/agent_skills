@@ -47,7 +47,9 @@ Commands (``REVIEW`` is a ``PRISMAReviewResult`` JSON):
     with a detectable heading, is left as is and reported.
 
 ``apply REVIEW --out GROUNDED``
-    Write a copy of the review with every ungrounded value removed: text
+    Write a copy of the review with every included study that has no full text
+    removed (moved to "reports not retrieved": a study read only as an abstract
+    cannot be evaluated) and every ungrounded value removed: text
     fields become "NR (not source-grounded)", list entries, appraisal items,
     risk-of-bias domains and GRADE domains are dropped, and a GRADE outcome
     with a dropped domain is "Not assessed". What was removed is listed in
@@ -331,7 +333,77 @@ def apply_grounding(review: dict, verified: list[dict]) -> tuple[dict, list[dict
             for i in sorted(idxs, reverse=True):     # from the end, so indices stay valid
                 if i < len(parent):
                     parent.pop(i)
+    removed += drop_without_full_text(out)
     return out, removed
+
+
+def drop_without_full_text(review: dict) -> list[dict]:
+    """Full evaluation on full text only: remove included studies without it.
+
+    Title/abstract screening may use abstracts. Eligibility and everything after
+    it — charting, appraisal, synthesis — needs the report itself, so a study
+    read only as an abstract is a report not retrieved (PRISMA 2020), not an
+    included study. Its rubric, appraisal, narrative row and spans go with it,
+    and the flow is recomputed (``full_text_flow``). Mutates ``review``;
+    returns what was removed.
+    """
+    arts = {str(a.get("pmid")): a for a in review.get("included_articles") or []}
+    gone = {pid for pid, a in arts.items() if not (a.get("full_text") or "").strip()}
+    if gone:
+        rub = rubric_for(review, arts)
+        sids = {str(rub[p].get("source_id")) for p in gone if p in rub and rub[p].get("source_id")}
+        gone_rubrics = {id(rub[p]) for p in gone if p in rub}
+        review["included_articles"] = [a for a in review["included_articles"] if str(a.get("pmid")) not in gone]
+        review["evidence_spans"] = [s for s in review.get("evidence_spans") or []
+                                    if str(s.get("paper_pmid")) not in gone]
+        review["data_charting_rubrics"] = [r for r in review.get("data_charting_rubrics") or []
+                                           if id(r) not in gone_rubrics]
+        for key in ("structured_appraisal_results", "critical_appraisals", "narrative_rows"):
+            if review.get(key):
+                review[key] = [x for x in review[key] if str(x.get("source_id")) not in sids]
+    full_text_flow(review, dropped=len(gone))
+    return [{"kind": "study", "study": pid, "label": "included study",
+             "value": arts[pid].get("title", ""),
+             "reason": "no full text: judged on its abstract only, so it was never fully evaluated; "
+                       "counted as a report not retrieved"} for pid in sorted(gone)]
+
+
+def full_text_flow(review: dict, dropped: int = 0) -> None:
+    """Recompute the eligibility half of the PRISMA flow for full-text-only evaluation.
+
+    An eligibility decision made on an abstract was not a full evaluation, so
+    that report counts as not retrieved, whether the decision was include or
+    exclude. Only decisions on the full text count as assessed / excluded.
+    sought − not retrieved = assessed; assessed − excluded = included.
+    """
+    flow = review.get("flow")
+    if not isinstance(flow, dict):
+        return
+    log = review.get("screening_log") or []
+    ft = [e for e in log if str(e.get("stage", "")).endswith("full_text")]
+    on_text = [e for e in ft if e.get("assessed_on", "full_text") != "abstract_only"]
+    excluded = [e for e in on_text if str(e.get("decision", "")).lower() == "exclude"]
+    n_inc = len(review.get("included_articles") or [])
+    if ft:
+        flow["assessed_eligibility"] = len(on_text)
+        flow["excluded_eligibility"] = len(excluded)
+        flow["assessed_on_full_text"] = len(on_text)
+        reasons: dict[str, int] = {}
+        for e in excluded:
+            r = (e.get("reason") or "Unspecified")[:80]
+            reasons[r] = reasons.get(r, 0) + 1
+        flow["excluded_reasons_full_text"] = dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:12])
+    else:
+        flow["assessed_eligibility"] = n_inc + int(flow.get("excluded_eligibility") or 0)
+    flow["assessed_on_abstract_only"] = 0
+    flow["included_synthesis"] = n_inc
+    flow["included_with_full_text"] = n_inc
+    flow["included_abstract_only"] = 0
+    sought = int(flow.get("sought_fulltext") or 0)
+    if sought:
+        flow["not_retrieved"] = max(0, sought - flow["assessed_eligibility"])
+    else:   # no sought count to derive it from: the dropped studies were not retrieved
+        flow["not_retrieved"] = int(flow.get("not_retrieved") or 0) + dropped
 
 
 def _get(node: Any, path: list) -> Any:

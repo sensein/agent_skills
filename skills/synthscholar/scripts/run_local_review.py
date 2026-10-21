@@ -332,7 +332,22 @@ async def run(args: argparse.Namespace) -> int:
     articles = build_articles(corpus)
     protocol = build_protocol(args.protocol, provenance)
     queries = describe_searches(provenance)
-    flow = build_flow(articles, provenance)
+    flow = build_flow(articles, provenance)     # identification counts every supplied entry
+
+    # Full text only: a study whose report could not be read cannot be screened
+    # on eligibility, charted, appraised or quoted, so it is a report not
+    # retrieved (PRISMA 2020), never a study judged on its abstract.
+    unreadable = [a for a in articles if not (a.full_text or "").strip()]
+    articles = [a for a in articles if (a.full_text or "").strip()]
+    if unreadable:
+        print(f"Full text: {len(unreadable)} entr{'y has' if len(unreadable) == 1 else 'ies have'} no "
+              "extracted text — counted as reports not retrieved and left out of screening: "
+              + ", ".join(a.pmid for a in unreadable[:8]) + (" …" if len(unreadable) > 8 else ""))
+        print("  OCR a scanned PDF, or fetch the paper (fetch_ezproxy.py), and rebuild the corpus "
+              "to include it.")
+    if not articles:
+        print("ERROR: no corpus entry has full text; there is nothing to review.", file=sys.stderr)
+        return 2
 
     n_ft = sum(1 for a in articles if (a.full_text or "").strip())
     print(f"Corpus:   {len(articles)} articles ({n_ft} with extracted full text)")
@@ -459,6 +474,16 @@ async def run(args: argparse.Namespace) -> int:
     overridden = apply_user_flow(result.flow, provenance)
     if overridden:
         print(f"Flow: user-declared counts applied for {', '.join(overridden)}")
+    if unreadable:
+        # supplied but unreadable reports: sought, not retrieved, never assessed
+        if "sought_fulltext" not in overridden:
+            result.flow.sought_fulltext += len(unreadable)
+        result.flow.not_retrieved += len(unreadable)
+        Path(args.outdir).mkdir(parents=True, exist_ok=True)
+        (Path(args.outdir) / f"{args.base}.not-retrieved.json").write_text(json.dumps(
+            {"reason": "no extracted full text; a study cannot be evaluated on its abstract",
+             "reports": [{"pmid": a.pmid, "title": a.title, "doi": a.doi} for a in unreadable]},
+            indent=2) + "\n", encoding="utf-8")
 
     # Re-stamp so per-group / post-run invocations are included.
     collector.stamp(result)

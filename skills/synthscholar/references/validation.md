@@ -27,6 +27,32 @@ Two questions are kept apart:
 A real citation is not a supported claim. Both reports must say PASS, for
 exactly the delivered text, before anything is released.
 
+## Full text for full evaluation
+
+Title/abstract screening may use abstracts, as in any review: that is how
+unsuitable records are set aside. **Full evaluation uses the full text only.**
+Eligibility, charting, appraisal, synthesis and everything delivered need the
+report itself, because a study cannot be evaluated from its abstract. A study
+whose full text was not obtained is a *report not retrieved* (PRISMA 2020).
+It is never assessed, never included, and never part of the synthesis.
+
+- **Supplied PDFs:** `run_local_review.py` keeps entries with no extracted
+  text out of the run. They are counted as sought and not retrieved, and
+  listed in `<base>.not-retrieved.json`. OCR the scan, or fetch the paper
+  (`fetch_ezproxy.py`), to include it.
+- **Any review, including one from the hosted app's online search** (which
+  may judge eligibility on an abstract when no full text was found):
+  `extract_evidence.py apply` removes every included study without full text,
+  with its charting, appraisal, narrative row and spans. It then recomputes the
+  flow so that only eligibility decisions made on the full text count as
+  assessed. A decision made on an abstract, include or exclude, makes that
+  report "not retrieved". The result: sought − not retrieved = assessed, and
+  assessed − excluded = included.
+- **Audit:** an included study without full text is an error
+  (`included-without-full-text`), so nothing is released while one remains.
+  The flow is also checked as sought − not retrieved = assessed, and the
+  screening log's full-text exclusions against the flow.
+
 ## Dependencies
 
 Every validation dependency is required. `scripts/check_deps.py` lists what is

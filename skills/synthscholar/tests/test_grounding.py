@@ -30,8 +30,9 @@ FULL = ("We decoded choices.\nMethods\nWe recruited 120 participants from two cl
 A = {"pmid": "local_a1", "doi": "10.1000/a", "title": "Decoding study A", "authors": "Doe J; Roe K",
      "year": "2023", "abstract": "We decoded choices.", "full_text": FULL,
      "full_text_retrieved_at": "2026-01-01T00:00:00Z"}
-B = {"pmid": "local_b2", "doi": "10.1000/b", "title": "Abstract-only study B", "authors": "Poe L",
-     "year": "2022", "abstract": "Follow-up of trial NCT01234567 with 40 patients.", "full_text": ""}
+B = {"pmid": "local_b2", "doi": "10.1000/b", "title": "Follow-up study B", "authors": "Poe L",
+     "year": "2022", "abstract": "Follow-up of trial NCT01234567 with 40 patients.",
+     "full_text": "Follow-up of trial NCT01234567 with 40 patients.\nMethods\nWe followed 40 patients for a year."}
 SPANS = [{"paper_pmid": "local_a1", "text": "accuracy of 91.2% on 120 participants", "section": "results",
           "doi": "10.1000/a"},
          {"paper_pmid": "local_b2", "text": "Follow-up of trial NCT01234567 with 40 patients.",
@@ -134,16 +135,16 @@ def test_a_count_of_articles_cannot_derive_patients(tmp_path):
 
 
 def test_a_derivation_that_matches_meaning_and_value_passes(tmp_path):
-    js = write_review(tmp_path, extra="Of the 2 included studies, 1 had full text (50%).")
+    js = write_review(tmp_path, extra="Of the 2 included studies, 2 had full text (100%).")
     init(js)
     has_ft = {"count": {"from": "included_articles", "where": {"full_text": {"empty": False}}}}
     judge(js, **{"91.2%": SUPPORTED,
                  "Of the 2": {"support": "derived", "derivations": [
                      {"value": "2", "metric": "included studies", "population": "included set",
                       "expr": {"count": {"from": "included_articles"}}},
-                     {"value": "1", "metric": "studies with full text", "population": "included set",
+                     {"value": "2", "metric": "studies with full text", "population": "included set",
                       "expr": has_ft},
-                     {"value": "50%", "metric": "share with full text", "population": "included set",
+                     {"value": "100%", "metric": "share with full text", "population": "included set",
                       "expr": {"percent": [has_ft, {"count": {"from": "included_articles"}}]}}]}})
     rep = run(js)
     assert rep["summary"]["verdict"] == "PASS", rep["findings"]
@@ -310,8 +311,6 @@ def test_every_study_needs_verbatim_evidence(tmp_path):
 @pytest.mark.parametrize("span,code", [
     ({"paper_pmid": "local_a1", "text": "the graph has 258.4 million edges", "section": "results"},
      "span-not-in-source"),
-    ({"paper_pmid": "local_b2", "text": "Follow-up of trial NCT01234567", "section": "results"},
-     "span-reading-basis"),
     ({"paper_pmid": "local_a1", "text": "accuracy of 91.2%", "section": "results", "doi": "10.1101/old"},
      "span-other-version"),
 ])
@@ -647,3 +646,71 @@ def test_dates_are_one_token_not_quantities():
     assert [q["text"] for q in gc.quantities("Searches ran on 2026-10-15; 12 of 40.")] == ["12", "40"]
     assert gc.verbatim("ran on 2026/10/15", "searches ran on 2026-10-15 daily")
     assert not gc.verbatim("ran on 2026-10-15", "searches ran on 2026-10-16 daily")
+
+
+
+# ── full text only ───────────────────────────────────────────────────
+
+def abstract_only(js: Path) -> None:
+    data = json.loads(js.read_text())
+    data["included_articles"][1]["full_text"] = ""
+    data["flow"].update(assessed_eligibility=2, excluded_eligibility=0, not_retrieved=0,
+                        assessed_on_abstract_only=1, included_abstract_only=1)
+    js.write_text(json.dumps(data))
+
+
+def test_an_included_study_without_full_text_blocks_delivery(js):
+    init(js)
+    judge(js, **{"91.2%": SUPPORTED})
+    abstract_only(js)
+    rep = run(js)
+    assert "included-without-full-text" in codes(rep) and rep["summary"]["verdict"] == "FAIL"
+
+
+def test_an_abstract_only_study_cannot_supply_later_sections(tmp_path):
+    js = write_review(tmp_path, spans=SPANS + [
+        {"paper_pmid": "local_b2", "text": "Follow-up of trial NCT01234567", "section": "results"}])
+    abstract_only(js)
+    init(js)
+    assert "span-reading-basis" in codes(run(js))
+
+
+def test_apply_moves_abstract_only_studies_to_not_retrieved(tmp_path):
+    js = rubric_review(tmp_path)
+    abstract_only(js)
+    data = json.loads(js.read_text())
+    data["data_charting_rubrics"].append({"source_id": "S-002", "title": "Follow-up study B", "doi": "10.1000/b"})
+    data["narrative_rows"] = [{"source_id": "S-001", "methods": "x"}, {"source_id": "S-002", "methods": "y"}]
+    out, removed = ee.apply_grounding(data, ee.verify_items(data, {"items": []}))
+    assert [a["pmid"] for a in out["included_articles"]] == ["local_a1"]
+    assert [r["source_id"] for r in out["data_charting_rubrics"]] == ["S-001"]
+    assert [r["source_id"] for r in out["narrative_rows"]] == ["S-001"]
+    assert all(s["paper_pmid"] != "local_b2" for s in out["evidence_spans"])
+    f = out["flow"]
+    assert (f["included_synthesis"], f["not_retrieved"], f["assessed_eligibility"], f["included_abstract_only"]) == (1, 1, 1, 0)
+    assert f["assessed_eligibility"] - f["excluded_eligibility"] == f["included_synthesis"]
+    assert any(r["kind"] == "study" and r["study"] == "local_b2" for r in removed)
+
+
+def test_corpus_entries_without_text_never_reach_the_pipeline():
+    import run_local_review as rl
+    src = Path(rl.__file__).read_text()
+    assert "unreadable = [a for a in articles if not (a.full_text or \"\").strip()]" in src
+    assert "articles = [a for a in articles if (a.full_text or \"\").strip()]" in src
+
+
+def test_eligibility_decided_on_abstracts_counts_as_not_retrieved():
+    log = ([{"pmid": f"f{i}", "stage": "full_text", "decision": "include", "assessed_on": "full_text"} for i in range(3)]
+           + [{"pmid": f"x{i}", "stage": "full_text", "decision": "exclude", "assessed_on": "full_text"} for i in range(2)]
+           + [{"pmid": f"a{i}", "stage": "full_text", "decision": "include", "assessed_on": "abstract_only"} for i in range(4)]
+           + [{"pmid": f"b{i}", "stage": "full_text", "decision": "exclude", "assessed_on": "abstract_only"} for i in range(5)])
+    review = {"included_articles": [{"pmid": f"f{i}", "full_text": "text"} for i in range(3)]
+              + [{"pmid": f"a{i}", "full_text": ""} for i in range(4)],
+              "screening_log": log,
+              "flow": {"sought_fulltext": 14, "not_retrieved": 9, "assessed_eligibility": 14,
+                       "excluded_eligibility": 7, "included_synthesis": 7, "assessed_on_abstract_only": 9}}
+    ee.drop_without_full_text(review)
+    f = review["flow"]
+    assert (f["assessed_eligibility"], f["excluded_eligibility"], f["included_synthesis"], f["not_retrieved"]) == (5, 2, 3, 9)
+    assert f["sought_fulltext"] - f["not_retrieved"] == f["assessed_eligibility"]
+    assert f["assessed_eligibility"] - f["excluded_eligibility"] == f["included_synthesis"]

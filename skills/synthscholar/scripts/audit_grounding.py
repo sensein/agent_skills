@@ -9,6 +9,8 @@ It runs over ``review.json`` and the **delivered** Markdown —
 styled references and appendices included), else ``<stem>.manuscript.md``,
 else ``<stem>.md`` — and checks:
 
+0. **Full text only.** Every included study must have its full text; one read
+   on the abstract alone cannot be evaluated and blocks delivery.
 1. **Evidence spans.** Each span is verbatim text of its paper (normalisation
    folds case, quotes, whitespace, hyphenation and separators, but keeps signs,
    decimals, comparators and %). It must come from a section actually read (an
@@ -194,6 +196,12 @@ def audit_spans(review: dict, arts: dict, findings: list, pages: Optional[dict] 
             findings.append(f_("span-other-version", "error", where,
                                f"extracted from DOI {sdoi}, but the study is now {adoi} — re-extract "
                                "(extract_evidence.py refresh)"))
+    for pid, a in arts.items():
+        if not (a.get("full_text") or "").strip():
+            findings.append(f_("included-without-full-text", "error", pid,
+                               "included but read on the abstract only: without its full text the study "
+                               "cannot be evaluated — retrieve it, or drop it (extract_evidence.py apply "
+                               "moves it to reports not retrieved)"))
     for pid in arts:
         if not verbatim_by_study[pid]:
             findings.append(f_("study-without-evidence", "error", pid,
@@ -327,6 +335,10 @@ def audit_numbers(review: dict, text: str, study_info: dict, findings: list) -> 
     if flow:
         need(g("included_synthesis") == n_inc, "flow-included-mismatch",
              f"flow.included_synthesis is {g('included_synthesis')}, but {n_inc} studies are included")
+        if g("sought_fulltext"):
+            need(g("sought_fulltext") - g("not_retrieved") == g("assessed_eligibility"), "flow-arithmetic",
+                 f"sought {g('sought_fulltext')} − not retrieved {g('not_retrieved')} ≠ assessed "
+                 f"{g('assessed_eligibility')}")
         if g("assessed_eligibility"):
             need(g("assessed_eligibility") - g("excluded_eligibility") == g("included_synthesis"),
                  "flow-arithmetic", f"assessed {g('assessed_eligibility')} − excluded "
@@ -337,7 +349,10 @@ def audit_numbers(review: dict, text: str, study_info: dict, findings: list) -> 
                  f"after deduplication {g('after_dedup')}", "warning")
         log = review.get("screening_log") or []
         if any(str(e.get("stage")).endswith("full_text") for e in log):
+            # only decisions on the full text are eligibility assessments; one made on
+            # an abstract is a report not retrieved (full evaluation needs the report)
             ft_ex = sum(1 for e in log if str(e.get("stage")).endswith("full_text")
+                        and e.get("assessed_on", "full_text") != "abstract_only"
                         and str(e.get("decision")).lower() == "exclude")
             need(ft_ex == g("excluded_eligibility"), "flow-log-mismatch",
                  f"screening_log has {ft_ex} full-text exclusions, flow says {g('excluded_eligibility')}")

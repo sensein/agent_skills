@@ -330,6 +330,10 @@ def check(result) -> int:
         warnings.append("synthesis_text is empty — the Markdown will have no synthesis")
     if not result.data_charting_rubrics:
         warnings.append("no data_charting_rubrics — no per-article charting tables")
+    if n_inc - ft:
+        warnings.append(f"{n_inc - ft} included stud{'y' if n_inc - ft == 1 else 'ies'} without full text — "
+                        "a study cannot be evaluated on its abstract: retrieve them (fetch_ezproxy.py) or "
+                        "remove them (extract_evidence.py apply); delivery refuses them")
     if flow.assessed_on_abstract_only and not flow.assessed_on_full_text:
         warnings.append("every eligibility decision was made on an abstract — retrieve "
                         "full texts (fetch_ezproxy.py for paywalled papers) before "

@@ -192,6 +192,9 @@ python scripts/verify_citations.py out/review.json --style vancouver
 #    is not delivered (references/validation.md).
 #    a. Evidence spans from the current text of every study (the app's extraction):
 python scripts/extract_evidence.py spans  out/review.json
+#       Full evaluation is on full text only: screening may use abstracts, but
+#       a study without its full text is a report not retrieved — `apply` drops
+#       any such included study and recomputes the flow; the audit refuses one.
 #    b. Every structured value — charting answers, appraisal ratings, RoB
 #       judgements, narrative cells, GRADE domains — needs verbatim evidence.
 #       `quote` asks the model; without a key, write the quotes into
