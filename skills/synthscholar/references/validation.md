@@ -211,6 +211,14 @@ Full detail: [citation_verification.md](citation_verification.md).
   record confirmed only by Semantic Scholar is `retraction-unchecked`. Google
   Scholar has no API and forbids automated access. `habanero` wraps the same
   Crossref API already used here.
+- **URL references.** Not every reference is a DOI. Reports, guidelines, web
+  pages, datasets, software and standards are cited by URL, and each one is
+  verified: the page is fetched, and its title (HTML metadata, or a PDF's) must
+  be the work the reference names. A dead page is checked against its latest
+  successful Wayback Machine capture. A site that blocks checks and has no
+  capture leaves the reference unverified. An entry with no DOI, PMID or URL is
+  unverified. Links in the prose must resolve. Detail:
+  [citation_verification.md](citation_verification.md#url-references-no-doi-or-pmid).
 - **Retractions and notices**, from the paper's side. A failed notice query
   makes the reference unverified, not clean.
 - **In-text and manuscript mode**: every PMID, DOI and author–year citation in

@@ -119,6 +119,13 @@ ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 OPENALEX = "https://api.openalex.org/works"
 SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper"
 S2_FIELDS = "title,year,authors,venue,journal,externalIds,publicationTypes"
+WAYBACK = "https://archive.org/wayback/available"
+WAYBACK_CDX = "https://web.archive.org/cdx/search/cdx"
+# A page that answers 200 but says it is not there.
+SOFT_404 = re.compile(r"\b(page|file|document|resource|item|article)\s+(was\s+|is\s+)?not\s+found\b|"
+                      r"\b404\b|doesn[’']?t exist|does not exist|no longer (available|exists)|"
+                      r"has been (re)?moved|cannot be found|could not be found", re.I)
+MAX_PAGE_BYTES = 6_000_000
 
 # DOI = "10." + registrant + "/" + suffix. The suffix may legally contain
 # ".", ";", "(" and ")" (Elsevier's 10.1016/S0140-6736(09)60937-1), so
@@ -177,7 +184,9 @@ QUOTED = {"evidence_spans"}
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "error": 2}
 # Findings that mean "this reference was not checked", whatever their severity.
-UNVERIFIED_CODES = {"lookup-failed", "doi-missing", "retraction-unchecked"}
+UNVERIFIED_CODES = {"lookup-failed", "doi-missing", "retraction-unchecked",
+                    "url-unreachable", "url-unchecked", "url-content-unchecked",
+                    "reference-unidentified"}
 # Exit codes: the verdict, so a caller can tell a failure from an unfinished check.
 EXIT = {"PASS": 0, "FAIL": 1, "INCOMPLETE": 3}
 # Preprint servers, by DOI prefix and by venue name. A preprint is cited only
@@ -597,6 +606,55 @@ class Registry:
 
     # ---- URLs ----
 
+    def fetch_page(self, url: str) -> dict:
+        """GET ``url`` (redirects followed): status, final URL, and the work's
+        title and opening text — from HTML metadata, or a PDF's metadata and
+        first pages — plus whether it is a "not found" page served as 200."""
+        try:
+            with self.http.stream("GET", url, headers={
+                    "Accept": "text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.5"}) as r:
+                body = b""
+                for chunk in r.iter_bytes():
+                    body += chunk
+                    if len(body) > MAX_PAGE_BYTES:
+                        break
+                status, final, ctype = r.status_code, str(r.url), r.headers.get("content-type", "").lower()
+        except httpx.HTTPError as e:
+            return {"url": url, "status": 0, "error": f"{type(e).__name__}: {str(e)[:100]}"}
+        rec = {"url": url, "status": status, "final_url": final, "content_type": ctype}
+        if status >= 400:
+            return rec
+        if "pdf" in ctype or body[:5] == b"%PDF-":
+            rec.update(kind="pdf", **_pdf_title_text(body))
+        else:
+            doc = body.decode("utf-8", errors="replace")
+            rec.update(kind="html", title=_html_title(doc), text=_html_text(doc)[:20000])
+        head = f"{rec.get('title') or ''} {(rec.get('text') or '')[:300]}"
+        rec["soft_404"] = bool(SOFT_404.search(head))
+        return rec
+
+    def wayback(self, url: str) -> Optional[str]:
+        """The latest archived capture of ``url`` that answered 200, if any.
+
+        The CDX index is asked for successful captures only: a site that blocks
+        crawlers has recent captures of its 403 page, which replay as 403.
+        """
+        r = self._get(WAYBACK_CDX, {"url": url, "output": "json", "filter": "statuscode:200",
+                                    "limit": "-1", "fl": "timestamp"}, tries=2)
+        time.sleep(self.delay)
+        rows = _json_list(r) if r is not None and r.status_code == 200 else None
+        if rows is not None:
+            return f"https://web.archive.org/web/{rows[-1][0]}/{url}" if len(rows) > 1 else None
+        r = self._get(WAYBACK, {"url": url}, tries=1)
+        time.sleep(self.delay)
+        body = _json(r) if r is not None and r.status_code == 200 else None
+        if body is None:
+            # availability API throttled or down: the snapshot address redirects to
+            # the closest capture itself, and answers 404 when there is none
+            return f"https://web.archive.org/web/2/{url}"
+        snap = ((body or {}).get("archived_snapshots") or {}).get("closest") or {}
+        return snap.get("url") if snap.get("available") and str(snap.get("status", "")).startswith("2") else None
+
     def check_url(self, url: str) -> tuple[bool, int]:
         """Reachability. Falls back to GET: many servers reject HEAD."""
         try:
@@ -957,6 +1015,55 @@ def _in_citation_context(text: str, m: re.Match) -> bool:
     return before.rfind("(") > before.rfind(")")
 
 
+# ─────────────────────────── pages ────────────────────────────
+
+def _json_list(r) -> Optional[list]:
+    try:
+        v = r.json()
+    except ValueError:
+        return None
+    return v if isinstance(v, list) else None
+
+
+def _html_title(doc: str) -> str:
+    """The work's title: citation/Dublin Core/Open Graph metadata, else <title>."""
+    for name in ("citation_title", "dc.title", "DC.title", "og:title", "twitter:title"):
+        m = re.search(rf'<meta[^>]+(?:name|property)=["\']{re.escape(name)}["\'][^>]*content=["\']([^"\']+)', doc, re.I) \
+            or re.search(rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:name|property)=["\']{re.escape(name)}["\']', doc, re.I)
+        if m:
+            return html.unescape(m.group(1)).strip()
+    m = re.search(r"<title[^>]*>(.*?)</title>", doc, re.I | re.S)
+    return html.unescape(re.sub(r"\s+", " ", m.group(1))).strip() if m else ""
+
+
+def _html_text(doc: str) -> str:
+    doc = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", doc)
+    return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", doc))).strip()
+
+
+def _pdf_title_text(body: bytes) -> dict:
+    """A PDF's metadata title and the text of its first two pages (PyMuPDF)."""
+    try:
+        try:
+            import pymupdf as fitz  # type: ignore
+        except ImportError:
+            import fitz  # type: ignore
+        with fitz.open(stream=body, filetype="pdf") as doc:
+            text = " ".join(doc[i].get_text("text") for i in range(min(2, len(doc))))
+            return {"title": (doc.metadata or {}).get("title", "") or "", "text": re.sub(r"\s+", " ", text)[:20000]}
+    except Exception:
+        return {"title": "", "text": "", "pdf_unreadable": True}
+
+
+def _distinctive_words(line: str) -> list[str]:
+    line = URL_RE.sub(" ", line)
+    return [w for w in norm_text(line).split() if len(w) >= 5 and not w.isdigit()][:40]
+
+
+def is_doi_url(u: str) -> bool:
+    return bool(re.match(r"https?://(dx\.)?doi\.org/", u, re.I))
+
+
 # ─────────────────────────── driver ────────────────────────────
 
 class Verifier:
@@ -1042,10 +1149,11 @@ class Verifier:
             return "" if v is None else str(v)
 
         pmid = text("pmid").strip()
-        return {"key": pmid or clean_doi(text("doi")) or text("title")[:40],
+        url = next((u for u in (text("url"), text("source_url"), text("link")) if u.startswith("http")), "")
+        return {"key": pmid or clean_doi(text("doi")) or url or text("title")[:40],
                 "pmid": pmid, "doi": text("doi"), "title": text("title"),
                 "authors": text("authors"), "year": text("year"),
-                "journal": text("journal")}
+                "journal": text("journal"), "url": url}
 
     def _verify_reference(self, c: dict, pubmed: dict) -> dict:
         findings: list[dict] = []
@@ -1118,9 +1226,16 @@ class Verifier:
                     rec["suggested"].update(_fill_empty(c, meta))
                     if is_preprint(doi, meta):
                         findings += self._prefer_published(c, rec, doi, meta)
+        elif c.get("url") and not is_doi_url(c["url"]) and (
+                not REAL_PMID.match(c["pmid"]) or rec["pubmed"] is None):
+            # a work identified by its URL (report, web page, dataset, software)
+            u = self.verify_url(c["url"], c["title"], line_mode=False)
+            findings += u["findings"]
+            rec["url"] = u["url"]
+            rec["registry"] = rec["registry"] or u["registry"]
         elif not c["pmid"] or not REAL_PMID.match(c["pmid"]) or rec["pubmed"] is None:
             findings.append(finding("doi-missing", "warning",
-                                    "No DOI or PMID to verify this reference against"))
+                                    "No DOI, PMID or URL to verify this reference against"))
 
         if (not doi or any(f["code"] == "doi-title-mismatch" for f in findings)) \
                 and self.search_missing and c["title"]:
@@ -1269,6 +1384,83 @@ class Verifier:
 
     # ---- generic Markdown ----
 
+    def verify_url(self, url: str, claimed: str, line_mode: bool = True, strict: bool = True) -> dict:
+        """A URL reference: the page exists and is the work the reference names.
+
+        ``claimed`` is the reference line (``line_mode``) or the work's title.
+        The live page is fetched; when it is gone or blocks automated access the
+        Wayback Machine's closest snapshot is checked instead. The page's title
+        (HTML metadata or the PDF's) must match the reference, or — when the page
+        has no usable title — most of the reference's distinctive words must
+        appear in its opening text. ``strict`` (reference lists) makes an
+        uncheckable page unverified; in-text links are only flagged.
+        """
+        url = url.rstrip(TRAILING)
+        rec = {"key": url, "pmid": "", "doi": "", "url": url, "kind": "url",
+               "claimed": {"key": url, "pmid": "", "doi": "", "title": claimed, "authors": "",
+                           "year": "", "journal": "", "url": url},
+               "registry": None, "pubmed": None, "candidates": [], "suggested": {}}
+        findings: list[dict] = []
+        fetch = getattr(self.reg, "fetch_page", None) if self.reg else None
+        if not callable(fetch):
+            rec.update(findings=[finding("url-unchecked", "warning", f"{url} was not checked (offline)")],
+                       status="offline" if self.reg is None else "warnings")
+            return rec
+        live = fetch(url)
+        live = live if isinstance(live, dict) else {"status": 0, "error": "no response"}
+        content, via = None, None
+        if 200 <= int(live.get("status") or 0) < 400 and not live.get("soft_404"):
+            content = live
+        else:
+            snap = self.reg.wayback(url) if callable(getattr(self.reg, "wayback", None)) else None
+            arch = fetch(snap) if snap else None
+            if isinstance(arch, dict) and 200 <= int(arch.get("status") or 0) < 400 and not arch.get("soft_404"):
+                content, via = arch, snap
+        gone = int(live.get("status") or 0) in (404, 410) or bool(live.get("soft_404"))
+        why = live.get("error") or (f"HTTP {live.get('status')}" if not live.get("soft_404") else "a 'not found' page")
+        if content is None:
+            if gone:
+                findings.append(finding("url-not-found", "error",
+                                        f"{url} does not exist ({why}) and has no archived copy"))
+            else:
+                findings.append(finding("url-unreachable", "warning" if strict else "info",
+                                        f"{url} could not be checked ({why}); no archived copy to check instead"))
+        else:
+            rec["registry"] = {"page_title": content.get("title", ""), "final_url": content.get("final_url"),
+                               "kind": content.get("kind"), "archived_copy": via}
+            if via and gone:
+                findings.append(finding("url-dead-archived", "warning",
+                                        f"{url} is gone ({why}); verified against the archived copy {via} — cite it"))
+            elif via:
+                findings.append(finding("url-via-archive", "info",
+                                        f"{url} blocked automated access ({why}); verified against {via}"))
+            title = (content.get("title") or "").strip()
+            if title and claimed and len(norm_text(title)) >= 8:
+                sim = title_in_line(title, claimed) if line_mode else title_similarity(claimed, title)
+                rec["registry"]["title_similarity"] = round(sim, 3)
+                if sim < TITLE_PARTIAL:
+                    words = _distinctive_words(claimed)
+                    text = norm_text(content.get("text") or "")
+                    hit = sum(w in text for w in words) / max(1, len(words))
+                    if hit < 0.6:
+                        findings.append(finding("url-title-mismatch", "error",
+                                                f"{url} is “{title[:120]}”, not the work the reference names"))
+                elif sim < TITLE_MATCH:
+                    findings.append(finding("url-title-partial", "warning",
+                                            f"page title only partly matches: “{title[:120]}” ({sim:.2f})"))
+            elif claimed:
+                words = _distinctive_words(claimed)
+                text = norm_text(content.get("text") or "")
+                hit = sum(w in text for w in words) / max(1, len(words))
+                rec["registry"]["word_coverage"] = round(hit, 3)
+                if not words or hit < 0.6:
+                    findings.append(finding("url-content-unchecked", "warning" if strict else "info",
+                                            f"{url} has no title to compare and its text does not show the "
+                                            f"reference ({hit:.0%} of its words)"))
+        rec["findings"] = findings
+        rec["status"] = worst(findings)
+        return rec
+
     def _verify_line_doi(self, doi: str, line: str) -> dict:
         """One DOI from a reference-list line (or the body) against the registries."""
         claimed = {"key": doi, "pmid": "", "doi": doi, "title": line,
@@ -1330,6 +1522,8 @@ class Verifier:
             report["references"].append(rec)
             print(f"[{n:>3}/{len(all_dois)}] {rec['status']:>9}  {doi}", file=sys.stderr)
 
+        handled = self._url_references(ref_lines, report)
+        self._in_text_urls(body, handled, report)
         if ref_lines:
             for ct in extract_citations(body):
                 if ct["kind"] != "author_year":
@@ -1399,6 +1593,63 @@ class Verifier:
 
     # ---- assembled manuscript ----
 
+    def _url_references(self, ref_lines: list[str], report: dict) -> set[str]:
+        """Reference-list entries without a DOI or PMID: verify them by URL.
+
+        An entry naming an included study is that study's own entry: when the
+        study has no DOI/PMID its URL is verified against its title, in its own
+        record. Any other entry with a URL is a background reference, verified
+        against the line. An entry with no identifier at all cannot be checked.
+        Returns the URLs handled, so body links to them are not checked twice.
+        """
+        included = [r for r in report["references"] if r.get("role") == "included"]
+        handled: set[str] = set()
+        for ln in ref_lines:
+            if DOI_RE.search(ln) or PMID_RE.search(ln) or not re.search(r"\b(19|20)\d\d\b", ln) \
+                    or ln.startswith(("**", "#")) or len(ln) < 30:
+                continue
+            urls = [u.rstrip(TRAILING) for u in URL_RE.findall(ln) if not is_doi_url(u)]
+            own = next((r for r in included if r["claimed"]["title"]
+                        and title_in_line(r["claimed"]["title"], ln) >= TITLE_MATCH), None)
+            if own is not None:
+                if urls and any(f["code"] == "doi-missing" for f in own.get("findings", [])):
+                    u = self.verify_url(urls[0], own["claimed"]["title"], line_mode=False)
+                    own["findings"] = [f for f in own["findings"] if f["code"] != "doi-missing"] + u["findings"]
+                    own["status"] = worst(own["findings"])
+                    own["url"], own["registry"] = u["url"], own.get("registry") or u["registry"]
+                handled.update(urls)
+                continue
+            if urls:
+                rec = self.verify_url(urls[0], ln)
+                rec["role"] = "background"
+                report["references"].append(rec)
+                handled.update(urls)
+                print(f"[url] {rec['status']:>9}  {urls[0]}", file=sys.stderr)
+            else:
+                report["references"].append({
+                    "key": ln[:60], "pmid": "", "doi": "", "role": "background", "kind": "unidentified",
+                    "claimed": {"key": ln[:60], "pmid": "", "doi": "", "title": ln, "authors": "",
+                                "year": "", "journal": ""},
+                    "registry": None, "pubmed": None, "candidates": [], "suggested": {},
+                    "findings": [finding("reference-unidentified", "warning",
+                                         "no DOI, PMID or URL: this reference cannot be verified — "
+                                         "add the identifier or the URL it is available at")],
+                    "status": "warnings"})
+        return handled
+
+    def _in_text_urls(self, body: str, skip: set[str], report: dict) -> None:
+        """Links in the prose that are not reference-list entries: they must resolve."""
+        seen = set(skip)
+        for u in URL_RE.findall(body):
+            u = u.rstrip(TRAILING)
+            if is_doi_url(u) or u in seen:
+                continue
+            seen.add(u)
+            rec = self.verify_url(u, "", strict=False)
+            for f in rec["findings"]:
+                report["in_text"].append({**f, "location": "manuscript", "snippet": u,
+                                          "cited": {"kind": "url", "id": u}})
+
     def verify_manuscript(self, review: dict, text: str,
                           catalog: Optional[list[dict]] = None) -> dict:
         """The delivered manuscript, checked against the review it was built from.
@@ -1451,6 +1702,8 @@ class Verifier:
             return False
 
         report["in_text"] = [f for f in report["in_text"] if not is_background(f)]
+        handled = self._url_references(ref_lines, report)
+        self._in_text_urls(body, handled, report)
         if catalog:
             self._verify_resource_citations(catalog, body, refs, report)
         if not ref_lines:

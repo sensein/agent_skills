@@ -96,6 +96,34 @@ carries `updated-by` (and is returned by the `updates:` filter). A checker that
 reads only `update-to` on the cited DOI flags cited *notices* and misses every
 cited retracted *paper*, which is the case that matters.
 
+### URL references (no DOI or PMID)
+
+A reference is not always a DOI: reports, guidelines, web pages, datasets,
+software and standards are cited by URL. Every reference-list entry without a
+DOI or PMID, every included study identified only by a URL (`url` field, or its
+own reference-list entry), and every link in the prose is checked:
+
+1. **The page is fetched**, following redirects. The work's title is read from
+   scholarly metadata (`citation_title`, `DC.title`, `og:title`), else
+   `<title>`; for a PDF, from its metadata and first pages.
+2. **It must be the work cited.** The page title must match the reference
+   line, or, when the page has no usable title, most of the reference's
+   distinctive words must appear in its opening text. Another work is
+   `url-title-mismatch` (error).
+3. **A page that is gone** (404/410, or a "not found" page served as 200) is
+   looked up in the **Wayback Machine**: the latest capture that answered 200
+   is fetched and checked the same way. Found and matching → `url-dead-archived`
+   (warning: cite the archived copy). Not archived → `url-not-found` (error).
+4. **A page that blocks automated access** (403, 429, timeouts) is checked
+   against its archived capture (`url-via-archive`, info). With no capture it is
+   `url-unreachable`: unverified, so the verdict is INCOMPLETE, never PASS.
+5. **An entry with no DOI, PMID or URL** (`reference-unidentified`) cannot be
+   checked and is unverified.
+
+Links in the prose that are not reference-list entries must resolve. A dead
+one is reported, but only reference-list entries need to match a title: a
+review may cite a resource's URL to report that it is offline.
+
 ### In-text citations (the generated prose)
 
 Every string in the review result except its inputs and logs (`included_articles`,
@@ -136,7 +164,15 @@ reference.** Fix the reference from the registry, or remove the claim.
 | `author-year-pmid-conflict` | warning | "(Smith 2019; PMID: X)" but X is Harris 2020 | fix whichever half is wrong |
 | `author-year-unmatched` | warning | author–year citation matching no included study | as `citation-unknown`, unless it is background literature deliberately cited in the introduction. Say so if it is |
 | `update-expression_of_concern`, `update-partial_retraction` | warning | editorial concern | mention it in the limitations / risk-of-bias text |
-| `doi-missing` | warning | nothing to verify against | look for a `doi-candidate`; otherwise leave it |
+| `doi-missing` | warning (unverified) | no DOI, PMID or URL | look for a `doi-candidate`, or add the URL the work is available at |
+| `url-title-mismatch` | error | the URL is a different work (or a generic page) | cite the URL of the work itself |
+| `url-not-found` | error | the page is gone and was never archived | find where the work lives now, or drop the reference |
+| `url-dead-archived` | warning | gone, but the archived capture is the work | cite the archived copy (web.archive.org URL) |
+| `url-unreachable` | warning (unverified) | the site blocks checks and has no archive | check it by hand; the verdict stays INCOMPLETE |
+| `url-content-unchecked` | warning (unverified) | no title, and the text does not show the work | point at the work's landing page rather than a file |
+| `url-unchecked` | warning (unverified) | offline run | re-run online |
+| `reference-unidentified` | warning (unverified) | no DOI, PMID or URL in the entry | add one |
+| `url-via-archive` | info | live site blocked; verified against the archive | none |
 | `doi-malformed` | warning | URL prefix / trailing punctuation in the DOI field | `--apply` fixes it |
 | `duplicate-doi` | warning | two included entries share a DOI | the same study included twice: merge them, and fix the PRISMA counts |
 | `lookup-failed` | warning | network / registry error | re-run; unverified ≠ verified |
