@@ -594,6 +594,15 @@ def main() -> int:
               "article. Install the development checkout:\n"
               "  pip install -e /path/to/prisma-review-agent", file=sys.stderr)
         return 3
+    # The app scores every span as grounded when rapidfuzz is missing; the skill
+    # does not run the pipeline in that state.
+    try:
+        import rapidfuzz  # noqa: F401
+    except ImportError:
+        print("rapidfuzz is not installed. Without it the app's evidence-span filter cannot check "
+              "spans and accepts every one as grounded, so extraction does not run. Install it "
+              "(pip install 'rapidfuzz>=3.0'; see check_deps.py) and re-run.", file=sys.stderr)
+        return 3
 
     return asyncio.run(run(args))
 

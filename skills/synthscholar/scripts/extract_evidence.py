@@ -418,6 +418,13 @@ def _get(node: Any, path: list) -> Any:
 # ─────────────────────────── model calls ────────────────────────────
 
 def _deps(review: dict, args):
+    # The app scores every span as grounded when rapidfuzz is missing: refuse.
+    try:
+        import rapidfuzz  # noqa: F401
+    except ImportError:
+        sys.exit("rapidfuzz is not installed. Without it the app's evidence-span filter cannot check "
+              "spans and accepts every one as grounded, so extraction does not run. Install it "
+              "(pip install 'rapidfuzz>=3.0'; see check_deps.py) and re-run.")
     from synthscholar.agents import AgentDeps, build_model
     from synthscholar.models import ReviewProtocol
     key = args.api_key or os.environ.get("OPENROUTER_API_KEY", "")

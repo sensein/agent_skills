@@ -714,3 +714,11 @@ def test_eligibility_decided_on_abstracts_counts_as_not_retrieved():
     assert (f["assessed_eligibility"], f["excluded_eligibility"], f["included_synthesis"], f["not_retrieved"]) == (5, 2, 3, 9)
     assert f["sought_fulltext"] - f["not_retrieved"] == f["assessed_eligibility"]
     assert f["assessed_eligibility"] - f["excluded_eligibility"] == f["included_synthesis"]
+
+
+def test_extraction_refuses_without_rapidfuzz(monkeypatch):
+    # the app would score every span as grounded; the skill does not run it
+    monkeypatch.setitem(sys.modules, "rapidfuzz", None)
+    with pytest.raises(SystemExit) as e:
+        ee._deps({}, type("A", (), {"api_key": "k", "model": "m"})())
+    assert "rapidfuzz" in str(e.value)

@@ -575,7 +575,7 @@ verified without them; do not continue as if it had passed. Optional
 dependencies (`docling`, `playwright`, `psycopg`) may be skipped.
 
 | `verify_citations.py`, `audit_grounding.py`, `fetch_ezproxy.py`, and the gates in `build_corpus.py --check`, `export_review.py`, `run_local_review.py`, `generate_review_pdf.py` | `httpx` (**required**) | `python -c "import httpx"` | `pip install httpx` |
-| `run_local_review.py` (the pipeline's evidence grounding) | `rapidfuzz>=3.0` (**required**; extraction refuses without it) | `python -c "import rapidfuzz"` | `pip install 'rapidfuzz>=3.0'` |
+| `run_local_review.py` (the pipeline's evidence grounding) | `rapidfuzz>=3.0` (**required**: without it the app accepts every span, so the skill's scripts refuse to run) | `python -c "import rapidfuzz"` | `pip install 'rapidfuzz>=3.0'` |
 | `tests/` (regression tests) | `pytest` | `python -c "import pytest"` | `pip install pytest` |
 | `fetch_ezproxy.py` library sign-in (paywalled papers only) | `playwright` + Chrome, Edge or Playwright's Chromium | `python -c "import playwright"` | `pip install playwright` (+ `playwright install chromium` only if neither Chrome nor Edge is installed) |
 | `query_sparql.py` | `rdflib` | `python -c "import rdflib"` | `pip install rdflib` |

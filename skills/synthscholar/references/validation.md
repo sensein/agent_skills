@@ -58,8 +58,9 @@ It is never assessed, never included, and never part of the synthesis.
 Every validation dependency is required. `scripts/check_deps.py` lists what is
 missing with its install command. The agent asks the user, installs on
 confirmation, and proceeds only once the check passes. A check whose library is
-missing reports INCOMPLETE or refuses to run; it never reports a pass. The
-pipeline's own span filter also refuses to run without `rapidfuzz`.
+missing reports INCOMPLETE or refuses to run; it never reports a pass. Without
+`rapidfuzz` the app's span filter accepts every span as grounded, so the skill's
+`run_local_review.py` and `extract_evidence.py` refuse to run the extraction.
 
 ## Verdicts
 

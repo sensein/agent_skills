@@ -31,7 +31,8 @@ DEPS = [
      "the app's pipeline and exporters: run_local_review, export_review, extract_evidence, and the "
      "appendix check (sidecars are re-rendered from review.json before delivery)"),
     ("rapidfuzz", "py", "rapidfuzz", "pip install 'rapidfuzz>=3.0'", {"review"},
-     "the pipeline's evidence-span grounding filter (refuses to run without it)"),
+     "the pipeline's evidence-span filter: without it the app accepts every span, so "
+     "run_local_review and extract_evidence refuse to run"),
     ("pymupdf", "py", "fitz", "pip install pymupdf", {"corpus"},
      "PDF text extraction for supplied PDFs"),
     ("pandoc", "bin", "pandoc", "conda install -c conda-forge pandoc   # or: brew install pandoc",
