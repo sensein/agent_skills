@@ -7,14 +7,14 @@
     "ols",
     "bioportal"
   ],
-  "_sources_priority": "Order in which mapping sources are consulted. An item is sent to the next source only if every earlier one left it unmapped. Default: the trusted ontology files in trusted_ontologes/ first; then the local hybrid mapper if it is running; then OLS through its MCP server (remote.ols_mcp_url, exact label matches only); BioPortal last (needs BIOPORTAL_API_KEY). Allowed: trusted, local_hybrid, ols (MCP), ols_rest (the REST search API), bioportal. Remove a source to disable it.",
+  "_sources_priority": "Order in which mapping sources are consulted. An item is sent to the next source only if every earlier one left it unmapped. Default: the trusted ontology files in trusted_ontologies/ first; then the local hybrid mapper if it is running; then OLS through its MCP server (remote.ols_mcp_url, exact label matches only); BioPortal last (needs BIOPORTAL_API_KEY). Allowed: trusted, local_hybrid, ols (MCP), ols_rest (the REST search API), bioportal. Remove a source to disable it.",
   "trusted_ontologies": {
-    "directory": "trusted_ontologes",
+    "directory": "trusted_ontologies",
     "_directory": "Relative to the skill root (or absolute). Every file listed below must live here.",
-    "priority_file": "trusted_ontologes/priority.md",
+    "priority_file": "trusted_ontologies/priority.md",
     "_priority_file": "The editable priority table (Priority | Name | File | CURIE prefix | Labels | Notes). It is the ONLY place trusted ontologies and their order are defined.",
     "strategy": "priority",
-    "_strategy": "'priority': the highest-priority ontology (trusted_ontologes/priority.md) with ANY accepted match wins; label_routing order breaks ties inside one file. 'best_match': the strongest match type across all eligible ontologies wins; priority breaks ties.",
+    "_strategy": "'priority': the highest-priority ontology (trusted_ontologies/priority.md) with ANY accepted match wins; label_routing order breaks ties inside one file. 'best_match': the strongest match type across all eligible ontologies wins; priority breaks ties.",
     "match_on": [
       "label",
       "exact_synonym",
@@ -55,7 +55,7 @@
     "_entity_types": "rdf:type values that make a node a mappable term.",
     "split_camel_case": true,
     "_split_camel_case": "Also index 'ParcellationTerm' as 'parcellation term' (LinkML/schema-style labels).",
-    "lexicon_dir": "trusted_ontologes/lexicon",
+    "lexicon_dir": "trusted_ontologies/lexicon",
     "_lexicon_dir": "Where `index` writes <name>.tsv.gz (one flat lexicon per ontology) and lexicon.sqlite (the lookup index). Regenerable; safe to delete.",
     "index_local_name_when_unlabeled": true,
     "_index_local_name_when_unlabeled": "Some ontologies (SCIO, NEO, BRAIN-COF) name classes only in the IRI (…/AdhesiveRemovalTest). When a class has no label, index its IRI local name as match type 'local_name'.",

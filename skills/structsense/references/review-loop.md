@@ -21,7 +21,7 @@ human edit is held to the same rules as a judge's fix.
 
 `concept_mapping.json` `sources_priority` (default):
 
-1. **trusted** — the ontology files in `trusted_ontologes/`, in `priority.md` order
+1. **trusted** — the ontology files in `trusted_ontologies/`, in `priority.md` order
    (indexed once: `python -m scripts.concept_mapping index`). Only when none of them
    names the term does the item move on.
 2. **local_hybrid** — the local mapper (`http://localhost:8000`), if it is running.

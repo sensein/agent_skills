@@ -1,5 +1,117 @@
 # Changelog
 
+## 0.13.0 — AIT mapping always writes validated Turtle
+
+- **`trusted_ontologes/` is renamed `trusted_ontologies/`** (typo). Every reference
+  is updated, including `concept_mapping.json` → `trusted_ontologies.directory`; a
+  local copy configured with the old directory name must be pointed at the new one.
+- **`data/allen_taxonomies.json` → `trusted_ontologies/ait_taxonomies.json`**, the
+  manifest of the Allen taxonomies, next to the files it describes. It keeps only what
+  the `.ttl` files do not hold: AIT numbers, each file's species (`trusted_files`), the
+  taxonomy-level description used to choose a taxonomy, and `gene_annotations`. The
+  per-taxonomy `gene_annotation_files` is gone: the annotation a taxonomy's
+  `curated_markers` link into is read from the file's own `gene_annotation_version`.
+  The 7 taxonomies without local files stay listed, so a paper they fit is recorded as
+  `skos_relation = none` ("no trusted node data") instead of being forced onto the
+  basal ganglia taxonomy. A test checks the manifest against the files (species in
+  the title, CCN in the accessions, the annotation per species).
+- **`scripts/ait_ttl.py`** (new): AIT mapping tables → `<paper_id>.ttl`, the graph
+  deliverable of the AIT mode, now a mandatory last step (prompt pass 5, SKILL.md).
+  Refuses tables that fail `ait_tables validate`; builds a working NER result +
+  kg_plan (`out/.structsense/`), converts it with the shared `json_to_ttl` builder
+  (`AitTurtleBuilder` overrides `emit_mapping` to write every `mappings.csv` edge with
+  its SKOS relation, basis, evidence, notes and marker diff), and gates it with
+  `validate_ttl` (a failing file becomes `.invalid.ttl`). Marker genes become
+  `expresses` edges only where a sentence names both.
+- **`json_to_ttl.result_to_ttl(builder_cls=…)`**: a mode can subclass `TurtleBuilder`.
+- **Fix — identity keys were rewritten by `rejoin_wrapped`**: an asserted
+  `identity_key` (`str_d2_msn`) became `str_d2msn` when one alias of the entity was
+  written `D2MSN`, splitting one entity into two nodes. An asserted identity key is
+  now kept as given (test: `test_identity_key_is_not_rejoined_by_an_alias`).
+- **`expand_mentions`**: U+2212 (minus sign) matches a hyphen — PDF figure text
+  writes `CN LAMP5−LHX6 GABA`.
+- **Prefix `BKBIT`** (`urn:bkbit:{id}`) in `ttl_config.json` `curie_expansions`, and
+  `OntologyConceptShape` accepts RFC 8141 URNs as `conceptIRI`: the Allen/BICAN
+  taxonomy nodes have no other identity, and inventing an http IRI for them would mint
+  identifiers the taxonomy does not have.
+- **Genes are linked to `GeneAnnotation`.** Before, every gene entity of an AIT run
+  got a placeholder `BRAINKB:` concept. `ait_ttl` now resolves each gene row to its
+  `GeneAnnotation` IRI in the species' trusted genome annotation
+  (`ait_nodes.GeneLookup`; new catalog key `gene_annotations`: human, macaque,
+  marmoset, mouse), by exact symbol (`skos:exactMatch`), else the same symbol in
+  another case or a synonym (`skos:closeMatch`, flagged), and only when exactly one
+  gene matches. Unlinked genes get a gap comment and are listed by `ait_ttl`.
+  `ait_nodes genes <species> <symbol>…` does the same lookup from the command line.
+- **One concept-mapping stage, and the Turtle is written from it.** The flow is
+  extraction → concept mapping (the review loop's `review_loop map --mode ait` →
+  `concept_mappings.csv`, trusted files first) → judges / human feedback → Turtle.
+  `ait_ttl` takes every entity's term from `concept_mappings.csv`, so judge and
+  curator corrections reach the graph; when the table is missing it runs the map stage
+  with the same cascade (trusted files first, then the local mapper, OLS, BioPortal;
+  `--offline` for trusted files only) and writes it. Before, no species or region was mapped
+  in the Turtle. `map_ait` sends **gene rows to their genome annotation first**
+  (`ait_nodes.resolve_gene_row`): its `GeneAnnotation` IRI is what the taxonomy's
+  `curated_markers` link to. A gene the annotation does not resolve continues through
+  the cascade like every other entity (label `Gene`, routed to HGNC / NCBIGene), noted
+  as not joining the markers; a `remap` of a gene's concept row does the same.
+  `ait_ttl` reports genes linked to `GeneAnnotation`, mapped elsewhere, and unmapped. On the test paper: species 5/5,
+  brain regions 10/18 (the rest need `uberon.owl`, which `priority.md` lists but the
+  directory does not hold), genes 39/39.
+- **Every gene row is linked.** `gene_annotations` is keyed by NCBI taxon id (common and
+  scientific names as fallback); a gene row with no species takes the paper's one
+  experimental species; `ait_tables validate` fails when a cell type's marker gene has no
+  gene row of its own; `ait_ttl` prints `genes linked: N/M`.
+- **Jaccard is `NA` when the paper names no marker** for the entity (and so is
+  `jaccard_panel_restricted`). An empty paper side against a taxonomy node's curated
+  markers gave 0, which reads as disagreement and sorts the edge to the bottom of the
+  review queue; a paper marker that the node lacks still gives a real 0.
+- **`marker_report.json`** (written by `ait_gene_diff`): mapped nodes, which carry
+  taxonomy markers and which markers, edges where the paper names markers, edges with
+  shared markers, edges whose Jaccard is `NA`. `run_report.md` quotes it instead of
+  summarising marker availability — a run had written "the human BG file has no
+  curated_markers for the mapped nodes" while 8 of its mapped Group nodes have them.
+- **Fix — identifiers in labels were cut.** Mapping decisions and candidates were
+  labelled with their concept's CURIE, and `label()` cuts names over 60 characters,
+  so an AIT node's `BKBIT:<64 hex>` became `BKBIT:0453…`. A node that stands for an
+  identifier is now named by the CURIE when it fits, else by the concept's preferred
+  label (`STR D1 MSN`); the full identifier stays on the concept
+  (`ner:conceptIdentifier` / `ner:conceptIRI`).
+- Tests: `scripts/tests/test_ait_ttl.py` (tables → validated TTL end to end against
+  `Human_BG.ttl`, now also the gene link and that no label is a cut identifier; the
+  identity-key regression; `id_name`). `cqs/test_cqs.py` CQ58 fails before
+  and after this change (unbound `?mapping` in the query) — not addressed here.
+
+## Unreleased — AIT mapping reads nodes from the trusted taxonomy files
+
+- **`scripts/ait_nodes.py`** (new): the AIT taxonomy reader the AIT mapping prompt
+  named but did not have. Reads the parsed Allen taxonomies in `trusted_ontologies/`
+  (`Human_BG.ttl`, `Macaque_BG.ttl`, `Marmoset_BG.ttl`) through the BICAN Cell Taxonomy
+  model (`cell_taxonomy.ttl`): `info`, `search` (label / marker genes / region
+  shortlist), `show`, `markers` (Pass 4 `--markers` JSON). `ait_node_id` is the node's
+  `accession_id`, or its label at the cluster level.
+- **Gene annotations as trusted files**: `annotation-ENSEMBL-9606-109.ttl`,
+  `annotation-NCBI-9544-103.ttl`, `annotation-NCBI-9483-105.ttl` and
+  `annotation-ENSEMBL-10090-109.ttl` (bkbit gff2jsonld, commit 64786ed). The
+  `*_BG.ttl` files are regenerated with bkbit#105 plus the `curated_markers` fix
+  (branch `fix-curated-markers-iri`): markers were bare symbols in an `@id` slot,
+  which Turtle conversion turned into `file:///…/ACTA2` IRIs; they are now
+  `GeneAnnotation` IRIs from the species' annotation, and `ait_nodes` reads the
+  symbols from it. Each was built with one `--gene_annotation` (its species'), which
+  `ait2jsonld` now also records as `CellTypeTaxonomy.gene_annotation_version`
+  (e.g. `ENSEMBL-9606-109`); a test checks it names the catalog's
+  `gene_annotation_files` entry. Otherwise the content is unchanged; the `urn:bkbit`
+  IRIs of the taxonomy's own nodes are new, because they hash their attributes.
+  Not listed in `priority.md` (instance data, not ontology classes).
+- **`data/allen_taxonomies.json`**: `trusted_files` and `gene_annotation_files` (per
+  species) on the Cross-Species Basal Ganglia entry and a top-level `trusted_model`.
+- **`trusted_ontologies/sources.json`**: entries for the four annotation files; the
+  file was invalid JSON (trailing commas at the end) and is fixed.
+- **`ait_tables.py validate`**: an edge into a taxonomy with trusted files must name a
+  node of that file with its exact label (error); a different level is a warning.
+- **Prompt** (`extractor-cell-type-ait-mapping.md`): Pass 3 says where node data come
+  from and how the model's classes map to the mapping columns; Pass 4 takes the marker
+  set from `ait_nodes markers`; a taxonomy without trusted files gets no node ids from
+  model knowledge.
 ## Unreleased — One review loop for every mode: the judge and the human both correct
 
 Every mode — NER, ABCD/HBCD, AIT — now runs extract → concept map → judge → human
@@ -243,14 +355,14 @@ it is handed back. The JSON the stages exchange is working state.
   evidence for non-hypothetical claims); prefix consistency; labels; one connected
   component. `pipeline.py` renames a failing file `.invalid.ttl` and reports it.
 - **Trusted ontologies first.** New `scripts/concept_mapping.py` maps from the
-  ontology files in `trusted_ontologes/` before any remote service, in the order of
-  the editable `trusted_ontologes/priority.md` (seeded from `sources.json`: 42
+  ontology files in `trusted_ontologies/` before any remote service, in the order of
+  the editable `trusted_ontologies/priority.md` (seeded from `sources.json`: 42
   declared ontologies enabled, 74 discovery candidates `off`). Each file is indexed
   once into `lexicon/<name>.tsv.gz` + `lexicon.sqlite` (all 42, PR's 1.2 GB
   included, in about 95 s); lookups are exact on a normalised form, routed by
   label, guarded against bare abbreviations (PFC is prefrontal cortex in UBERON
   and prefollicle cell in FBbt), and ambiguity is reported rather than resolved.
-  Everything is `concept_mapping.json`; `trusted_ontologes/README.md` lists the
+  Everything is `concept_mapping.json`; `trusted_ontologies/README.md` lists the
   ontologies (`concept_mapping readme`).
 - **One prefix registry.** New `scripts/prefixes.py`: a term keeps the prefix of its
   namespace whichever file it came from (cl.owl's UBERON terms are UBERON), a

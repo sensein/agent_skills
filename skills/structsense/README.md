@@ -4,7 +4,7 @@
 
 A model-agnostic skill for **structured information extraction**: NER, research-resource extraction, and schema-driven JSON extraction, with ontology mapping, a judge ensemble, and human-in-the-loop review.
 
-Since 0.9.0 the result of a NER run is **Turtle — one validated `<stem>.ttl` per paper**, instances of the bundled Named Entity Ontology (v2.4) with deterministic UUIDv5 IRIs, so the same entity in two papers is the same node. Concepts are mapped against the bundled **trusted ontologies first**, in the order you set in [`trusted_ontologes/priority.md`](trusted_ontologes/priority.md), then a local hybrid service, then BioPortal. Quality comes from a **judge ensemble** — independent grounding / labeling / mapping / key / claim judges plus a deterministic combiner — and every judge step, verdict and change is recorded as provenance in the Turtle. See [Turtle output](#turtle-output-09) and [Trusted ontologies](#trusted-ontologies-09).
+Since 0.9.0 the result of a NER run is **Turtle — one validated `<stem>.ttl` per paper**, instances of the bundled Named Entity Ontology (v2.4) with deterministic UUIDv5 IRIs, so the same entity in two papers is the same node. Concepts are mapped against the bundled **trusted ontologies first**, in the order you set in [`trusted_ontologies/priority.md`](trusted_ontologies/priority.md), then a local hybrid service, then BioPortal. Quality comes from a **judge ensemble** — independent grounding / labeling / mapping / key / claim judges plus a deterministic combiner — and every judge step, verdict and change is recorded as provenance in the Turtle. See [Turtle output](#turtle-output-09) and [Trusted ontologies](#trusted-ontologies-09).
 
 A **resource** run (datasets, software, models, pipelines, archives, schemas, benchmarks, …) delivers a **resource knowledge graph** in the bundled **BrainKB Resource Ontology** (`default_ontology/brainkb_resource_ontology.owl`): per resource, what it is claimed to apply to vs shown to apply to vs used on, its assumptions, failure modes, inputs/outputs, versions and identifiers, each tied to a verbatim quote and to the paper's `ner:Publication` — the same node the paper's NER graph uses. See [Resource knowledge graph](#resource-knowledge-graph).
 
@@ -31,7 +31,8 @@ structsense/
 │   ├── ttl_config.json             ← IRI scheme (UUIDv5), guardrails, predicates, prefix registry (static part)
 │   ├── label_class_map.json        ← extractor label → ontology class
 │   └── key_synonyms.json           ← user overrides for keys (keys come from the trusted ontologies)
-├── trusted_ontologes/       ← the trusted ontology files (OWL/TTL)
+├── trusted_ontologies/       ← the trusted ontology files (OWL/TTL); ait_taxonomies.json is the manifest of the
+│                              Allen taxonomies (AIT numbers, species per file, gene annotations)
 │   ├── priority.md                 ← THE priority table (edit to reorder / enable / add)
 │   ├── README.md                   ← generated list of the ontologies
 │   ├── sources.json                ← acquisition log
@@ -136,13 +137,13 @@ structsense/
 │   ├── abcd_synthesize.py   ← cross-paper consensus/divergence + role consistency
 │   ├── abcd_export.py       ← JSON + Markdown tables + Turtle (PROV-O) writers
 │   ├── ait_taxonomy.py      ← AIT taxonomy catalog: list / rank / show
+│   ├── ait_nodes.py         ← AIT taxonomy reader: nodes + markers from trusted_ontologies/*_BG.ttl
 │   ├── ait_evidence.py      ← AIT Pass 2a: lexical evidence check + quarantine
 │   ├── ait_tables.py        ← AIT column contract: init / derive / review-sheet / validate
 │   └── ait_gene_diff.py     ← AIT Pass 4: entity cards + marker-gene diff
 ├── data/
-│   ├── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
-│   │                          539,781 variables in 8.6 MB gzipped (self-contained)
-│   └── allen_taxonomies.json ← the 8 supported Allen (AIT) cell type taxonomies
+│   └── dictionaries/        ← bundled ABCD/HBCD dictionaries, all 7 releases,
+│                              539,781 variables in 8.6 MB gzipped (self-contained)
 ├── requirements.txt         ← core deps; -llm / -ner / -dev for the optional paths
 └── examples/                ← worked end-to-end examples
     ├── ttl/                 ← a real open-access paper (Hu et al. 2026, CC BY 4.0) end to end
@@ -616,9 +617,9 @@ when a target is the wrong kind (`relation_range_hints`).
 
 ## Trusted ontologies (0.9)
 
-The ontology files in `trusted_ontologes/` are consulted before any remote mapper.
-`trusted_ontologes/priority.md` is the only place that says which files are used and in
-what order (1 first; `off` disables a row); `trusted_ontologes/README.md` lists them.
+The ontology files in `trusted_ontologies/` are consulted before any remote mapper.
+`trusted_ontologies/priority.md` is the only place that says which files are used and in
+what order (1 first; `off` disables a row); `trusted_ontologies/README.md` lists them.
 
 ```bash
 python -m scripts.concept_mapping index      # once, ~2 min, no network: TSV lexicon per ontology + SQLite
@@ -805,7 +806,7 @@ None of the scripts depend on `structsense` or `crewai` — they're standalone.
 7. **Validate before returning.** Parse JSON; repair-then-retry on failure; validate against the schema in `schemas/`.
 8. **Always emit a `stats` block** at the top level (totals, label/source_model histograms, alignment provenance, judge score buckets, timings).
 9. **The deliverable is `<input_stem>.ttl`**, one per paper, validated (0 violations). The JSON between stages is working state. Honor `--out` only when the user provides one.
-10. **Mapping cascade:** trusted ontologies (`trusted_ontologes/priority.md` order) → local hybrid (`http://localhost:8000`, verify at `/docs`) → BioPortal → **ask the user** for an alternative URL. All of it is `concept_mapping.json`; don't hardcode URLs or ontologies.
+10. **Mapping cascade:** trusted ontologies (`trusted_ontologies/priority.md` order) → local hybrid (`http://localhost:8000`, verify at `/docs`) → BioPortal → **ask the user** for an alternative URL. All of it is `concept_mapping.json`; don't hardcode URLs or ontologies.
 11. **Document metadata at top, not per entity.** `paper_title` / `doi` / `source_path` go ONCE in `source_metadata`. `paper_location` stays per-entity because it varies.
 12. **Always emit both `entities[]` (raw) and `entities_grouped[]` (per-entity index).** The raw list is one-per-occurrence; the grouped list collapses by canonical (entity, label) with merged sentences + every contributing `source_model`.
 13. **Judge with the ensemble.** Independent judges, one dimension each; critical judges (grounding, claims) are gates, not votes; the combiner only chooses among judges' suggestions.

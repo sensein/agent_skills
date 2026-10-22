@@ -8,6 +8,7 @@ diff. Standard library only, like the rest of the suite.
 """
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -66,6 +67,17 @@ def fixture_tables() -> dict:
          "evidence_section": "Discussion", "evidence_chunk_id": "c9",
          "evidence_char_start": "0", "evidence_char_end": "10",
          "extraction_flag": "uncertain", "field_provenance": prov, "extractor_version": "v2", "run_id": "r1"},
+    ] + [
+        # every marker gene is its own gene entity (ait_tables validate requires it)
+        {"paper_id": PAPER, "mention_id": f"{PAPER}:M00{i}", "entity_type": "gene",
+         "label_verbatim": g, "label_normalized": g, "n_mentions": "1",
+         "species": "mouse", "species_role": "experimental", "ncbi_taxon_id": "10090",
+         "assertion_type": "asserted",
+         "evidence_sentence": "These cells co-expressed Sst, Chodl and Nos1.",
+         "evidence_section": "Results", "evidence_chunk_id": "c1",
+         "evidence_char_start": str(s1), "evidence_char_end": str(e1),
+         "extraction_flag": "ok", "field_provenance": prov, "extractor_version": "v2", "run_id": "r1"}
+        for i, g in ((3, "Sst"), (4, "Chodl"), (5, "Nos1"))
     ]
     methods = [{"paper_id": PAPER, "assay_id": "A1", "assay_name": "MERFISH", "platform": "MERFISH",
                 "modality": "spatial", "targeted": "true", "gene_panel_name": "panel300",
@@ -142,6 +154,120 @@ class TaxonomyCatalog(unittest.TestCase):
         self.assertTrue(tax.species_covered("AIT15.3", "human"))
         self.assertFalse(tax.species_covered("AIT15.3", "mouse"))
         self.assertIsNone(tax.species_covered("AIT999", "mouse"))
+
+
+try:
+    import rdflib  # noqa: F401
+    HAVE_RDFLIB = True
+except ImportError:
+    HAVE_RDFLIB = False
+
+
+@unittest.skipUnless(HAVE_RDFLIB, "rdflib not installed")
+class TrustedTaxonomyNodes(unittest.TestCase):
+    def test_trusted_files_exist(self):
+        from scripts import ait_nodes
+        for t in tax.taxonomies():
+            for fname in (t.get("trusted_files") or {}).values():
+                self.assertTrue((ait_nodes.trusted_dir() / fname).exists(), fname)
+
+    def test_species_from_ait_number(self):
+        from scripts import ait_nodes
+        self.assertEqual(ait_nodes.resolve("AIT11.9")[1:], ("macaque", "Macaque_BG.ttl"))
+        with self.assertRaises(LookupError):
+            ait_nodes.resolve("CCN20250428")  # multi-species: needs --species
+        with self.assertRaises(LookupError):
+            ait_nodes.resolve("AIT15.3")  # no trusted file
+
+    def test_human_bg_nodes_levels_and_markers(self):
+        from scripts import ait_nodes
+        t = ait_nodes.load("AIT19.5")
+        self.assertEqual([lvl for lvl, _, _ in t.levels],
+                         ["Neighborhood", "Class", "Subclass", "Group", "cluster_id"])
+        n = t.node("CS20250428_GROUP_0033")
+        self.assertEqual((n.label, n.level), ("SN GATA3-PVALB GABA", "Group"))
+        self.assertEqual(len(n.ancestors), 3)
+        self.assertEqual(t.markers(n.node_id, own_only=True), ["GATA3", "PVALB"])
+        # curated_markers link to GeneAnnotations; symbols come from the annotation file
+        g29 = t.node("CS20250428_GROUP_0029")
+        self.assertTrue(all(i.startswith("urn:bkbit:") for i in g29.curated_markers))
+        self.assertEqual(t.gene_file, "annotation-ENSEMBL-9606-109.ttl")
+        self.assertEqual(t.markers(g29.node_id, own_only=True)[:5],
+                         ["BNC2", "CALB1", "NR4A2", "SLC6A3", "TH"])
+        self.assertIsNotNone(t.node("Human-147"))  # cluster level keyed by label
+
+    def test_every_curated_marker_resolves_in_its_species_annotation(self):
+        from scripts import ait_nodes
+        for ait_id in ("AIT19.5", "AIT11.9", "AIT101"):
+            t = ait_nodes.load(ait_id)
+            self.assertTrue(any(n.curated_markers for n in t.nodes.values()), ait_id)
+            self.assertEqual(t.unresolved_markers(), [], ait_id)
+            for n in t.nodes.values():
+                self.assertFalse([i for i in n.curated_markers if i.startswith("file:")], n.node_id)
+
+    def test_manifest_agrees_with_the_taxonomy_files(self):
+        # trusted_ontologies/ait_taxonomies.json holds only what the .ttl files do not;
+        # where both say something, they must agree.
+        from scripts import ait_nodes
+        catalog = tax.load_catalog()
+        self.assertEqual(tax.CATALOG_PATH.parent, ait_nodes.trusted_dir())
+        gene_files = {e["file"] for e in catalog["gene_annotations"].values()}
+        for entry in tax.taxonomies():
+            for species, fname in (entry.get("trusted_files") or {}).items():
+                self.assertIn(species, entry["species"], fname)
+                t = ait_nodes.load(tax.preferred_id(entry, species), species)
+                # the file's own title names its species, and its accessions the CCN
+                self.assertIn(species, t.title.lower(), fname)
+                ccn = re.findall(r"CCN(\d+)", entry["ccn"] or "")
+                accessions = {n.accession_id.split("_")[0] for n in t.nodes.values() if n.accession_id}
+                self.assertEqual(accessions, {f"CS{ccn[0]}"}, fname)
+                # the annotation its curated_markers link into is a trusted file, and the
+                # one the manifest gives that species' genes
+                self.assertIn(t.gene_file, gene_files, fname)
+                self.assertEqual(ait_nodes.gene_annotation_file(species), t.gene_file, fname)
+
+    def test_every_extracted_gene_links_to_an_ensembl_or_ncbi_annotation(self):
+        from scripts import ait_nodes
+        row = lambda mid, sym, sp="", tx="": {"mention_id": mid, "entity_type": "gene", "label_verbatim": sym,
+                                              "label_normalized": sym, "species": sp, "ncbi_taxon_id": tx}
+        rows = [row("M1", "DRD1", "human", "9606"),          # ENSEMBL human
+                row("M2", "DRD1", "", "9606"),                # taxon id only
+                row("M3", "DRD1", "Homo sapiens"),             # scientific name
+                row("M4", "DRD1"),                             # no species: the paper's experimental one
+                row("M5", "TH", "rhesus macaque"),             # NCBI macaque
+                row("M6", "TH", "", "9483"),                   # NCBI marmoset
+                row("M7", "Drd1", "mouse"),                    # ENSEMBL mouse, mouse-style symbol
+                row("M8", "Drd1", "rat", "10116"),             # no trusted annotation
+                row("M9", "NOTAGENE1", "human")]               # not in the annotation
+        links = {r["mention_id"]: ait_nodes.resolve_gene_row(r, ("human", "9606")) for r in rows}
+        human = links["M1"].iri
+        self.assertTrue(human.startswith("urn:bkbit:"))
+        self.assertEqual({links[m].iri for m in ("M2", "M3", "M4")}, {human})  # M4: the paper's species
+        self.assertEqual(links["M5"].file, "annotation-NCBI-9544-103.ttl")
+        self.assertEqual(links["M6"].file, "annotation-NCBI-9483-105.ttl")
+        self.assertEqual((links["M7"].file, links["M7"].tier), ("annotation-ENSEMBL-10090-109.ttl", "symbol"))
+        self.assertTrue(links["M5"].iri and links["M6"].iri and links["M7"].iri)
+        self.assertEqual(len({links[m].iri for m in ("M1", "M5", "M6", "M7")}), 4)  # one gene per species
+        self.assertEqual(sum(1 for g in links.values() if g.iri), 7)
+        self.assertIn("no trusted gene annotation", links["M8"].reason)
+        self.assertEqual(links["M9"].reason, "no gene with this symbol or synonym")
+        # as a concept row: tool provenance, the annotation file as its source
+        f = ait_nodes.gene_concept_fields(links["M5"])
+        self.assertEqual((f["concept_mapping_provenance"], f["mapping_source"], f["match_tier"]),
+                         ("tool", "trusted:annotation-NCBI-9544-103", "exactMatch"))
+
+    def test_search_and_validate_node(self):
+        from scripts import ait_nodes
+        t = ait_nodes.load("AIT19.5")
+        top = ait_nodes.search(t, label="D1 MSN", regions=["putamen"], level="Group", top_n=3)
+        self.assertTrue(all("MSN" in r["label"] for r in top))
+        row = {"ait_id": "AIT19.5", "ait_node_id": "CS20250428_GROUP_0033",
+               "ait_cell_type_label": "SN GATA3-PVALB GABA", "ait_hierarchy_level": "Group"}
+        self.assertEqual(tables.check_node("mappings.csv", 1, row, None, None), [])
+        bad = tables.check_node("mappings.csv", 1, {**row, "ait_node_id": "CS_NOPE"}, None, None)
+        self.assertEqual([i.level for i in bad], ["error"])
+        bad = tables.check_node("mappings.csv", 1, {**row, "ait_cell_type_label": "SN PVALB"}, None, None)
+        self.assertEqual([i.level for i in bad], ["error"])
 
 
 class Normalization(unittest.TestCase):
@@ -273,6 +399,13 @@ class TablesContract(unittest.TestCase):
                 tables.write_table(out / name, name, rows)
             return [i.message for i in tables.validate(out) if i.level == "error"]
 
+    def test_marker_gene_without_a_gene_row_is_an_error(self):
+        def mutate(d):
+            d["entities.csv"] = [r for r in d["entities.csv"] if r["label_verbatim"] != "Nos1"]
+        errs = [m for m in self._validate_with(mutate) if "no entity_type=gene row" in m]
+        self.assertEqual(len(errs), 1)
+        self.assertIn("Nos1", errs[0])
+
     def test_wrong_match_confidence_is_an_error(self):
         def mutate(d):
             d["mappings.csv"][0]["match_confidence"] = "exact"
@@ -334,6 +467,30 @@ class GeneDiff(unittest.TestCase):
         d = gd.gene_diff(["Sst"], ["Sst"], panel=[])
         self.assertTrue(d["panel_limited"])
         self.assertEqual(d["jaccard_panel_restricted"], "NA")
+
+    def test_no_paper_markers_is_na_not_zero(self):
+        # the HMBA case: the taxonomy node has curated markers, the paper names none
+        d = gd.gene_diff([], ["STXBP6"])
+        self.assertIsNone(d["jaccard"])  # NA: no evidence either way, not disagreement
+        self.assertEqual(d["genes_taxonomy_only"], ["STXBP6"])
+        d = gd.gene_diff([], ["STXBP6"], panel=["STXBP6"])
+        self.assertEqual(d["jaccard_panel_restricted"], "NA")
+        self.assertEqual(gd.gene_diff(["DRD1"], ["STXBP6"])["jaccard"], 0.0)  # a real disagreement stays 0
+
+    def test_marker_report_counts_from_the_cards(self):
+        cards = [
+            {"ait_node_id": "G1", "ait_cell_type_label": "STRd D1 Matrix MSN", "n_shared": "0",
+             "n_paper_only": "0", "jaccard": "NA"},
+            {"ait_node_id": "S1", "ait_cell_type_label": "STR D1 MSN", "n_shared": "0",
+             "n_paper_only": "2", "jaccard": "0.0"},
+            {"ait_node_id": "G2", "ait_cell_type_label": "STRv D1 MSN", "n_shared": "1",
+             "n_paper_only": "0", "jaccard": "0.5"},
+        ]
+        rep = gd.marker_report(cards, {"G1": ["STXBP6"], "G2": ["ARHGAP6", "DRD1"], "S1": []})
+        self.assertEqual([n["ait_node_id"] for n in rep["nodes_with_taxonomy_markers"]], ["G1", "G2"])
+        self.assertEqual(rep["nodes_without_taxonomy_markers"], 1)
+        self.assertEqual((rep["edges_where_paper_names_markers"], rep["edges_with_shared_markers"],
+                          rep["edges_jaccard_na"]), (2, 1, 1))
 
     def test_case_is_not_folded(self):
         d = gd.gene_diff(["PVALB"], ["Pvalb"])

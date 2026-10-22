@@ -261,8 +261,11 @@ nsh:EntityClassificationShape a sh:NodeShape ;
 
 nsh:OntologyConceptShape a sh:NodeShape ;
     sh:targetClass ner:OntologyConcept ;
+    # http(s), or an RFC 8141 URN for terms whose only identity is one (the Allen /
+    # BICAN taxonomy nodes in trusted_ontologies/*_BG.ttl are urn:bkbit:<sha256>; the
+    # prefix registry must still know the namespace — BKBIT in ttl_config.json)
     sh:property [ sh:path ner:conceptIRI ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ;
-                  sh:pattern "^https?://\\S+$" ] ;
+                  sh:pattern "^(https?://|urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:)\\S+$" ] ;
     sh:property [ sh:path ner:conceptIdentifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
                   sh:pattern "^[A-Za-z][A-Za-z0-9_.-]*:\\S+$" ;
                   sh:message "conceptIdentifier is a CURIE (PREFIX:LOCAL), e.g. CL:4023017." ] ;

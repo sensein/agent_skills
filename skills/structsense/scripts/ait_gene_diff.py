@@ -18,6 +18,11 @@ Both gene sets must already be in that one namespace, with cross-species ortholo
 resolved (GeneOrthology tool). Symbols are compared exactly: folding `Pvalb` onto
 `PVALB` by case is an ortholog assumption, and making it here would hide it.
 
+Jaccard is `NA` when the paper names no marker genes for the entity: with nothing on
+the paper side there is nothing to agree or disagree with, and a 0 would read as
+disagreement (and sort the edge to the bottom of a review queue). It is a number only
+when the paper states at least one marker.
+
 A targeted assay cannot mention a gene that is not on its panel, so a large
 `genes_taxonomy_only` is not evidence against the mapping. For a targeted assay,
 `panel_limited = true` and `jaccard_panel_restricted` is computed with both sets
@@ -25,6 +30,10 @@ restricted to the panel (`NA` when the panel gene list was not found); for an
 untargeted assay it is left empty (not applicable).
 
     python -m scripts.ait_gene_diff out/ --markers markers.json --panels panels.json --namespace HGNC
+
+It also writes `out/marker_report.json`: per edge whether the paper and the taxonomy
+node have markers, which nodes carry taxonomy markers and which do not, and the counts.
+`run_report.md` quotes these numbers; it never summarises marker availability itself.
 """
 from __future__ import annotations
 
@@ -63,7 +72,8 @@ def gene_diff(paper: Iterable[str], taxonomy: Iterable[str],
     out: Dict[str, object] = {
         "genes_shared": shared, "genes_paper_only": paper_only, "genes_taxonomy_only": taxonomy_only,
         "n_shared": len(shared), "n_paper_only": len(paper_only), "n_taxonomy_only": len(taxonomy_only),
-        "jaccard": round(len(shared) / len(union), 4) if union else None,
+        # NA (None) unless the paper states a marker: an empty paper side is no evidence
+        "jaccard": round(len(shared) / len(union), 4) if ps else None,
         "panel_limited": panel is not None,
         "jaccard_panel_restricted": None,
     }
@@ -72,7 +82,7 @@ def gene_diff(paper: Iterable[str], taxonomy: Iterable[str],
         if pn:
             rp, rt = ps & pn, ts & pn
             ru = rp | rt
-            out["jaccard_panel_restricted"] = round(len(rp & rt) / len(ru), 4) if ru else NA
+            out["jaccard_panel_restricted"] = round(len(rp & rt) / len(ru), 4) if rp else NA
         else:
             out["jaccard_panel_restricted"] = NA
     return out
@@ -151,6 +161,29 @@ def build_cards(data: Dict[str, List[Dict[str, str]]], markers: Dict[str, List[s
     return cards, warnings
 
 
+def marker_report(cards: List[Dict[str, str]], markers: Dict[str, List[str]],
+                  labels: Optional[Dict[str, str]] = None) -> Dict[str, object]:
+    """What the marker comparison could and could not say, from the cards themselves."""
+    labels = labels or {c["ait_node_id"]: c.get("ait_cell_type_label", "") for c in cards}
+    nodes = sorted({c["ait_node_id"] for c in cards})
+    with_tax = [n for n in nodes if markers.get(n)]
+    def n_of(c, side):
+        v = c.get(f"n_{side}", "")
+        return int(v) if v not in ("", NA) else 0
+    paper_side = [c for c in cards if n_of(c, "shared") + n_of(c, "paper_only")]
+    return {
+        "edges": len(cards),
+        "nodes": len(nodes),
+        "nodes_with_taxonomy_markers": [{"ait_node_id": n, "label": labels.get(n, ""), "markers": markers[n]}
+                                        for n in with_tax],
+        "nodes_without_taxonomy_markers": len(nodes) - len(with_tax),
+        "edges_where_paper_names_markers": len(paper_side),
+        "edges_with_shared_markers": sum(1 for c in cards if n_of(c, "shared")),
+        "edges_jaccard_na": sum(1 for c in cards if c.get("jaccard") == NA),
+        "edges_jaccard_na_reason": "Jaccard is NA when the paper names no marker for the entity",
+    }
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("out_dir", type=Path)
@@ -163,9 +196,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     panels = json.loads(args.panels.read_text(encoding="utf-8")) if args.panels else {}
     cards, warnings = build_cards(tables.load_dir(args.out_dir), markers, panels, namespace=args.namespace)
     tables.write_table(args.out_dir / "entity_cards.csv", "entity_cards.csv", cards)
+    rep = marker_report(cards, markers)
+    (args.out_dir / "marker_report.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False) + "\n",
+                                                    encoding="utf-8")
     for w in warnings:
         print("WARNING", w)
     print(f"entity_cards.csv: {len(cards)} rows")
+    print(f"markers: {rep['nodes']} mapped node(s), {len(rep['nodes_with_taxonomy_markers'])} with taxonomy "
+          f"markers; paper names markers on {rep['edges_where_paper_names_markers']}/{rep['edges']} edge(s), "
+          f"shared on {rep['edges_with_shared_markers']}; Jaccard NA on {rep['edges_jaccard_na']} "
+          f"(paper names no marker). Details: marker_report.json")
     return 0
 
 

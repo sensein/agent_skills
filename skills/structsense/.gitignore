@@ -1,4 +1,4 @@
-trusted_ontologes/lexicon/
+trusted_ontologies/lexicon/
 .ols_cache.json
 # Generated query-run artifacts; maintained queries and tests are versioned.
 cqs/__pycache__/

@@ -2,7 +2,8 @@
 
 `prompts/extractor-cell-type-ait-mapping.md` Pass 3 picks a taxonomy from species,
 brain region and assay. The list of taxonomies lives in ONE place —
-`data/allen_taxonomies.json`, a dated snapshot of the brain-map.org taxonomy index —
+`trusted_ontologies/ait_taxonomies.json`, a dated snapshot of the brain-map.org taxonomy index,
+kept next to the parsed taxonomy files it describes —
 and is never restated in a prompt. It holds eight taxonomies on purpose; a paper none
 of them covers gets `skos_relation = none`, never a forced closeMatch to the nearest
 one.
@@ -24,7 +25,22 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
-CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "allen_taxonomies.json"
+SKILL_DIR = Path(__file__).resolve().parents[1]
+CATALOG_FILE = "ait_taxonomies.json"
+
+
+def trusted_dir() -> Path:
+    """`trusted_ontologies.directory` from concept_mapping.json (default `trusted_ontologies`)."""
+    try:
+        cfg = json.loads((SKILL_DIR / "concept_mapping.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cfg = {}
+    d = Path((cfg.get("trusted_ontologies") or {}).get("directory", "trusted_ontologies")).expanduser()
+    return d if d.is_absolute() else SKILL_DIR / d
+
+
+# the manifest lives next to the parsed taxonomy files it describes
+CATALOG_PATH = trusted_dir() / CATALOG_FILE
 
 _CCN = re.compile(r"CCN\d+")
 

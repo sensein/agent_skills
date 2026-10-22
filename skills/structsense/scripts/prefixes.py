@@ -14,7 +14,7 @@ Entries come from, in order of authority:
      (other id spaces, e.g. EFO, HGNC, NCBIGene, UniProtKB);
   2. the trusted lexicon (`concept_mapping index`), which records every namespace
      a trusted file's classes live in, under that row's CURIE prefix from
-     trusted_ontologes/priority.md — this is how BKE's
+     trusted_ontologies/priority.md — this is how BKE's
      https://identifiers.org/brain-bican/vocab/ becomes BKE:.
 
 Matching is case-insensitive; the registered spelling is canonical. A prefix
@@ -83,7 +83,7 @@ class PrefixRegistry:
     def _load_lexicon(self, mapping_config: Path) -> None:
         cfg = json.loads(mapping_config.read_text())
         tcfg = cfg.get("trusted_ontologies") or {}
-        lex = Path(tcfg.get("lexicon_dir", "trusted_ontologes/lexicon"))
+        lex = Path(tcfg.get("lexicon_dir", "trusted_ontologies/lexicon"))
         db = (lex if lex.is_absolute() else SKILL_DIR / lex) / "lexicon.sqlite"
         if not db.is_file():
             return

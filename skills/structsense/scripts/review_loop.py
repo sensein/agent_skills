@@ -277,10 +277,29 @@ def map_abcd(doc: dict, tools: Tools) -> dict:
     return doc
 
 
+def _concept_row(e: dict, query: str, f: dict) -> dict:
+    tool = f.get("concept_mapping_provenance") == "tool" and f.get("ontology_id")
+    return {"paper_id": e.get("paper_id"), "concept_id": f"{e.get('mention_id')}:C",
+            "mention_id": e.get("mention_id"), "entity_type": e.get("entity_type"), "query": query,
+            "ontology_id": f.get("ontology_id") or "", "ontology_label": f.get("ontology_label") or "",
+            "ontology": f.get("ontology") or "", "mapping_source": f.get("mapping_source") or "",
+            "match_tier": (f.get("match_tier") or "exactMatch") if tool else "",
+            "concept_mapping_provenance": "tool" if tool else "unmapped", "mapped_by": "code",
+            "notes": f.get("notes") if f.get("notes") is not None else
+            ("" if tool else "tried " + ",".join(f.get("mapping_sources_tried") or []))}
+
+
 def map_ait(data: dict, tools: Tools) -> dict:
-    """entities.csv -> concept_mappings.csv (one row per entity, mapped or not)."""
+    """entities.csv -> concept_mappings.csv (one row per entity, mapped or not).
+
+    Genes go first to their trusted genome annotation (the species' ENSEMBL/NCBI
+    gff2jsonld file in trusted_ontologies/, ait_nodes.resolve_gene_row): its
+    GeneAnnotation IRI is the one the taxonomy's curated_markers link to. A gene the
+    annotation does not resolve continues through the cascade like every other entity
+    (label Gene -> HGNC / NCBIGene), with a note that it does not join the markers.
+    Everything else goes through the ConceptMapper, trusted files first."""
     at = _ait()
-    rows, probes = [], []
+    rows, probes, genes = [], [], []
     old = {c.get("mention_id"): c for c in data.get(CONCEPT_TABLE) or []}
     for e in data.get("entities.csv") or []:
         label = AIT_LABEL.get(e.get("entity_type", ""))
@@ -291,23 +310,38 @@ def map_ait(data: dict, tools: Tools) -> dict:
             rows.append(prev)  # a curator's decision is not re-derived
             continue
         q = e.get("label_normalized") or e.get("label_verbatim") or ""
+        if label == "Gene":
+            genes.append((e, q))
+            continue
         probes.append((e, {"term": q, "label": label}))
     if probes:
         tools.mapper.map_items([p for _, p in probes], "term")
     for e, p in probes:
         tool = p.get("concept_mapping_provenance") == "tool" and p.get("ontology_id")
-        rows.append({"paper_id": e.get("paper_id"), "concept_id": f"{e.get('mention_id')}:C",
-                     "mention_id": e.get("mention_id"), "entity_type": e.get("entity_type"), "query": p["term"],
-                     "ontology_id": p.get("ontology_id") or "", "ontology_label": p.get("ontology_label") or "",
-                     "ontology": p.get("ontology") or "", "mapping_source": p.get("mapping_source") or "",
-                     "match_tier": (p.get("match_tier") or "exactMatch") if tool else "",
-                     "concept_mapping_provenance": "tool" if tool else "unmapped", "mapped_by": "code",
-                     "notes": "" if tool else "tried " + ",".join(p.get("mapping_sources_tried") or [])})
+        rows.append(_concept_row(e, p["term"], {**p, "notes": None}))
         iri = p.get("ontology_id") or ""
         if tool and e.get("entity_type") == "species" and "NCBITaxon_" in iri and not e.get("ncbi_taxon_id"):
             e["ncbi_taxon_id"] = iri.rsplit("_", 1)[1]
             e["field_provenance"] = at.add_provenance(e.get("field_provenance", ""), "ncbi_taxon_id",
                                                       "code:ontology_lookup")
+    if genes:  # after species: a species mapped above has its ncbi_taxon_id now
+        from scripts import ait_nodes
+        default = ait_nodes.paper_species(data.get("entities.csv") or [])
+        fallback = []
+        for e, q in genes:
+            f = ait_nodes.gene_concept_fields(ait_nodes.resolve_gene_row(e, default))
+            if f["concept_mapping_provenance"] == "tool":
+                rows.append(_concept_row(e, q, f))
+            else:  # not in the annotation: the normal cascade, routed to HGNC / NCBIGene
+                fallback.append((e, q, f["notes"], {"term": q, "label": "Gene"}))
+        if fallback:
+            tools.mapper.map_items([p for *_, p in fallback], "term")
+        for e, q, why, p in fallback:
+            tool = p.get("concept_mapping_provenance") == "tool" and p.get("ontology_id")
+            note = (f"not in the genome annotation ({why}); mapped by the cascade, so it does not "
+                    "join the taxonomy's curated_markers") if tool else \
+                f"not in the genome annotation ({why}); cascade tried " + ",".join(p.get("mapping_sources_tried") or [])
+            rows.append(_concept_row(e, q, {**p, "notes": note}))
     data[CONCEPT_TABLE] = rows
     return data
 
@@ -564,7 +598,16 @@ class Applier:
                 ref.update(hit)
                 ref["remapped_by"] = {"actor": self.actor, "query": query, "from": before, "at": utc_now()}
                 return {"from": before, "to": hit.get("construct_id"), "source": "cognitive_atlas"}
-        hit = self.tools.lookup(query, label)
+        if self.mode == "ait" and label == "Gene":
+            from scripts import ait_nodes
+            ents = self.data.get("entities.csv") or []
+            row = next((e for e in ents if e.get("mention_id") == ref.get("mention_id")), {})
+            hit = ait_nodes.gene_concept_fields(
+                ait_nodes.resolve_gene_row(row, ait_nodes.paper_species(ents), symbol=query))
+            if hit.get("concept_mapping_provenance") != "tool":
+                hit = self.tools.lookup(query, label)  # not in the annotation: the cascade
+        else:
+            hit = self.tools.lookup(query, label)
         if hit.get("concept_mapping_provenance") != "tool" or not hit.get("ontology_id"):
             raise OpError(f"no tool mapping for {query!r} (sources tried: "
                           f"{hit.get('mapping_sources_tried') or self.tools.mapper.sources})")

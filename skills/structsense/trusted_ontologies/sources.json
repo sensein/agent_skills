@@ -14,7 +14,39 @@
       "file": "cell_taxonomy.ttl",
       "source": "https://github.com/brain-bican/models/blob/63254e74/linkml-schema/cell_taxonomy.yaml",
       "role": "neuroscience",
-      "note": "BICAN Cell Taxonomy model, the schema of the Human_BG/Macaque_BG/Marmoset_BG.ttl taxonomies (bkbit ait2jsonld). OWL as Turtle, generated with LinkML 1.11.1 gen-owl from brain-bican/models commit 63254e74 (2026-10-14), the version pushed to bkbit as #110. Replaces bke_taxonomy.ttl. Terms are in https://identifiers.org/brain-bican/vocab/ (CURIE prefix BKE).",
+      "note": "BICAN Cell Taxonomy model, the schema of the Human_BG/Macaque_BG/Marmoset_BG.ttl taxonomies (bkbit ait2jsonld, brain-bican/bkbit#105 plus the curated_markers fix on branch fix-curated-markers-iri: markers are GeneAnnotation IRIs from the annotation-*.ttl files). OWL as Turtle, generated with LinkML 1.11.1 gen-owl from brain-bican/models commit 63254e74 (2026-10-14), the version pushed to bkbit as #110. Replaces bke_taxonomy.ttl. Terms are in https://identifiers.org/brain-bican/vocab/ (CURIE prefix BKE).",
+      "tier": "trusted"
+    },
+    {
+      "acronym": "BKE",
+      "file": "annotation-ENSEMBL-9606-109.ttl",
+      "source": "https://ftp.ensembl.org/pub/release-109/gff3/homo_sapiens/Homo_sapiens.GRCh38.109.gff3.gz",
+      "role": "neuroscience",
+      "note": "Homo sapiens genome annotation as BICAN GeneAnnotation instances (bkbit gff2jsonld --format turtle, bkbit commit 64786ed). The GeneAnnotation IRIs that Human_BG.ttl's curated_markers link to. Not a priority.md row: instance data, read by scripts/ait_nodes.py.",
+      "tier": "trusted"
+    },
+    {
+      "acronym": "BKE",
+      "file": "annotation-NCBI-9544-103.ttl",
+      "source": "https://ftp.ncbi.nlm.nih.gov/genomes/all/annotation_releases/9544/103/GCF_003339765.1_Mmul_10/GCF_003339765.1_Mmul_10_genomic.gff.gz",
+      "role": "neuroscience",
+      "note": "Macaca mulatta genome annotation as BICAN GeneAnnotation instances (bkbit gff2jsonld --format turtle, bkbit commit 64786ed). The GeneAnnotation IRIs that Macaque_BG.ttl's curated_markers link to. Not a priority.md row: instance data, read by scripts/ait_nodes.py.",
+      "tier": "trusted"
+    },
+    {
+      "acronym": "BKE",
+      "file": "annotation-NCBI-9483-105.ttl",
+      "source": "https://ftp.ncbi.nlm.nih.gov/genomes/all/annotation_releases/9483/105/GCF_009663435.1_Callithrix_jacchus_cj1700_1.1/GCF_009663435.1_Callithrix_jacchus_cj1700_1.1_genomic.gff.gz",
+      "role": "neuroscience",
+      "note": "Callithrix jacchus genome annotation as BICAN GeneAnnotation instances (bkbit gff2jsonld --format turtle, bkbit commit 64786ed). The GeneAnnotation IRIs that Marmoset_BG.ttl's curated_markers link to. Not a priority.md row: instance data, read by scripts/ait_nodes.py.",
+      "tier": "trusted"
+    },
+    {
+      "acronym": "BKE",
+      "file": "annotation-ENSEMBL-10090-109.ttl",
+      "source": "https://ftp.ensembl.org/pub/release-109/gff3/mus_musculus/Mus_musculus.GRCm39.109.gff3.gz",
+      "role": "neuroscience",
+      "note": "Mus musculus genome annotation as BICAN GeneAnnotation instances (bkbit gff2jsonld --format turtle, bkbit commit 64786ed). Not linked from a taxonomy yet; the mouse gene space for mouse taxonomies and papers. Not a priority.md row: instance data, read by scripts/ait_nodes.py.",
       "tier": "trusted"
     },
     {
@@ -1564,6 +1596,6 @@
           "note": "OWL/XML is not RDF and no triple store parses it, so it was converted once to RDF/XML and the original was not kept; the source URL and submission id above identify what it came from."
         }
       }
-    ],
-  },
- }
+    ]
+  }
+}
