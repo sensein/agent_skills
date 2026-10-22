@@ -268,10 +268,16 @@ def merge_records(records: list[dict]) -> list[dict]:
                 cur[k] = v
         cur["not_found_fields"] = sorted(set(cur.get("not_found_fields") or []) | set(rec.get("not_found_fields") or []))
     out = [merged[k] for k in order]
+
+    def at(rec, path):  # "access.committee" -> rec["access"]["committee"]; list indices ignored
+        v = rec
+        for part in re.sub(r"\[\d*\]", "", path).split("."):
+            v = v.get(part) if isinstance(v, dict) else None
+        return v
+
     for rec in out:  # a field one chunk found is not missing
         if rec.get("not_found_fields"):
-            rec["not_found_fields"] = [f for f in rec["not_found_fields"]
-                                       if rec.get(f.split(".")[0].split("[")[0]) in (None, "", [], {})]
+            rec["not_found_fields"] = [f for f in rec["not_found_fields"] if at(rec, f) in (None, "", [], {})]
     seen_ids: Counter = Counter()
     for rec in out:
         rid = rec.get("record_id") or slug(rec.get("name", "resource"))
@@ -1267,12 +1273,18 @@ def validate_graph(data: rdflib.Graph, cfg: Optional[dict] = None) -> dict:
     absence = _clean(cfg.get("absence_shapes"))
     DCAT_REC = URIRef("http://www.w3.org/ns/dcat#CatalogRecord")
 
+    def covers(entry, field):  # "applicability.validated" declares applicability
+        e = re.sub(r"\[\d*\]", "", str(entry))
+        return e == field or e.split(".")[0] == field
+
     def declared_absent(focus, field):
         node = URIRef(focus)
         if any(str(k).startswith("mentioned/") for k in data.objects(node, DCT.identifier)):
             return True  # a stub: named by the source, never described by it
-        return any(str(f).split(".")[0].split("[")[0] == field
-                   for rec in data.subjects(BKR.describesResource, node)
+        owners = [node] + [s for s in data.subjects(None, node) if (None, BKR.describesResource, s) in data]
+        return any(covers(f, field)
+                   for res in owners
+                   for rec in data.subjects(BKR.describesResource, res)
                    for f in data.objects(rec, BKR.notFoundField))
     violations, findings, warnings = [], [], Counter()
     for r in rg.subjects(RDF.type, SH.ValidationResult):

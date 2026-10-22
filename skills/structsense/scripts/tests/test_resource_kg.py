@@ -79,6 +79,11 @@ class StubMapper:
                           ontology="UBERON", concept_mapping_provenance="tool", alignment_method="trusted_ontology",
                           mapping_source="trusted:uberon", ontology_match_type="related_synonym",
                           match_tier="relatedMatch")
+            elif term == "rna-seq":
+                it.update(ontology_id="http://purl.obolibrary.org/obo/OBI_0001271", ontology_label="RNA-seq assay",
+                          ontology="OBI", concept_mapping_provenance="tool", alignment_method="trusted_ontology",
+                          mapping_source="trusted:obi", ontology_match_type="exact_synonym",
+                          match_tier="exactMatch")
             elif term == "human":
                 it.update(concept_mapping_provenance="unmapped",
                           trusted_ambiguous=[{"ontology_id": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
@@ -231,6 +236,47 @@ def test_licence_silence_is_a_finding(src):  # noqa: D103
     rep = validate_graph(graph_of(build(res(rec), source_path=src)[0]))
     assert rep["ok"]
     assert any(f["shape"] == "CitableResourceShape" for f in rep["source_silence_findings"])
+
+
+GEO_TEXT = ("Spatial transcriptomics data (RNA-seq) were deposited in GEO under accession GSE300001 "
+            "with dbGaP protected access.")
+TRANSCRIPTOMICS = {"label": "transcriptomics", "mapped": [
+    {"concept_iri": "http://edamontology.org/topic_3308", "concept_label": "Transcriptomics", "ontology": "EDAM",
+     "relation": "exact", "status": "accepted", "method": "exact_lexical", "provenance_raw": "tool"}]}
+
+
+def geo_record(**extra):
+    rec = {"record_id": "r1", "extracted_type": "dataset", "name": "Spatial transcriptomics data",
+           "stable_identifiers": [{"value": "GSE300001", "scheme": "accession", "resolves_through": "GEO"}],
+           "access": {"level": "controlled"}}
+    rec.update(extra)
+    return rec
+
+
+@pytest.mark.parametrize("field,concept,prop", [("modalities", {"label": "RNA-seq"}, BKR.appliesToModality),
+                                                ("topics", TRANSCRIPTOMICS, BKR.appliesToTopic)])
+def test_single_loose_dimension_is_a_valid_scope(tmp_path, field, concept, prop):  # noqa: D103
+    p = tmp_path / "geo.txt"
+    p.write_text(GEO_TEXT, encoding="utf-8")
+    rec = geo_record(**{field: [dict(concept)]}, access={"level": "controlled", "committee": "dbGaP"})
+    g = graph_of(build(res(rec), source_path=p, mapper=StubMapper())[0])
+    assert any(g.triples((None, prop, None)))  # the scope pins a mapped concept, no statement
+    rep = validate_graph(g)
+    assert rep["ok"], rep["violations"] + rep["problems"]
+
+
+def test_controlled_access_without_committee_fails_unless_declared(tmp_path):  # noqa: D103
+    p = tmp_path / "geo.txt"
+    p.write_text(GEO_TEXT, encoding="utf-8")
+    rec = geo_record(modalities=[{"label": "Spatial transcriptomics"}])
+    rep = validate_graph(graph_of(build(res(rec), source_path=p)[0]))
+    assert not rep["ok"] and any(v["shape"] == "ControlledAccessShape" for v in rep["violations"])
+    rec = geo_record(modalities=[{"label": "Spatial transcriptomics"}], not_found_fields=["access.committee"])
+    rep = validate_graph(graph_of(build(res(rec), source_path=p)[0]))
+    assert rep["ok"], rep["violations"] + rep["problems"]
+    assert any(f["shape"] == "ControlledAccessShape" for f in rep["source_silence_findings"])
+    rec = geo_record(modalities=[{"label": "Spatial transcriptomics"}], not_found_fields=["access.request_url"])
+    assert not validate_graph(graph_of(build(res(rec), source_path=p)[0]))["ok"]
 
 
 def test_prepare_then_build_without_source_keeps_grounded_values(src):

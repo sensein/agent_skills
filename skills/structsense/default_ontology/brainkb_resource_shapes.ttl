@@ -108,7 +108,8 @@ bkrsh:ApplicabilityScopeShape a sh:NodeShape ;
               bkrls:appliesToTaxon bkrls:appliesToAnatomicalStructure bkrls:appliesToCellType
               bkrls:appliesToDevelopmentalStage bkrls:appliesToSex bkrls:appliesToAssay
               bkrls:appliesToDataModality bkrls:appliesToCondition bkrls:appliesToSpecimenType
-              bkr:appliesToMeasurementTechnique bkr:appliesToVariable bkr:appliesToTask ) ] ;
+              bkr:appliesToMeasurementTechnique bkr:appliesToVariable bkr:appliesToTask
+              bkr:appliesToModality bkr:appliesToTopic ) ] ;
             sh:minCount 1 ] ]
         [ sh:property [ sh:path bkr:scopeStatement ; sh:minCount 1 ] ]
     ) ;
@@ -333,7 +334,7 @@ bkrsh:ControlledAccessShape a sh:NodeShape ;
             }""" ] ;
     sh:property [ sh:path bkr:managedByCommittee ; sh:minCount 1 ;
         sh:severity sh:Violation ;
-        sh:message "Controlled access requires a named authorising body." ] ;
+        sh:message "Controlled access requires a named authorising body (a source that names none is a finding when the record lists access.committee in not_found_fields)." ] ;
     sh:property [ sh:path bkr:accessRequestURL ; sh:minCount 1 ;
         sh:severity sh:Warning ;
         sh:message "Give the route by which access is requested." ] .

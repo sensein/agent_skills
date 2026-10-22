@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased — Scopes on modality or topic alone; controlled access with no named committee
+
+- **A scope pinned only by a modality or a topic failed `ApplicabilityScopeShape`.**
+  The converter writes `bkr:appliesToModality` / `bkr:appliesToTopic` (sub-properties
+  of `bkr:appliesToConcept`), but the shape's dimension list lacked both and SHACL
+  runs without subproperty entailment. A dataset with one mapped record-level
+  modality (EFO "spatial transcriptomics") and nothing else was rejected. Both
+  properties are now in the list.
+- **Controlled access without a named committee is a source-silence finding when
+  declared.** `ControlledAccessShape` is an absence shape (`access.committee`):
+  listed in `not_found_fields`, it is reported, not fatal; unlisted, it is still an
+  extraction gap. Absence checks follow a part of a resource (its access condition)
+  back to the resource's record. The extractor prompt now asks for
+  `access.committee` with `level: controlled` ("dbGaP protected access" → "dbGaP"),
+  or for it to be listed as not found.
+- `not_found_fields` entries with a dotted path (`access.committee`,
+  `access.request_url`) were dropped whenever the top-level field was filled; they
+  are now kept unless that exact path has a value.
+- Tests: `test_single_loose_dimension_is_a_valid_scope`,
+  `test_controlled_access_without_committee_fails_unless_declared`.
+
 ## Unreleased — The source is the paper: DOI, title, authors, licence; the text is a version of it
 
 - **Resource KGs named the extracted text file as the paper** (`bkr:resourceName

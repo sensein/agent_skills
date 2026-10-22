@@ -64,6 +64,10 @@ RULES
    removes anything the text does not state, so a guess only becomes a gap.
    stable_identifiers.scheme from the enum (DOI, RRID, accession, URL, ...); an
    archive prefix (GEO, DANDI, NeMO) is `resolves_through`, the accession the value.
+   access.level "controlled" needs access.committee: the body that authorises
+   access as the text names it ("dbGaP protected access" -> "dbGaP"), with its
+   field_evidence quote; when the text names none, list "access.committee" in
+   not_found_fields rather than guessing one.
 4. Concept labels, not concept IRIs. For topics, tasks, modalities, species and
    every scope dimension (species, anatomical_structures, cell_types,
    developmental_stages, assays, modalities, conditions, tasks, variables, topics)

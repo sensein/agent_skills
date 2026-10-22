@@ -43,9 +43,10 @@
   ],
   "_source_silence_shapes": "SHACL shapes whose violations report what the SOURCE does not state (a paper rarely gives a licence or access condition). validate reports them as findings, not graph defects, and they do not fail the gate. Never fix them by inventing a licence.",
   "absence_shapes": {
-    "ScopedResourceShape": "applicability"
+    "ScopedResourceShape": "applicability",
+    "ControlledAccessShape": "access.committee"
   },
-  "_absence_shapes": "Shapes whose violation is a source-silence finding only when the gap is DECLARED: the resource's record lists the field in not_found_fields (bkr:notFoundField, invariant 7: the extractor looked and the source does not say), or the node is a mention stub (named, never described). Otherwise it is an extraction gap and fails the gate.",
+  "_absence_shapes": "Shapes whose violation is a source-silence finding only when the gap is DECLARED: the resource's record lists the field in not_found_fields (bkr:notFoundField, invariant 7: the extractor looked and the source does not say), or the node is a mention stub (named, never described). A dotted field (access.committee) is declared by that exact path; a focus node that is part of a resource (its access condition) is judged by that resource's record. Otherwise it is an extraction gap and fails the gate.",
   "activity": {
     "enabled": true,
     "stale_after_days": 365,
