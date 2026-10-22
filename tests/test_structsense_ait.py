@@ -86,9 +86,9 @@ def fixture_tables() -> dict:
                 "evidence_chunk_id": "c2", "run_id": "r1"}]
     mappings = [
         {"paper_id": PAPER, "mention_id": f"{PAPER}:M001", "ait_taxonomy_used": "Whole Mouse Brain",
-         "ait_id": "AIT33", "ait_cell_type_label": "Sst Chodl", "ait_hierarchy_level": "subclass",
+         "ait_id": "AIT33", "ait_cell_type_label": "062 Sst:Chodl_Gaba", "ait_hierarchy_level": "subclass",
          "basis_for_match": "label_exact|marker_genes|species", "mapping_id": "MAP1",
-         "ait_node_id": "CS20230722_SUBC_0053", "skos_relation": "skos:broadMatch",
+         "ait_node_id": "062 Sst:Chodl_Gaba", "skos_relation": "skos:broadMatch",
          "mapping_evidence": "Sst, Chodl, Nos1", "mapped_by": "llm",
          "field_provenance": "ait_node_id=llm:extract;code:ontology_lookup", "run_id": "r1"},
         {"paper_id": PAPER, "mention_id": f"{PAPER}:M002", "ait_taxonomy_used": "",
@@ -116,7 +116,7 @@ def run_pipeline(out: Path) -> None:
     tables.derive(data)
     for name in ("mappings.csv", "entity_cards.csv"):
         tables.write_table(out / name, name, data.get(name, []))
-    cards, _ = gd.build_cards(data, {"CS20230722_SUBC_0053": ["Sst", "Chodl", "Npy", "Pde11a"]},
+    cards, _ = gd.build_cards(data, {"062 Sst:Chodl_Gaba": ["Sst", "Chodl", "Npy", "Pde11a"]},
                               {"panel300": ["Sst", "Chodl", "Npy"]}, namespace="MGI")
     tables.write_table(out / "entity_cards.csv", "entity_cards.csv", cards)
     data = tables.load_dir(out)
@@ -177,7 +177,7 @@ class TrustedTaxonomyNodes(unittest.TestCase):
         with self.assertRaises(LookupError):
             ait_nodes.resolve("CCN20250428")  # multi-species: needs --species
         with self.assertRaises(LookupError):
-            ait_nodes.resolve("AIT15.3")  # no trusted file
+            ait_nodes.resolve("BICCN_M1_cross_species", "marmoset")  # no trusted file for marmoset
 
     def test_human_bg_nodes_levels_and_markers(self):
         from scripts import ait_nodes
@@ -218,13 +218,19 @@ class TrustedTaxonomyNodes(unittest.TestCase):
                 t = ait_nodes.load(tax.preferred_id(entry, species), species)
                 # the file's own title names its species, and its accessions the CCN
                 self.assertIn(species, t.title.lower(), fname)
-                ccn = re.findall(r"CCN(\d+)", entry["ccn"] or "")
+                # older AIT files have no accession_<level> columns, so no accessions
                 accessions = {n.accession_id.split("_")[0] for n in t.nodes.values() if n.accession_id}
-                self.assertEqual(accessions, {f"CS{ccn[0]}"}, fname)
+                if accessions:
+                    ccn = re.findall(r"CCN(\d+)", entry["ccn"] or "")
+                    self.assertEqual(accessions, {f"CS{ccn[0]}"}, fname)
                 # the annotation its curated_markers link into is a trusted file, and the
-                # one the manifest gives that species' genes
-                self.assertIn(t.gene_file, gene_files, fname)
-                self.assertEqual(ait_nodes.gene_annotation_file(species), t.gene_file, fname)
+                # one the manifest gives that species' genes; a file without
+                # curated_markers is built without one (gene_annotation_version empty)
+                if t.gene_file:
+                    self.assertIn(t.gene_file, gene_files, fname)
+                    self.assertEqual(ait_nodes.gene_annotation_file(species), t.gene_file, fname)
+                else:
+                    self.assertFalse([n for n in t.nodes.values() if n.curated_markers], fname)
 
     def test_every_extracted_gene_links_to_an_ensembl_or_ncbi_annotation(self):
         from scripts import ait_nodes
@@ -386,7 +392,7 @@ class TablesContract(unittest.TestCase):
             self.assertEqual(rows[0]["evidence_sentence"], "These cells co-expressed Sst, Chodl and Nos1.")
             self.assertEqual(rows[0]["source_in_paper"], "Results; Fig. 2a")
             self.assertEqual(rows[0]["assay"], "MERFISH")
-            self.assertEqual(rows[0]["ait_match"], "Sst Chodl")
+            self.assertEqual(rows[0]["ait_match"], "062 Sst:Chodl_Gaba")
 
     def _validate_with(self, mutate) -> list:
         with tempfile.TemporaryDirectory() as tmp:

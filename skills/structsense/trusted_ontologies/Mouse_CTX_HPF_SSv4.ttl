@@ -1,0 +1,2552 @@
+@prefix bican: <https://identifiers.org/brain-bican/vocab/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:bkbit:017fec739478defb5c99b6b1995ad7e5b258de83a6787371797edfae1167cf51> a bican:Cluster ;
+    rdfs:label "296_CT SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:cbff5c2d67b42c0f3e4597615a6d3ae9e41334e64460f475e39853fc3d6f7743> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:02012c1428e4cee346978effca2b2c4d6edece67e6a01107e99469592824d40c> a bican:Cluster ;
+    rdfs:label "219_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:02249b0f6fe807ea50530d00ec242e502fdeff6e5d00b65489b51a9679500aa9> a bican:Cluster ;
+    rdfs:label "236_Car3" ;
+    bican:has_parent <urn:bkbit:2f2d2fc1d29ea409ffd74077fe18fe228e845301f5e24d695e8ecf174bb91289>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:036ecee6ea3ec770e67ef158cff5837b4b5c2f6c1208c5922d03d282fb9a0383> a bican:Cluster ;
+    rdfs:label "322_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0436cb98ead69a7669c6de827ac1699da917e9732b1c69fa99c24e28af1f37ad> a bican:Cluster ;
+    rdfs:label "165_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:04fa5d5df2580f26abcf9d3ab40d65f7ba9515ea1e93be648659c35b250a8683> a bican:Cluster ;
+    rdfs:label "73_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:05339eb284cd91a46a6cc60e66957702fbcc15a7fa4223e91e16d99a38020686> a bican:Cluster ;
+    rdfs:label "39_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:06b9e9a1a8bcb9b05e245a1fde9631c39af0ac1126422eefef3927d9f31330ce> a bican:Cluster ;
+    rdfs:label "141_L2/3 IT PAR" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:071b68272dacc20478b501751f342dabfc047e351778d61561cbcab209bef0d1> a bican:CellTypeSet ;
+    rdfs:label "cluster_id" ;
+    bican:has_parent <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> ;
+    bican:order 2 ;
+    bican:part_of_taxonomy <urn:bkbit:42c838068b57ab224ffd75688c0ead95d716a832a01717f1eb3bae349c8e8b33> .
+
+<urn:bkbit:07f17400f04065bc03002904947b64b3e7f39cf9ee8d03820e8be8eeb6a2e046> a bican:Cluster ;
+    rdfs:label "248_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:092a8b19c0f996996f1e114ed659bbdd7822e41121b92e72788b67603fc2d335> a bican:Cluster ;
+    rdfs:label "14_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0964c9fafba58d6c7dde5a19b96251e77efca520f06208dc51ac94f9e977e8c8> a bican:Cluster ;
+    rdfs:label "122_Pvalb Vipr2" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0966921b6417d918f220728187f8dbe04e19417394315a4aec82a1f04d10a875> a bican:Cluster ;
+    rdfs:label "200_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:098a25a140d27309e359abeec1e236bdbc1efe10a16b06146dcd033c4d497234> a bican:Cluster ;
+    rdfs:label "371_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0a40d7bd91f774311b830609421bc5fb4377e7e81c63d1ecd72f8e6fef205bf9> a bican:Cluster ;
+    rdfs:label "370_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0b7055235174abb4fd72c806cac0692c6acf095ba4959ed0d66a9cac41a7d432> a bican:Cluster ;
+    rdfs:label "59_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0be411630f54a087f877586e8f48afa43ca2dd994c7687d5030209859185316b> a bican:Cluster ;
+    rdfs:label "304_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0e5ccd59e9f00edc9f80beb4aff38a281414f1da2c2694d90c041eb03cb99d4f> a bican:Cluster ;
+    rdfs:label "362_DG" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9cb2aa2ba5bac725a2fc6c3b310cecdc97f47e471b05e27a0459034e7f91ce9b> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0f7311c74b4858aa416b4e34f55a15c67b0c68f1e386d261380adde242ded34a> a bican:Cluster ;
+    rdfs:label "249_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0f9fde45eecf63038e089b4f4cbc28b211500d325356f48e5ebbaba2f7c1c962> a bican:Cluster ;
+    rdfs:label "303_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0fc609155bf84c10d91562375e20b25a20b3fa11894d57f6095d9462dcb1b901> a bican:Cluster ;
+    rdfs:label "273_NP SUB" ;
+    bican:has_parent <urn:bkbit:45195878945113ac453e51ee98b6d50c58cf856cd91ac54739be7dfb5d4d8989>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:0fe0bbfb1a97afdd3eeaa53778a9dbf814a3ccc8080c7e6002f1f39d14325f5b> a bican:Cluster ;
+    rdfs:label "270_L5/6 NP CT CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:100f6e4d824cacbf16fb973bfb55619ec19260aa928871fb17ac85cb8b7f3091> a bican:Cluster ;
+    rdfs:label "196_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:10ecf897aae598baffee5015efe1e6ad06c09fbd186760a8130e7db955e6358c> a bican:Cluster ;
+    rdfs:label "319_SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:120c0190d3f141df74bb23ac1a8bb8d4e912d937d087b54f00c7d09eec600605> a bican:Cluster ;
+    rdfs:label "91_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:123ca101b8f916f8d91765e6627cfeef2fe9d2d02d91ff86faadabe7c45c8345> a bican:Cluster ;
+    rdfs:label "364_DG" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9cb2aa2ba5bac725a2fc6c3b310cecdc97f47e471b05e27a0459034e7f91ce9b> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1249b11ea869e8ca790e7547edddebcdae2991bac9b9ef200bfce9d402a19cf8> a bican:Cluster ;
+    rdfs:label "10_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:136749417e113367b6febda6b193f8caa9e5b2d59420ba739cb7d924a0269fcf> a bican:Cluster ;
+    rdfs:label "227_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1414f7ae537e5fd3f28fdf750dd44a2916fe9f1fcd515d331cf3fada364e0f44> a bican:Cluster ;
+    rdfs:label "115_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1414fe47b1e987b54b541360ad4b9699eebe918672f58e853a2220114509962c> a bican:Cluster ;
+    rdfs:label "245_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1429e8c1a1e53801011c85f8280a0b1894724099cdc025edfad966699489e528> a bican:ExpressionMatrix ;
+    bican:matrix_type "raw_count" .
+
+<urn:bkbit:143d306270d24e429ee373e743d0d83f6492b6cf402edcc611477b3588ed2de4> a bican:Cluster ;
+    rdfs:label "116_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1499f907da682d6f3fbb906cbba8374c81e1fb74d154240c0f3cf81928f0fcf4> a bican:Cluster ;
+    rdfs:label "4_Meis2 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:14acfe792ceb125e6f73882c3bed4e53d6ed3034c6a434fa98607d1001541607> a bican:Cluster ;
+    rdfs:label "243_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:157773d59ae04a4377d5bb50600ffdac172b8c2206b23456140602d9a9bc6fc9> a bican:Cluster ;
+    rdfs:label "3_Meis2" ;
+    bican:has_parent <urn:bkbit:90311245aad4c51c641dfed8bfc75aa7996e6ba6b666f20731c94e3d63bdf8f4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:15c63931df3590d65aa734394df83ed83bcf83830bbf334989071422e0eb1655> a bican:Cluster ;
+    rdfs:label "184_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:163fe40095f997881b41450aac08ad2d18dd2dc6fa62721fa4cb555dd119f30a> a bican:Cluster ;
+    rdfs:label "352_CA3-ve" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:17c695bafa7c0cbbc3c5ed5292f10bb4f0cf77889f024e8711bea64c6962f6e0> a bican:Cluster ;
+    rdfs:label "135_L3 IT ENTm" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:18f6097196c9f53385bd5f4720001b607f818101d8449fa612d205ac9991b3f1> a bican:Cluster ;
+    rdfs:label "276_NP PPP" ;
+    bican:has_parent <urn:bkbit:81b9eee38aadf9e8aed520a5afb0cf099e53358d565fa51b11cf1767305b3df4>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1a08744e6d1f3378b4eda6c576f71421f725d644083b2d406d6a4d4046769be0> a bican:Cluster ;
+    rdfs:label "76_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1b5d10cc844e9e09019d07a57cbb4453429312b3ffdf027bdd1e547e1b289d38> a bican:Cluster ;
+    rdfs:label "358_CA3-do" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1b68d6f9fed968a8f5ec8ca165e3c6e7dae4a18d111d2fec83e432580b08a3c8> a bican:Cluster ;
+    rdfs:label "378_Astro" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123>,
+        <urn:bkbit:c1d068864c679123cc459f78dbf35fe9f3f1e4e0f395273513d89ec078ac9e08> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1cfb42ede2b306c19d11c9af8258a3b4ee4f2074249df6036d3f15e8e155229e> a bican:Cluster ;
+    rdfs:label "113_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1d431bfdfe06ad12915e6ec36f31b70de49335b394559e69ac98481adcc8719e> a bican:Cluster ;
+    rdfs:label "88_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1d68b1d7d2dfc6753becf586b374a522e83f15b8dd1baa1148f74f980ebbc5e5> a bican:Cluster ;
+    rdfs:label "314_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1dfbf0f37352e5ede0535fe9ece7ad6ce9f02967f8c3fbf0da224fa0b8811cdd> a bican:Cluster ;
+    rdfs:label "242_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1e1f110c58884289a0843554f4db8eecc813276120b0be17a74bb422cfd41f32> a bican:Cluster ;
+    rdfs:label "54_Vip HPF" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1eaae1543b82a709cb312f1e16df43774cbc2398079d534e3878f0952f845edd> a bican:Cluster ;
+    rdfs:label "94_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:1f3f9357e8e45ec8d2a6327f82ccba0fee944127460293ab63122552e26c55bd> a bican:Cluster ;
+    rdfs:label "223_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:20246f695d2232c0e1b737657404efa282e8252956b6bd6336e75d571fe976c9> a bican:Cluster ;
+    rdfs:label "282_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:20608b704638af6a7908778142a466e8f4778d0d313afff80725beb482646973> a bican:Cluster ;
+    rdfs:label "327_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2114b6b947cb700750efdb0c34b110297f6fdee5e59ce63077cf0ba19dc26703> a bican:Cluster ;
+    rdfs:label "345_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:214410e93ec5af6eb85d41df6d7e5086810eb5da0325db119705596e5808d278> a bican:Cluster ;
+    rdfs:label "124_L2 IT APr" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:21a0300c3f4504b8eaf3490534fdee44c61dfad7778009541aebfdd7a8fc1a51> a bican:Cluster ;
+    rdfs:label "203_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:223393ad1341aad1105a45039913cb303f880cda1c048958edae7bf4e1bc0917> a bican:Cluster ;
+    rdfs:label "375_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:22bb27eda28daa64dae03f4c39814b9fb88473dabbc6238a17f8d1b5d23b1101> a bican:Cluster ;
+    rdfs:label "361_DG" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9cb2aa2ba5bac725a2fc6c3b310cecdc97f47e471b05e27a0459034e7f91ce9b> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:236ca6a3a224715c13a70481155333e9296581f1519cc49c4765e33199fc8cc0> a bican:Cluster ;
+    rdfs:label "201_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:23af7699fd58318b703c945b3ae444c33c2890c5fc7a1c5e943bc993d4b3eb56> a bican:Cluster ;
+    rdfs:label "222_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:23d59f80d91039faf8334aaa6e099dc62a556780aae1d8ee15fd8c628edc9cfe> a bican:Cluster ;
+    rdfs:label "103_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2419790c59264bc7d9212eb96c3c0132a723e6002080ce8df0596d4e352df284> a bican:Cluster ;
+    rdfs:label "149_L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2464221b41d3c3b764f796170f85f66013b15381e91716f05b7d948a561494b6> a bican:Cluster ;
+    rdfs:label "120_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:250007de7112dbcefe98bf02d1b535a432c44f6d7b1b5679ae507c5e348c7b57> a bican:Cluster ;
+    rdfs:label "83_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:25cd861ae47f1cd01a88e38b4cf7e0d8a2237e8466f40c3ab270b2553bd9d075> a bican:Cluster ;
+    rdfs:label "292_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2789838c5d861a0e844828e460fdcb37a3184e3434507910deb5ace98508fd02> a bican:Cluster ;
+    rdfs:label "79_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2798f9758dd90fa1578c90f25f6a4ffe930a3415a013e7cf321126ab04fd905a> a bican:Cluster ;
+    rdfs:label "265_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:27b76551ceed7e0177deaf17d4ca93e045f9943efd115a3325655c89dcd27468> a bican:Cluster ;
+    rdfs:label "7_Lamp5 Lhx6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:282bf0166bbf1ad894ad3ed852cb6971b56857e3c394f73e90bf8c3441a888e6> a bican:Cluster ;
+    rdfs:label "172_L2/3 IT ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2866465acc5c7d8335b88243088729e8758d8461f8e65eed6f2b26d7437d8527> a bican:Cluster ;
+    rdfs:label "198_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:288cd0aa80f7688341699138dfba77d9942dfcf75e638dfb1a7ff2a2d1c665d3> a bican:Cluster ;
+    rdfs:label "252_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:290e9e8a73530e6c286d917979767964b59bd3a6c59c83e82c0c16d2375f7f84> a bican:Cluster ;
+    rdfs:label "87_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2c14eb336745d228b728440ed99964bac0cbd0cd9871c20c377d3bd4b6324971> a bican:Cluster ;
+    rdfs:label "5_Lamp5 Lhx6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2d85bd7f33fe12a0ce4f430db6d8fcdc30c21ae4b836b43d656214df189d8210> a bican:Cluster ;
+    rdfs:label "382_SMC-Peri" ;
+    bican:has_parent <urn:bkbit:53cab873da270b956972da34c36e2410e9cebcb2befa8f9cc0f9e0ada27b4bb7>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2e5e71ffce3559f948a90bbcaf1204c562dd9ce1d4ebdb27489d53553fae6871> a bican:Cluster ;
+    rdfs:label "107_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2ecc237f0449981c9612709e79890d08c0f55022f9c5459e68cc421d260bbb96> a bican:Cluster ;
+    rdfs:label "331_CA1-ProS" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2f03abbad3bb57d34363181e4ab5db54948af13d288db857e029ba91f3b65ade> a bican:Cluster ;
+    rdfs:label "299_L6 CT ENT" ;
+    bican:has_parent <urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:2fab33650738020b2452a52f7466da8f6dc13e67facaa5af18c202c3a386e7b0> a bican:Cluster ;
+    rdfs:label "342_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3081f6f22a4ac6df1539e2fabca9f3c8c01eb635e42f681ecf13b5eef47bad39> a bican:Cluster ;
+    rdfs:label "25_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3207bbcf416d027a9f4303a220f19c6d9775eb66fc7d4d2985e35bac47ebe507> a bican:Cluster ;
+    rdfs:label "66_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3220abf68dd2f37d079b32716fe8de89c513e63eb05fd43fd32eeb15986a95d3> a bican:Cluster ;
+    rdfs:label "367_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:32d6d6407cfa53b378698afa74c08990b5b9c4f6f8fb38e14b73f87bf8750de0> a bican:Cluster ;
+    rdfs:label "178_L4 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:337552a6a4d21e2046ef51e72fc45abbcf2343e04bdfa9a21c07d2b84aba6b0f> a bican:Cluster ;
+    rdfs:label "23_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:342681ca8f30928b4e3d21be9b1518aec488e5b5c35b2c5854eded1bbfecf6f4> a bican:Cluster ;
+    rdfs:label "49_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3445cd337cc1989d800da6647fa105370ec5e0b8a702cc97039d826dad39c5e8> a bican:Cluster ;
+    rdfs:label "346_CA1-do" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:34d239bf84cdfa4659cdcadc1ba157381c5a011fa08a839344bee5f26c8bf75e> a bican:Cluster ;
+    rdfs:label "51_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3583f9714d583a109bc949314aaaadad2e3dd2eb14f6e3d5833544b9984cc77f> a bican:Cluster ;
+    rdfs:label "226_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3605004b3659df0ac0b0e713695f0ec25a7ff82db3c46e4665f46dc33f8b9cb3> a bican:Cluster ;
+    rdfs:label "233_L6 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9f369e46f35cb70eb51f540a4c32d8aca461c311d1f1d09cd365302851987586> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3643c8d3e28c54ca26430bda2f8ab86f3268fe2bd9f1c4b39f38094cef0f7f1f> a bican:Cluster ;
+    rdfs:label "209_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:365d9576000c57c43143cbd9b235bb4bf3e5433101278313e573e3a7307c37b1> a bican:Cluster ;
+    rdfs:label "42_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:369c7f753548418849415750764f14a22ea373c48e651e451cc2b9b4b1edb38b> a bican:Cluster ;
+    rdfs:label "225_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:36bdbf6dc57e084f4343b329f4c3c85e41e074e05a1c0a675e513fe202a086ea> a bican:Cluster ;
+    rdfs:label "246_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:36ea1dca6b3b4c0e4009854e7381ec7713a7a9c7445da8e47ee0bb80c00822cd> a bican:Cluster ;
+    rdfs:label "114_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:37922465e27f92e6c6fc4fafc93a182e06c8927c98bac9127340e7824200b5a5> a bican:Cluster ;
+    rdfs:label "214_L5/6 IT PFC" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3a36d7f37971be08c8266a3d6eee10c1367ce03e817c9d9f5c77b7c8a86c60e4> a bican:Cluster ;
+    rdfs:label "110_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3b665a8796470d0a08868357ab36c29e68ba4692bc7513666fbe4c1a38528290> a bican:Cluster ;
+    rdfs:label "46_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3c2cca243587b87d2170e65327b1f0a08cfbe6cb53d0ea84009a68899cb99e84> a bican:Cluster ;
+    rdfs:label "62_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3dac3eaf53ccdd8d745f9be6317a9357a1c8700926ba36c611a43c0711a89763> a bican:Cluster ;
+    rdfs:label "152_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3dbdacca8029a2d4f56543f35d55956c438970dd3734be7e13ff268ad7cca5d7> a bican:Cluster ;
+    rdfs:label "385_VLMC" ;
+    bican:has_parent <urn:bkbit:3bcc1295837d1ba32aea705c03a3cfe0567ac53b3ce93cc5d42ab631294321f9>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3e68efa3c1fe6467b5870e12761dbf6283a73c60b5bff26306060e48417a2676> a bican:Cluster ;
+    rdfs:label "343_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:3eb845c4459cc0731ff63af07fe030a80bee285e6c675e4f05663518342c6899> a bican:Cluster ;
+    rdfs:label "104_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:40078da654fe5ab70c9edb6eedffd4f8f17c1be2e85c9d5c1dadc597a8dc8cd5> a bican:Cluster ;
+    rdfs:label "369_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:40a417b6eee6c857fc3d3112c41ade6e2ea32520d47d75d4de08bf57c23fd216> a bican:Cluster ;
+    rdfs:label "171_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:40cc0b72e93dfc02af0e4ee96ba3345ec87336aea74f3eaa61874dbc6b36b14d> a bican:Cluster ;
+    rdfs:label "142_L2/3 IT PAR" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:421c271865caf7b74405fff8856db1aa4c3672b7723ed9bf58a17d6d84523024> a bican:Cluster ;
+    rdfs:label "177_IT HATA" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:424ac0ce611f80d02ac19577495967c5f449a091c7038e2f4799464ca1e33c72> a bican:Cluster ;
+    rdfs:label "337_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:427c9c57266375b843629b5e07c215d2a887607846b564bc7a9ecd6aeb0367e2> a bican:Cluster ;
+    rdfs:label "211_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:43975f92d20db673991e4f838af437a2d19de6a12f4ba17ed3a73e9ff47d77c4> a bican:Cluster ;
+    rdfs:label "100_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:44147f29571763aa6af5a09547753718118e7f29f2bb76820cc832a8cf344ef3> a bican:Cluster ;
+    rdfs:label "157_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:44955990b64e21e951a93f936b0326ef814cf7c4f27733d7e847e6cc1a52f32e> a bican:Cluster ;
+    rdfs:label "317_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:44dad7db8dc37a038845f2e9729b95a9ea3cf317a8d0e78cd28c3de1da9e9924> a bican:Cluster ;
+    rdfs:label "162_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:45a09f66acff080be230a9581f6f9f756068f1fd96efe157d76ba3933a12796f> a bican:Cluster ;
+    rdfs:label "127_L2 IT APr" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:46035b2aee94fdfc4b59626ec9f4e7ab56ff52f119c19f02919995741de5bd15> a bican:Cluster ;
+    rdfs:label "232_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:47670d4a2def8710151eac452b403ffa34848f6f99ed86f8ed309d216fcee796> a bican:Cluster ;
+    rdfs:label "381_SMC-Peri" ;
+    bican:has_parent <urn:bkbit:53cab873da270b956972da34c36e2410e9cebcb2befa8f9cc0f9e0ada27b4bb7>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:480e3ad4a6be58bdc5b0bea1d66729660a3bd4a245aa92291a04ac2a7cdb9627> a bican:Cluster ;
+    rdfs:label "13_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:482fad6ff73770a6a444c839fe4d463cee5919cbab6697cac8d7015515f686af> a bican:Cluster ;
+    rdfs:label "117_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:49cf43caae6fef8a8feaf975b86ecc03e76e66f1e9e6ce63155935549bb169cc> a bican:Cluster ;
+    rdfs:label "347_CA1-do" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:49f8914f9aa98b75430f2f64358075451bacb338ac9a809afdaa2adb96ee89ed> a bican:Cluster ;
+    rdfs:label "350_Mossy" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4a883794d6683e2a7451947f9c1f4004e126c7abd321dd13c05d8dd0e1de13a5> a bican:Cluster ;
+    rdfs:label "45_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4b0c3514a361ef976a40669f0b14e80e44c076782ab9f03d68e97733ce2aae77> a bican:Cluster ;
+    rdfs:label "121_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4b7d147a41fbe6cbba37b6cae95d2c0204797bf52f7106f9ded6625a26c754c5> a bican:Cluster ;
+    rdfs:label "195_L5 IT RSP-ACA" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4bc7362c2f8681a0404cf97bb76eea1ad2bde0cb35341283acdd2ff0db858977> a bican:Cluster ;
+    rdfs:label "137_L3 IT ENTm" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4c17f10d80c8b2bdbb9a7f07396358579503b9cc195340237fec932499bad5d8> a bican:Cluster ;
+    rdfs:label "82_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4c5b2099747a3ecccaf14b9ab300d46ed4c435e51b57b3316e08e1d4b6f42245> a bican:Cluster ;
+    rdfs:label "186_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4cb4099dfc7000f07bc0074de1c1e7bb6984956bb2454177bba84de912b73fe4> a bican:Cluster ;
+    rdfs:label "320_SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4d631cb0d73a9081d7b3c647b831a9fb7e89467bf2a53878f6ec4adc0032bfb0> a bican:Cluster ;
+    rdfs:label "95_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4d8178e30954c3d2d65f057d73ae85d9129da5f53459a10e9bc2dfdfd38d2139> a bican:Cluster ;
+    rdfs:label "353_CA3-ve" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4df8b51c08f24725b265c7c1cb0c162f92e5f25df840f8a10cf71769f50a0ac3> a bican:Cluster ;
+    rdfs:label "266_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4e140bc65653f2681955f14de3643fb1a0aa4db9e74ea7661c79555c9daf8d45> a bican:Cluster ;
+    rdfs:label "192_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4e613a1cddbdcedd6efd51e14a9440795874db4a9e32732d2b8f7381ba18131b> a bican:Cluster ;
+    rdfs:label "274_NP SUB" ;
+    bican:has_parent <urn:bkbit:45195878945113ac453e51ee98b6d50c58cf856cd91ac54739be7dfb5d4d8989>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4f1e733cce1e2ecb20c15d7361c2ae21d215dd26cf44ddf2d9d9f8e799108ba9> a bican:Cluster ;
+    rdfs:label "339_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4f47071807cd13e1c3d34ee45b8c4595461e00d3377f3f5d8e848cbc6bb661d0> a bican:Cluster ;
+    rdfs:label "159_L2/3 IT AI" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4fe3abe8f961ea0bcb338fed42e1de0763dcfab3c7412b52b3a83d4ff48b7903> a bican:Cluster ;
+    rdfs:label "373_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:4fe82b48a7382b16e7783f6e58363d3ea7058095b212169f110e928533c29116> a bican:Cluster ;
+    rdfs:label "50_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5194804b6f5b314b379a929a243f498abd13cc1803def6e394fc88fb6e2ed414> a bican:Cluster ;
+    rdfs:label "254_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5220a8b79884552684432c16157cac102574f5572fae2a92245b7f398c0d9a4e> a bican:Cluster ;
+    rdfs:label "204_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:52bcb12f41380febfeccf65c160851fb5e8726ba2f2adf4a42376025ff7e0fba> a bican:Cluster ;
+    rdfs:label "179_L4 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:53157be0f8a5deb8b57ef45f309e280be59c192035726f98f64d343e40230934> a bican:Cluster ;
+    rdfs:label "155_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:532c29a8309820464e8bb59822889c2776071b8204ab999e11d4651571c071d1> a bican:Cluster ;
+    rdfs:label "366_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:53f7de499937018c83bd993a13ef365503c9372c864dedc8da8e7e84f830c30a> a bican:Cluster ;
+    rdfs:label "318_SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5494c556fecae701fc816e6aa1052654024dde23a45e5c041f36d89db8751bef> a bican:Cluster ;
+    rdfs:label "330_CA1-ProS" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:54df983808a6dd0422af22089b474652b85ed13abd08f6802bf9de141907fb93> a bican:Cluster ;
+    rdfs:label "259_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:55ea372db992a71569f077df5a958ad8cff75f1e513257647607793448216a26> a bican:Cluster ;
+    rdfs:label "138_L3 IT ENTm" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:560fa8a5f72cf22e3d99efacc916a43e741339818413eaea022e3c96d61f6fa4> a bican:Cluster ;
+    rdfs:label "240_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5679f7df0430c6346c4446624a488b9db1c92ed4c54dac5efc09c75fc081f2c3> a bican:Cluster ;
+    rdfs:label "119_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:568553c1b21dd88fa68108f73c26f718b41d4f3b1598281eaec62f9d1f39fab3> a bican:Cluster ;
+    rdfs:label "208_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:57443562a089e19ed5fa1f55a47a57b52793842d5c4c134ffa1f759c56488280> a bican:Cluster ;
+    rdfs:label "169_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:57dc4776258b6a329d63a0747a5d089457aaf9d844d47626cd007290d48a2999> a bican:Cluster ;
+    rdfs:label "260_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:581813ef60521146d9842b52868355f02ef23f6d6137cf72ca0c131537d0207c> a bican:Cluster ;
+    rdfs:label "53_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5889fa55cb01877286e85ccfd116eab72467a7b40074a24186e7973463a79a5a> a bican:Cluster ;
+    rdfs:label "372_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:58ab1c80a9c3d70acc7fb9ee72608d5aa3ddc53b744ce06a1c6bb00fe9a6fcff> a bican:Cluster ;
+    rdfs:label "268_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:58e016488f1686659a1ca76eb0b2c76267418cdecf0f3d05003c3f0b986862af> a bican:Cluster ;
+    rdfs:label "376_Astro" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123>,
+        <urn:bkbit:c1d068864c679123cc459f78dbf35fe9f3f1e4e0f395273513d89ec078ac9e08> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:59223a02ad63a077d3c70cb44e4ea9c95d4494f6ef5ac53ccd168ed95f2469b6> a bican:Cluster ;
+    rdfs:label "15_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5a00d94ced9e1e1afdd94fa1655dfce2d090901ad70a2ce914af56fc4e074092> a bican:Cluster ;
+    rdfs:label "289_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5ad9ed59d4090e0ca91d9ac81a230414a1708b01865c4c33584852f21daefb85> a bican:Cluster ;
+    rdfs:label "144_L2/3 IT PAR" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5b03489e8969c7e2dad6675f9cfe4d1313ad2d6d4cb214d835e05646fde83728> a bican:Cluster ;
+    rdfs:label "129_L2/3 IT POST-PRE" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5bfc3bc5e057e359ab9d3f026cdb44c6112844b4e8c6af76b5970e26d3447065> a bican:Cluster ;
+    rdfs:label "125_L2 IT APr" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5c0f5d4a8c4e909caf890cb07331259b773c7f2f40b49a4043272ece90bcd93c> a bican:Cluster ;
+    rdfs:label "180_L4 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5c22a175db9efce1983cc3a110e5aa875f72d9f7e27a99cba09d97f162aa0da1> a bican:Cluster ;
+    rdfs:label "189_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5c9509bdfb490d04b18cd2bd693bbd5e080a80301cd224ddb109137ce358897f> a bican:Cluster ;
+    rdfs:label "293_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5e46c20360b64103464d37e80c825b6298a638ef18a78dfc5b725a6533108d69> a bican:Cluster ;
+    rdfs:label "340_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5e5dde697c2d6b85f9a77ae3e177561f85190123a157054cd4ca4bff957e1959> a bican:Cluster ;
+    rdfs:label "220_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5e7ac1aa8775ff717141d9396e11e481afac4cb579c10cdfddb48abcf0cfb45e> a bican:Cluster ;
+    rdfs:label "351_CA3-ve" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5eed30bd43418fa6f2529dd6ad1d85e83a960529f1c463d7d73e800db26839e7> a bican:Cluster ;
+    rdfs:label "118_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:5f6a3c91bba1d86514f141cfdecdea7d32251c1a8fc0b4521a12b7165ff189af> a bican:Cluster ;
+    rdfs:label "199_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:60174e20971403d5bd9ebcea55a476db0d8c5ab377400c6271643d3b5e9d1aef> a bican:Cluster ;
+    rdfs:label "89_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6180baf5e4477e55cc85a4c800b6e0a435deac8c1a38e940bb3bd13b2917f357> a bican:Cluster ;
+    rdfs:label "111_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:618a723db0f53007e4a2a9c89a8aed3456129e7703fa9720f3f1226660aaad62> a bican:Cluster ;
+    rdfs:label "321_SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6282b049d2bff65574cac7a4bc7c626514f673edaca4c42abed0fba7160bbe20> a bican:Cluster ;
+    rdfs:label "6_Lamp5 Lhx6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:642886526fb0b7dcd319bbd568c58f10cd6a132273a94275d7887094bdea4c8e> a bican:Cluster ;
+    rdfs:label "197_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:644415746ebba56268b2e4d22c4ddf7a8ffcdec1dd66161e5acd6d81ae1e3638> a bican:Cluster ;
+    rdfs:label "193_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6714c5c7c01ff8794fc13c1f7759d505a13705a558fed5f4cd0fe3f6def6dafa> a bican:Cluster ;
+    rdfs:label "102_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:67f7ff3771901e4763ee3bcf99a95a198c4e3cf942f0a45af65c11c4f162328b> a bican:Cluster ;
+    rdfs:label "27_Ntng1 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:683f61c18be63cda005022c2e203220d97f62a58d91a73838928e3641136dc45> a bican:Cluster ;
+    rdfs:label "80_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:692745aa04e0ed26f5d64974134fc1aab8c322d6ffeec80e6f9f56ebefeb8b31> a bican:Cluster ;
+    rdfs:label "210_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6986dfe2988bc6ae64d75558832e3e9fced5976c48393d6c0cfc8ee955249c4d> a bican:Cluster ;
+    rdfs:label "33_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:69d6c7e25368e2bb7258921af5d7ec0fc32cb83c76638f1eb61c0368d638e371> a bican:Cluster ;
+    rdfs:label "47_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6a1e58cfa9acb7ec19ef987ea2290ec743a3dc4de107abb76e2d07781f9bfd28> a bican:Cluster ;
+    rdfs:label "16_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6a7d92a1a919307c790b92c2dcbbf0b8181d6a6045d3a232a452de36f4c2a4d3> a bican:Cluster ;
+    rdfs:label "67_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6ed2147466694bb66164b35cbf4ea7056fc9b8cb9775ff1e9b0917f9a3c0b521> a bican:Cluster ;
+    rdfs:label "256_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6ee3338e6f2941f6a232a875e76d1c84abdf1437ce89a0713d1cb2b743df2e18> a bican:Cluster ;
+    rdfs:label "194_L5 IT RSP-ACA" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6f37f41295548a654f80a53cbc4042193611e3b46c535540c899c9e1b0d0672e> a bican:Cluster ;
+    rdfs:label "261_L4 RSP-ACA" ;
+    bican:has_parent <urn:bkbit:1adf0f86c4e3f5377ecd65b44a6b903df6e247050bf70f9265580e272ff1088b>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:6f4f261b05279dde17a5cae8f2c2d3bc26dd4b3e0fb3567053567b26694db7f9> a bican:Cluster ;
+    rdfs:label "2_Meis2" ;
+    bican:has_parent <urn:bkbit:90311245aad4c51c641dfed8bfc75aa7996e6ba6b666f20731c94e3d63bdf8f4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:726290a4c60a5c45580afe0f34b053a0fce5b6a802f20a1b92f1db32d06e23f2> a bican:Cluster ;
+    rdfs:label "175_IT HATA" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:72cc8c70df30c29b86e256f1fde530ac0936e41a743024906124a7a62310c718> a bican:Cluster ;
+    rdfs:label "202_L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:73150f5684538243374a153b3ee6e1abb0b33b797c38bf980d0792830f28d8d1> a bican:Cluster ;
+    rdfs:label "148_L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:75a2bd6159467b5429612b8f148ab509432dbc77c5d13fb4a030aa2f569adf7c> a bican:Cluster ;
+    rdfs:label "336_CA1-ve" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:75ce63af0a7ceed6ede57ed002094160bd8cd5f744c517a73cdb6610946fe1f0> a bican:Cluster ;
+    rdfs:label "253_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:765576422acbed7f94d040197de541160be4359fe598e859670e0584a6199634> a bican:Cluster ;
+    rdfs:label "230_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:769139a9dd9c166c2cb9179af5f6db2f4aefbf556f652a0970a6d4c2b49eaf76> a bican:Cluster ;
+    rdfs:label "288_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:774d7e9187f571fb540c211727180e7aecd5d424b345bfa95e63568463b82f37> a bican:Cluster ;
+    rdfs:label "251_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:77d1b98bf296f953356001672e09381da0baaed0f697994c63065ea6cc4e9d08> a bican:Cluster ;
+    rdfs:label "24_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7897987bc95d145f0347146cf93645566ad72831c909b72bfcb8fa17b1faba08> a bican:Cluster ;
+    rdfs:label "235_L6 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9f369e46f35cb70eb51f540a4c32d8aca461c311d1f1d09cd365302851987586> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:78c7a815a4ef06789366c53a2f9f031207ff24ed15cb3e354f5bccf1d50b91b4> a bican:Cluster ;
+    rdfs:label "234_L6 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9f369e46f35cb70eb51f540a4c32d8aca461c311d1f1d09cd365302851987586> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7bcc08ddc77465564c8ea53b896af0cbb8b8639eef94e0c16c80369cac197c07> a bican:Cluster ;
+    rdfs:label "81_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7c85890875cc11bb5931a8a84e524e8b7e55b3137af5fe609e9fc8695ca61d85> a bican:Cluster ;
+    rdfs:label "191_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7e385a25a2e388c907e98fc18046040982dd7c3862f1471bf7146c2dffe262f1> a bican:Cluster ;
+    rdfs:label "255_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7fb908286ca7c52b690a247d6d3442dc677beb565cbd046d2b7405f240e7f269> a bican:Cluster ;
+    rdfs:label "29_Ntng1 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8015e29f58c2b0e983ea7700c322264020d9a36d925cc14f93c08edaedb0a99c> a bican:Cluster ;
+    rdfs:label "28_Ntng1 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:83cc7fb6fe993624086585d7023ab4cfc0efdd1477a6b53632ed2992c6b1ddd9> a bican:Cluster ;
+    rdfs:label "77_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:843d4931acf46fa661f077160bc897187a19dd7f6be45cd8231f91b6577a4723> a bican:Cluster ;
+    rdfs:label "41_Vip" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:849bd6c2d0dcc594b12602f87c098f65c51fad34dba079d1aa57144a4d7e0a1c> a bican:Cluster ;
+    rdfs:label "108_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:84ac4454d9aafa455b44e489e7b970002676307b2682e4bca0bf78d50a1c9cac> a bican:Cluster ;
+    rdfs:label "150_L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:84e6f68bec893e7d2807a55e09d9bc52b13a3cd3dbcd487a80baf28e7abaf439> a bican:Cluster ;
+    rdfs:label "60_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:84ede68e169d298184e12aa6f57d1adc3869b254b15619e6ebf1e7b540970761> a bican:Cluster ;
+    rdfs:label "134_L2 IT RSP-ACA" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:859b5f5999543509c695c7abb4ec348dab653f2d0da8cbabcdaa3c8d8b80898a> a bican:Cluster ;
+    rdfs:label "37_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:86a17e646323855c5c6a8e4f3c9c9547e11ece39d5f0777e9661512d26e85d94> a bican:Cluster ;
+    rdfs:label "363_DG" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:9cb2aa2ba5bac725a2fc6c3b310cecdc97f47e471b05e27a0459034e7f91ce9b> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:86c03bc54c93cec96b174a91e6b8fe19532da933bea2fbf584589f3567462f4f> a bican:Cluster ;
+    rdfs:label "190_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8800156eeeab30165769fdccd55776a0cafc36fd6418fa29600efa2bfbea015c> a bican:Cluster ;
+    rdfs:label "20_Pax6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:89b47d7309ee58fa1353a24e62bb9970b6a148b3be44eeb83011886f5f1c8d8d> a bican:Cluster ;
+    rdfs:label "355_CA3-ve" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:89c280436320d7494fa2553a91c104a5960de2353152bc359f41d3210c6ec5ee> a bican:Cluster ;
+    rdfs:label "383_VLMC" ;
+    bican:has_parent <urn:bkbit:3bcc1295837d1ba32aea705c03a3cfe0567ac53b3ce93cc5d42ab631294321f9>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8a32b35ae06dcf6ec0be90bf0d1539784dec86df7a94197ddc56af727124d2c3> a bican:Cluster ;
+    rdfs:label "34_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8adebacc5eaeee88baed02315fabbbe8daf6fa08440ad181427374af2f2e1edd> a bican:Cluster ;
+    rdfs:label "78_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8b76c99a6caa67f90851d199536f23e61a1b0e61270ab0f5430785db041e7461> a bican:Cluster ;
+    rdfs:label "167_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8b83b2aa63fe647483095f03358940f394df7720c7eeee816a9def6df3162a6a> a bican:Cluster ;
+    rdfs:label "63_Sst Chodl" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d>,
+        <urn:bkbit:d509088ab0d4d0db0a3ee3fff09d0edbd64cbca9d94dcb3cc3f39cf95ea51587> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8c0525a57d044ef47917cfbd4c9a8844c334667be08ff467cf820e831c11c7f7> a bican:Cluster ;
+    rdfs:label "294_CT SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:cbff5c2d67b42c0f3e4597615a6d3ae9e41334e64460f475e39853fc3d6f7743> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8c39ef661e864790c3c52cb22ae7c96715c106e10a6e83076ccdaffeab0b6622> a bican:Cluster ;
+    rdfs:label "374_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8d02ddc6853a412a089820ac3093dab9beee186a9e4463d4ca31a9a611ed7e0c> a bican:Cluster ;
+    rdfs:label "153_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8ddf57de025eaf6f672441f1ecfae41c7f0a999d9e4123e492c7829312b32b85> a bican:Cluster ;
+    rdfs:label "278_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8e324fef93fbb03c73b5781ba75ec09c2ede510b83ea64357f16473c1de3d246> a bican:Cluster ;
+    rdfs:label "128_L2 IT APr" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8ed72b60e2ab3c106d659984e5e929a7d11726518c883781e449fe6ea50f7e3e> a bican:Cluster ;
+    rdfs:label "84_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:8fb177ecc0301394a3ad4e2a49d111f9219b5dfeedcf19bbe9a71c91b28e9380> a bican:Cluster ;
+    rdfs:label "348_CA1-do" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:90d179496e2729570d045bfb00c8f63ab04339e3a21d4e49eaa221b4acaa995a> a bican:Cluster ;
+    rdfs:label "61_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:913c5f010dbe4ed97ed82b4afc5efed6e427d7b80d1caf7f5e7bc014d2c5fd29> a bican:Cluster ;
+    rdfs:label "368_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9140cc7392f9c2ea1fdc4610ac0e8e03da62387c7b3087341dc919263906e9cb> a bican:Cluster ;
+    rdfs:label "109_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:922b80de595ce2bd5377d3a8df0bcf47c1b1dfbe24278bd91402475661ff78b6> a bican:Cluster ;
+    rdfs:label "55_Vip HPF" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:92af6d653cf5e7bce5c15d3610f844071a364173976e9bc7ee17d912970fa09c> a bican:Cluster ;
+    rdfs:label "271_NP SUB" ;
+    bican:has_parent <urn:bkbit:45195878945113ac453e51ee98b6d50c58cf856cd91ac54739be7dfb5d4d8989>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:931566c1c69fc8b4c011b51d24191ae0a6011dfef1a01fe1f2c2e4a39a9ffe4a> a bican:Cluster ;
+    rdfs:label "143_L2/3 IT PAR" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:951780b54d56fc0fd7474aa57dca112bafa23e352981a51571083856ff8034c2> a bican:Cluster ;
+    rdfs:label "75_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:956cef905463cc28edb4fb930edbd6bb178cca5146018c5d449fcc0e68220d5a> a bican:Cluster ;
+    rdfs:label "311_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:95e028ba891b1b6a5b55cbcb7b81a61d92b2fbf71eaeea5e7a3116db335afbe2> a bican:Cluster ;
+    rdfs:label "281_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:96aadfd10bc119e16ec0e6b75ebee17e64122c16ad79773eccee66add2ef277f> a bican:Cluster ;
+    rdfs:label "11_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9767076a5610c6d95bfdf5d007139a2c661a93fcf249b6af1010b188613645ea> a bican:Cluster ;
+    rdfs:label "244_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:976f27e3ecc8079a4a26be8cc3d2f1d9972a5ec2c630f72bacac29e8df0e2cb2> a bican:Cluster ;
+    rdfs:label "19_Pax6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:97a4aa960e75595d8cab35191c8e0f9089f131ce0c241bb169f6a61f35bb5f15> a bican:Cluster ;
+    rdfs:label "315_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:97e4363bb1df11dad8eea0dfe565e61ce0e86e8335bd47b3fd0bb4b89483f72c> a bican:Cluster ;
+    rdfs:label "297_CT SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:cbff5c2d67b42c0f3e4597615a6d3ae9e41334e64460f475e39853fc3d6f7743> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:990edff3582ad3d07c46888ee475bffb61c86dfdbd77f61d2efec3374abc8d2f> a bican:Cluster ;
+    rdfs:label "90_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:99114cef1634eef79ca8436bea0e7e38c92f5aff5ed1270f69dfb8f6a3040bc6> a bican:Cluster ;
+    rdfs:label "264_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:991c5145fa7689995995558c6b87afecc0400653be4dd2fe5752b1f83aa2ad41> a bican:Cluster ;
+    rdfs:label "300_L6b ENT" ;
+    bican:has_parent <urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9964ba924522b950630afc764c374f000e135c33fc643d8352b675c83e933778> a bican:Cluster ;
+    rdfs:label "386_Micro-PVM" ;
+    bican:has_parent <urn:bkbit:1f8290bcf0e8633e52d74e3aee925d3366efa4b1d9ff4dafb5b007ac7eef599e>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:998ab8eebdbf1d93142448b2f2eb0b2626f475f9daf61f463c4e558933ab58f9> a bican:Cluster ;
+    rdfs:label "229_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:99a49430aaec5750e15e2f306d404d397b901df438f03ca0ac0cdefff7ed8258> a bican:Cluster ;
+    rdfs:label "324_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9a63c8205530051dd5a8d7906c60802b07aa381004236806fd6eb7c0053527ea> a bican:Cluster ;
+    rdfs:label "187_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9b75ae858d0b7ca01d8fbf4003920a5dc61fb3fcfb060d0c4a461c4349cbf6a9> a bican:Cluster ;
+    rdfs:label "140_L3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9c6c3adbcacb34488a07a7039ab270b6f99ba96fc2ff69ae999d3e42d51ac388> a bican:Cluster ;
+    rdfs:label "17_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9ca42a8efb375bfcc62a3d8429e9dfa041029cfac2a33b2d8397cc09789ca854> a bican:Cluster ;
+    rdfs:label "130_L2/3 IT POST-PRE" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9cca90a9d26e5e9ed6d47cda783112401397bc2ad7e814a5f67110d0b2128636> a bican:Cluster ;
+    rdfs:label "295_CT SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:cbff5c2d67b42c0f3e4597615a6d3ae9e41334e64460f475e39853fc3d6f7743> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9d047c8c16eb8fd7f370cfbcfc70211ee052f5cff480ee84415603afee7879b6> a bican:Cluster ;
+    rdfs:label "8_Lamp5 Lhx6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9dbe6957c5e5e4221bdd1e8bb535ad3074927a91c20b464daf8e29f88d1678bb> a bican:Cluster ;
+    rdfs:label "31_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9e6ed3aa959ba2408be16162dfab9338566cfda95a124b5e46e29064ba66cd5b> a bican:Cluster ;
+    rdfs:label "131_L2/3 IT POST-PRE" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9ec4475a3fe8412334d8315546b332dc9a98ab4bb047ac3fad3968cba4ea5409> a bican:Cluster ;
+    rdfs:label "188_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:9f3bd064dbf878845e387040237c43a9e5fdd1cdd3edd9291c628ed78c2e4d87> a bican:Cluster ;
+    rdfs:label "221_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a009f138eb720aa3fad443fbbfcf1b78b39846497463d14b8e79f67d1f82e54b> a bican:Cluster ;
+    rdfs:label "182_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a00cf2d8e1921ade96348400a4c7e8169761a63a10a6b53234fb754f8c8e2dc4> a bican:Cluster ;
+    rdfs:label "1_CR" ;
+    bican:has_parent <urn:bkbit:7ccc4994df1666440cad84cd60d48ef055d7b69f65fbacf542c70082176f3074>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a1b6afcd66f82df0bdacb9df170008243c8d45f4872a99cdf04d3df3dcb89698> a bican:Cluster ;
+    rdfs:label "58_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a2f800c408f222493c3be487087089c11b6944307f9112f5362cb00f5ef191a4> a bican:Cluster ;
+    rdfs:label "133_L2 IT RSPv-POST-PRE" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a3c3f6528b495d1cf69bb0c5544996e233e5592a6fff579b9cc15392bee16a8a> a bican:Cluster ;
+    rdfs:label "298_L6 CT ENT" ;
+    bican:has_parent <urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a3dbbf43e16ee60f394a1c89dbded4082332ae498a400cad3d2d9bfa18d3a7a5> a bican:Cluster ;
+    rdfs:label "183_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a43cae0e98a6606ee77a601430e602b863b93299b41439cf9341567d4d658f09> a bican:Cluster ;
+    rdfs:label "44_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a47c5ddeabaf591593a4c9c0f92da5021ee362cd7864ae4d022dee6205b843eb> a bican:Cluster ;
+    rdfs:label "160_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a4b5737e4759c397c459bb829b555d72812cdc146ec2574a1b62fa9ca33948b0> a bican:Cluster ;
+    rdfs:label "258_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a54c9527b8a903559e1c483f14425282746e42f241ac5568b9874806394102b3> a bican:Cluster ;
+    rdfs:label "48_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a611e32763b80d7f95b5a35a37a3d70f9d444afb9b37632fd8807bf1ed2a1498> a bican:Cluster ;
+    rdfs:label "224_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a81459a7ea03ed6cc23fe231b8bfc766ce9f740b6338f651afaf199e3efbceca> a bican:Cluster ;
+    rdfs:label "205_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a862a26052b9d0c5f50a4195069221933d092adaa53f360cc3f8a392df50240b> a bican:Cluster ;
+    rdfs:label "207_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a8c4933d98ae6348cec9b0da3b01d4ca5500df486ffdfda8032d4c035f0767dc> a bican:Cluster ;
+    rdfs:label "357_CA3-do" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:a9e1d6da701fde3e87d5a0e82b17298fd7afa3c3ac1fc64bdf87e8ae37069882> a bican:Cluster ;
+    rdfs:label "139_L3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:aa01c4ef67b208c9a33bde3dbccfecabe29193b8b9480a82294518595748c48d> a bican:Cluster ;
+    rdfs:label "151_L2 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ea0852cbb0e7ed25412d0b269b0b24c472de925882666d8dc822994d066cb18b> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:aa8277bc854844a7aca9304d50f29534738d13f9158ca86bc4b06d3961c06e18> a bican:Cluster ;
+    rdfs:label "283_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:aabad9839f49eaa59407f72f90fb7d9034ce67091808d85ab57a953048d541fe> a bican:Cluster ;
+    rdfs:label "93_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ac780215281a9e3d8acdcb4318238ff0e1d85c249e38184dde2259bff90e278f> a bican:Cluster ;
+    rdfs:label "263_L5 PPP" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:d2d7cb0d0b5aa3724fb1d47a8d5d0e4ae17dc583704493774951ecd3ea32a40d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:acab5e0edfd3883a7d04763aacf0b1374a8d489a0cb973db2165ebf403568f34> a bican:Cluster ;
+    rdfs:label "279_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ad243aef883a9e8c141c113c0fdd4208db5582c9949baf04a218593536e9ff6f> a bican:Cluster ;
+    rdfs:label "275_NP PPP" ;
+    bican:has_parent <urn:bkbit:81b9eee38aadf9e8aed520a5afb0cf099e53358d565fa51b11cf1767305b3df4>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:af1a66cdc60338fa47c5e331f9e283fce42c1e14c3ab831544b161bc0d345145> a bican:Cluster ;
+    rdfs:label "250_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b013cb0df9c1c8d016c705982283a4a71cda0f8008e5bbe622cdc2c7f15f78f9> a bican:Cluster ;
+    rdfs:label "32_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b11bbd5c6108a989d08229f1ea8ef742d7bdcf8e47430b7b9ed1544084864d01> a bican:Cluster ;
+    rdfs:label "333_CA1-ProS" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b19056dfa92537fdea27fe289e5413495a6f2285056589c9dbc2ced81be209e3> a bican:Cluster ;
+    rdfs:label "344_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b1d9cad739b55aff3ec01de87621937446d453f9dfa23cca464f4ef0b334af0b> a bican:Cluster ;
+    rdfs:label "286_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b27da17465bcf0eefbb70f5d9d9b319a55a2ed4a8b4a43cacfa7ff26842c68a6> a bican:Cluster ;
+    rdfs:label "176_IT HATA" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b3d85ab16437fb9f0990db94e835e743d546b41be721952f532de15d6f393ebf> a bican:Cluster ;
+    rdfs:label "173_L2/3 IT ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b5f95ebc0ac49913c6e89a40c676c1d54cc7ff0ec4284c53957fc2de85c5adcb> a bican:Cluster ;
+    rdfs:label "99_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b60a3aafbc70138b5be282eab067b304a58aa8438dce30608758596519161d70> a bican:Cluster ;
+    rdfs:label "98_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b64a744465853fc04db234e8ec84b7cf0335a69460ef388e9dadbaf04250a320> a bican:Cluster ;
+    rdfs:label "267_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b6de2f7b6b0691e88db09baf0d76d2c389a92431f3fdf1d4b6e9d58d7851ad61> a bican:Cluster ;
+    rdfs:label "388_Micro-PVM" ;
+    bican:has_parent <urn:bkbit:1f8290bcf0e8633e52d74e3aee925d3366efa4b1d9ff4dafb5b007ac7eef599e>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:b7a7b1bd20a23eb6762da11d10c4a683ce515d28baea2ffaafd999941dc751a0> a bican:Cluster ;
+    rdfs:label "9_Lamp5 Lhx6" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ba84c5e391c05313a1ccf8fc85bb8702dfffd2b746513e31017a5295c7885d55> a bican:Cluster ;
+    rdfs:label "228_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bc36e85939268d142bc1a601c8f6bbc3c0121e7fb09dc7a74dfe62fa163ecd89> a bican:Cluster ;
+    rdfs:label "335_CA1-ve" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bcadb6b7c8d58676e2e87bb6a17afa45f951b96e0d06dc11af28c02dbba6e7b5> a bican:Cluster ;
+    rdfs:label "247_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bcdd39e4abc0d3ce008fb0326ff964eca38ad312347f25dc04ccce85d08857e6> a bican:Cluster ;
+    rdfs:label "312_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bd1a61cb0ce6433ef90be93ce9c492b7d1a4665df6e14640228781793b5b1f92> a bican:Cluster ;
+    rdfs:label "332_CA1-ProS" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bf03a8584406655746e0ad754c8856f31ebe1ce33d23786526c8bcd07dd42064> a bican:Cluster ;
+    rdfs:label "106_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:bf64db41f02cdb60362eaa26c8a45bdae9a2cc6e8edfaaf632f9a72a5dd1bddc> a bican:Cluster ;
+    rdfs:label "328_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c04a513f042d606e5b8f933cb33e2d16aaf38720d7270b462650e1625050ec1b> a bican:Cluster ;
+    rdfs:label "156_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c0b73ab678badd03f6ef89ccf456488c011b45700d9c6129ba794a49eca54785> a bican:Cluster ;
+    rdfs:label "379_Endo" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123>,
+        <urn:bkbit:d8b35232667816f650eadc5267787a6639069cc63e84fad880db1b9e3a398cfc> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c30f0bf8c4a8c140b2e75f3a128937cd78063f53103c539f3c2680f7ba7fd38a> a bican:Cluster ;
+    rdfs:label "310_L6b RHP" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c34faef3584813df0a2f7972e1e73506f39d30c702e94b34de959a86addb64cc> a bican:Cluster ;
+    rdfs:label "329_CA1-ProS" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c55220bd42277b75827b02ad7119f1074e4a83b3b2061355e47717e0b2395312> a bican:Cluster ;
+    rdfs:label "262_L4 RSP-ACA" ;
+    bican:has_parent <urn:bkbit:1adf0f86c4e3f5377ecd65b44a6b903df6e247050bf70f9265580e272ff1088b>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c6ba54c5cf5dd0e0739546aafeb0227aa2cc86c341d1038114108228458287f9> a bican:Cluster ;
+    rdfs:label "40_Vip" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c6db64c5ff8a966841a201f9f699affd1688000971f1c8c44bc6f6f97c57c143> a bican:Cluster ;
+    rdfs:label "146_L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c735ed6c1c7bbb6467c634d61036c4c686b78d1713f31518442436e1bd6dec63> a bican:Cluster ;
+    rdfs:label "280_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c73afc12b6f07bf7e5dcebf2f374b031f2b2cf027a07d41f8e4241d842e06703> a bican:Cluster ;
+    rdfs:label "92_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c78e88a14d5c0e7681d81ae85cd106bcc3514e5a57840c95cea573107a424d7b> a bican:Cluster ;
+    rdfs:label "18_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c81ab58ddfe87ce2b360f0f02f89ac6b0a77f1b6c7b83ae825412f8b1179af57> a bican:Cluster ;
+    rdfs:label "52_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:c90485eeac64e0d5b5db42c6244ff8a13005160df3044a90613e119191bebcf1> a bican:Cluster ;
+    rdfs:label "302_L6b ENT" ;
+    bican:has_parent <urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ca574a6c2c3ac96402323f5b1c71da42f849504864173ce39a61ca85d05599e0> a bican:Cluster ;
+    rdfs:label "384_VLMC" ;
+    bican:has_parent <urn:bkbit:3bcc1295837d1ba32aea705c03a3cfe0567ac53b3ce93cc5d42ab631294321f9>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cac55426c5813e5b76becbc4604a283c07e78692ee18776a3f536262e9a76905> a bican:Cluster ;
+    rdfs:label "305_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cae915b1f5468b2edb7540c06097f876c2e3a3ddc1509e1e979400740cade544> a bican:Cluster ;
+    rdfs:label "380_SMC-Peri" ;
+    bican:has_parent <urn:bkbit:53cab873da270b956972da34c36e2410e9cebcb2befa8f9cc0f9e0ada27b4bb7>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:caf35a3febb66726dfa88c8a91e32b3f3cb0fad495eca03ad267e69f4e1eed5c> a bican:Cluster ;
+    rdfs:label "269_L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cb7802927c8cbdf9cc58be8e1d571f57ccd5cb1dd5cfec268a85dfc10ac10326> a bican:Cluster ;
+    rdfs:label "365_Oligo" ;
+    bican:has_parent <urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cbdcad53214c4a3d21540d4820af62c560490366432c6a9c3448cfaf2c6f61b2> a bican:Cluster ;
+    rdfs:label "38_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ccff2bfd4476885c0db7893d2d4285ddc0915d968e7009528249c869d9bbf2bd> a bican:Cluster ;
+    rdfs:label "356_CA3-do" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cda4bfc267df2bb196b2cafe078b6fb90cfb498dbedbf753305ffb95ac504cb3> a bican:Cluster ;
+    rdfs:label "57_Vip Igfbp6" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ce85c28e4ea2e72b0d3a66ded389c651e86425d2909ce9162d101764301a9cca> a bican:Cluster ;
+    rdfs:label "72_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cee26ed0c9a892a7250a195fee246a87d56a007f827f4f598ae23680e7a06a41> a bican:Cluster ;
+    rdfs:label "290_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:cefc30129614645bd381d75599ee46c84d70aff64c9f94f7ceb68380921cbbfd> a bican:Cluster ;
+    rdfs:label "154_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d1206474481d1e4186bf20be1bc4c19449660b1f2f3d17128ffaad43f795ebb4> a bican:Cluster ;
+    rdfs:label "313_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d185e732f38fcfbccc5825d07ea11eff87f50e83f50e774ad14ca73208ab5332> a bican:Cluster ;
+    rdfs:label "212_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d1fc2403f755fec0dd47ba3fb0ea7975f1f914ca3b5b1d41a3cc47c0720b75af> a bican:Cluster ;
+    rdfs:label "237_Car3" ;
+    bican:has_parent <urn:bkbit:2f2d2fc1d29ea409ffd74077fe18fe228e845301f5e24d695e8ecf174bb91289>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d25b9dde109ff8ce1b784b72621e79cc30173d4d3ee9768784720d451a1bfe16> a bican:Cluster ;
+    rdfs:label "217_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d2e4cf5a1f01caf1e988cffe940b6ff5e9433e6f618fa1bf8de7fd419ccf205c> a bican:Cluster ;
+    rdfs:label "163_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d38c15b4c37a2ad214d9d83e5607a4480f89d5d47ed472873d0b1351480c1e97> a bican:Cluster ;
+    rdfs:label "69_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d3dab658b92ffeb41ff0a4d4b26b8fa5a354532f81fc7fda76016239a1dff254> a bican:Cluster ;
+    rdfs:label "97_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d4cf358c9c27bed2f2253b4ca51ec1f3dbc8396ac7cb078773436f100c9b070e> a bican:Cluster ;
+    rdfs:label "360_CA2-IG-FC" ;
+    bican:has_parent <urn:bkbit:6754dbc77356159e282ca2453a14f275e22a5d29d6dd287a5b0f8b5721612b11>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d50856abb5b486180e265f9d7fbe307c2add31a13bdadc02097e4eea24c1a7c1> a bican:Cluster ;
+    rdfs:label "239_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d5b7d0466e670cb435be2469f876eb660baf8f69b7bcbf2c427aa316f1575f0a> a bican:Cluster ;
+    rdfs:label "65_Sst Chodl" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d>,
+        <urn:bkbit:d509088ab0d4d0db0a3ee3fff09d0edbd64cbca9d94dcb3cc3f39cf95ea51587> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d604b241c0643a5db9a9d1e237e8ac82937c6fa6c99ac60c16d4969c4f9fccf5> a bican:Cluster ;
+    rdfs:label "215_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d75e7fd831f709cac2f5339d048cac11299923c7b34cccc0b858ebf1368db35b> a bican:Cluster ;
+    rdfs:label "56_Vip HPF" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:d7a696043cefff5cdaee8a54ba052ffe97b72ff82885cf6d1c95018fb1824c48> a bican:Cluster ;
+    rdfs:label "341_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:da089e9074ed2546a37048e6c556ad4edf166ce896f55db636d4b5b9d305649a> a bican:Cluster ;
+    rdfs:label "181_L4 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:da369ffa1139865a60834452ea8c5d089e072ccb04a3dffb55621ce899f517ab> a bican:Cluster ;
+    rdfs:label "174_IT HATA" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:da4cbbe78290c84fae43761fa3867cc4e422245e251ae5729f247b9930e610ae> a bican:Cluster ;
+    rdfs:label "218_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:dc36344a3434f42fda6bd47c6df3184a5481186dd848639cf03d96c9c29bb718> a bican:Cluster ;
+    rdfs:label "21_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:dcc2cd8135899d9aeec48032b71cbedfc34c3144def0471611acd99c580b7787> a bican:Cluster ;
+    rdfs:label "387_Micro-PVM" ;
+    bican:has_parent <urn:bkbit:1f8290bcf0e8633e52d74e3aee925d3366efa4b1d9ff4dafb5b007ac7eef599e>,
+        <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:dcc31728d7b6f25fe715aaf076f1a6c86b4de923d26ada7a7bbae85288900e56> a bican:Cluster ;
+    rdfs:label "112_Pvalb" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ddf1346b621700d5d72ff1f66f795721b7c76dc673b1cbf19a6280dc3e9f6ff3> a bican:Cluster ;
+    rdfs:label "147_L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:de7b07228090ab8c1862e3fe5abc70c85d4fb1458e6fefde5c5ba5c97056b81f> a bican:Cluster ;
+    rdfs:label "96_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:dee07cd0bad2b824bcfa2cd6e7f23a61932af9b9bd78fcfe8a6dc2e448609c13> a bican:Cluster ;
+    rdfs:label "64_Sst Chodl" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d>,
+        <urn:bkbit:d509088ab0d4d0db0a3ee3fff09d0edbd64cbca9d94dcb3cc3f39cf95ea51587> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:df1a21d127efc184ac88b7d292448ff831c72e0d3f1af185047df37d4a65d69f> a bican:Cluster ;
+    rdfs:label "316_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e1db99661d4706088af0cce66391b0e65880b2101ee87b5e39415caea9629d8a> a bican:Cluster ;
+    rdfs:label "285_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e2dae7223ccba7fe3c6d0360dd536ee5bcd1183d43672d4a734be1d92bab38f3> a bican:Cluster ;
+    rdfs:label "206_L5/6 IT CTX" ;
+    bican:has_parent <urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e318e8db7769cbfc4b8e7c4dec697b695cb4070c31ebb4aefe56d25409d65fd6> a bican:Cluster ;
+    rdfs:label "301_L6b ENT" ;
+    bican:has_parent <urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e3f371dbe9fe61ad5c58f5874c90dae9caa7b49e2a51d1fcdf6b9ba242ddb769> a bican:Cluster ;
+    rdfs:label "307_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e45564198820cb72b8231cf23ee6abe00c0d48ff50054971c4a5b278b801a3c9> a bican:Cluster ;
+    rdfs:label "74_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e531ae883a5bc9ab4f6c178408ab561882caa1628c3e6f008999dcc55e8b4c0e> a bican:Cluster ;
+    rdfs:label "30_Ntng1 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e5cfc7ca558214d7fdae92d939854281814d870eedf770fa5871cd1a077d020b> a bican:Cluster ;
+    rdfs:label "71_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e6a79fd81fcb53dbb9fc9c920aad214c85d73ede7aba6b6753ea6134acc4e1e4> a bican:Cluster ;
+    rdfs:label "272_NP SUB" ;
+    bican:has_parent <urn:bkbit:45195878945113ac453e51ee98b6d50c58cf856cd91ac54739be7dfb5d4d8989>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e7b6ce23116978dc5369f4870116c8a17feb3c12d49b99035b765af87d00f4d8> a bican:Cluster ;
+    rdfs:label "12_Lamp5" ;
+    bican:has_parent <urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e88edf10a946a5b4358152edb164ede170750c66bd3228eb95264259b9d1190c> a bican:Cluster ;
+    rdfs:label "43_Vip" ;
+    bican:has_parent <urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e8b0a6a18b74f8773d41355d32add25616aac2ecc1281d41af627445d2376a51> a bican:Cluster ;
+    rdfs:label "132_L2 IT RSPv-POST-PRE" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e9658e858e35e2969b0d0fc3595bbfc4e974003627a6be1a0bee7a0689e5cf1e> a bican:Cluster ;
+    rdfs:label "238_Car3" ;
+    bican:has_parent <urn:bkbit:2f2d2fc1d29ea409ffd74077fe18fe228e845301f5e24d695e8ecf174bb91289>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:e998a465e4f1bbb67fa5a92ddd78f3edd7bb9fd6ca2f086c509bf4e34b30758d> a bican:Cluster ;
+    rdfs:label "213_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ec492f07793d59ad12d77cca30a560bf126f7af7794349c0471e56d926f765ab> a bican:Cluster ;
+    rdfs:label "136_L3 IT ENTm" ;
+    bican:has_parent <urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ec733417ec0415eccaf1a9749a1c3a4b75895c2a48dc4a1c4b803ec00f86de55> a bican:Cluster ;
+    rdfs:label "70_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ec9875f5f3806665c643913f48c6894e72f6386a736a0fc7a11be41b1fe6712f> a bican:Cluster ;
+    rdfs:label "68_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ee3436aa3e91930ef2fa3ac8905af8e379a5dbef24337d10a78313b57e7f1af1> a bican:Cluster ;
+    rdfs:label "338_CA1" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ee58c89a9e9928a7c2d3d6ccbd0457214a0313971f849ce31d6098d62075950b> a bican:Cluster ;
+    rdfs:label "164_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:eeee05f4cac9458aaaf534789e9fd82183756640fe35774bcf9f4f3a5a1ba1ad> a bican:Cluster ;
+    rdfs:label "166_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ef5614752cca2dc6e6311b93af4dd80b020172185a1048827432dc053c9633e1> a bican:Cluster ;
+    rdfs:label "185_L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f030559af6daa79fc9b6226ca34a5b2e65342ee8c0a1422df4b4436811162930> a bican:Cluster ;
+    rdfs:label "287_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f036078ca595e2563dcb81d16b3b9e2d0a01ec17215c27b9c9a1e3fb99f5ed9a> a bican:Cluster ;
+    rdfs:label "36_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f05b97ab198092f67168b58c025486b2a5c22b1deca2e1cdbf607af40063aa27> a bican:Cluster ;
+    rdfs:label "105_Sst HPF" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f096052847dd559f7c5e96c1fd74cfd8b829c1bf3fc1a1b261d12195a5e309dc> a bican:Cluster ;
+    rdfs:label "306_L6b CTX" ;
+    bican:has_parent <urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f0a5be3e5a3c782a67b48ab416cce41ec8c66c6d6068812c62769ae7991a220c> a bican:Cluster ;
+    rdfs:label "145_L2/3 IT PAR" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f15897ce88dc660cde3b4b22de2acea64f36e538ec5ca7512f3516492e3727b2> a bican:Cluster ;
+    rdfs:label "170_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f2c3922c64c9a40c1da68eefc365532a3f8a1115c4bc9309269791fe1f762f6b> a bican:Cluster ;
+    rdfs:label "101_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f300647d4ee951a8d51cb10f1ce1c3cf3034aa10cd5a5caa493b1d7e9b4bfbe7> a bican:Cluster ;
+    rdfs:label "354_CA3-ve" ;
+    bican:has_parent <urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f408dde3ee6fb7df6fc15433d1704c131a02be7fecdad5522221bed5b0ea3f22> a bican:Cluster ;
+    rdfs:label "291_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f45524729125e389207fd6c553911f7bbebc3d6addfd2e100929dcfef30c5d3b> a bican:Cluster ;
+    rdfs:label "323_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f4db342416b2aab45b06ffef356b3f52999a0ac40add1c50d83d48b888776766> a bican:Cluster ;
+    rdfs:label "326_ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f6d97f07ae1d48b079808fdebe516b2acffb556b852ac2efe284549e0597bb1f> a bican:Cluster ;
+    rdfs:label "26_Ntng1 HPF" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f71cfbe0ac2fae7ec3f6612332127a1053596a58522861a087922e4dd8c1e5b3> a bican:Cluster ;
+    rdfs:label "359_CA2-IG-FC" ;
+    bican:has_parent <urn:bkbit:6754dbc77356159e282ca2453a14f275e22a5d29d6dd287a5b0f8b5721612b11>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f7d2e879b72f98ee9295a1b39f0b56407c956f1577db95a0114d5c38678036e4> a bican:Cluster ;
+    rdfs:label "257_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f896d185206994361474f2d73131b6337f4f495c6645d31cc2517ece8cd10795> a bican:Cluster ;
+    rdfs:label "123_Pvalb Vipr2" ;
+    bican:has_parent <urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:f99255a885f30f71829a6264da5398f72142d7c20c99d35ae259ac8d4d59aaa7> a bican:Cluster ;
+    rdfs:label "334_CA1-ve" ;
+    bican:has_parent <urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fb3e3879fb04325e5b7d095b9758fb74310d36b381477e660b4bf4097e544096> a bican:Cluster ;
+    rdfs:label "22_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fc2b34756a720c43f0e33b80ba4e75a62f5e4377537de8fd48435cc4694a2621> a bican:Cluster ;
+    rdfs:label "85_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fc44c0ad564cc687f419780b6894a1b1a7921641203dc26e15cd910035e17453> a bican:Cluster ;
+    rdfs:label "161_L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fc5051bdad6936dbee9070740e2c38bd335d27b4d58b11088bfc0d3305139442> a bican:Cluster ;
+    rdfs:label "168_L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fcc5f7f67ac087f09fa8de1fc662353c0033de79fcfa82de83531a3eb77ca51f> a bican:Embedding ;
+    bican:embedding_key "X_default_standard" .
+
+<urn:bkbit:fccc33b35e255018b880193555d37dfacf8134f8491af0ecbea113991fe84ecd> a bican:Cluster ;
+    rdfs:label "231_L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fd448b33ef5c3a2464278c223af0fa975536f789e4cbce34c0cdca549e33b592> a bican:Cluster ;
+    rdfs:label "35_Sncg" ;
+    bican:has_parent <urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fd8412d018425367bed07b39aa556666bca85dce3d9fec597b44cc3515a7fbe1> a bican:Cluster ;
+    rdfs:label "216_L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fd97d0324d7c3694b0758900f10b80a51761938084c4a855b81cf1b0d5c16ab0> a bican:Cluster ;
+    rdfs:label "241_L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fdd6a7c0449878d55b816ed338351d2842decef9aa63ff8cbd37b2b9305b102c> a bican:Cluster ;
+    rdfs:label "284_L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e>,
+        <urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:fe9e6755c015455a6313f2b12e1746ca0a4c852b4243413da0072dc8982711a9> a bican:Cluster ;
+    rdfs:label "126_L2 IT APr" ;
+    bican:has_parent <urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e>,
+        <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ff063f27029f9597ab04ba5eae33831aea6590d5eff39aa39d466bc9b12bd1db> a bican:Cluster ;
+    rdfs:label "86_Sst" ;
+    bican:has_parent <urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4>,
+        <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:ff397b0fd9eeb4b6b896adb1a1ec8df9bc372eca151289984c067ea2faa06d51> a bican:Cluster ;
+    rdfs:label "377_Astro" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123>,
+        <urn:bkbit:c1d068864c679123cc459f78dbf35fe9f3f1e4e0f395273513d89ec078ac9e08> ;
+    bican:part_of_set <urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> .
+
+<urn:bkbit:7ccc4994df1666440cad84cd60d48ef055d7b69f65fbacf542c70082176f3074> a bican:CellTypeTaxon ;
+    rdfs:label "CR" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:d2d7cb0d0b5aa3724fb1d47a8d5d0e4ae17dc583704493774951ecd3ea32a40d> a bican:CellTypeTaxon ;
+    rdfs:label "L5 PPP" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:d8b35232667816f650eadc5267787a6639069cc63e84fad880db1b9e3a398cfc> a bican:CellTypeTaxon ;
+    rdfs:label "Endo" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:ea0852cbb0e7ed25412d0b269b0b24c472de925882666d8dc822994d066cb18b> a bican:CellTypeTaxon ;
+    rdfs:label "L2 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:1adf0f86c4e3f5377ecd65b44a6b903df6e247050bf70f9265580e272ff1088b> a bican:CellTypeTaxon ;
+    rdfs:label "L4 RSP-ACA" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:6754dbc77356159e282ca2453a14f275e22a5d29d6dd287a5b0f8b5721612b11> a bican:CellTypeTaxon ;
+    rdfs:label "CA2-IG-FC" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:81b9eee38aadf9e8aed520a5afb0cf099e53358d565fa51b11cf1767305b3df4> a bican:CellTypeTaxon ;
+    rdfs:label "NP PPP" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:90311245aad4c51c641dfed8bfc75aa7996e6ba6b666f20731c94e3d63bdf8f4> a bican:CellTypeTaxon ;
+    rdfs:label "Meis2" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:1f8290bcf0e8633e52d74e3aee925d3366efa4b1d9ff4dafb5b007ac7eef599e> a bican:CellTypeTaxon ;
+    rdfs:label "Micro-PVM" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:2f2d2fc1d29ea409ffd74077fe18fe228e845301f5e24d695e8ecf174bb91289> a bican:CellTypeTaxon ;
+    rdfs:label "Car3" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:3bcc1295837d1ba32aea705c03a3cfe0567ac53b3ce93cc5d42ab631294321f9> a bican:CellTypeTaxon ;
+    rdfs:label "VLMC" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:42c838068b57ab224ffd75688c0ead95d716a832a01717f1eb3bae349c8e8b33> a bican:CellTypeTaxonomy ;
+    schema:url "s3://allen-cell-type-taxonomies/Mouse_cortex_hippocampus_SMART_seq_04042025.h5ad"^^xsd:anyURI ;
+    bican:default_embedding "X_default_standard" ;
+    bican:mode "standard" ;
+    bican:schema_version "1.1.2" ;
+    bican:title "Mouse_cortex_hippocampus_SMART_seq_04042025" .
+
+<urn:bkbit:53cab873da270b956972da34c36e2410e9cebcb2befa8f9cc0f9e0ada27b4bb7> a bican:CellTypeTaxon ;
+    rdfs:label "SMC-Peri" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:9f369e46f35cb70eb51f540a4c32d8aca461c311d1f1d09cd365302851987586> a bican:CellTypeTaxon ;
+    rdfs:label "L6 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:c1d068864c679123cc459f78dbf35fe9f3f1e4e0f395273513d89ec078ac9e08> a bican:CellTypeTaxon ;
+    rdfs:label "Astro" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:d509088ab0d4d0db0a3ee3fff09d0edbd64cbca9d94dcb3cc3f39cf95ea51587> a bican:CellTypeTaxon ;
+    rdfs:label "Sst Chodl" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:45195878945113ac453e51ee98b6d50c58cf856cd91ac54739be7dfb5d4d8989> a bican:CellTypeTaxon ;
+    rdfs:label "NP SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:9cb2aa2ba5bac725a2fc6c3b310cecdc97f47e471b05e27a0459034e7f91ce9b> a bican:CellTypeTaxon ;
+    rdfs:label "DG" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:cbff5c2d67b42c0f3e4597615a6d3ae9e41334e64460f475e39853fc3d6f7743> a bican:CellTypeTaxon ;
+    rdfs:label "CT SUB" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:fbfb5ea5617aa41f9de77b22dff3ba3ade7e53b8559c13b17fcf8230a21ec4f0> a bican:CellTypeSet ;
+    rdfs:label "class" ;
+    bican:order 0 ;
+    bican:part_of_taxonomy <urn:bkbit:42c838068b57ab224ffd75688c0ead95d716a832a01717f1eb3bae349c8e8b33> .
+
+<urn:bkbit:4faa3741995eb29eae4ab74eedc5627b00ba33247c5566533534345dfe782305> a bican:CellTypeTaxon ;
+    rdfs:label "L6b/CT ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:ac7a11992489a29bc020d988bd8e21a17409479f115df9c031728f580d89a54d> a bican:CellTypeTaxon ;
+    rdfs:label "L2 IT ENTm" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:5d5624d9cd616c2c89217b682a71158b3f576ebe44e38a2d73db6dc872cb4f51> a bican:CellTypeTaxon ;
+    rdfs:label "L3 IT ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:908f5a8f105e4ac47561d427bd34b0bdcd19a0dc47930b5bae242f861410fc9d> a bican:CellTypeTaxon ;
+    rdfs:label "L2/3 IT RHP" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:506d4944ca0245edf0a78e22f4b6413ff6e9433487db546d91660ebae26b9dbc> a bican:CellTypeTaxon ;
+    rdfs:label "L5/6 NP CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:bd77be61e4b7a136964030da8f9d8c4c78b4617b66c8ba795cd7796ada673929> a bican:CellTypeTaxon ;
+    rdfs:label "L5/6 IT TPE-ENT" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:005140fb67914e9d247560d5e555a8079e0b47a9e3dddf79befa312b3f17dcff> a bican:CellTypeTaxon ;
+    rdfs:label "CA3" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:c9ce199187f182c2cf19b62167dc62207e3701a3da4be6c81fa1374de68f1a02> a bican:CellTypeTaxon ;
+    rdfs:label "L2/3 IT ENTl" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:adeb3cc8c0d4b816847b1b3976731659ff0f18898b8e759b8d7a2d470942b0d7> a bican:CellTypeTaxon ;
+    rdfs:label "SUB-ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:ccd59607b5854387a8b6bb32d54be66ac5a75e93063b01ea7bd28d50dec7fbfe> a bican:CellTypeTaxon ;
+    rdfs:label "L2/3 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:08341731951dbd2d06da09cdb9b00ddf4500cd3d9902cf158258f15fb7c5b556> a bican:CellTypeTaxon ;
+    rdfs:label "Oligo" ;
+    bican:has_parent <urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:044239232f1917b4a2b43fb6e594d2cd73ae124d954350127d0d5e51fd5f7cea> a bican:CellTypeTaxon ;
+    rdfs:label "L6b CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:2d251112cb96b1ba05d626cf7c13a764d26437d38de721dae25069070655ad8c> a bican:CellTypeTaxon ;
+    rdfs:label "L6 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:3e2af5d6e37721102f484b9b07301d485042fda74a01d9bf04b234200ca388f9> a bican:CellTypeTaxon ;
+    rdfs:label "Lamp5" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:3ecc8f1946b046a8bd4782af91a8e4413cdc386a1b38849a30fd8d28070f3869> a bican:CellTypeTaxon ;
+    rdfs:label "L4/5 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:551a861d4ef3a47aa575f2db29be2b04dfe9cec0ca98ed12deb75fc0268848af> a bican:CellTypeTaxon ;
+    rdfs:label "L5 IT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:5753039b35f925588cc679cb50bb9e9b3f5f067e2d878e5414fe566d76f6320e> a bican:CellTypeTaxon ;
+    rdfs:label "L2/3 IT PPP" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:8f6479df86cf155ead43a76bd34df1252e46b012e4d7fa9bdc53d5e39d812260> a bican:CellTypeTaxon ;
+    rdfs:label "L6 CT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:c1fa62b6d1518e0e8bbe19b72d77683c5396675c627917d8e21b9345463df431> a bican:CellTypeTaxon ;
+    rdfs:label "Pvalb" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:3e21dc9a69f5497eb3762c5c52e9de8bdb9cfb74f5ec9989c33947825a67d4fc> a bican:CellTypeTaxon ;
+    rdfs:label "CA1-ProS" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:71217c117c524aaeaf68f50c3fc24ca7f9cba13208bec66e10f50baae63e9458> a bican:CellTypeTaxon ;
+    rdfs:label "Vip" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:37be80ae11c05c40a4a35c01eb0479005f824b6af38745671f24fa9696116b3a> a bican:CellTypeTaxon ;
+    rdfs:label "Sncg" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:f9f8bcfb5d63637dbe7c199e8b429d6557b5dc001bb4ef3bd658ea3b3f3531a2> a bican:CellTypeTaxon ;
+    rdfs:label "L5 PT CTX" ;
+    bican:has_parent <urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:9901664e993f865e3021a593c0e800a4a4eaae9c55748fc6a29532a201bb5123> a bican:CellTypeTaxon ;
+    rdfs:label "Non-Neuronal" ;
+    bican:part_of_set <urn:bkbit:fbfb5ea5617aa41f9de77b22dff3ba3ade7e53b8559c13b17fcf8230a21ec4f0> .
+
+<urn:bkbit:90d287b23dfc39c0763ec3c0e52062ffbcb92f1b7db9ed370ac1273be43657b4> a bican:CellTypeTaxon ;
+    rdfs:label "Sst" ;
+    bican:has_parent <urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> ;
+    bican:part_of_set <urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> .
+
+<urn:bkbit:d6c44fb22671003a4f30e3e1e510e0f66e3fd5b19c1045e7ffeba29d142a74f2> a bican:CellTypeSet ;
+    rdfs:label "subclass" ;
+    bican:has_parent <urn:bkbit:fbfb5ea5617aa41f9de77b22dff3ba3ade7e53b8559c13b17fcf8230a21ec4f0> ;
+    bican:order 1 ;
+    bican:part_of_taxonomy <urn:bkbit:42c838068b57ab224ffd75688c0ead95d716a832a01717f1eb3bae349c8e8b33> .
+
+<urn:bkbit:cbf2d2928fcd5a51e281bd14376d37c98ebb120517969a2c4054c1afc56cc05d> a bican:CellTypeTaxon ;
+    rdfs:label "GABAergic" ;
+    bican:part_of_set <urn:bkbit:fbfb5ea5617aa41f9de77b22dff3ba3ade7e53b8559c13b17fcf8230a21ec4f0> .
+
+<urn:bkbit:83ace53917bbc83449f80607f1eefd8d1d1666a8bfc0bd2af2477206be63e54e> a bican:CellTypeTaxon ;
+    rdfs:label "Glutamatergic" ;
+    bican:part_of_set <urn:bkbit:fbfb5ea5617aa41f9de77b22dff3ba3ade7e53b8559c13b17fcf8230a21ec4f0> .
+
+<urn:bkbit:1d876b3272db972b44b00e1f3c91740c7754e1fa3c532d76fbe5f6f9dc971b63> a bican:ClusterSet ;
+    rdfs:label "Mouse_cortex_hippocampus_SMART_seq_04042025 clustering" .
+

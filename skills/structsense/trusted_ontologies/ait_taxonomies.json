@@ -26,7 +26,10 @@
       ],
       "hierarchy": "9 neighborhoods / 43 classes / 414 subclasses / 1,386 supertypes / 6,721 clusters; integrates the Allen Institute scRNA-seq (AIT21) and Broad Institute snRNA-seq whole mouse brain taxonomies",
       "publication": "Allen Institute / BICCN consensus release (2025)",
-      "mapmycells": true
+      "mapmycells": true,
+      "trusted_files": {
+        "mouse": "AIT33_MouseWholeBrain.ttl"
+      }
     },
     {
       "ait_ids": [
@@ -88,7 +91,10 @@
       ],
       "hierarchy": "15,928 nuclei, 8 donors; 75 transcriptomic cell types",
       "publication": "Hodge R.D., Bakken T.E. et al., Nature 573:61-68 (2019)",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "human": "Human_MTG.ttl"
+      }
     },
     {
       "ait_ids": [
@@ -118,7 +124,12 @@
       ],
       "hierarchy": "Cross-species SMART-seq dLGN taxonomy; 1,209 human nuclei, 2,157 macaque nuclei, 2,190 mouse cells",
       "publication": "Bakken T.E., van Velthoven C., Menon V. et al., eLife 10:e64875 (2021)",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "human": "Human_LGN.ttl",
+        "macaque": "Macaque_LGN.ttl",
+        "mouse": "Mouse_LGN.ttl"
+      }
     },
     {
       "ait_ids": [],
@@ -138,7 +149,10 @@
       ],
       "hierarchy": ">3M cells profiled across modalities and species (BICCN flagship)",
       "publication": "BICCN, Nature (2021) — Bakken T.E. et al. and companion papers",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "human": "Human_M1.ttl"
+      }
     },
     {
       "ait_ids": [
@@ -164,7 +178,10 @@
       ],
       "hierarchy": "49,495 SMART-seq nuclei across MTG, ACC, V1C, M1C, S1C, A1C; 24 consistent subclasses",
       "publication": "Jorstad N.L. et al., Science 382 (2023) doi:10.1126/science.adf6812",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "human": "Human_Neocortex.ttl"
+      }
     },
     {
       "ait_ids": [
@@ -186,7 +203,10 @@
       ],
       "hierarchy": "133 SMART-seq t-types",
       "publication": "Tasic B. et al., Nature 563:72-78 (2018)",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "mouse": "Mouse_VISp_ALM.ttl"
+      }
     },
     {
       "ait_ids": [
@@ -207,7 +227,10 @@
       ],
       "hierarchy": "388 transcriptomic types (364 neuronal) from ~1.3M cells profiled with 10x and SMART-seq",
       "publication": "Yao Z. et al., Cell 184:3222-3241 (2021)",
-      "mapmycells": false
+      "mapmycells": false,
+      "trusted_files": {
+        "mouse": "Mouse_CTX_HPF_SSv4.ttl"
+      }
     }
   ],
   "trusted_model": "cell_taxonomy.ttl",

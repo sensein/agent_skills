@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — node data for 7 more Allen taxonomies
+
+- **9 more taxonomy files in `trusted_ontologies/`**, made with bkbit `ait2jsonld`
+  (brain-bican/bkbit main df56a65) from the released AIT `.h5ad` files, and registered
+  as `trusted_files` in `ait_taxonomies.json`: `AIT33_MouseWholeBrain.ttl`,
+  `Human_MTG.ttl`, `Human_LGN.ttl` / `Macaque_LGN.ttl` / `Mouse_LGN.ttl`,
+  `Human_M1.ttl` (human only), `Human_Neocortex.ttl`, `Mouse_VISp_ALM.ttl`,
+  `Mouse_CTX_HPF_SSv4.ttl` (the SMART-seq version, as the manifest entry describes; the
+  10x version is not added). All 8 listed taxonomies now have node data; M1 marmoset /
+  mouse still have none.
+- These older AIT files have **no `curated_markers` and no `accession_<level>`**, so
+  they are built without `--gene_annotation` (`gene_annotation_version` empty) and
+  their node ids are the labels (e.g. AIT33 `062 Sst:Chodl_Gaba`). The manifest test
+  checks accessions and the annotation only where a file has them.
+- Macaque LGN is *Macaca nemestrina* (NCBITaxon:9545); `gene_annotations` has only
+  *M. mulatta* (9544), which matters only once a 9545 taxonomy has markers.
+
 ## 0.13.0 — AIT mapping always writes validated Turtle
 
 - **`trusted_ontologes/` is renamed `trusted_ontologies/`** (typo). Every reference

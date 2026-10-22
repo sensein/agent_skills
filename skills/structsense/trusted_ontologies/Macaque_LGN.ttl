@@ -1,0 +1,85 @@
+@prefix bican: <https://identifiers.org/brain-bican/vocab/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:bkbit:1429e8c1a1e53801011c85f8280a0b1894724099cdc025edfad966699489e528> a bican:ExpressionMatrix ;
+    bican:matrix_type "raw_count" .
+
+<urn:bkbit:1eaeb8e3b23f927b827871bce817ff9fcb126c100b78f1012b06c64cc48452fa> a bican:Cluster ;
+    rdfs:label "M" ;
+    bican:has_parent <urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:2ae7dfc2cc0a1dc7e9dd320383895ae6e76f7a7f6fc45d1e801473135b73ce68> a bican:CellTypeSet ;
+    rdfs:label "cluster_id" ;
+    bican:has_parent <urn:bkbit:bd4afe2d6a7664599d6f3bf8a0158203b0c589a82e07cc9b3a652bbaae0239e2> ;
+    bican:order 1 ;
+    bican:part_of_taxonomy <urn:bkbit:3aecfd2ba9f82b500548c24bbd35d3c07a97b54c63391ee1e31ac45557ea922b> .
+
+<urn:bkbit:2d5135c4733d61a0c6e925cd0999eb6b656e8229180fb292c67557bf4dd37393> a bican:Cluster ;
+    rdfs:label "Pulv" ;
+    bican:has_parent <urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:3e1fbb9769de3691fe6e2c491f0cc645bd20572354b623e213b323928e4ef0e6> a bican:Cluster ;
+    rdfs:label "GABA3" ;
+    bican:has_parent <urn:bkbit:c7a531dfa2462cb6ebdf46b71a10183aba9157f51a679e06338b6bbabdb51a78> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:74cd051255d4588e3fb5a5598645e6305707fcb5c1d444601d2da9bc58d75b20> a bican:Cluster ;
+    rdfs:label "P" ;
+    bican:has_parent <urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:953f0a4c3dd1bb88aa146b7476b172a63e5e149d9ded33d3ecc94acc510cdbde> a bican:Cluster ;
+    rdfs:label "K2" ;
+    bican:has_parent <urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:9e919b5a74530c44599c534c9da708950c0765bd986d0875120a5f044204b19f> a bican:Cluster ;
+    rdfs:label "GABA4" ;
+    bican:has_parent <urn:bkbit:c7a531dfa2462cb6ebdf46b71a10183aba9157f51a679e06338b6bbabdb51a78> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:a13bb8030ffeeeca1a5991727d6b77c216cdfc46be0e887a64bef9f647d599f0> a bican:Cluster ;
+    rdfs:label "K1" ;
+    bican:has_parent <urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:adc7da649e5b9a46f98a75b8d6f49b0396ec0a2772504302fd77eecc0a1797b5> a bican:Cluster ;
+    rdfs:label "GABA1" ;
+    bican:has_parent <urn:bkbit:c7a531dfa2462cb6ebdf46b71a10183aba9157f51a679e06338b6bbabdb51a78> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:af32f133c23214d246e428c2564dab6191549e0740f42abc0c455fd855d9c0d4> a bican:Cluster ;
+    rdfs:label "GABA2" ;
+    bican:has_parent <urn:bkbit:c7a531dfa2462cb6ebdf46b71a10183aba9157f51a679e06338b6bbabdb51a78> ;
+    bican:part_of_set <urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> .
+
+<urn:bkbit:fcc5f7f67ac087f09fa8de1fc662353c0033de79fcfa82de83531a3eb77ca51f> a bican:Embedding ;
+    bican:embedding_key "X_default_standard" .
+
+<urn:bkbit:3aecfd2ba9f82b500548c24bbd35d3c07a97b54c63391ee1e31ac45557ea922b> a bican:CellTypeTaxonomy ;
+    schema:url "s3://allen-cell-type-taxonomies/Macaque_LGN_SMART_seq_04042025.h5ad"^^xsd:anyURI ;
+    bican:default_embedding "X_default_standard" ;
+    bican:mode "standard" ;
+    bican:schema_version "1.1.2" ;
+    bican:title "Macaque_LGN_SMART_seq_04042025" .
+
+<urn:bkbit:bd4afe2d6a7664599d6f3bf8a0158203b0c589a82e07cc9b3a652bbaae0239e2> a bican:CellTypeSet ;
+    rdfs:label "class" ;
+    bican:order 0 ;
+    bican:part_of_taxonomy <urn:bkbit:3aecfd2ba9f82b500548c24bbd35d3c07a97b54c63391ee1e31ac45557ea922b> .
+
+<urn:bkbit:c7a531dfa2462cb6ebdf46b71a10183aba9157f51a679e06338b6bbabdb51a78> a bican:CellTypeTaxon ;
+    rdfs:label "GABA" ;
+    bican:part_of_set <urn:bkbit:bd4afe2d6a7664599d6f3bf8a0158203b0c589a82e07cc9b3a652bbaae0239e2> .
+
+<urn:bkbit:75e7e55ae6c1f8092d8b2f7786a702144ef6259edc884f612df1da7aad040c61> a bican:CellTypeTaxon ;
+    rdfs:label "Glut" ;
+    bican:part_of_set <urn:bkbit:bd4afe2d6a7664599d6f3bf8a0158203b0c589a82e07cc9b3a652bbaae0239e2> .
+
+<urn:bkbit:2308ef54018dec1ca5adf4991a30a79c41b780568f469b2a3efcb9e25a9e2a62> a bican:ClusterSet ;
+    rdfs:label "Macaque_LGN_SMART_seq_04042025 clustering" .
+
