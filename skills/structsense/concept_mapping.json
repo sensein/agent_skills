@@ -98,18 +98,22 @@
       "BTO"
     ],
     "BrainRegion": [
+      "HOMBA",
       "UBERON"
     ],
     "CorticalLayer": [
+      "HOMBA",
       "UBERON"
     ],
     "NervousSystemPart": [
+      "HOMBA",
       "UBERON"
     ],
     "NeuralCircuit": [
       "UBERON"
     ],
     "Anatomy": [
+      "HOMBA",
       "UBERON"
     ],
     "CellularStructure": [

@@ -119,6 +119,7 @@
   "curie_expansions": {
     "_comment": "CURIE prefix -> IRI template ({id} = local part) for non-OBO id spaces. This is also the registry of KNOWN namespaces: a trusted file's class in one of these namespaces keeps this prefix, never the file's own (scripts/prefixes.py). Add a row here to register a foreign namespace.",
     "EFO": "http://www.ebi.ac.uk/efo/EFO_{id}",
+    "HOMBA": "https://purl.brain-bican.org/ontology/HOMBA_{id}",
     "HGNC": "https://identifiers.org/hgnc/{id}",
     "NCBIGene": "https://www.ncbi.nlm.nih.gov/gene/{id}",
     "UniProtKB": "https://www.uniprot.org/uniprotkb/{id}",
