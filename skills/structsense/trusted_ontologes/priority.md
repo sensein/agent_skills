@@ -34,48 +34,49 @@ To add an ontology: drop the file in this directory, add a row, and run
 | Priority | Name | File | CURIE prefix | Namespace | Labels | Notes |
 |---|---|---|---|---|---|---|
 | 1 | cell_taxonomy | cell_taxonomy.ttl | BKE | https://identifiers.org/brain-bican/vocab/ | * | BICAN Cell Taxonomy model (brain-bican/models cell_taxonomy, the model the *_BG.ttl taxonomies use), as OWL. Replaces bke_taxonomy. First priority. |
-| 2 | cl | cl.owl | - | - | * | Full Cell Ontology release (with imports and symbols). |
-| 3 | go_basic | go-basic.owl | - | - | * | Biological process, molecular function and cellular component. The basic edition is acyclic and omits cross-aspect relationships; its versio… |
-| 4 | uberon | uberon.owl | - | - | * | Cross-species anatomy including nervous-system structures. The full edition, replacing the basic edition: it carries the axioms the basic pr… |
+| 2 | homba | homba.owl | HOMBA | - | BrainRegion, CorticalLayer, NervousSystemPart, Anatomy | Harmonized Ontology of Mammalian Brain Anatomy (brain-bican/harmonized_ontology_of_mammalian_brain_anatomy_ontology, release v2026-04-28). Cross-species brain parcellation terms used by the HMBA human, macaque and marmoset CCFs (allen-atlas-assets); ranked above cl (whose full release imports UBERON) and limited to the anatomy labels, so brain-region mentions resolve to the HOMBA IRIs those CCF graphs use while cl keeps answering cells, GO and PR; anatomy routes are HOMBA > UBERON in concept_mapping.json. Its HOMBA terms are is-a UBERON classes, so UBERON stays reachable. Its id space is registered as HOMBA in default_ontology/ttl_config.json (curie_expansions). |
+| 3 | cl | cl.owl | - | - | * | Full Cell Ontology release (with imports and symbols). |
+| 4 | go_basic | go-basic.owl | - | - | * | Biological process, molecular function and cellular component. The basic edition is acyclic and omits cross-aspect relationships; its versio… |
+| 5 | uberon | uberon.owl | - | - | * | Cross-species anatomy including nervous-system structures. The full edition, replacing the basic edition: it carries the axioms the basic pr… |
 | off | cl_basic | cl-basic.owl | - | - | * | OFF: subset of cl.owl, which is enabled. Cell types including neurons and glia. |
-| 5 | pcl | pcl.owl | - | - | * | Provisional cell populations, for cell-atlas integration. No reduced edition is published. |
-| 6 | mondo | mondo-simple.owl | - | - | * | Disease identifiers including neurological disease. |
-| 7 | hp | hp-base.owl | - | - | * | Human phenotypic abnormalities including neurological findings. |
-| 8 | chebi | chebi-lite.owl | - | - | * | Chemical grounding. The lite edition carries the class hierarchy without chemical data properties. |
-| 9 | ncbitaxon | ncbitaxon-taxslim.owl | - | - | * | Species. The slim subset is taken because the full taxonomy is far larger than anything this corpus references. |
-| 10 | nbo | nbo.owl | - | - | * | Behavioural processes and behavioural phenotypes. |
-| 11 | mf | mf.owl | - | - | * | Mental functioning. |
-| 12 | mfoem | mfoem.owl | - | - | * | Emotion. MFOEM is the Emotion Ontology; EMO is Enzyme Mechanism Ontology and is not this. |
-| 13 | mfomd | mfomd.owl | - | - | * | Mental disease. |
-| 14 | mp | mp.owl | - | - | * | Mammalian phenotype, including neural phenotypes in model organisms. |
-| 15 | fbbt | fbbt.owl | - | - | * | Drosophila anatomy, including nervous-system structures. |
-| 16 | wbbt | wbbt.owl | - | - | * | C. elegans anatomy, including its nervous system. |
-| 17 | zfa | zfa.owl | - | - | * | Zebrafish anatomy, including neural structures. |
-| 18 | xao | xao.owl | - | - | * | Xenopus anatomy, including neural structures. |
-| 19 | pr | pr.owl | - | - | * | Protein Ontology: neural markers, receptors and channels. 1.2 GB, no reduced edition published; the download needed curl -C - to resume afte… |
-| 20 | nifstd | nifstd-sub27.ttl | NIFSTD | - | * | Neuroscience Information Framework Standard Ontology. BioPortal submission 27, released 2018-02-10, pinned because an acronym alone does not… |
-| 21 | npokb | npokb-sub22.ttl | NPOKB | - | * | Neuron Phenotype Ontology. BioPortal submission 22, released 2026-03-19, pinned because an acronym alone does not identify a release. Neuron… |
-| 22 | aba_amb | aba-amb-sub1.owl | ABA-AMB | - | * | Allen Brain Atlas Adult Mouse Brain Ontology. BioPortal submission 1, released 2009-06-12, pinned because an acronym alone does not identify… |
-| 23 | nmobr | nmobr-sub36.owl | NMOBR | - | * | NeuroMorpho.Org Brain Region Ontologies. BioPortal submission 36, released 2019-11-22, pinned because an acronym alone does not identify a r… |
-| 24 | brct | brct-sub1.owl | BRCT | - | * | Brain Region and Cell Type Terminology. BioPortal submission 1, released 2015-06-17, pinned because an acronym alone does not identify a rel… |
-| 25 | brain_cof | brain-cof-sub2.owl | BRAIN-COF | - | * | Computational Ontology Framework for Brain Profiles. BioPortal submission 2, released 2024-04-08, pinned because an acronym alone does not i… |
-| 26 | cogat | cogat-sub8.owl | COGAT | http://www.cognitiveatlas.org/ontology/cogat.owl# | * | Cognitive Atlas Ontology. BioPortal submission 8, released 2012-04-03, pinned because an acronym alone does not identify a release. |
-| 27 | cogpo | cogpo-sub1.owl | COGPO | - | * | Cognitive Paradigm Ontology. BioPortal submission 1, released 2010-11-17, pinned because an acronym alone does not identify a release. |
-| 28 | cno | cno-sub8.owl | CNO | - | * | Computational Neuroscience Ontology. BioPortal submission 8, released 2015-11-16, pinned because an acronym alone does not identify a releas… |
-| 29 | nemo | nemo-sub24.owl | NEMO | - | * | Neural ElectroMagnetic Ontologies. BioPortal submission 24, released 2013-10-21, pinned because an acronym alone does not identify a release… |
-| 30 | nidm_results | nidm-results-sub2.ttl | NIDM-RESULTS | - | * | Neuroimaging Data Model - Results. BioPortal submission 2, released 2016-06-07, pinned because an acronym alone does not identify a release.… |
-| 31 | neurobrg | neurobrg-sub2.owl | NEUROBRG | - | * | NeuroBridge Ontology. BioPortal submission 2, released 2023-06-21, pinned because an acronym alone does not identify a release. |
-| 32 | onvoc | onvoc-sub9.ttl | ONVOC | - | * | OpenNeuro Vocabulary. BioPortal submission 9, released 2025-10-17, pinned because an acronym alone does not identify a release. Catalogued a… |
-| 33 | bci_o | bci-o-sub6.owl | BCI-O | - | * | Brain-Computer Interaction Ontology. BioPortal submission 6, released 2018-06-06, pinned because an acronym alone does not identify a releas… |
-| 34 | ado | ado-sub4.owl | ADO | - | * | Alzheimer's Disease Ontology. BioPortal submission 4, released 2023-09-09, pinned because an acronym alone does not identify a release. |
-| 35 | pdon | pdon-sub1.owl | PDON | - | * | Parkinson's Disease Ontology. BioPortal submission 1, released 2015-06-17, pinned because an acronym alone does not identify a release. OWL/… |
-| 36 | pmdo | pmdo-sub4.owl | PMDO | - | * | Parkinson and Movement Disorder Ontology. BioPortal submission 4, released 2023-12-12, pinned because an acronym alone does not identify a r… |
-| 37 | epso | epso-sub8.owl | EPSO | - | * | Epilepsy and Seizure Ontology. BioPortal submission 8, released 2025-05-29, pinned because an acronym alone does not identify a release. |
-| 38 | neo | neo-sub90.owl | NEO | - | * | Neurologic Examination Ontology. BioPortal submission 90, released 2022-07-05, pinned because an acronym alone does not identify a release. … |
-| 39 | nddo | nddo-sub10.owl | NDDO | - | * | Neurodegenerative Disease Data Ontology. BioPortal submission 10, released 2019-06-03, pinned because an acronym alone does not identify a r… |
-| 40 | nddrfo | nddrfo-sub3.owl | NDDRFO | - | * | Neurodegenerative Disease Risk Factor Ontology. BioPortal submission 3, released 2025-12-07, pinned because an acronym alone does not identi… |
-| 41 | nihss | nihss-sub15.owl | NIHSS | - | * | National Institutes of Health Stroke Scale Ontology. BioPortal submission 15, released 2024-07-17, pinned because an acronym alone does not … |
-| 42 | scio | scio-sub2.owl | SCIO | - | * | Spinal Cord Injury Ontology. BioPortal submission 2, released 2017-09-19, pinned because an acronym alone does not identify a release. |
+| 6 | pcl | pcl.owl | - | - | * | Provisional cell populations, for cell-atlas integration. No reduced edition is published. |
+| 7 | mondo | mondo-simple.owl | - | - | * | Disease identifiers including neurological disease. |
+| 8 | hp | hp-base.owl | - | - | * | Human phenotypic abnormalities including neurological findings. |
+| 9 | chebi | chebi-lite.owl | - | - | * | Chemical grounding. The lite edition carries the class hierarchy without chemical data properties. |
+| 10 | ncbitaxon | ncbitaxon-taxslim.owl | - | - | * | Species. The slim subset is taken because the full taxonomy is far larger than anything this corpus references. |
+| 11 | nbo | nbo.owl | - | - | * | Behavioural processes and behavioural phenotypes. |
+| 12 | mf | mf.owl | - | - | * | Mental functioning. |
+| 13 | mfoem | mfoem.owl | - | - | * | Emotion. MFOEM is the Emotion Ontology; EMO is Enzyme Mechanism Ontology and is not this. |
+| 14 | mfomd | mfomd.owl | - | - | * | Mental disease. |
+| 15 | mp | mp.owl | - | - | * | Mammalian phenotype, including neural phenotypes in model organisms. |
+| 16 | fbbt | fbbt.owl | - | - | * | Drosophila anatomy, including nervous-system structures. |
+| 17 | wbbt | wbbt.owl | - | - | * | C. elegans anatomy, including its nervous system. |
+| 18 | zfa | zfa.owl | - | - | * | Zebrafish anatomy, including neural structures. |
+| 19 | xao | xao.owl | - | - | * | Xenopus anatomy, including neural structures. |
+| 20 | pr | pr.owl | - | - | * | Protein Ontology: neural markers, receptors and channels. 1.2 GB, no reduced edition published; the download needed curl -C - to resume afte… |
+| 21 | nifstd | nifstd-sub27.ttl | NIFSTD | - | * | Neuroscience Information Framework Standard Ontology. BioPortal submission 27, released 2018-02-10, pinned because an acronym alone does not… |
+| 22 | npokb | npokb-sub22.ttl | NPOKB | - | * | Neuron Phenotype Ontology. BioPortal submission 22, released 2026-03-19, pinned because an acronym alone does not identify a release. Neuron… |
+| 23 | aba_amb | aba-amb-sub1.owl | ABA-AMB | - | * | Allen Brain Atlas Adult Mouse Brain Ontology. BioPortal submission 1, released 2009-06-12, pinned because an acronym alone does not identify… |
+| 24 | nmobr | nmobr-sub36.owl | NMOBR | - | * | NeuroMorpho.Org Brain Region Ontologies. BioPortal submission 36, released 2019-11-22, pinned because an acronym alone does not identify a r… |
+| 25 | brct | brct-sub1.owl | BRCT | - | * | Brain Region and Cell Type Terminology. BioPortal submission 1, released 2015-06-17, pinned because an acronym alone does not identify a rel… |
+| 26 | brain_cof | brain-cof-sub2.owl | BRAIN-COF | - | * | Computational Ontology Framework for Brain Profiles. BioPortal submission 2, released 2024-04-08, pinned because an acronym alone does not i… |
+| 27 | cogat | cogat-sub8.owl | COGAT | http://www.cognitiveatlas.org/ontology/cogat.owl# | * | Cognitive Atlas Ontology. BioPortal submission 8, released 2012-04-03, pinned because an acronym alone does not identify a release. |
+| 28 | cogpo | cogpo-sub1.owl | COGPO | - | * | Cognitive Paradigm Ontology. BioPortal submission 1, released 2010-11-17, pinned because an acronym alone does not identify a release. |
+| 29 | cno | cno-sub8.owl | CNO | - | * | Computational Neuroscience Ontology. BioPortal submission 8, released 2015-11-16, pinned because an acronym alone does not identify a releas… |
+| 30 | nemo | nemo-sub24.owl | NEMO | - | * | Neural ElectroMagnetic Ontologies. BioPortal submission 24, released 2013-10-21, pinned because an acronym alone does not identify a release… |
+| 31 | nidm_results | nidm-results-sub2.ttl | NIDM-RESULTS | - | * | Neuroimaging Data Model - Results. BioPortal submission 2, released 2016-06-07, pinned because an acronym alone does not identify a release.… |
+| 32 | neurobrg | neurobrg-sub2.owl | NEUROBRG | - | * | NeuroBridge Ontology. BioPortal submission 2, released 2023-06-21, pinned because an acronym alone does not identify a release. |
+| 33 | onvoc | onvoc-sub9.ttl | ONVOC | - | * | OpenNeuro Vocabulary. BioPortal submission 9, released 2025-10-17, pinned because an acronym alone does not identify a release. Catalogued a… |
+| 34 | bci_o | bci-o-sub6.owl | BCI-O | - | * | Brain-Computer Interaction Ontology. BioPortal submission 6, released 2018-06-06, pinned because an acronym alone does not identify a releas… |
+| 35 | ado | ado-sub4.owl | ADO | - | * | Alzheimer's Disease Ontology. BioPortal submission 4, released 2023-09-09, pinned because an acronym alone does not identify a release. |
+| 36 | pdon | pdon-sub1.owl | PDON | - | * | Parkinson's Disease Ontology. BioPortal submission 1, released 2015-06-17, pinned because an acronym alone does not identify a release. OWL/… |
+| 37 | pmdo | pmdo-sub4.owl | PMDO | - | * | Parkinson and Movement Disorder Ontology. BioPortal submission 4, released 2023-12-12, pinned because an acronym alone does not identify a r… |
+| 38 | epso | epso-sub8.owl | EPSO | - | * | Epilepsy and Seizure Ontology. BioPortal submission 8, released 2025-05-29, pinned because an acronym alone does not identify a release. |
+| 39 | neo | neo-sub90.owl | NEO | - | * | Neurologic Examination Ontology. BioPortal submission 90, released 2022-07-05, pinned because an acronym alone does not identify a release. … |
+| 40 | nddo | nddo-sub10.owl | NDDO | - | * | Neurodegenerative Disease Data Ontology. BioPortal submission 10, released 2019-06-03, pinned because an acronym alone does not identify a r… |
+| 41 | nddrfo | nddrfo-sub3.owl | NDDRFO | - | * | Neurodegenerative Disease Risk Factor Ontology. BioPortal submission 3, released 2025-12-07, pinned because an acronym alone does not identi… |
+| 42 | nihss | nihss-sub15.owl | NIHSS | - | * | National Institutes of Health Stroke Scale Ontology. BioPortal submission 15, released 2024-07-17, pinned because an acronym alone does not … |
+| 43 | scio | scio-sub2.owl | SCIO | - | * | Spinal Cord Injury Ontology. BioPortal submission 2, released 2017-09-19, pinned because an acronym alone does not identify a release. |
 | off | ad_cdo | ad-cdo-sub2.owl | AD-CDO | - | * | OFF: discovery candidate, not reviewed (BioPortal status: loaded). Alzheimer's Disease Common Data Element Ontology for Clinical Trials |
 | off | ad_drop | ad-drop-sub1.owl | AD-DROP | - | * | OFF: discovery candidate, not reviewed (BioPortal status: loaded). Alzheimer Disease Relevance Ontology by Process |
 | off | adar | adar-sub1.owl | ADAR | - | * | OFF: discovery candidate, not reviewed (BioPortal status: loaded). Autism DSM-ADI-R ontology |
