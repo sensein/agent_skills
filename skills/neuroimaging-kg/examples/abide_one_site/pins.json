@@ -1,0 +1,55 @@
+{
+  "_note": "Every input is pinned to a commit or versioned URL and its SHA-256. fetch_inputs.py refuses a file whose hash differs.",
+  "phenotype_csv": {
+    "url": "https://s3.amazonaws.com/fcp-indi/data/Projects/ABIDE_Initiative/Phenotypic_V1_0b_preprocessed1.csv",
+    "sha256": "009f01a89697113e5375ded4fbcff4c85e89a4daa6d13e63c21ae5d57dda0865",
+    "what": "ABIDE I Preprocessed phenotype table (one row per participant, all 20 sites)"
+  },
+  "term_map": {
+    "url": "https://raw.githubusercontent.com/ReproNim/simple2_NIDM_examples/e0dff17629bd5031e246c05ff4bed174597552a2/bids_nidm_scripts/abide_phenotypic_v1_0b_vars_to_terms_v5.json",
+    "sha256": "b76d5669b840e366a71e532d437353f7bece825fffce5780461b2114c7fd1f92",
+    "what": "ReproNim's mapping of 75 ABIDE phenotype columns to shared concept IRIs (input to PyNIDM csv2nidm)"
+  },
+  "cde": {
+    "ants": {
+      "url": "https://raw.githubusercontent.com/ReproNim/ants_seg_to_nidm/97e6257b0827a0e6bcc78c179f83168c83397f39/ants_seg_to_nidm/mapping_data/ants_cde.ttl",
+      "sha256": "5c92fd46bd1a1a5dd247340bd35aa3ee21a187f4a0829406520cdf8f0b2cb4a4"
+    },
+    "fsl": {
+      "url": "https://raw.githubusercontent.com/ReproNim/fsl_seg_to_nidm/54f91ec7c5c10837d1970bcbd2e39add6a5a3530/fsl_seg_to_nidm/mapping_data/fsl_cde.ttl",
+      "sha256": "767e8cb3e3d49b9d2fc62d281edfdb9796c51664436feb7d1c0c4c697baedcf2"
+    },
+    "freesurfer": {
+      "url": "https://raw.githubusercontent.com/ReproNim/simple2_NIDM_examples/e0dff17629bd5031e246c05ff4bed174597552a2/cde/fs_cde.ttl",
+      "sha256": "6f81ff71342a421796934e7002b1f4ac36aff4b079483e26c030f7f2e7b9b82e"
+    },
+    "_what": "definitions of each tool's volume measures (region, laterality, units); the site files only hold values"
+  },
+  "site_nidm": {
+    "_url_template": "https://raw.githubusercontent.com/ReproNim/simple2_NIDM_examples/e0dff17629bd5031e246c05ff4bed174597552a2/datasets.datalad.org/abide/RawDataBIDS/{site}/nidm.ttl",
+    "_what": "ReproNim's NIDM file for one ABIDE site: participants, scans, and ANTs/FSL/FreeSurfer brain volumes",
+    "Caltech": {
+      "sha256": "2f69400bbb2eb9cdbed52e23c3e6b3e4d60d0b878adb45cf8def586f867871a9",
+      "site_id": "CALTECH"
+    },
+    "SBL": {
+      "sha256": "b73d72e71e49ea7ef24d70b4dc16d8a794d4ab4fd7d81e907b813968c91fa424",
+      "site_id": "SBL"
+    },
+    "OHSU": {
+      "sha256": "fe6aae85deb39f3a93b70e881eb6a0f8f5db83c283f2dfccd9225aceb52ddf39",
+      "site_id": "OHSU"
+    },
+    "Stanford": {
+      "sha256": "33feaf7a40b9500f2028ca4978d48433073426e586f67177de2c41683167dbc9",
+      "site_id": "STANFORD"
+    }
+  },
+  "pynidm": "pynidm==4.5.5",
+  "nidm_linkml_schema": {
+    "url": "https://raw.githubusercontent.com/INCF-NIDASH/PyNIDM/74793553f2ef0884602c4383fe8dbe8c74e3dcb8/src/nidm/experiment/schema/nidm_schema.yaml",
+    "sha256": "4103a03056b0a9d749d0c3ff018f2248a7f108226bdd95271a7c2d273f0d7c52",
+    "what": "NIDM-Experiment LinkML schema shipped with PyNIDM v4.5.5 (commit 74793553); turned into SHACL with linkml gen-shacl"
+  },
+  "linkml": "linkml==1.12.1"
+}

@@ -1,0 +1,29 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix nidm: <http://purl.org/nidash/nidm#> .
+@prefix ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix nkg: <urn:neuroimaging-kg:> .
+@prefix a: <urn:lab-a:> .
+
+# Contributor A (lab A). Participants 0001-0003; zero-padded IDs.
+a:p1 a prov:Person ; ndar:src_subject_id "0001" .
+a:p2 a prov:Person ; ndar:src_subject_id "0002" .
+a:p3 a prov:Person ; ndar:src_subject_id "0003" .
+
+a:age a nidm:DataElement ; rdfs:label "age at scan" ; nidm:sourceVariable "AGE" ;
+  nidm:isAbout <http://uri.interlex.org/ilx_0100400> ; nidm:hasUnit "years" .
+a:hip a nidm:DataElement ; rdfs:label "Left-Hippocampus volume" ;
+  nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001954> ; nidm:hasLaterality "Left" ; nidm:hasUnit "mm^3" .
+a:csf a nidm:DataElement ; rdfs:label "CSF total volume" ;
+  nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001359> ; nidm:hasUnit "mm^3" .
+a:hand a nidm:DataElement ; rdfs:label "handedness category" ; nidm:sourceVariable "HANDEDNESS_CATEGORY" .
+
+a:act1 prov:qualifiedAssociation [ prov:agent a:p1 ] . a:e1 prov:wasGeneratedBy a:act1 ; a:age 21 ; a:hip 4000.0 ; a:hand "R" .
+a:act2 prov:qualifiedAssociation [ prov:agent a:p2 ] . a:e2 prov:wasGeneratedBy a:act2 ; a:age 34 ; a:hip 4100.0 ; a:csf 300000.0 .
+a:act3 prov:qualifiedAssociation [ prov:agent a:p3 ] . a:e3 prov:wasGeneratedBy a:act3 ; a:age 40 .
+
+a:lowmotion a nkg:Cohort ; rdfs:label "mean FD < 0.2 mm" ; prov:hadMember a:p1 , a:p2 .
+<urn:ds:abide_i> a dcat:Dataset ; dcat:version "1.0" .
+a:claim1 dct:source <https://doi.org/10.1016/J.NEUROIMAGE.2016.10.045> .

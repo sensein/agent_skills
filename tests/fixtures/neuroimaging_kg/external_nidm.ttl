@@ -1,0 +1,29 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix nidm: <http://purl.org/nidash/nidm#> .
+@prefix ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/> .
+@prefix sio: <http://semanticscience.org/ontology/sio.owl#> .
+@prefix niiri: <http://iri.nidash.org/> .
+
+# A tiny NIDM-shaped graph in the style PyNIDM writes: participants are agents
+# carrying ndar:src_subject_id, linked to an assessment through a qualified association.
+
+niiri:p1 a prov:Agent, prov:Person ; ndar:src_subject_id "0001" .
+niiri:p2 a prov:Agent, prov:Person ; ndar:src_subject_id "0002" .
+niiri:p3 a prov:Agent, prov:Person ; ndar:src_subject_id "0003" .
+niiri:p9 a prov:Agent, prov:Person ; ndar:src_subject_id "0009" .
+
+niiri:acq1 a nidm:Acquisition, prov:Activity ;
+  prov:qualifiedAssociation [ a prov:Association ; prov:agent niiri:p1 ; prov:hadRole sio:Subject ] .
+niiri:acq2 a nidm:Acquisition, prov:Activity ;
+  prov:qualifiedAssociation [ a prov:Association ; prov:agent niiri:p2 ; prov:hadRole sio:Subject ] .
+niiri:acq3 a nidm:Acquisition, prov:Activity ;
+  prov:qualifiedAssociation [ a prov:Association ; prov:agent niiri:p3 ; prov:hadRole sio:Subject ] .
+
+niiri:ao1 a nidm:AcquisitionObject, prov:Entity ; prov:wasGeneratedBy niiri:acq1 ; niiri:age "21" .
+niiri:ao2 a nidm:AcquisitionObject, prov:Entity ; prov:wasGeneratedBy niiri:acq2 ; niiri:age "34" .
+niiri:ao3 a nidm:AcquisitionObject, prov:Entity ; prov:wasGeneratedBy niiri:acq3 ; niiri:age "40" .
+
+# The age variable as a data element, as PyNIDM writes it (per-file element IRI, shared concept).
+niiri:age a nidm:PersonalDataElement, prov:Entity ;
+  nidm:sourceVariable "AGE_AT_SCAN" ;
+  nidm:isAbout <http://uri.interlex.org/ilx_0100400> .

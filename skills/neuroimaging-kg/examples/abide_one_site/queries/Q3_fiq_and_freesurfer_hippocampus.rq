@@ -1,0 +1,25 @@
+# How many participants have both a full-scale IQ (FIQ) score and a FreeSurfer hippocampal volume, by group?
+# FIQ comes from our phenotype graph, the volume from ReproNim's NIDM; they meet on the shared participant ID.
+# The hippocampus concept (UBERON:0001954) also tags voxel counts, intensities and (for ANTs) surface area,
+# and ANTs gives surface area the same datum type as volume, so select the volume by its unit (mm^3).
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX nidm: <http://purl.org/nidash/nidm#>
+PREFIX ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/>
+SELECT ?dx_group (COUNT(DISTINCT ?id) AS ?n) WHERE {
+  GRAPH <urn:g:phenotype> {
+    ?p ndar:src_subject_id ?id . ?acq prov:qualifiedAssociation/prov:agent ?p .
+    ?ao prov:wasGeneratedBy ?acq ; ?fe ?fiq ; ?de ?dx .
+    ?fe nidm:sourceVariable "FIQ" . ?de nidm:sourceVariable "DX_GROUP" .
+    FILTER (?fiq > 0)    # missing values are NaN (or -9999 in the source table)
+  }
+  GRAPH <urn:g:repronim> {
+    ?s ndar:src_subject_id ?id2 .
+    ?act prov:qualifiedAssociation ?a1 , ?a2 .
+    ?a1 prov:agent ?sw . ?sw nidm:NIDM_0000164 <https://surfer.nmr.mgh.harvard.edu/> .
+    ?a2 prov:agent ?s .
+    ?ent prov:wasGeneratedBy ?act ; ?m ?vol .
+  }
+  ?m nidm:isAbout <http://purl.obolibrary.org/obo/UBERON_0001954> ; nidm:hasUnit "mm^3" .
+  FILTER (STR(?id) = STR(?id2))
+  BIND (STR(?dx) AS ?dx_group)
+} GROUP BY ?dx_group ORDER BY ?dx_group

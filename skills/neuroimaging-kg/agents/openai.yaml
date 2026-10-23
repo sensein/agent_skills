@@ -1,0 +1,28 @@
+interface:
+  display_name: "Neuroimaging Knowledge Graphs"
+  short_description: "Build, join, validate and query NIDM/PROV knowledge graphs for neuroimaging studies"
+  default_prompt: "Use $neuroimaging-kg to build a knowledge graph for my dataset (phenotype table and NIDM files), record how each derived result was produced, join it to public NIDM, validate it, and answer my competency questions with SPARQL."
+  capabilities:
+    - "Convert phenotype tables to NIDM non-interactively with PyNIDM csv2nidm and a term map"
+    - "Record analysis steps as PROV with content-hashed inputs and outputs, software versions and agents (people or AI agents)"
+    - "Link participants across graphs as reviewable identity links with conflict checks (never owl:sameAs)"
+    - "Validate authored layers with SHACL plus a mutation test, and third-party NIDM against PyNIDM's LinkML schema"
+    - "Load sources as named graphs in Oxigraph and answer competency questions against independently computed gold answers"
+    - "Record claim scope and evidence, and consent scope for pond/lake sharing decisions"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  python:
+    - "rdflib>=7"       # record_activity.py, join_identity.py, validate_graph.py
+    - "pyshacl>=0.26"   # validate_graph.py
+    - "pyoxigraph>=0.4" # query_graph.py
+  tools:
+    pynidm: "uvx --from pynidm==4.5.5 csv2nidm | bidsmri2nidm  (run in its own environment)"
+    linkml: "uvx --from linkml gen-shacl --non-closed nidm_schema.yaml  (SHACL from PyNIDM's LinkML schema)"
+    uv: "the scripts carry inline dependency metadata: uv run scripts/<name>.py"
+  related_skills:
+    structsense: "claims and entities with evidence spans"
+    synthscholar: "systematic literature reviews exported as SLR-ontology Turtle"
+    brainkb: "publish graphs to BrainKB"

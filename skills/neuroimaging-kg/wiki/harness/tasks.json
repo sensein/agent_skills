@@ -1,0 +1,43 @@
+{
+  "_note": "WikiSkill splits (arXiv:2608.27454v1): train tasks generate experience; val tasks gate skill updates and are never shown to the wiki maintainer as traces; the test set is the Claude Code demo (examples/claude_code_demo.md). Each prompt fixes an output contract that check.py scores.",
+  "train": {
+    "T1_sbl_fiq_hippocampus": {
+      "stage": [],
+      "prompt": "Use the neuroimaging-kg skill. Build a knowledge graph for ABIDE I site SBL from the skill's pinned public inputs (ABIDE phenotype table plus ReproNim's NIDM file for the site), validate it, then answer with a SPARQL query over the graph: how many SBL participants have both a full-scale IQ (FIQ) score and a FreeSurfer hippocampal volume, by diagnostic group (DX_GROUP 1 = autism, 2 = control)? Keep the graph files under ./graph and write ./answer.json exactly as {\"1\": <int>, \"2\": <int>}."
+    },
+    "T2_stanford_coverage": {
+      "stage": [],
+      "prompt": "Use the neuroimaging-kg skill. For ABIDE I site Stanford: how many participants are in the ABIDE phenotype table, how many link to a participant in ReproNim's NIDM file for Stanford, and how many linked participants have a conflicting age, sex or diagnosis between the two sources? Use the skill's pinned inputs and its identity-join step. Write ./answer.json exactly as {\"phenotype\": <int>, \"linked\": <int>, \"conflicts\": <int>}."
+    },
+    "T3_caltech_derived_layer": {
+      "stage": ["caltech_built"],
+      "prompt": "Use the neuroimaging-kg skill. ./data and ./graph already hold a knowledge graph for ABIDE I site Caltech, built by the skill's demo. Add a derived-measure layer: for every participant that has them, compute total hippocampal volume = left + right FreeSurfer hippocampus volume in mm^3 from ReproNim's NIDM (data/Caltech_nidm.ttl, with measure definitions in data/freesurfer_cde.ttl). Write ./derived/hippocampus_total.csv with columns src_subject_id,total_mm3. Record this step's provenance with the skill into ./graph/provenance.ttl so the CSV is linked to its input files, the software version and you as an AI agent with your model id; the skill's validation with --mutation-test must pass on graph/provenance.ttl. Write ./answer.json exactly as {\"n\": <rows>, \"mean_total_mm3\": <float rounded to 1 decimal>}."
+    },
+    "T4_caltech_add_claim": {
+      "stage": ["caltech_built"],
+      "prompt": "Use the neuroimaging-kg skill. ./graph holds a knowledge graph for ABIDE I site Caltech (from the skill's demo), including one claim in graph/dataset_claims.ttl. Add the published claim of Di Martino et al. 2014 (Molecular Psychiatry, https://doi.org/10.1038/mp.2013.78) as a scoped claim that uses the same ABIDE I dataset node: a group difference (associational) in resting-state functional connectivity between autistic and control participants, in 763 male participants from 17 sites, with this verbatim evidence quote from the abstract of the PMC author manuscript PMC4162310: \"both were detected, though hypoconnectivity dominated, particularly for cortico-cortical and interhemispheric functional connectivity\". Put it in ./graph/claims_dimartino.ttl so that the skill's validation passes on that file, then query all claims that use ABIDE I and write ./answer.json as a list of {\"claim_type\": ..., \"paper\": ...} objects, one per claim."
+    },
+    "T5_messy_join": {
+      "stage": ["caltech_inputs", "caltech_local_table"],
+      "prompt": "Use the neuroimaging-kg skill. Our lab keeps its own table ./caltech_local.csv (participant ID column: subject; age column: age_years) for ABIDE I site Caltech. Link it to the participants in ReproNim's NIDM file for Caltech (./data/Caltech_nidm.ttl) and compare age. Write ./answer.json exactly as {\"matched\": <int>, \"only_local\": [<lab IDs as in the table>], \"only_external\": [<ReproNim IDs>], \"age_conflicts\": [<lab IDs as in the table>]}."
+    },
+    "T6_egress_gate": {
+      "stage": ["caltech_built"],
+      "prompt": "Use the neuroimaging-kg skill. ./graph holds a knowledge graph for ABIDE I site Caltech. A collaborator contributed a table of clinician notes whose participants consented to use within this study only. Record that table in ./graph/egress.ttl as a record held in our lab's pond, with its consent scope, and record an attempt to promote it to the shared lake (promotion status \"promoted\"). Run the skill's validation on graph/egress.ttl and report whether the promotion is allowed. Write ./answer.json exactly as {\"promotion_allowed\": <true|false>, \"reason\": <string>}."
+    }
+  },
+  "val": {
+    "V1_ohsu_motion_and_volumes": {
+      "stage": [],
+      "prompt": "Use the neuroimaging-kg skill. Build a knowledge graph for ABIDE I site OHSU from the skill's pinned inputs and answer with SPARQL: (a) how many OHSU participants have mean framewise displacement (mean FD: average head movement, in mm) below 0.15 mm, by diagnostic group (DX_GROUP 1 = autism, 2 = control); (b) of those, how many also have a full-scale IQ (FIQ) score and a FreeSurfer hippocampal volume, by group? Write ./answer.json exactly as {\"fd\": {\"1\": <int>, \"2\": <int>}, \"fd_fiq_fs\": {\"1\": <int>, \"2\": <int>}}."
+    },
+    "V2_caltech_tool_disagreement": {
+      "stage": [],
+      "prompt": "Use the neuroimaging-kg skill. Build (or reuse) a knowledge graph for ABIDE I site Caltech from the skill's pinned inputs. Which participants have left-hippocampus volumes from FSL and from FreeSurfer that differ by more than 25% of the mean of the two? Write ./answer.json exactly as {\"n_with_both\": <int>, \"ids\": [<src_subject_id strings, sorted>]}."
+    },
+    "V3_malformed_table": {
+      "stage": ["caltech_inputs", "caltech_messy_table"],
+      "prompt": "Use the neuroimaging-kg skill. Our lab's table ./caltech_messy.csv for ABIDE I site Caltech (participant ID column SUB_ID, age column AGE_AT_SCAN) may contain problems. Link its participants to ReproNim's NIDM file for Caltech (./data/Caltech_nidm.ttl), comparing age, and report honestly without silently dropping rows. Write ./answer.json exactly as {\"rows\": <data rows in the table>, \"duplicate_ids\": [<IDs that appear on more than one row>], \"matched\": <participants linked unambiguously>, \"age_conflicts\": [<IDs whose age disagrees>]}."
+    }
+  }
+}
