@@ -7,6 +7,8 @@ interface:
   capabilities:
     - "Draft and gate a complete review protocol from a one-line research question"
     - "Run the full PRISMA pipeline over user-supplied PDFs: screening, charting, appraisal, synthesis, per-group analysis"
+    - "Find the literature itself: a deterministic, MeSH-grounded PubMed search from a research question (no API key: the host model answers the prompts), every record fetched"
+    - "Screen PubMed results on title/abstract against the protocol, logging every decision and reason, and hand the kept records to the review"
     - "Retrieve missing full texts from a DOI — open access (Unpaywall/OpenAlex/Semantic Scholar), then institutional EZproxy"
     - "Read every paper in full and extract only that paper's own findings, not the claims it cites"
     - "Screen eligibility on full text, recording what each decision was actually judged on"
@@ -23,6 +25,7 @@ dependencies:
   # per-script table below and the README.
   python:
     - "rdflib>=6.0"          # SPARQL over an RDF export (query_sparql.py)
+    - "requests>=2.28"       # PubMed E-utilities and model calls (generate_search_strategy.py)
     - "httpx>=0.25"          # open-access + institutional retrieval (fetch_ezproxy.py), registry lookups (verify_citations.py)
     - "pymupdf>=1.24"        # PDF text extraction (build_corpus.py)
     - "docling"              # first extraction backend in build_corpus.py (tables + OCR)
@@ -44,11 +47,13 @@ dependencies:
   # it rather than silently dropping those fields.
   synthscholar:
     released: "pip install 'synthscholar[fulltext]'   # sufficient for Modes 1-2"
-    development: "pip install -e /path/to/prisma-review-agent   # required for Mode 3"
+    development: "git clone https://github.com/sensein/synthscholar && git -C synthscholar checkout improve_verification && pip install -e ./synthscholar   # required for Mode 3; main lacks the provenance fields"
 
   # Which scripts need which of the above.
   scripts:
     validate_protocol.py: "stdlib only (PyYAML optional, for .yaml protocols)"
+    generate_search_strategy.py: "requests; the MeSH index downloads (~120 MB) and builds itself on first use; no API key under an agent host (--emit-prompt / --facet-samples), OPENROUTER_API_KEY only when run standalone"
+    screen_records.py: "stdlib only; the host agent writes the decisions"
     build_corpus.py: "docling first (tables + OCR, the only backend that reads a scanned PDF), then pymupdf, pypdf, the pdftotext CLI; --no-docling skips it"
     fetch_ezproxy.py: "httpx; open access needs no credentials; institutional access signs in through a browser (playwright) — no EZPROXY_* setup"
     ezproxy_login.py: "playwright + Chrome/Edge (or playwright's Chromium); saves the session under ~/.config/synthscholar"
@@ -68,9 +73,12 @@ dependencies:
     backfill_full_text.py: "psycopg[binary] + synthscholar, migration 006 applied"
 
   environment:
-    OPENROUTER_API_KEY: "required by run_local_review.py; unused by the other scripts"
+    OPENROUTER_API_KEY: "required by run_local_review.py; generate_search_strategy.py only when run outside an agent host (an agent answers its prompts itself)"
+    OPENROUTER_MODEL: "optional; default model for generate_search_strategy.py when it calls a model itself"
+    NCBI_EMAIL: "optional; contact address sent to NCBI (generate_search_strategy.py)"
+    SYNTHSCHOLAR_MESH_DB: "optional; use an existing MeSH index instead of building one (generate_search_strategy.py)"
     SYNTHSCHOLAR_EMAIL: "polite-pool contact; Unpaywall requires it (ToS) and is skipped without it"
-    NCBI_API_KEY: "optional; raises the PubMed E-utilities rate limit for verify_citations.py"
+    NCBI_API_KEY: "optional; raises the PubMed E-utilities rate limit (generate_search_strategy.py, verify_citations.py)"
     SEMANTIC_SCHOLAR_API_KEY: "optional; lifts Semantic Scholar's 1 req/s public rate limit"
     EZPROXY_HOST: "optional manual override — the browser sign-in finds and saves the proxy itself"
     EZPROXY_COOKIE_FILE: "browser-exported cookies.txt for that proxy (or EZPROXY_COOKIE)"
