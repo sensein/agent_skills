@@ -91,6 +91,13 @@ hardcode a partition. `orcd_resources.py` asks the scheduler; `orcd_submit.py
   supplies it.
 - **Request GPUs by model**: `--gres=gpu:h100:2`. Untyped may land on an L4 or
   an H200; partitions labelled `untyped` accept only `gpu:N`.
+- **`--test-only` start times can be wildly pessimistic** (predicted December,
+  started in 90 s). To know what runs *now*, read free GPUs per node, skipping
+  `mix-` (planned) nodes and nodes in others' active reservations, net of QOS
+  caps and your own pending jobs; then confirm with a 2-minute `sleep` probe
+  ([references/slurm.md](references/slurm.md#is-a-gpu-free-now)).
+- **Never compute on a login node.** Group partitions, caps and what has been
+  free: [references/sensein.md](references/sensein.md#partitions-open-to-satras-account-snapshot-2026-10-27).
 
 ## Storage
 
