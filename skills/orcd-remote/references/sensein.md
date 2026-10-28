@@ -97,6 +97,38 @@ Build environments in a `mit_quicktest` job, never on a login node.
 **Datasets**: `/orcd/data/satra/002/datasets`, as archives or tar/WebDataset
 shards, not loose files.
 
+## Partitions open to satra's account (snapshot 2026-10-27)
+
+Run `orcd_resources.py --gpus --idle` for today's answer; this table is the
+shape it had, with the caps that decide placement.
+
+| Partition | MaxTime | GPU nodes | Caps (group `GrpTRES` / yours `MaxTRESPU`) | Preempt |
+| --- | --- | --- | --- | --- |
+| `pi_satra` | 2 days | 1 x 4 H100, 1 x 8 A100 | group: 192 CPU, 2 H100, 4 A100, 6 GPU, 1500G | no |
+| `ou_bcs_high` | 4 h | 2 x 4 H100 | you: 1 GPU, 32 CPU, 1 node | no |
+| `ou_bcs_normal` | 1 day | 5 x 4 H100, 14 x 7-8 A100 | you: 8 H100, 8 A100, 16 GPU, 448 CPU | no |
+| `ou_bcs_low` | 1 day | 9 x 4 H100, 19 x 6-8 A100 | you: 32 H100, 32 A100, 64 GPU | REQUEUE |
+| `mit_normal_gpu` | 6 h | 13 x 8 H200, 10 x 8 B200 (containers fail), 53 x 4 L40S, 1 x 4 H100 | you: 2 GPU, 32 CPU, 515G | no |
+| `mit_preemptable` | 2 days | most of the cluster (H200, B200 (containers fail), H100, A100, L40S, RTX Pro 6000, ...) | you: 4 GPU, 1024 CPU | REQUEUE |
+
+Observed (2026-10-26/27):
+
+- **`--test-only` dates are unreliable here.** pi_satra was predicted for
+  December and started in 90 s.
+- **pi_satra's GPU cap is per group.** Two of the lab's queued H100 jobs fill
+  it even when the partition's H100 node has free GPUs.
+- **ou_bcs_high starts fast but allows one GPU per user.** A second job queues
+  behind your first.
+- **mit_normal_gpu B200s were free when every H100/H200 queue was days deep,
+  but containers fail on them** (`can't mount proc filesystem to /proc`; see
+  [slurm.md](slurm.md#node-capabilities)). Use them for non-container work only.
+  H200 nodes there are often `mix-` (planned) or under user reservations.
+- **ou_bcs_normal H100 nodes are often `mix-`.** They look free and are not.
+
+Order that worked for a 1-GPU container service: pi_satra -> ou_bcs_high
+(H100, 4 h) -> mit_normal_gpu (H200 only, 6 h; exclude B200 nodes) ->
+ou_bcs_normal; preemptable partitions only for work that survives a requeue.
+
 ## Getting access
 
 WebMoira group membership, managed by the sensein admin team (not orcd-help).

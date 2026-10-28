@@ -26,6 +26,41 @@ reports an immediate start for 4x H100 in a partition whose `GrpTRES` caps the
 group at 2. `--plan` cross-checks the GPU ceilings (`gres/gpu` in `MaxTRESPU`
 and `GrpTRES`; CPU/memory are not checked) and marks such rows `EXCEEDS`.
 
+**Its start time is an estimate, and can be wildly pessimistic.** Measured
+2026-10-26: `--test-only` predicted 2026-12-10 for a 1x H100 job in a private
+partition; the same job, submitted, started in 90 s. Treat the timestamp as an
+ordering hint at best. To know whether something will run now, check what is
+free (next section) and confirm with a real 2-minute probe:
+
+```bash
+j=$(sbatch --parsable -p <partition> -t 5 --gres=gpu:<model>:1 -c 8 --mem=64G -o /dev/null --wrap 'sleep 120')
+sleep 90; squeue -j $j -h -o '%T %r %N'; scancel $j        # RUNNING = it runs; PENDING + reason = why not
+```
+
+## Is a GPU free now?
+
+`sinfo` per node, then three corrections:
+
+```bash
+sinfo -h -N -p <partitions> -O 'Partition:20,NodeHost:14,Gres:40,GresUsed:50,CPUsState:22,StateCompact:10'
+# Gres gpu:h100:4 / GresUsed gpu:h100:3(IDX:0-2) -> 1 GPU free; CPUsState A/I/O/T -> I idle CPUs
+```
+
+1. **State must be exactly `mix` or `idle`.** `mix-` is PLANNED: its free GPUs
+   are earmarked for a higher-priority job and will not go to you.
+2. **Active reservations hide on plain `mix` nodes.** Only MAINT reservations
+   get the `$` suffix; a user reservation (`Flags=IGNORE_JOBS,SPEC_NODES`)
+   leaves the node `mix`, its GPUs look free, and a job sent there pends with
+   reason `Priority`. Exclude nodes in reservations active now that are not
+   yours: `scontrol show reservation -o` (fields `StartTime`, `EndTime`,
+   `Nodes`, `Users`).
+3. **Ceilings and your own queue.** A free GPU still needs room under the
+   partition QOS's `GrpTRES` (summed over the group's running jobs) and
+   `MaxTRESPU` (yours). Count your own *pending* GPU jobs as claims: they take
+   free GPUs before a new submission does.
+
+`--test-only` estimates come last, only when nothing is free.
+
 ## Never pass `--qos`
 
 Each partition attaches its own QOS (`QoS=` in `scontrol show partition`),
@@ -120,8 +155,9 @@ both.
 
 ## GPUs
 
-`--gres=gpu:h100:2` (this model) vs `--gres=gpu:2` (any model: L4 to H200 on a
-mixed partition). Partitions that declare GPUs without a model accept only the
+`--gres=gpu:h100:2` (this model) vs `--gres=gpu:2` (any model: L4 to B200 on a
+mixed partition). Models present (2026-10): `l4`, `l40s`, `a40`, `a100`,
+`rtx_pro_6000`, `h100`, `h200`, `b200`; `orcd_snapshot.py --json` has counts. Partitions that declare GPUs without a model accept only the
 untyped form (`untyped` in `orcd_resources.py`); `--gpus` confirms a model is
 requestable, not merely present. GPU nodes are fat (120-256 CPUs, 1-2 TB RAM,
 4-8 GPUs): request CPUs and memory in proportion, or the remaining GPUs become
@@ -154,6 +190,31 @@ GPUs spread out, so the packed shape can queue longer; `--plan` both.
 | `!` | pending power-down |
 
 `orcd_resources.py --idle` skips every flagged node.
+
+## Node capabilities
+
+- **Driver**: H100 nodes run driver 590.48 (CUDA 13.1, 2026-10). CUDA 13 images
+  run; a CUDA 12.9 image can also run but may ship CUDA-13 pieces (vLLM
+  v0.32.0-cu129's torchcodec needs `libnvrtc.so.13` and fails at import).
+- **Apptainer is not on compute-node `PATH`**: `module load apptainer/1.5.2`, or
+  `/orcd/software/core/001/pkg/apptainer/1.5.2/bin/apptainer`. Login nodes have
+  `/usr/bin/apptainer` 1.4.5, but login nodes are not for running containers.
+- **Unprivileged `--net --network none` works** on H100/H200 nodes: the container
+  gets only its own `lo`.
+- **B200 nodes cannot start apptainer containers** (2026-10-27, two
+  `gpu:b200:8` nodes in `mit_normal_gpu`). Inside a job, plain `exec`,
+  `--net --network none` and `--nv` all fail with `can't mount proc filesystem
+  to /proc: operation not permitted`. User namespaces are available there
+  (`max_user_namespaces=8252810`), so this is not the transfer-node failure. A
+  vLLM server job died in 2 s. Exclude B200 nodes from container work.
+- **`mit_data_transfer` nodes have no usable user namespaces**: `apptainer exec`
+  and `pull` fail (`Failed to create user namespace`). Download there with a
+  plain `uv run --with huggingface_hub ...`, not a container.
+- **Image builds can fail at `mksquashfs`**: some compute nodes fall back to
+  `proot`, which cannot `ptrace` inside a job (`ptrace(TRACEME): Operation not
+  permitted`), even with `--fix-perms`. `apptainer build --sandbox <dir>` skips
+  the squash step, but an unpacked CUDA/Python image is 300K+ files against the
+  1M-inode personal-scratch cap.
 
 ## Memory
 
