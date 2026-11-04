@@ -1,5 +1,115 @@
 # Changelog
 
+## Unreleased — Scopes on modality or topic alone; controlled access with no named committee
+
+- **A scope pinned only by a modality or a topic failed `ApplicabilityScopeShape`.**
+  The converter writes `bkr:appliesToModality` / `bkr:appliesToTopic` (sub-properties
+  of `bkr:appliesToConcept`), but the shape's dimension list lacked both and SHACL
+  runs without subproperty entailment. A dataset with one mapped record-level
+  modality (EFO "spatial transcriptomics") and nothing else was rejected. Both
+  properties are now in the list.
+- **Controlled access without a named committee is a source-silence finding when
+  declared.** `ControlledAccessShape` is an absence shape (`access.committee`):
+  listed in `not_found_fields`, it is reported, not fatal; unlisted, it is still an
+  extraction gap. Absence checks follow a part of a resource (its access condition)
+  back to the resource's record. The extractor prompt now asks for
+  `access.committee` with `level: controlled` ("dbGaP protected access" → "dbGaP"),
+  or for it to be listed as not found.
+- `not_found_fields` entries with a dotted path (`access.committee`,
+  `access.request_url`) were dropped whenever the top-level field was filled; they
+  are now kept unless that exact path has a value.
+- Tests: `test_single_loose_dimension_is_a_valid_scope`,
+  `test_controlled_access_without_committee_fails_unless_declared`.
+
+## Unreleased — The source is the paper: DOI, title, authors, licence; the text is a version of it
+
+- **Resource KGs named the extracted text file as the paper** (`bkr:resourceName
+  "…_text.txt"`, `bkr:mediaType "text/plain"` on the publication). Now the
+  publication is identified by its DOI (or `preprint:<id>` until one is registered)
+  with title, authors, date, venue and licence: `doc_metadata.harvest` runs in the
+  resource path too (it ran only in `batch`), DOIs are cleaned of what text
+  extraction fuses onto them (`…703645doi:`), licences printed in the text are
+  recognised (`aCC-BY-NC-ND 4.0 International license`), and the DOI is resolved at
+  Crossref / bioRxiv's API (`metadata.resolve_doi`, `--resolve-doi/--no-resolve-doi`).
+  bioRxiv/medRxiv ids in a file name become a DOI only when a registry confirms it,
+  under the new `10.64898` prefix or `10.1101`.
+- The extractor reports the paper's own metadata as printed (`paper` block, prompt
+  rule 13, schema); values the text doesn't print are dropped.
+- The processed text is a `ner:DocumentVersion` (sha256, length) derived from the
+  source document's version; `resource_kg build --text` pairs a PDF with its text;
+  in-memory text is preserved as `<out>.source.txt`.
+- `json_to_ttl` and `resource_kg` share the `preprint:<id>` identity rule.
+- Tests: `scripts/tests/test_paper_metadata.py`; `scripts/tests/conftest.py` keeps
+  the suite offline.
+
+## Unreleased — Is the resource still maintained? Activity status from code hosts and registries
+
+- **`scripts/resource_activity.py`** (new, network, opt-in): for every resource that
+  names a repository or package — `url`, URL identifiers, usage-example URLs, install
+  commands in usage-example code, GitHub Pages sites — asks GitHub/GitLab (archived
+  flag, last commit on the default branch, latest release), PyPI, CRAN (crandb),
+  Bioconductor (r-universe), npm and conda. Status: `archived` > `deprecated` >
+  `unavailable` > `unknown` > `active` (≤ 365 days) / `stale` (≤ 1095) / `inactive`.
+  A registry's own repository link (PyPI `project_urls`, CRAN/Bioc `URL`, npm
+  `repository`, conda `dev_url`) is followed. Conda rebuilds and Bioconductor version
+  bumps are not counted as development. `check` (URLs / commands → JSON) and
+  `annotate` (existing Turtle → Turtle) subcommands; `GITHUB_TOKEN` lifts rate limits.
+- **On by default** for every resource conversion (`json_to_ttl`, `resource_kg build`,
+  `pipeline --task resource`, `batch`): `activity.enabled` in `resource_kg_config.json`;
+  `--no-check-activity` or `STRUCTSENSE_NO_NETWORK=1` to skip. Stops after 3
+  unreachable resources in a row when offline. Library calls stay offline unless
+  asked. Thresholds in the same `activity` section.
+- A rate-limited answer is not an observation: no check is recorded for that
+  resource (it would show as `unknown` and mask the last real check), the host is
+  not retried in the run, and the report names the resources to re-check.
+  `GITHUB_TOKEN` or `GH_TOKEN` is used for GitHub.
+- **Beyond code**: ontologies (OBO PURLs/term IRIs, OBO Foundry/OLS pages, exact OBO
+  Foundry titles) get OBO Foundry's curated status, OLS's release date and their
+  repository; tool RRIDs are resolved through SciCrunch for links and a "no longer in
+  service" mark; GEO series are datasets with `available` / `embargoed` (not judged
+  by age); a link-less software library is tried by exact-case name on
+  Bioconductor, then CRAN. Name guesses are marked inferred and record nothing when
+  they find nothing. New terms: `bkr:isEmbargoed`, `bkr:declaredActivityStatus`;
+  statuses `available`, `embargoed`; sources `obofoundry`, `ols`, `rrid`, `geo`.
+- **Provenance-tracked assessments** (PROV-O, structured after NIDM-Experiment):
+  each run is an `ActivityCheckRun` (cf. nidm:Session) with start/end times and a
+  versioned `prov:SoftwareAgent` (`nidm:NIDM_0000122`, version read from SKILL.md);
+  each resource check an `ActivityCheck` (cf. nidm:Acquisition) part of the run; each
+  source's answer an `ActivitySignal` with the time it arrived and the API URLs
+  queried (`prov:hadPrimarySource`); the result an `ActivityAssessment` (cf.
+  nidm:AcquisitionObject) `prov:wasGeneratedBy` the check at `prov:generatedAtTime`,
+  `prov:wasDerivedFrom` its signals. Times are xsd:dateTime to the microsecond (UTC).
+  Runs accumulate — the same-day replacement is gone. SHACL shapes enforce the
+  chain. Older checks are upgraded to assessments in place. BrainKB MCP:
+  activity queries read assessments; new `rs_activity_provenance`.
+- Each assessment says **how** it reached its status: `bkr:statusReason` (the rule
+  and evidence, e.g. "last activity 2019-07-03 (github), 2665 days before the check:
+  over 1095 days") and `bkr:statusDecidedBy` → the deciding signal(s) (a
+  sub-property of `prov:wasDerivedFrom`).
+- **Ontology**: `bkr:ActivityCheck` (a `ResourceLifecycleActivity`, dated, one per
+  check date, kept apart from the paper-stated `bkr:lifecycleStatus`),
+  `bkr:ActivitySignal` (one per source), `bkr:hasActivityCheck`,
+  `bkr:hasActivitySignal`, `bkr:activityStatus`, `bkr:activitySource`,
+  `bkr:lastActivityDate`, `bkr:lastCommitDate`, `bkr:lastReleaseDate`,
+  `bkr:latestVersion`, `bkr:isArchived`, `bkr:isDeprecated`, `bkr:isAvailable`,
+  `bkr:checkedURL`, `bkr:staleAfterDays`, `bkr:inactiveAfterDays`; schemes
+  `activity-status/` and `activity-source/`.
+- Tests: `scripts/tests/test_resource_activity.py` (offline fixtures).
+
+## Unreleased — Resource links split across PDF lines are kept
+
+- **`scripts/resource_kg.py` grounding** no longer drops a URL, DOI or accession that
+  the PDF wraps across a line break (e.g. `…/Cross-species-single-` ⏎ `cell-atlas-of-the-striatum`).
+  The normalised text joined the URL's own hyphen away and turned the break into a
+  space, so neither spelling matched. Values without whitespace (≥ 12 characters) are
+  now also matched against the source with all whitespace removed, a hyphen at the
+  break optional; the source's spelling is adopted, so an extracted value that lost
+  the hyphen (or kept the break as a space) is repaired, not dropped. Nested links
+  (`usage_examples[].url`, `access.request_url`, `provenance.source_documents[].url`)
+  are respelled the same way. Every rescue or respelling is listed in the grounding
+  report under `rejoined`. A URL the source does not state is still removed.
+- `scripts/ait_evidence.py`: `normalize_chars()` (NFKC + folding, no dehyphenation).
+
 ## Unreleased — One review loop for every mode: the judge and the human both correct
 
 Every mode — NER, ABCD/HBCD, AIT — now runs extract → concept map → judge → human

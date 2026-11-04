@@ -133,7 +133,9 @@ Full workflow, schemas, and the PRISMA-flow accounting rules:
 **[references/byo_corpus_review.md](references/byo_corpus_review.md)** — read
 it before running this mode.
 
-### The five steps
+### The steps
+
+Steps 6–9 (citations, source grounding, manuscript, delivery) apply to every review, including one from the hosted app's online search: export it to `out/review.json` and start at step 6.
 
 ```bash
 # 1. Protocol — the Mode 1 intake, unchanged, then gate it
@@ -146,6 +148,11 @@ python scripts/build_corpus.py --dir ./pdfs --out corpus.json
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json --no-docling
 #    …then YOU complete each entry's metadata by reading its `_head_text`…
 python scripts/build_corpus.py --check corpus.json          # exit 1 until complete
+#    --check is the corpus gate: metadata complete, no duplicate studies
+#    (matched on content, not filename — a preprint and its published version
+#    are one study), and every DOI/PMID verified against Crossref/PubMed. A
+#    guessed DOI that belongs to another paper is an error: fix it from the
+#    paper or clear it. run_local_review.py repeats the gate before any LLM call.
 
 # 2b. Papers the user has a DOI but no PDF for — open access, then institutional
 python scripts/fetch_ezproxy.py --status
@@ -171,6 +178,8 @@ python scripts/check_writing.py out/review.json
 python scripts/export_review.py out/review.json --outdir out/ --formats md ttl json
 
 # 6b. Citations — gate before handing the review over (exit 1 on errors).
+#    run_local_review.py and export_review.py already run this check after
+#    every export (out/review.citations.md); the commands below fix what it found.
 #    --apply writes registry-confirmed fixes to a copy; re-export it over the
 #    review, then verify again so the report describes what will ship.
 python scripts/verify_citations.py out/review.json
@@ -178,20 +187,54 @@ python scripts/verify_citations.py out/review.json --apply out/review.verified.j
 python scripts/export_review.py out/review.verified.json --outdir out/ --formats md ttl json
 python scripts/verify_citations.py out/review.json --style vancouver
 
-# 7. Manuscript — the paper, in the template's order (references/review_template.md).
+# 7. Source grounding — everything delivered rests on verbatim text of a paper
+#    or on an explicit computation over the review's data; what is not grounded
+#    is not delivered (references/validation.md).
+#    a. Evidence spans from the current text of every study (the app's extraction):
+python scripts/extract_evidence.py spans  out/review.json
+#       Full evaluation is on full text only: screening may use abstracts, but
+#       a study without its full text is a report not retrieved — `apply` drops
+#       any such included study and recomputes the flow; the audit refuses one.
+#    b. Every structured value — charting answers, appraisal ratings, RoB
+#       judgements, narrative cells, GRADE domains — needs verbatim evidence.
+#       `quote` asks the model; without a key, write the quotes into
+#       out/review.evidence-ledger.json yourself. `locate` sets section/page
+#       labels from where the text is. `apply` removes whatever stays ungrounded.
+python scripts/extract_evidence.py items  out/review.json
+python scripts/extract_evidence.py quote  out/review.json
+python scripts/extract_evidence.py locate out/review.json
+python scripts/extract_evidence.py apply  out/review.json --out out/review.grounded.json
+python scripts/export_review.py out/review.grounded.json --outdir out/ --formats md ttl json charting appraisal per-group
+#    c. After `verify_citations --apply` switched a preprint to its published
+#       version: fetch the published text into the corpus, then
+python scripts/extract_evidence.py refresh out/review.json --only <id>
+
+# 8. Manuscript — the paper, in the template's order (references/review_template.md).
 #    Draw the figures, write out/review.manuscript.json (Discussion 4.1–4.8,
 #    prior reviews, gaps, confidence, figure interpretations, declarations),
 #    assemble, and clear the gates. Re-run check_writing on the manuscript.
-python scripts/export_review.py out/review.json --outdir out/ --formats md ttl json charting appraisal per-group
 python scripts/review_figures.py out/review.json                 # out/figures/*.svg + figures.json
 python scripts/assemble_manuscript.py out/review.json --check    # out/review.manuscript.md
 python scripts/check_writing.py out/review.manuscript.md
 
-# 8. PDF — Markdown → LaTeX → PDF (the .tex is kept), in the ACM journals
-#    layout (acmart acmsmall, bundled in assets/acmart/). Refuses past
-#    page_limit (estimated before rendering, counted after), and while
-#    out/review.citations.json has errors or is older than review.json.
-python scripts/generate_review_pdf.py out/review.manuscript.md
+# 9. Delivery — the manuscript and the PDF, as a numbered release.
+#    a. Assemble exactly what will be delivered (styled references and
+#       appendices included) → out/review.delivered.md
+python scripts/generate_review_pdf.py out/review.manuscript.md --include charting appraisal --prepare
+#    b. Every sentence, table row and caption of it is a claim: judge each in
+#       out/review.claims.json (quotes verbatim; every number quoted or derived
+#       by an evaluated derivation), resolve overlapping reports in
+#       out/review.studies.json; repeat until PASS.
+python scripts/audit_grounding.py out/review.json --init-claims
+python scripts/audit_grounding.py out/review.json
+python scripts/verify_citations.py out/review.delivered.md
+#    c. Release: re-assembles, re-verifies citations and grounding for exactly
+#       that text (hash-bound), builds the PDF (ACM layout; page limit) and
+#       saves releases/review-vN/ — the manuscript, the PDF, both reports, the
+#       ledgers and a manifest chained to the previous version. --no-pdf
+#       releases the manuscript alone. Overrides (--allow-citation-errors,
+#       --allow-ungrounded) print a notice in the PDF and save -UNVERIFIED.
+python scripts/generate_review_pdf.py out/review.manuscript.md --include charting appraisal
 # Existing reviews with no PDF yet (or an outdated one): find and build them all
 python scripts/generate_review_pdf.py --batch out/ ~/reviews/
 ```
@@ -368,8 +411,14 @@ Hard rules:
   rewriting, re-run the checker until it reports no errors, then re-export
   and re-verify citations. The checker catches patterns, not argument, so
   read the prose through once as well.
-- **Verify citations before handing the review over.** Run
-  `verify_citations.py` on `review.json` after every export. It resolves each
+- **Verify citations before handing the review over** — for every review,
+  online search or supplied PDFs alike. Only a **PASS** verdict is releasable:
+  FAIL means errors, INCOMPLETE means something was not checked (offline, a
+  failed registry lookup, a reference with no identifier), and neither is
+  "verified". The exporters run the check after every export; verify the
+  assembled manuscript too (`verify_citations.py review.manuscript.md`, which
+  the PDF build does itself), since the Discussion and other authored prose
+  exist only there. It resolves each
   included article's DOI and PMID against Crossref / DataCite / PubMed, compares
   the registered title, author and year with the review's, flags retractions,
   and checks that every PMID, DOI and author–year citation in the generated
@@ -400,10 +449,19 @@ Hard rules:
   (`--force` rebuilds all).
 - **Ingesting into BrainKB is the `brainkb` skill's job — hand off, don't
   improvise.** Its *"Ingest a SynthScholar review"* section owns the graph IRI
-  (`https://brainkb.org/synthscholar/reviews/<review_id>/`, registered to a
+  (`https://brainkb.org/synthscholar/<space>/reviews/<review_id>/`, registered to a
   space), the upload path, and the once-per-review rule. Print the export's
   triple count when you hand the file over; that number is what the ingest is
   reconciled against.
+- **Hand over the output directory, not just the `.ttl`.** BrainKB ingests a run's
+  whole output folder into a space (`brainkb_synthscholar_ingest`, or in the UI
+  *Ingest Knowledge Graph → SynthScholar review*): the RDF and an import record go
+  into the review's graph, and the manuscript, PDF, figures, tables, search log and
+  verification reports are kept for its page. `work/` is left out (and recorded as
+  left out). `review.json` and `review.ttl` are required. So finish the run first —
+  export with `--formats md ttl`, manuscript, PDF, checks — then hand over the
+  folder that holds them. Keep `protocol.review_id` as the run minted it: it names
+  the review's graph, and a review is ingested once per space.
 
 ## Mode 2 — Provenance queries
 
@@ -500,44 +558,51 @@ full-text availability from the length of an abstract.
 
 ## Helper scripts
 
-### Check dependencies before running — ask, don't install silently
+### Check dependencies before running — ask, install, then proceed
 
-Before the first run of a script in a session, check what it needs (table
-below). If something is missing, **ask the user before installing it**: use
-`AskUserQuestion` in Claude Code, with the install command as the
-recommended option and "skip this step" as the alternative. Never `pip
-install`, `conda install` or `brew install` without that confirmation. Pick
-the command for their environment: an active conda env → `conda`/`pip`
-there, a `uv` project → `uv add`, otherwise `pip`. If they decline, say which
-step can't run and carry on with the rest.
+Before the first run in a session, run `python scripts/check_deps.py` (or
+`--for corpus|review|verify|pdf|query|tests` for one stage). It lists every
+missing dependency with its install command. **All required dependencies
+must be installed before proceeding**: the validation steps are not optional,
+and a missing library would turn a check into "not checked". For each one
+missing, ask the user with `AskUserQuestion` (the install command as the
+recommended option), install it when they confirm, and re-run `check_deps.py`
+until it passes. Never install without that confirmation. Pick the command for
+their environment: an active conda env → `conda`/`pip` there, a `uv` project →
+`uv add`, otherwise `pip`. If the user declines a required dependency, stop
+and say which steps cannot run and that the review cannot be delivered as
+verified without them; do not continue as if it had passed. Optional
+dependencies (`docling`, `playwright`, `psycopg`) may be skipped.
 
-| Script | Needs | Check | Install (on confirm) |
-| --- | --- | --- | --- |
-| `verify_citations.py`, `fetch_ezproxy.py` | `httpx` | `python -c "import httpx"` | `pip install httpx` |
+| `verify_citations.py`, `audit_grounding.py`, `fetch_ezproxy.py`, and the gates in `build_corpus.py --check`, `export_review.py`, `run_local_review.py`, `generate_review_pdf.py` | `httpx` (**required**) | `python -c "import httpx"` | `pip install httpx` |
+| `run_local_review.py` (the pipeline's evidence grounding) | `rapidfuzz>=3.0` (**required**: without it the app accepts every span, so the skill's scripts refuse to run) | `python -c "import rapidfuzz"` | `pip install 'rapidfuzz>=3.0'` |
+| `tests/` (regression tests) | `pytest` | `python -c "import pytest"` | `pip install pytest` |
 | `fetch_ezproxy.py` library sign-in (paywalled papers only) | `playwright` + Chrome, Edge or Playwright's Chromium | `python -c "import playwright"` | `pip install playwright` (+ `playwright install chromium` only if neither Chrome nor Edge is installed) |
 | `query_sparql.py` | `rdflib` | `python -c "import rdflib"` | `pip install rdflib` |
 | `query_postgres.py`, `backfill_full_text.py` | `psycopg` | `python -c "import psycopg"` | `pip install "psycopg[binary]>=3.1"` |
 | `build_corpus.py` | `pymupdf`; `docling` optional | `python -c "import fitz"` | `pip install pymupdf` (+ `pip install docling` for scans/tables) |
-| `export_review.py`, `run_local_review.py`, `update_provenance.py` | `synthscholar` dev checkout | the script refuses with a message | `pip install -e /path/to/prisma-review-agent` (ask for the path) |
+| `export_review.py`, `run_local_review.py`, `update_provenance.py`, `extract_evidence.py`, `backfill_full_text.py` | the `synthscholar` package — **vendored in the skill** (`vendor/synthscholar`), nothing to install | `python scripts/check_deps.py` | its libraries: `pip install -r requirements.txt` |
 | `generate_review_pdf.py` | `pandoc` + a **TeX engine** (xelatex, lualatex, pdflatex or tectonic) for the ACM layout; `rsvg-convert` (or `cairosvg`/`typst`) to convert SVG figures for TeX; `fc-list` optional. Without TeX: `typst` or an HTML engine, plain layout only | `python scripts/generate_review_pdf.py --check-deps` (also finds a TeX Live/MacTeX install that is not on `PATH`) | TeX: `brew install --cask mactex-no-gui` (macOS), `apt-get install texlive-xetex texlive-fonts-extra texlive-latex-extra` (Debian/Ubuntu), or `conda install -c conda-forge tectonic` (smallest; fetches packages once into its cache). Then `conda install -c conda-forge pandoc librsvg` (or `brew install pandoc librsvg`). The ACM class itself is bundled in `assets/acmart/` |
-| `validate_protocol.py`, `research_questions.py`, `check_writing.py`, `review_figures.py`, `assemble_manuscript.py` | stdlib | — | — |
+| `validate_protocol.py`, `research_questions.py`, `check_writing.py`, `review_figures.py`, `assemble_manuscript.py`, `check_deps.py` | stdlib | — | — |
 
 Network services (Crossref, PubMed, Unpaywall) and `OPENROUTER_API_KEY` are
 not installs: mention them if a run will need them, and ask the user for any
 key. Never invent one.
 
-All live in [scripts/](scripts/). Run them from an environment where the
-project's deps are importable (`rdflib` for SPARQL, `psycopg[binary]>=3.1` for
-SQL; the backfill also needs the `synthscholar` package on `PYTHONPATH`). The
-Mode 3 scripts need `synthscholar` importable too — plus `pymupdf` for PDF text
-and `OPENROUTER_API_KEY` for `run_local_review.py`. `docling` is the first
+All live in [scripts/](scripts/). **The skill is self-contained**: the
+SynthScholar package it drives is vendored in `vendor/synthscholar`
+([vendor/VENDORED.md](vendor/VENDORED.md): source commit, licence), and the
+scripts import that copy first. No application checkout, `pip install -e` or
+`PYTHONPATH` is needed. Every Python library is in `requirements.txt`
+(`pip install -r requirements.txt`); `OPENROUTER_API_KEY` is needed for the
+model-calling steps. `docling` is the first
 extraction backend `build_corpus.py` reaches for; without it the script says so
 and uses the PyMuPDF chain, and `--no-docling` skips it deliberately.
 
-**`export_review.py` and `run_local_review.py` need the development checkout,
-not the released package** — `pip install -e /path/to/prisma-review-agent`. The
-PyPI build predates the whole-document reading and screening-basis provenance,
-and they refuse to run on it rather than silently dropping those fields.
+The vendored copy, not PyPI's `synthscholar` 0.0.11, is what the skill runs:
+that release predates the whole-document reading and screening-basis
+provenance. The scripts check those features and refuse to run without them
+rather than silently dropping the fields.
 `fetch_ezproxy.py` and `verify_citations.py` work anywhere — they need only `httpx`, since the skill
 vendors both `scripts/oa_client.py` (the open-access DOI chain) and
 `scripts/ezproxy_client.py` (`synthscholar.ezproxy` ships only in the checkout).
@@ -590,6 +655,10 @@ scripts) to see every named recipe.
 - [references/byo_corpus_review.md](references/byo_corpus_review.md) —
   bring-your-own-corpus workflow: corpus schema, search-provenance intake,
   PRISMA-flow accounting, the two execution paths, exports and ingestion.
+- [references/validation.md](references/validation.md) — every validation the skill
+  performs (protocol, corpus, source-grounded evidence extraction, citations, claim
+  ledger, numbers, version changes, studies vs reports, release gates), with its
+  verdicts and what is not validated. Read it before delivering a review.
 - [references/citation_verification.md](references/citation_verification.md) —
   what `verify_citations.py` checks, every finding code with the action it
   calls for, `--apply` semantics, and the reference styles.
@@ -626,8 +695,9 @@ scripts) to see every named recipe.
   as an irrelevant paper rather than as a failed extraction. Each paper is
   read **in full** (evidence extraction processes every chunk), so a long corpus
   costs real tokens; `run_local_review.py` prints the call estimate before
-  spending, and `protocol.evidence_max_chars` bounds it. It never deduplicates
-  the supplied corpus; that stays the user's responsibility.
+  spending, and `protocol.evidence_max_chars` bounds it. It never removes an
+  entry itself: likely duplicates (matched on content) stop the run until the
+  user says which version to keep.
 - Open-access retrieval reaches only what has been deposited somewhere; a
   paywalled paper with no repository copy misses on all three providers.
   Unpaywall additionally needs `SYNTHSCHOLAR_EMAIL` (their ToS) and is skipped

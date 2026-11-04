@@ -72,6 +72,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_corpus import build_item  # noqa: E402
 from oa_client import OAConfig, OAResolver  # noqa: E402
 import ezproxy_login  # noqa: E402
@@ -89,8 +92,8 @@ def _require() -> tuple:
     """Return ``(EZProxyConfig, EZProxyFetcher)``, from the app or the vendored copy.
 
     The app's ``synthscholar.ezproxy`` wins when importable, so a newer
-    SynthScholar takes precedence. It ships only in the development checkout —
-    the released package predates it — so the skill vendors an equivalent client
+    SynthScholar takes precedence (the skill's vendored copy has it); the skill
+    also carries an equivalent standalone client
     and falls back to that, which keeps this script usable in any environment.
     """
     try:
