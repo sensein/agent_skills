@@ -99,6 +99,11 @@ right one if you pass on what the paper said:
   standard score", "fully corrected T-score", "z-score", `null`.
 - `aliases` — other strings the paper uses for the same variable, especially
   abbreviations it defines: `["FA"]` for fractional anisotropy, `["CBCL-Ext"]`.
+  **Do not rename a variable to the spelling a particular quote uses.** Keep one
+  `name` and list the other spellings here: the verifier accepts a quote that
+  writes the variable by an alias that occurs in the paper, by an abbreviation
+  the paper defines ("prenatal tobacco exposure (PTE)"), or, for a network pair
+  "Default mode–Dorsal attention", by both halves ("between the DMN and DAN").
   Use the SAME `name` string in `models[]` and `findings[]`, and list the
   abbreviation here rather than emitting a second variable entry for it.
 
@@ -241,6 +246,19 @@ increased inter-network connectivity and lower intra-network connectivity
 associated with higher scores") are two findings too. The verifier lists any
 Results sentence that reads as a result but has no finding.
 
+**Direction conventions** (the same in Findings and Sentences):
+
+- A result whose statistics are all non-significant is `null`, whatever the sign
+  of its estimate ("the genetic correlation was .50 (p = .135)" is null). The
+  verifier applies this from the p / FDR values against the paper's own
+  threshold ("an FDR < 0.05 was considered significant"), else .05.
+- A `change_over_time` claim's direction is the direction of the change:
+  `positive` it increases or appears, `negative` it decreases or weakens
+  ("higher than .14 of 4th year" is a decrease), `null` it stays the same,
+  `mixed` both. Not the sign of the correlation being compared.
+- A sign stated only by the sentence's statistics ("r = .14", "ranging from
+  .03–.08") is stated.
+
 **The sign is what the sentence says.** "PTE was significantly associated with all
 scales" has no sign: `direction: "unspecified"`, even if the section heading says
 "poorer CBCL scores" and the table shows positive t-values. The table rows carry
@@ -306,10 +324,13 @@ articles", *J Biomed Inform* 43(2):173–189, 2010). The last three extend it.
 | `associative` | links two variables with association wording ("associated with", "linked to", "related to", "predicted"), not a correlation coefficient | "PTE was significantly associated with increased connectivity between the DMN and DAN…" |
 | `descriptive` | characterizes the sample or a distribution (prevalence, means, frequencies) without relating two variables | "Mean CBCL total problems score was 22.4 (SD 18.1) at baseline." |
 | `causal` | uses causal wording: causes, leads to, results in, due to, a mediated/indirect pathway | "Screen time led to poorer sleep, which in turn mediated…" |
+| `prediction` | a model predicts an outcome: CPM, machine learning, cross-validated or out-of-sample prediction, "predicted vs actual" | "The correlation between predicted and actual behavior performance ranged between .03–.09" · "These models can also mutually predict each other" |
+| `change_over_time` | a measure or relationship changes, or stays the same, across waves or ages | "The correlation between Flanker and List at 4th year was r = .14 … smaller than baseline" · "Most brain regions … remained in the 4th year" |
 
-If more than one fits, use the first match in this order: `comparison`,
-`correlation`, `causal`, `explicit`, `implicit`, `associative`, `observation`,
-`descriptive`. A sex-difference sentence ("Boys had poorer scores on eight of the
+If more than one fits, use the first match in this order: `change_over_time`,
+`prediction`, `comparison`, `correlation`, `causal`, `explicit`, `implicit`,
+`associative`, `observation`, `descriptive`. Regression wording ("food insecurity
+was a strong predictor of poor scores") is `associative`, not `prediction`. A sex-difference sentence ("Boys had poorer scores on eight of the
 scales, while girls…") is a `comparison`. Choose based on the paper's wording,
 not on what the design could support. An associational design described with
 "increases" is still `explicit`; the claim is how the author stated it.
@@ -358,13 +379,19 @@ Two role calls that are routinely got wrong:
   ("conflict mediated the path between financial strain at" is a fragment; the
   sentence is "Heightened family conflict mediated the path between financial
   strain at baseline and externalizing behaviors two years later, even when
-  controlling for child sex, income, and past externalizing behavior."). If a
-  claim spans two sentences, quote both. For a table, quote the whole row with
-  its row label. The verifier widens a fragment to its sentence, but only when
+  controlling for child sex, income, and past externalizing behavior."). One
+  finding, one sentence (see findings). For a table, quote the whole row with
+  its row label. A sentence that refers back ("These models can also mutually
+  predict each other", "This was also supported by the Dice coefficient") is
+  quoted alone; name in `variables[]` what it refers to, as the previous sentence
+  writes it, and the verifier finds it there. The verifier widens a fragment to its sentence, but only when
   the text around it is clean prose, so quote whole sentences yourself.
-- `section` — the paper's own section heading ("Methods", "2.3 Measures",
-  "Results", "Table 2"). Use `"Table N"` / `"Figure N"` when that is where it
-  appears.
+- `section` — the paper's own section heading, as printed ("2.3 Measures",
+  "Findings", "Study 2", "Analytic Strategy", "Table 2"). Never relabel it to
+  "Results" or "Methods" to fit a rule: the verifier reads the paper's own
+  headings at the quote's position and decides from them whether a section
+  reports this study's work, so your label is a hint, not the decision. Use
+  `"Table N"` / `"Figure N"` when that is where it appears.
 - `page` — page number if you can tell, else `null`.
 - `start` — character offset if you are tracking one, else omit. Offsets are
   re-derived by the verifier, so an approximate value is harmless — a wrong

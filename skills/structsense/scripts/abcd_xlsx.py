@@ -141,7 +141,9 @@ def _ev(item: dict) -> dict:
 
 
 def _where(ev: dict) -> str:
-    sec, page = ev.get("section"), ev.get("page")
+    # The section heading as the paper writes it, read from the paper's outline;
+    # the extractor's label only when the outline has none.
+    sec, page = ev.get("section_in_paper") or ev.get("section"), ev.get("page")
     return ", ".join(x for x in (str(sec) if sec else "", f"p. {page}" if page else "") if x)
 
 
@@ -253,13 +255,14 @@ def _strength(e: dict) -> str:
 # The quote is the paper's own words, verified against its text. The summary is
 # the extractor's one-sentence paraphrase: useful to scan, never evidence, so it
 # is labelled as such and comes after the quote.
-QUOTE_COL = "Quote from paper (verbatim)"
-SUMMARY_COL = "Summary (paraphrase, not verbatim)"
+QUOTE_COL = "Quote from paper"
+SUMMARY_COL = "Summary"
 CROSS_COLS = ["ID", "Claim status", "Relationship", "Paper", "Direction", QUOTE_COL,
               SUMMARY_COL, "Claim type", "Effect size", "Statistic", "n",
               "Evidence quality", "Where in paper"]
 FINDING_COLS = ["Paper", "Finding ID", "Sentence ID", "Section", QUOTE_COL, SUMMARY_COL,
-                "Claim type", "Directionality", "Effect sign", "Causal language", "Hedged",
+                "Claim type", "Claim type (human scheme)", "Directionality", "Effect sign",
+                "Significant", "Causal language", "Hedged",
                 "Effect size", "Statistic", "n", "Subgroup",
                 "Table context (verbatim)", "Full sentence", "Check", "Relationship",
                 "Cross-paper ID", "Variables",
@@ -267,7 +270,58 @@ FINDING_COLS = ["Paper", "Finding ID", "Sentence ID", "Section", QUOTE_COL, SUMM
 # The columns of a sentence-level human annotation, so the two can be laid side by
 # side; the last three tie each sentence to the Findings sheet.
 SENTENCE_COLS = ["paper_id", "sentence_id", "section", "text", "is_claim", "claim_type",
-                 "causal_language", "direction", "hedged", "notes", "Finding IDs"]
+                 "claim_type (human scheme)", "causal_language", "direction", "hedged",
+                 "notes", "Finding IDs"]
+
+# Where each column's content comes from, shown in brackets in its header:
+#   verbatim        the paper's own text, checked against it
+#   paper heading   the section heading as the paper prints it
+#   agent           the extracting agent's reading, summary or classification
+#   agent, copied   a value the agent copied from the paper (not character-checked)
+#   agent + tool    the agent's value, adjusted by the verifier's rules
+#   tool            computed by the pipeline (ids, checks, mappings, grades)
+SOURCE = {
+    "Paper": "tool", "ID": "tool", "Finding ID": "tool", "Sentence ID": "tool",
+    "sentence_id": "tool", "paper_id": "tool", "Finding IDs": "tool",
+    "Section": "paper heading", "section": "paper heading", "Where in paper": "paper heading",
+    QUOTE_COL: "verbatim", "text": "verbatim",
+    "Full sentence": "verbatim", "Variable (as written)": "verbatim",
+    SUMMARY_COL: "agent summary, not verbatim", "Analysis": "agent summary",
+    "Claim type": "agent", "claim_type": "agent", "Directionality": "agent",
+    "Claim type (human scheme)": "tool crosswalk", "claim_type (human scheme)": "tool crosswalk",
+    "Effect sign": "agent + tool", "direction": "agent + tool", "Direction": "agent + tool",
+    "Significant": "tool, from the p values", "Causal language": "agent or tool",
+    "causal_language": "agent or tool", "Hedged": "agent or tool", "hedged": "agent or tool",
+    "is_claim": "tool + agent", "notes": "agent + tool",
+    "Effect size": "agent, copied", "Statistic": "agent, copied", "n": "agent, copied",
+    "Subgroup": "agent, copied", "Software": "agent, copied", "Hypothesis": "agent, copied",
+    "Check": "tool", "Relationship": "tool", "Cross-paper ID": "tool",
+    "Claim status": "tool", "Evidence quality": "tool",
+    "Variables": "agent", "Construct": "agent", "Role": "agent + tool",
+    "Description": "agent", "Timepoint": "agent, copied", "Instrument": "agent, copied",
+    "Respondent": "agent", "Kind": "agent", "Predictors": "agent", "Mediators": "agent",
+    "Moderators": "agent", "Outcomes": "agent", "Covariates": "agent",
+    "ABCD variable": "tool, data dictionary", "ABCD table": "tool, data dictionary",
+    "Domain": "tool, data dictionary", "Dictionary match": "tool, data dictionary",
+    "Releases containing it": "tool, data dictionary",
+    "Cognitive Atlas id": "tool, Cognitive Atlas API",
+    "Cognitive Atlas label": "tool, Cognitive Atlas API", "Wording": "tool",
+    "Title": "agent, copied", "DOI": "agent, copied", "Study": "agent, copied",
+    "Data release": "agent, copied", "Sample size": "agent, copied", "Design": "agent",
+    "Rejected items": "tool", "Item type": "tool", "Reason": "tool", "Why": "tool",
+    "What was proposed": "agent, rejected", "Quote proposed": "agent, rejected",
+}
+# Same header, different source on the Papers sheet (counts there).
+SOURCE_BY_SHEET = {"Papers": {"Variables": "tool count", "Findings": "tool count",
+                              "Models": "tool count"}}
+
+
+def _tagged(sheet: str, header: str) -> str:
+    """The header with where its content comes from, in brackets."""
+    src = SOURCE_BY_SHEET.get(sheet, {}).get(header, SOURCE.get(header))
+    if not src or header.endswith(")"):
+        return header
+    return f"{header} ({src})"
 PAPER_COLS = ["Paper", "Title", "DOI", "Study", "Data release", "Sample size",
               "Design", "Findings", "Variables", "Models", "Rejected items"]
 VARIABLE_COLS = ["Paper", "Variable (as written)", "Role", "Description", "Timepoint",
@@ -344,9 +398,10 @@ def finding_rows(doc: dict, p: str, rel_of: Dict[Tuple[str, int], dict]):
         rel = rel_of.get((pid, i)) or {}
         hedge = f.get("hedged")
         yield [p, ids[i], f.get("sentence_ids"), ev.get("paper_section") or _where(ev),
-               _quote(ev), f.get("statement"), f.get("claim_type"),
+               _quote(ev), f.get("statement"), f.get("claim_type"), f.get("claim_type_human"),
                f.get("directionality"),
                DIRECTION_WORDS.get(f.get("direction"), f.get("direction")),
+               _significant(f),
                f.get("causal_language"), None if hedge is None else bool(hedge),
                f.get("effect_size") or f.get("estimate"),
                f.get("statistic"), f.get("analytic_n"), f.get("subgroup"),
@@ -355,12 +410,22 @@ def finding_rows(doc: dict, p: str, rel_of: Dict[Tuple[str, int], dict]):
                f.get("construct_label") or f.get("construct"), f.get("role")]
 
 
+def _significant(f: dict) -> Any:
+    sig = (f.get("significance") or {}).get("significant")
+    if sig is None:
+        return None
+    word = {True: "yes", False: "no", "partial": "some results only"}.get(sig, str(sig))
+    ps = ", ".join((f.get("significance") or {}).get("p_values") or [])
+    return f"{word} ({ps})" if ps else word
+
+
 def sentence_rows(doc: dict, p: str):
     pid = str(doc.get("paper_id"))
     ids = finding_ids(doc)
     for r in doc.get("sentences") or []:
         yield [pid, r.get("sentence_id"), r.get("section"), r.get("text"), r.get("is_claim"),
-               r.get("claim_type"), r.get("causal_language"), r.get("direction"),
+               r.get("claim_type"), r.get("claim_type_human"), r.get("causal_language"),
+               r.get("direction"),
                r.get("hedged"), r.get("notes"),
                [ids[i] for i in r.get("findings") or [] if i in ids]]
 
@@ -421,7 +486,7 @@ def rejected_rows(doc: dict, p: str):
 README_ROWS = [
     ("How to read this workbook", ""),
     ("Cross-paper", "Start here. Each coloured row is one relationship between variables (e.g. family conflict ↔ externalizing) with a verdict. The rows under it are every paper's finding on that relationship: direction, effect size, where in the paper and the exact quote. Papers 'disagree' only when they report opposite signs for the same relationship."),
-    ("Findings", "Every finding each paper reported about its own data, in the order it appears in the paper (Finding ID F1, F2, ...). 'Sentence ID' links to the Sentences sheet; 'Section' says where in the paper, and for a table row the section that cites the table and the table ('Results - 3.3 ... > Table 3'). 'Check' lists what the verifier found: the sentence disagreeing with the table it cites, a pair printed in both orders, a joined quote cut to one sentence, a sign the sentence does not state. 'Quote from paper (verbatim)' is the paper's own sentence, checked against its text. 'Summary (paraphrase, not verbatim)' is the extractor's one-line restatement, there to scan quickly; rely on the quote. 'Cross-paper ID' points to the block in the Cross-paper sheet that groups it with other papers."),
+    ("Findings", "Every finding each paper reported about its own data, in the order it appears in the paper (Finding ID F1, F2, ...). 'Sentence ID' links to the Sentences sheet; 'Section' says where in the paper, and for a table row the section that cites the table and the table ('Results - 3.3 ... > Table 3'). 'Check' lists what the verifier found: the sentence disagreeing with the table it cites, a pair printed in both orders, a joined quote cut to one sentence, a sign the sentence does not state. 'Quote from paper (verbatim)' is the paper's own sentence, checked against its text. 'Summary (agent summary, not verbatim)' is the extractor's one-line restatement, there to scan quickly; rely on the quote. 'Cross-paper ID' points to the block in the Cross-paper sheet that groups it with other papers."),
     ("Sentences", "Every prose sentence of each paper with an id and its section, in the same columns as a sentence-level human annotation, so the two can be compared row by row. is_claim: yes (a finding or a sentence claim quotes it), no, possibly (reads as a result in Results but nothing was extracted: check it), not assessed (abstract or discussion, when the extractor gave no sentence-level claims). Notes give restatements ('restates 97'), inconsistencies ('INCONSISTENT with 134: ...', or with the table the sentence cites) and how many findings came from the sentence. Sentence ids are numbered by this tool over the extracted text, so they can differ from another annotator's numbering."),
     ("Papers", "One row per paper: title, DOI, ABCD release, sample, design."),
     ("Variables", "The measures each paper used, the role each played (predictor, mediator, outcome, covariate, ...) and the ABCD data-dictionary variable it maps to."),
@@ -470,6 +535,8 @@ README_ROWS = [
     ("associative", "Links two variables with association wording (associated with, linked to, predicted)."),
     ("descriptive", "Describes the sample or a distribution without relating two variables."),
     ("causal", "Uses causal wording (causes, leads to, results in, due to, mediates)."),
+    ("prediction", "A model predicts an outcome (CPM, machine learning, cross-validated or out-of-sample prediction, 'predicted vs actual'). Regression wording ('X was a strong predictor of Y') is associative, not prediction."),
+    ("change_over_time", "A measure or relationship changes, or stays the same, across waves or ages ('smaller than at baseline', 'remained at the 4th year', 'decreased over time')."),
     ("Source", "explicit, implicit, comparison, correlation, observation: C. Blake, 'Beyond genes, proteins, and abstracts: Identifying scientific claims from full-text biomedical articles', J Biomed Inform 43(2):173-189, 2010, doi:10.1016/j.jbi.2009.11.001. associative, descriptive and causal extend that framework."),
     ("", ""),
     ("Directionality", "Meaning"),
@@ -479,6 +546,35 @@ README_ROWS = [
     ("support", "The claim affirms a relationship without a sign."),
     ("(blank)", "A reported null / absent effect, or not given."),
     ("Effect sign", "The sign used to compare papers: positive, negative, no effect, mixed, not stated."),
+    ("", ""),
+    ("Column sources", "The bracket after every column header says where its content comes from"),
+    ("(verbatim)", "The paper's own words, copied and checked against the paper's text."),
+    ("(paper heading)", "The section heading as the paper prints it, read from the paper's own headings (not from a fixed list)."),
+    ("(agent)", "The extracting agent's reading or classification of the paper (claim type, variables, roles, constructs)."),
+    ("(agent summary, not verbatim)", "The agent's paraphrase. Rely on the quote; a summary that names something its quote lacks is rejected."),
+    ("(agent, copied)", "A value the agent copied from the paper (effect size, statistic, n, timepoint). Not checked character by character."),
+    ("(agent + tool)", "The agent's value after the verifier's rules (e.g. a sign the sentence does not state becomes 'not stated'; a non-significant result becomes 'no effect')."),
+    ("(agent or tool)", "The agent's value when it gave one, otherwise computed from the sentence's wording."),
+    ("(tool)", "Computed by the pipeline: ids, checks, mappings, grades, counts."),
+    ("", ""),
+    ("Sentences sheet columns", "Meaning (same columns as a sentence-level human annotation)"),
+    ("sentence_id", "This tool's number for the sentence, in the order of the extracted text. Another annotator's numbering can differ by the front matter they count."),
+    ("section", "The section heading the sentence is under, as the paper prints it."),
+    ("is_claim", "yes: a finding or a sentence-level claim quotes it. no: not a claim about this study's results. possibly (no finding extracted): reads as a result (Results, or a results sentence the layout filed under Methods) but nothing was extracted; check it. not assessed: abstract/discussion sentence when the extractor gave no sentence-level claims."),
+    ("claim_type", "This pipeline's type (see Claim type above)."),
+    ("claim_type (human scheme)", "The same claim in a human annotator's scheme: association, group_difference, prediction, change_over_time, descriptive (crosswalk below)."),
+    ("causal_language", "correlational: association wording ('was associated with', 'predicted', also a negated causal verb such as 'did not impact'). direct_causal: causal wording stated outright ('impacts', 'plays a pivotal role in', 'leads to'). conditional_causal: causal wording hedged ('may impact', 'could contribute'). About the wording, not the design."),
+    ("direction", "positive, negative, null, mixed, unspecified. A result whose statistics are all non-significant (p or FDR at or above the paper's stated threshold, else .05) is null. A sign stated only by the sentence's statistics (r = .14) counts as stated. Change over time: positive = increases or appears, negative = decreases or weakens, null = stays the same, mixed = both (same convention as the Findings sheet)."),
+    ("hedged", "yes when the sentence qualifies its claim instead of asserting it: may, might, could, suggest(s/ed), appear(s) to, seem(s), tend(s/ed) to, likely, possibly, potentially, perhaps, indicate that. 'These results suggest PTE to be associated with ...' is hedged; 'PTE was associated with ...' is not. Hedging is about the author's certainty, not about significance."),
+    ("notes", "Restatements ('restates 97', 'restated in 9, 133'), inconsistencies ('INCONSISTENT with 134: ...', or with the table the sentence cites), sentences the PDF layout split ('likely continues in 232'), significance and change-over-time adjustments, and the extractor's own notes."),
+    ("Finding IDs", "The Findings rows that come from this sentence."),
+    ("", ""),
+    ("Claim type crosswalk", "This pipeline -> human scheme"),
+    ("associative, correlation, explicit, implicit, causal, observation", "association (causal wording is kept in causal_language, not in the type)"),
+    ("comparison", "group_difference"),
+    ("prediction", "prediction"),
+    ("change_over_time", "change_over_time (also any claim whose sentence compares waves or ages)"),
+    ("descriptive", "descriptive (usually not a claim in the human scheme)"),
 ]
 
 _WIDE = {"Finding", "Quote from paper", QUOTE_COL, SUMMARY_COL, "Full sentence",
@@ -519,7 +615,7 @@ def _table_sheet(wb, title: str, headers: Sequence[str], rows: Iterable[Sequence
     headers, data = _drop_empty_columns(list(headers), data)
     ws = wb.create_sheet(title)
     _note_row(ws, title, len(headers))
-    ws.append(headers)
+    ws.append([_tagged(title, h) for h in headers])
     for r in data:
         ws.append(r)
     for c in ws[2]:
@@ -564,7 +660,7 @@ def _cross_paper_sheet(wb, synthesis: dict, labels: Dict[str, str]):
 
     ws = wb.create_sheet("Cross-paper", 1)
     _note_row(ws, "Cross-paper", len(CROSS_COLS))
-    ws.append(CROSS_COLS)
+    ws.append([_tagged("Cross-paper", h) for h in CROSS_COLS])
     for c in ws[2]:
         c.font = Font(bold=True, color="FFFFFF")
         c.fill = PatternFill("solid", fgColor=FILL["header"])
@@ -640,7 +736,8 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
             c.alignment = Alignment(wrap_text=True, vertical="top")
         if row[0].value in ("How to read this workbook", "Verdict", "Claim type",
                             "Directionality", "Claim status", "Evidence quality",
-                            "Relationship notation"):
+                            "Relationship notation", "Column sources",
+                            "Sentences sheet columns", "Claim type crosswalk"):
             for c in row:
                 c.font = Font(bold=True)
     readme.column_dimensions["A"].width = 30

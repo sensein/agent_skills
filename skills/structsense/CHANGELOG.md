@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased — Sections from the paper's own headings; one name per variable; significance, change over time, prediction
+
+Compared against a sentence-level human annotation of Yin 2025
+(10.1016/j.biopsycho.2025.109058).
+
+- **The scope gate reads the paper's headings**, not the extractor's label and
+  not a fixed list. Each heading gets a role from its words, its parent, or its
+  position ("Findings", "Study 2", "Analytic Strategy" work; an APA paper's
+  introduction after the Keywords line is introduction). Numbered "N. Title"
+  headings, letter-spaced "A B S T R A C T", headings on a line of their own in
+  text with no blank lines, running headers, matrix rows and affiliations are
+  handled. Back matter is skipped, but Discussion prose the layout put after
+  "Funding" or "References" is kept (Yin lost its last Discussion paragraphs).
+  Table rows are recognised from the outline too. `paper_outline` in the JSON.
+- **No renaming variables to pass the check.** A quote mentions a variable by its
+  name, an alias found in the paper, an abbreviation the paper defines, or both
+  halves of a network pair; the summary check uses the same forms. Stress test:
+  with every section label blank or odd and seven variables renamed to the
+  paper's long forms, 143 of 154 Vishnubhotla findings still verify (the rest
+  are table rows labelled "Sluggish", which nothing in the paper links to
+  "sluggish cognitive tempo").
+- **"These models / this / these results"** quotes are checked against the
+  sentence before.
+- **Significance:** non-significant results are null (paper's stated threshold,
+  else .05); p values shown in a Significant column.
+- **Change over time:** direction of the change, same convention in Findings and
+  Sentences; comparisons read against their reference wave.
+- **Claim types `prediction` and `change_over_time`**, and `claim_type_human`
+  (association / group_difference / prediction / change_over_time /
+  descriptive) with a crosswalk in the README.
+- **Layout splits** are flagged with the likely continuation, not joined by
+  guesswork; soft hyphens removed from sentence text.
+- **Workbook:** every header says where its content comes from (verbatim, paper
+  heading, agent, agent summary, agent copied, agent + tool, tool); README
+  defines them and every Sentences column, including hedged.
+- **Cognitive Atlas:** unchanged from the previous entry (live API).
+- Tests: `tests/test_structsense_abcd_sentences.py` (11).
+- Yin vs human: sentences matched 92 → 107 of 128; direction agreement 9 → 23
+  of 36 shared claims.
+
 ## Unreleased — Sentence-level annotation, paper-vs-table checks, live Cognitive Atlas API
 
 Compared against a sentence-level human annotation of Vishnubhotla 2026

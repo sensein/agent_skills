@@ -48,7 +48,7 @@ if __package__ in (None, ""):  # executed as a file, not as part of the package
 import bisect
 import re
 import unicodedata
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from scripts import cognitive_atlas as ca_mod
 from scripts.abcd_dictionary import Dictionary, looks_like_variable_name
@@ -78,7 +78,7 @@ DIRECTIONS = ("positive", "negative", "null", "mixed", "unspecified")
 # associative / descriptive / causal extend it. Definitions and the precedence used
 # when several fit are in prompts/extractor-abcd.md.
 CLAIM_TYPES = ("explicit", "implicit", "comparison", "correlation", "observation",
-               "associative", "descriptive", "causal")
+               "associative", "descriptive", "causal", "prediction", "change_over_time")
 # Spellings a model plausibly emits for the same type.
 _CLAIM_TYPE_ALIASES = {
     "comparisons": "comparison", "comparative": "comparison",
@@ -86,6 +86,10 @@ _CLAIM_TYPE_ALIASES = {
     "observations": "observation", "observational": "observation",
     "association": "associative", "associations": "associative",
     "description": "descriptive", "causation": "causal",
+    "predictive": "prediction", "predictions": "prediction",
+    "change": "change_over_time", "longitudinal_change": "change_over_time",
+    "trend": "change_over_time", "change_over_time": "change_over_time",
+    "group_difference": "comparison", "group_differences": "comparison",
 }
 
 # What the claim asserts, separate from `direction` (the effect sign the synthesis
@@ -195,6 +199,7 @@ def verify_evidence(item: dict, index: TextIndex, *,
                     surface_keys: Sequence[str] = ("name", "variable", "term"),
                     require_surface: bool = True,
                     require_any: Sequence[str] = (),
+                    forms: Optional[Callable[[str], List[str]]] = None,
                     ) -> Tuple[Optional[dict], Optional[str]]:
     """Anchor one item's evidence. Returns (verified_item, rejection_reason).
 
@@ -257,12 +262,30 @@ def verify_evidence(item: dict, index: TextIndex, *,
         hay = re.sub(r"[^a-z0-9]", "", quote_n.lower())
         return bool(flat) and flat in hay
 
+    def _mentioned(name: str) -> Optional[str]:
+        """The form in which the quote mentions ``name``: the name itself, an
+        alias that occurs in the paper, an abbreviation the paper defines, or, for
+        a network pair "A–B", both halves. None if it is not mentioned."""
+        cands = forms(name) if forms else [name]
+        for f in cands:
+            if _in_quote(f):
+                return f
+        parts = [x for x in re.split(r"\s*[\u2013\u2014]\s*", name) if x.strip()]
+        if len(parts) == 2:
+            got = [next((f for f in (forms(p) if forms else [p]) if _in_quote(f)), None)
+                   for p in parts]
+            if all(got):
+                return " + ".join(dict.fromkeys(got))
+        return None
+
     surface = next((str(item[k]) for k in surface_keys if item.get(k)), "")
-    label_in_quote = _in_quote(surface) if surface else None
+    matched_as = _mentioned(surface) if surface else None
+    label_in_quote = bool(matched_as) if surface else None
     if require_surface and surface and not label_in_quote:
         return None, "surface_form_absent_from_quote"
 
-    matched_refs = [r for r in require_any if _in_quote(str(r))]
+    ref_forms = {str(r): _mentioned(str(r)) for r in require_any}
+    matched_refs = [r for r, f in ref_forms.items() if f]
     if require_any and not matched_refs:
         return None, "no_referenced_variable_in_quote"
 
@@ -277,7 +300,12 @@ def verify_evidence(item: dict, index: TextIndex, *,
         "anchor_method": method,
         "occurrences_in_paper": len(occ),
         "label_in_quote": label_in_quote,
+        # How the quote names it when that is not the name itself ("PTE" for
+        # "prenatal tobacco exposure"): the item keeps its name, the evidence
+        # says how the paper wrote it.
+        "surface_in_quote": (matched_as if matched_as and matched_as != surface else None),
         "referenced_variables_in_quote": matched_refs or None,
+        "referenced_as": {r: f for r, f in ref_forms.items() if f and f != r} or None,
         "verified": True,
     }
     return out, None
@@ -359,7 +387,9 @@ def expand_quote_to_sentence(item: dict, index: TextIndex) -> dict:
     if not isinstance(start, int) or not isinstance(end, int) or end <= start:
         return item
     # "Table 3", "Results - Table 2", "Table S1".
-    if re.search(r"\b(?:table|figure|fig\.)\s*[A-Z]?\d", section, re.I):
+    # The extractor's label, or the paper's outline when the label does not say.
+    if re.search(r"\b(?:table|figure|fig\.)\s*[A-Z]?\d",
+                 section + " " + str(ev.get("section_in_paper") or ""), re.I):
         # A table row is unreadable alone ("Family Conflict Time 2a 0.070 0.024
         # 0.024**"): what it predicts, what the columns are and what "a" means
         # are in the table's caption, headings and footnotes. Attach those,
@@ -498,7 +528,7 @@ def _norm_num(n: str) -> str:
     return sign + n.lstrip("-").lstrip("0")
 
 
-def check_summaries(doc: dict) -> int:
+def check_summaries(doc: dict, forms: Optional[Callable[[str], List[str]]] = None) -> int:
     """Flag a finding whose summary names a variable or statistic its evidence lacks.
 
     `statement` is the extractor's paraphrase and is never matched against the
@@ -530,11 +560,25 @@ def check_summaries(doc: dict) -> int:
         # says "family conflict", not "Family conflict year 1".
         cands = sorted(set(phrases + [str(x) for x in f.get("variables") or []]),
                        key=lambda t: (-len(_stems(t)), len(t), t))
+        low_ev = evidence.lower()
+
+        def present(phrase: str) -> bool:
+            # In the evidence under any name the paper uses for it ("PTE" for
+            # "prenatal tobacco exposure").
+            for form in (forms(phrase) if forms else [phrase]):
+                fs = _stems(form)
+                if fs and len(fs & have) / len(fs) >= 0.5:
+                    return True
+                if len(form) <= 6 and re.search(rf"(?<![a-z]){re.escape(form.lower())}(?![a-z])",
+                                                low_ev):
+                    return True
+            return False
+
         for phrase in cands:
             ps = _stems(phrase)
             if not ps or not ps <= said or any(ps <= m for m in seen):
                 continue
-            if len(ps & have) / len(ps) < 0.5:
+            if not present(phrase):
                 missing.append(phrase.strip())
                 seen.append(ps)
         nums_have = {_norm_num(n) for n in _STAT.findall(evidence)}
@@ -602,12 +646,12 @@ _PRIOR_WORK_RE = re.compile(
     r"|\b(?:meta[\s-]?analys[ei]s|systematic review)\b"
     r"|\bfor (?:example|instance)\b|\be\.g\.,", re.I)
 
-# Where the paper reports what it did. Matched against the leading part of the
-# extractor's section path ("Method - Measures - Financial Strain" -> "method").
+# Fallback only: the extractor's section label, read with the same generic
+# heading vocabulary the outline uses (scripts/abcd_sentences.py). The role that
+# counts is the one read from the paper's own headings at the quote's position.
 _OWN_SECTIONS = ("method", "methods", "material", "measure", "result", "results",
                  "table", "figure", "analysis", "analytic", "sample",
                  "participants", "procedure", "abstract", "data")
-# Where other people's work is discussed.
 _LITERATURE_SECTIONS = ("introduction", "background", "discussion", "conclusion",
                         "limitation", "future", "implication", "related")
 
@@ -633,6 +677,7 @@ def gate_scope(item: dict, *, strict: bool) -> Tuple[dict, Optional[str]]:
     context = str(ev.get("used_context") or "")
     head = _section_head(ev.get("section"))
     blob = f"{quote} {context}"
+    from scripts.abcd_sentences import _role as _heading_role  # generic heading words
 
     # "no prior work has considered X" is the paper motivating its own study, not a
     # claim borrowed from anybody. Without this the gate rejected the construct in
@@ -642,11 +687,39 @@ def gate_scope(item: dict, *, strict: bool) -> Tuple[dict, Optional[str]]:
     cited_ctx = bool(_CITATION_RE.search(context))
     own_words = bool(_OWN_STUDY_RE.search(blob))
     prior_words = bool(_PRIOR_WORK_RE.search(quote)) and not negated_gap
-    in_own_section = any(head.startswith(s) for s in _OWN_SECTIONS)
-    in_lit_section = any(head.startswith(s) for s in _LITERATURE_SECTIONS)
+    # The extractor's label, read generically ("Findings", "Study 2", "Analytic
+    # Strategy" all count) -- a hint only.
+    label_role = _heading_role(str(ev.get("section") or "")) or (
+        "own_study" if any(head.startswith(s) for s in _OWN_SECTIONS) else
+        "introduction" if any(head.startswith(s) for s in _LITERATURE_SECTIONS) else None)
+    paper_role = ev.get("section_role")            # from the paper's own headings
+    section_disagreement = None
+    if paper_role in ("own_study", "abstract"):
+        in_own_section, in_lit_section, role_source = True, False, "paper heading"
+    elif paper_role in ("introduction", "discussion", "back_matter"):
+        in_own_section, in_lit_section, role_source = False, True, "paper heading"
+        if label_role == "own_study":
+            # Two-column layouts put headings out of reading order, so the outline
+            # can be wrong where the extractor is right. Believe the extractor
+            # only when the quote itself shows no sign of cited work.
+            section_disagreement = {"paper_section": ev.get("section_in_paper"),
+                                    "paper_role": paper_role,
+                                    "extractor_section": ev.get("section")}
+            if not (cited or prior_words):
+                in_own_section, in_lit_section = True, False
+                role_source = "extractor section (paper heading disagrees; quote has no citation)"
+    else:
+        in_own_section = label_role in ("own_study", "abstract")
+        in_lit_section = label_role in ("introduction", "discussion")
+        role_source = "extractor section" if label_role else "unknown"
 
     signals = {
         "section": head or None,
+        "section_in_paper": ev.get("section_in_paper"),
+        "section_role": paper_role,
+        "section_role_from": ev.get("section_role_from"),
+        "section_class_from": role_source,
+        "section_disagreement": section_disagreement,
         "section_class": ("own_study" if in_own_section else
                           "literature" if in_lit_section else "unknown"),
         "citation_in_quote": cited,
@@ -963,6 +1036,102 @@ def _norm_enum(value: Any, allowed: Sequence[str], default: str) -> str:
     return v if v in allowed else default
 
 
+# --------------------------------------------------------------------------- #
+# how the paper writes a variable
+# --------------------------------------------------------------------------- #
+
+_ABBR_DEF = re.compile(r"([A-Za-z][A-Za-z0-9\-\u2019' ]{2,90}?)\s*\(\s*([A-Z][A-Za-z0-9\-]{1,11})\s*[;,)]")
+_ABBR_LIST = re.compile(r"(?:^|[;:]\s*)([A-Z][A-Za-z0-9\-]{1,11}),\s*([^;.\n]{3,90})")
+
+
+def paper_abbreviations(text: str) -> Dict[str, set]:
+    """Abbreviations the paper defines: "prenatal tobacco exposure (PTE)" and
+    "Abbreviations: DAN, Dorsal attention network; ...". Both directions, lower
+    case. The long form is the shortest run of words before the parenthesis whose
+    initials spell the abbreviation's capitals in order."""
+    out: Dict[str, set] = {}
+
+    def add(short: str, long: str) -> None:
+        short, long = short.strip(), " ".join(long.split()).strip(" ,;:")
+        if not short or not long or short.lower() == long.lower():
+            return
+        out.setdefault(short.lower(), set()).add(long.lower())
+        out.setdefault(long.lower(), set()).add(short.lower())
+
+    flat = re.sub(r"(\w)- (\w)", r"\1\2", " ".join(text.split()))   # "ado- lescent"
+    for m in _ABBR_DEF.finditer(flat):
+        short = m.group(2)
+        letters = [c for c in short if c.isupper() or c.isdigit()]
+        if len(letters) < 2:
+            continue                       # "(Siemens," is a name, not an abbreviation
+        words = m.group(1).split()
+        for k in range(1, min(len(words), len(letters) + 3) + 1):
+            cand = words[-k:]
+            initials = "".join(w[0].upper() for w in cand if w[:1].isalnum())
+            it = iter(initials)
+            if cand[0][:1].upper() == letters[0] and all(c in it for c in letters):
+                add(short, " ".join(cand))
+                break
+    for para in re.finditer(r"Abbreviations?\s*:([^\n]{0,3000})", text):
+        for m in _ABBR_LIST.finditer(para.group(1)):
+            add(m.group(1), m.group(2))
+    return out
+
+
+def surface_forms(payload: dict, index: TextIndex) -> Callable[[str], List[str]]:
+    """``forms(name)``: every way the paper may write the variable ``name``.
+
+    The name; the extractor's aliases and label for it, kept only if they occur
+    in the paper; abbreviations the paper defines, in both directions; and the
+    same with "network" added or dropped ("default mode" <-> "default mode
+    network" <-> "DMN"). So the extractor keeps one name per variable and the
+    verifier, not a rename, connects it to the quote.
+    """
+    abbr = paper_abbreviations(index.nfkc)
+    declared: Dict[str, set] = {}
+    for v in payload.get("variables") or []:
+        if not isinstance(v, dict) or not v.get("name"):
+            continue
+        name = str(v["name"])
+        alts = {str(a) for a in (v.get("aliases") or []) if a}
+        if v.get("label"):
+            alts.add(str(v["label"]))
+        alts = {a for a in alts if len(a) >= 2 and index.find(a)}
+        declared.setdefault(name.lower(), set()).update(alts)
+        for a in alts:
+            declared.setdefault(a.lower(), set()).add(name)
+    cache: Dict[str, List[str]] = {}
+
+    def forms(name: str) -> List[str]:
+        key = name.lower().strip()
+        if key in cache:
+            return cache[key]
+        seen = [name]
+        frontier = [name, *declared.get(key, ())]
+        # Two rounds, so "DMN" -> "default mode network" -> "default mode" (the
+        # table's row label) and "default mode" -> "default mode network" -> "DMN".
+        for _ in range(2):
+            nxt = []
+            for f in frontier:
+                low = f.lower().strip()
+                for vnt in {low, re.sub(r"\s+networks?$", "", low), low + " network"}:
+                    for x in [vnt, *abbr.get(vnt, ())]:
+                        if x and x not in (s.lower() for s in seen):
+                            seen.append(x)
+                            nxt.append(x)
+            frontier = nxt
+        cache[key] = seen
+        return seen
+
+    return forms
+
+
+# A sentence that refers back for its subject: "These models ...", "This was
+# also supported by ...", "As expected, these models did not ...".
+_ANAPHOR = re.compile(r"^(?:\W*\w+\W+){0,3}?(?:these|this|those|that|such|both|the same|"
+                      r"it|they|the latter|the former)\b", re.I)
+
+
 def verify_payload(payload: dict, text: str, *,
                    dictionary: Optional[Dictionary] = None,
                    atlas: Optional["ca_mod.CognitiveAtlas"] = None,
@@ -980,6 +1149,20 @@ def verify_payload(payload: dict, text: str, *,
     index = TextIndex(text)
     out: Dict[str, Any] = {k: v for k, v in payload.items()
                            if k not in ("variables", "models", "findings", "constructs")}
+    from scripts import abcd_sentences
+    walked = abcd_sentences.walk(index.nfkc)
+    paper_outline = walked["outline"]
+    paper_sentences = walked["sentences"]
+    forms = surface_forms(payload, index)
+
+    def earlier_sentences(start: int, n: int = 2) -> List[dict]:
+        """The sentences just before the one at ``start``, same section."""
+        here = next((k for k, x in enumerate(paper_sentences)
+                     if x["start"] <= start < x["end"] + 1), None)
+        if here is None:
+            return []
+        sec = paper_sentences[here]["section"]
+        return [x for x in paper_sentences[max(0, here - n):here] if x["section"] == sec]
     rejected: List[dict] = []
     counts: Dict[str, Dict[str, int]] = {}
 
@@ -1002,9 +1185,36 @@ def verify_payload(payload: dict, text: str, *,
                     refs.extend(str(v) for v in val if v)
             item, why = verify_evidence(
                 raw, index, surface_keys=surface_keys,
-                require_surface=require_surface, require_any=refs,
+                require_surface=require_surface, require_any=refs, forms=forms,
             )
+            # "These models can also mutually predict each other": the variables
+            # are named in the sentence before. Resolve the reference there, keep
+            # the quote as it is, and record the sentence that supplied them.
+            if why == "no_referenced_variable_in_quote" and refs:
+                q = str((raw.get("evidence") or {}).get("quote") or raw.get("quote") or "")
+                found = index.find(q) if q else None
+                if found and _ANAPHOR.match(q.strip()):
+                    prev = earlier_sentences(found[2])
+                    ctx = " ".join(x["text"] for x in prev)
+                    hit = [r for r in refs if any(
+                        normalize(f).lower() in normalize(ctx).lower() for f in forms(str(r)))]
+                    if hit:
+                        item, why = verify_evidence(raw, index, surface_keys=surface_keys,
+                                                    require_surface=require_surface,
+                                                    require_any=(), forms=forms)
+                        if item is not None and not why:
+                            ev = dict(item["evidence"])
+                            ev.update({"context_sentence": prev[-1]["id"],
+                                       "context_sentence_text": ctx,
+                                       "variables_named_in_previous_sentence": hit,
+                                       "referenced_variables_in_quote": None})
+                            item = {**item, "evidence": ev}
             if item is not None and not why:
+                # Where the quote sits in the paper's own outline: the section
+                # heading as the paper wrote it, and its role.
+                ev = dict(item.get("evidence") or {})
+                ev.update(paper_outline.at(int(ev.get("start") or 0)))
+                item = {**item, "evidence": ev}
                 item, why = gate_scope(item, strict=strict_scope)
             # After the scope gate, so widening can never change what is kept.
             if item is not None and not why:
@@ -1061,9 +1271,11 @@ def verify_payload(payload: dict, text: str, *,
     # sentence, compare prose with the table it cites, mark pairs a table lists in
     # both orders, and anchor the extractor's sentence_claims (abstract and
     # discussion restatements) to sentence ids.
-    from scripts import abcd_sentences
+    out["paper_outline"] = [{k: h.get(k) for k in ("number", "title", "level", "role",
+                                                   "role_from")}
+                            for h in paper_outline.headings]
     sentence_stats = abcd_sentences.annotate(out, index, payload, gate_scope=gate_scope,
-                                             norm_enum=_norm_enum)
+                                             norm_enum=_norm_enum, sentences=paper_sentences)
     sentence_rejected = out.pop("rejected", [])
     # Roles last: every model has been verified and every duplicate folded in, so
     # the model arrays and the variable list finally refer to the same entries.
@@ -1074,7 +1286,7 @@ def verify_payload(payload: dict, text: str, *,
     # A summary that names what its evidence does not contain is a claim the
     # paper does not support there: reject it like a quote that is not in the
     # paper, keeping it in rejected[] with what did not match.
-    out["summaries_not_in_evidence"] = check_summaries(out)
+    out["summaries_not_in_evidence"] = check_summaries(out, forms)
     kept_f = []
     for f in out.get("findings") or []:
         gap = f.get("summary_not_in_evidence")

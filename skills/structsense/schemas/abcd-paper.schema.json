@@ -488,6 +488,16 @@
           },
           "inconsistent": {
             "type": "boolean"
+          },
+          "claim_type_human": {
+            "enum": [
+              "association",
+              "group_difference",
+              "prediction",
+              "change_over_time",
+              "descriptive",
+              null
+            ]
           }
         }
       }
@@ -561,6 +571,39 @@
             }
           },
           "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "paper_outline": {
+      "type": "array",
+      "description": "The paper's headings as printed, in text order, each with its role and how the role was decided.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role_from": {
             "type": [
               "string",
               "null"
@@ -662,6 +705,50 @@
           "type": "object",
           "description": "Verbatim caption, column headings, row group heading, footnote and (correlation matrix) row labels of the table a row quote comes from.",
           "additionalProperties": true
+        },
+        "section_in_paper": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The section heading at the quote, as the paper prints it, read from the paper's own outline (with the table or figure when the quote is inside one)."
+        },
+        "section_role": {
+          "enum": [
+            "own_study",
+            "abstract",
+            "introduction",
+            "discussion",
+            "back_matter",
+            null
+          ],
+          "description": "The role of that section, from its heading's words, its parent heading, or its position in the paper. The scope gate uses this, not the extractor's label."
+        },
+        "section_role_from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surface_in_quote": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "How the quote writes the item when not by its name: an abbreviation the paper defines, an alias found in the paper, or both halves of a network pair."
+        },
+        "referenced_as": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "variables_named_in_previous_sentence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For a quote that refers back ('These models ...'), the variables found in the sentence before."
         }
       }
     },
@@ -1315,6 +1402,8 @@
             "associative",
             "descriptive",
             "causal",
+            "prediction",
+            "change_over_time",
             null
           ],
           "description": "How the paper states the claim. explicit, implicit, comparison, correlation and observation follow Blake's Claim Framework (C. Blake, 'Beyond genes, proteins, and abstracts: Identifying scientific claims from full-text biomedical articles', J Biomed Inform 43(2):173-189, 2010, doi:10.1016/j.jbi.2009.11.001); associative, descriptive and causal extend it. One value per finding, chosen by the precedence in prompts/extractor-abcd.md. null = the extractor gave no valid type."
@@ -1480,6 +1569,60 @@
             "type": "string"
           },
           "description": "Variables named only by a second sentence that the extractor joined into the quote; removed when the quote was cut to one sentence."
+        },
+        "claim_type_human": {
+          "enum": [
+            "association",
+            "group_difference",
+            "prediction",
+            "change_over_time",
+            "descriptive",
+            null
+          ],
+          "description": "The claim in a sentence-level human annotator's scheme (crosswalk in the workbook README)."
+        },
+        "significance": {
+          "type": "object",
+          "description": "From the finding's own p / FDR values (a table row: its statistic field), against the paper's stated threshold or .05; else from wording.",
+          "properties": {
+            "significant": {
+              "enum": [
+                true,
+                false,
+                "partial",
+                null
+              ]
+            },
+            "p_values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "alpha": {
+              "type": "number"
+            },
+            "from": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "direction_null_not_significant": {
+          "type": "boolean",
+          "description": "Every statistic of the finding is non-significant, so direction is null; the extractor's sign is in direction_as_extracted. Not applied to change over time."
+        },
+        "direction_from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why direction differs from the extractor's: 'direction of change over time' or 'sign of the sentence's statistics'."
+        },
+        "change_over_time_detected": {
+          "type": "boolean"
         }
       }
     },

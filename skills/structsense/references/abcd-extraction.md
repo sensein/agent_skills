@@ -622,6 +622,88 @@ Findings stay result-level, which is finer than a sentence: a table row is a
 finding with no sentence id, and its **Section** reads "Results - 3.3 Societal
 Factors ... › Table 3", the section of the first sentence that cites the table.
 
+### Sections are read from the paper, not from a fixed list
+
+Papers name their sections differently ("Findings", "Study 2", "Analytic
+Strategy", "Sample", "General Discussion", APA papers with no Introduction
+heading at all). The verifier reads the paper's own outline
+(`abcd_sentences.walk`) and gives each heading a role:
+
+1. its words, when they say it (generic vocabulary: method, participants,
+   measures, analysis, results, findings, study N ... / introduction, background,
+   present study ... / discussion, limitations, conclusion ...);
+2. otherwise its parent heading ("3.2 Prenatal Exposure ..." under Results);
+3. otherwise its position: after an own-study heading it is own-study, after the
+   Discussion it is discussion, before both it is introduction.
+
+Headings are numbered ("2.5.1. Behavioral similarity analysis"), named, ALL
+CAPS, letter-spaced ("A B S T R A C T") or short title-like lines in the paper's
+own words; lines that repeat through the paper are running headers; numbered
+lines that do not continue the paper's numbering (correlation-matrix rows) and
+affiliations are not headings; after the abstract's Keywords line an APA paper's
+introduction starts. Back matter (Funding, Author contributions, References ...)
+is skipped, but running prose the column layout put there (the Discussion's last
+paragraphs after "Funding") is kept.
+
+The scope gate uses that role (`evidence.section_role`), so an extractor never
+has to relabel a section "Results" to pass. The extractor's label is a hint: when
+the outline says introduction/discussion but the label says results and the
+quote has no citation, the quote is kept and the disagreement recorded
+(`scope_signals.section_disagreement`), because two-column layouts put headings
+out of order. Table rows are recognised from the outline too ("inside Table 3").
+
+### A variable keeps one name
+
+The verifier, not a rename, connects a variable to its quote. A quote mentions
+`prenatal tobacco exposure` if it writes the name, an alias that occurs in the
+paper, an abbreviation the paper defines ("prenatal tobacco exposure (PTE)", or
+an "Abbreviations:" list), or — for a network pair "Default mode–Dorsal
+attention" — both halves in any of those forms ("between the DMN and DAN").
+`evidence.surface_in_quote` / `referenced_as` record how the quote wrote it. A
+quote that refers back ("These models can also mutually predict each other") is
+checked against the sentence before; `variables_named_in_previous_sentence`
+records it.
+
+### Direction conventions
+
+- **Significance.** A finding whose own statistics (a table row: its
+  `statistic`) are all non-significant against the paper's stated threshold
+  ("an FDR of < 0.05 was considered significant"), else .05, is `null`; the
+  sign moves to `direction_as_extracted`. `significance` holds the p values.
+- **Change over time.** Direction is the direction of the change: positive
+  increases or appears, negative decreases or weakens, null stays the same,
+  mixed both. "Higher than .14 of 4th year" is a decrease (the later wave is
+  lower). Verbs of change ("we found a decreased similarity") win over
+  comparatives that compare tasks within a wave. Same rule for Findings and
+  Sentences.
+- **Signs in statistics.** "r = .14", "ranging from .03 to .08" state a sign.
+- **Merging.** A sentence with one sign plus non-significant results reads as
+  that sign; mixed means opposite signs.
+
+### Claim types and the human scheme
+
+`prediction` (model-based prediction: CPM, machine learning, predicted vs
+actual — not regression wording) and `change_over_time` are claim types. Every
+finding and sentence also gets `claim_type_human` in a sentence-level
+annotator's scheme: association, group_difference (comparison), prediction,
+change_over_time, descriptive. The workbook README has the crosswalk.
+
+### Workbook columns say where they come from
+
+Every header carries its source in brackets: (verbatim), (paper heading),
+(agent), (agent summary, not verbatim), (agent, copied), (agent + tool), (agent
+or tool), (tool). The README sheet defines each, and every Sentences column
+(is_claim, causal_language, direction, hedged, notes).
+
+On Yin 2025 (10.1016/j.biopsycho.2025.109058), from the existing payload, against
+the sentence-level human annotation: 107 of 128 human sentences match a tool
+sentence (the rest are figure/table captions and author contributions; before
+the outline fixes 92, with the Discussion's last paragraphs lost), is_claim
+agrees on 90 of 107 (11 more are flagged "possibly (no finding extracted)"), and
+direction on 23 of 36 shared claims (9 before). The remaining differences are
+mostly the annotator assigning a sign the sentence does not state ("significantly
+associated", sign not reported; used positive).
+
 ### Checks the sentence layer adds
 
 On Vishnubhotla 2026 (10.1002/brb3.71168) against the human annotation:
