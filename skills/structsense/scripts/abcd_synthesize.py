@@ -118,6 +118,80 @@ def _ev(paper_id: str, item: dict, **extra) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# what a finding is about: the relationship, not just the construct
+# --------------------------------------------------------------------------- #
+
+# Latent growth factors are derived from one measure: "family conflict intercept"
+# and "family conflict slope" are both family conflict, so a correlation between
+# them is change over time in one variable, not an association between two.
+_GROWTH_FACTOR = re.compile(r"\s+(?:intercepts?|slopes?|quadratic|growth factors?)$",
+                            re.I)
+
+_TREND = re.compile(r"\b(?:over time|across (?:the )?(?:waves|years|time ?points)|"
+                    r"with age|over (?:the )?(?:four|three|two|\d+) (?:years|waves))\b",
+                    re.I)
+_ASSOCIATION = re.compile(r"predict|associat|correlat|mediat|moderat|relat(?:ed|ion)|"
+                          r"\blinked\b|cross-lagged", re.I)
+
+_MODERATION = re.compile(r"moderat|differ(?:ence|ed)?s? by|interaction", re.I)
+
+RELATIONSHIP_KINDS = {
+    "association": "association between two variables",
+    "multi_variable": "path through three or more variables (e.g. mediation)",
+    "change_over_time": "change or stability of one variable over time",
+    "unspecified": "no variables named",
+}
+
+
+def _relationship(finding: dict, vindex: "VariableIndex") -> dict:
+    """The relationship a finding is about, keyed on resolved variable identity.
+
+    Grouping findings by construct alone counted "income -> lower family conflict"
+    (negative) and "financial strain -> higher family conflict" (positive) as
+    papers disagreeing about family conflict, and a decline in one variable over
+    time as a negative association. Two findings disagree only when they are
+    about the same relationship and have opposing signs.
+    """
+    bases: Dict[str, str] = {}      # one measure, whatever growth factor
+    full: Dict[str, str] = {}       # intercept and slope kept apart
+    for name in finding.get("variables") or []:
+        name = str(name or "").strip()
+        if not name:
+            continue
+        base = _GROWTH_FACTOR.sub("", name) or name
+        bkey = vindex.key(base) or _norm_key(base)
+        if not bkey:
+            continue
+        bases.setdefault(bkey, base)
+        factor = _GROWTH_FACTOR.search(name)
+        fkey = bkey + (f"#{factor.group(0).strip().lower()}" if factor else "")
+        full.setdefault(fkey, name if factor else base)
+    # Several variables each changing over time ("both family conflict and
+    # externalizing decreased over time") are trends, not an association.
+    text = f"{finding.get('statement') or ''} {(finding.get('evidence') or {}).get('quote') or ''}"
+    trend_only = (len(bases) > 1 and _TREND.search(text)
+                  and not _ASSOCIATION.search(text))
+    if len(bases) == 1 or trend_only:
+        keys = sorted(bases)
+        names = [bases[k] for k in keys]
+    else:
+        keys = sorted(full)
+        names = [full[k] for k in keys]
+    if not keys:
+        kind, label = "unspecified", "(no variables named)"
+    elif len(bases) == 1 and _MODERATION.search(text):
+        kind, label = "unspecified", f"{names[0]} as moderator (other variables not named)"
+    elif len(bases) == 1 or trend_only:
+        kind, label = "change_over_time", f"{' and '.join(names)} over time"
+    elif len(keys) == 2:
+        kind, label = "association", f"{names[0]} \u2194 {names[1]}"
+    else:
+        kind, label = "multi_variable", " / ".join(names)
+    return {"key": f"{kind}|" + "|".join(keys), "kind": kind, "label": label,
+            "variable_keys": keys, "variables": names}
+
+
+# --------------------------------------------------------------------------- #
 # per-paper dataset description
 # --------------------------------------------------------------------------- #
 
@@ -308,6 +382,10 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
     c_measures: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     c_involved: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     c_findings: Dict[str, List[dict]] = defaultdict(list)
+    # Relationship-level: the unit at which two results can actually disagree.
+    r_info: Dict[str, dict] = {}
+    r_dir: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
+    r_findings: Dict[str, List[dict]] = defaultdict(list)
 
     v_role: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     v_paper_roles: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
@@ -413,21 +491,32 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
                     c_measures[cid][key].add(pid)
                     pair[(key, cid)].add(pid)
 
-        for f in doc.get("findings") or []:
+        for f_index, f in enumerate(doc.get("findings") or []):
             cid, label, mapped = construct_key(f)
             c_label.setdefault(cid, label)
             c_mapped.setdefault(cid, mapped)
             direction = str(f.get("direction") or "unspecified").lower()
+            # The first wording seen names the relationship everywhere, so one
+            # relationship never appears under two labels.
+            rel = r_info.setdefault(*(lambda r: (r["key"], r))(_relationship(f, vindex)))
+            r_dir[rel["key"]][direction].add(pid)
+            r_findings[rel["key"]].append({"paper_id": pid, "_finding_index": f_index,
+                                           **f, "_relationship": rel})
             c_papers[cid].add(pid)
-            c_dir[cid][direction].add(pid)
+            # A trend in one variable says nothing about the direction of an
+            # association, so it does not enter the construct's direction tally.
+            if rel["kind"] != "change_over_time":
+                c_dir[cid][direction].add(pid)
             c_ev[cid].append(_ev(pid, f, direction=direction,
+                                 relationship=rel["label"],
+                                 relationship_kind=rel["kind"],
                                  statement=f.get("statement"),
                                  effect_size=f.get("effect_size"),
                                  statistic=f.get("statistic"),
                                  analytic_n=f.get("analytic_n"),
                                  subgroup=f.get("subgroup"),
                                  role=f.get("role")))
-            c_findings[cid].append({"paper_id": pid, **f})
+            c_findings[cid].append({"paper_id": pid, **f, "_relationship": rel})
             role = str(f.get("role") or "").lower()
             for name in f.get("variables") or []:
                 key = vindex.key(name)
@@ -468,6 +557,26 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
     claims.sort(key=lambda c: (-c["paper_count"], c["claim"]))
     for i, claim in enumerate(claims, 1):
         claim["claim_id"] = f"C{i}"
+    # A construct whose opposing signs come from different relationships is not
+    # divergent; the claim found that out, so the construct row says so too.
+    claim_verdict = {c["construct_label"]: c["verdict"] for c in claims}
+    for row in constructs:
+        if (row["verdict"] == "divergent"
+                and claim_verdict.get(row["construct_label"]) == "different_relationships"):
+            row["verdict"] = "different_relationships"
+
+    relationships = [
+        _relationship_row(r_info[k], r_dir[k], r_findings[k], by_paper,
+                          min_papers, agreement_threshold)
+        for k in r_info
+    ]
+    _order = {"divergent": 0, "consensus": 1, "mixed": 2, "insufficient_papers": 3,
+              "no_directional_finding": 4, "change_over_time": 5}
+    relationships.sort(key=lambda r: (r["kind"] == "change_over_time",
+                                      _order.get(r["verdict"], 9), -r["paper_count"],
+                                      r["label"]))
+    for i, rel in enumerate(relationships, 1):
+        rel["relationship_id"] = f"R{i}"
 
     links = [
         {"variable_key": var, "variable": var_by_key.get(var, {}).get("variable", var),
@@ -483,6 +592,7 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
         "synthesis_id": f"abcd-{len(papers)}papers",
         "papers": papers,
         "claims": claims,
+        "relationships": relationships,
         "constructs": constructs,
         "variables": variables,
         "variable_construct_links": links,
@@ -493,6 +603,11 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
             "distinct_variables": len(variables),
             "distinct_constructs": len(constructs),
             "claims": len(claims),
+            "relationships": len(relationships),
+            "divergent_relationships": sum(1 for r in relationships
+                                           if r["verdict"] == "divergent"),
+            "within_paper_conflicts": sum(1 for r in relationships
+                                          if r["within_paper_conflict"]),
             "variables_with_table": sum(1 for v in variables
                                         if v["nda_or_nbdc_table"]),
             "variables_mapping_disagreement": sum(
@@ -515,7 +630,12 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
             "counting_unit": "paper",
             "min_papers_for_verdict": min_papers,
             "agreement_threshold": agreement_threshold,
-            "divergence_rule": "opposing directions (positive and negative) both present",
+            "divergence_rule": ("opposing directions (positive and negative) for the "
+                                "SAME relationship (same resolved variables). A "
+                                "construct whose opposing signs come from different "
+                                "relationships is 'different_relationships', and a "
+                                "change over time in one variable is never counted "
+                                "as an association's direction"),
             "agreement_denominator": ("paper-direction claims — a paper reporting "
                                       "both a positive and a null result for one "
                                       "construct contributes to both"),
@@ -818,11 +938,13 @@ def _claim(construct: dict, findings: List[dict], by_paper: Dict[str, dict],
         statement = (f"{label}: {direction_words.get(majority, 'an association')} "
                      f"reported, but by only {n} paper — not replicated in this "
                      f"corpus.")
+    elif verdict == "no_directional_finding":
+        statement = f"{label}: studied, but no direction reported."
     else:
         statement = (f"Evidence on {label} is mixed across {n} papers; no direction "
                      f"reaches the {thresh:.0%} agreement threshold.")
 
-    supporting, contradicting = [], []
+    supporting, contradicting, not_counted = [], [], []
     for f in findings:
         pid = f["paper_id"]
         paper = by_paper.get(pid) or {}
@@ -838,13 +960,41 @@ def _claim(construct: dict, findings: List[dict], by_paper: Dict[str, dict],
             "analytic_n": f.get("analytic_n"),
             "subgroup": f.get("subgroup"),
             "section": ev.get("section"),
+            "page": ev.get("page"),
             "quote": ev.get("quote"),
             "strength": _strength(paper, f),
         }
+        rel = f.get("_relationship") or {}
+        row["relationship"] = rel.get("label")
+        row["relationship_kind"] = rel.get("kind")
+        if rel.get("kind") == "change_over_time":
+            row["not_counted_because"] = ("change over time in one variable, not "
+                                          "an association")
+            not_counted.append(row)
+            continue
         opposing = (majority in ("positive", "negative")
                     and f.get("direction") in ("positive", "negative")
                     and f.get("direction") != majority)
         (contradicting if opposing else supporting).append(row)
+
+    # Where exactly do the signs differ? By relationship, so a reader sees
+    # whether the "disagreement" is two papers on one question or two questions.
+    by_dir: Dict[str, Set[str]] = defaultdict(set)
+    rel_dirs: Dict[str, Set[str]] = defaultdict(set)
+    for r in supporting + contradicting:
+        if r["direction"] in ("positive", "negative"):
+            by_dir[r["direction"]].add(r["relationship"])
+            rel_dirs[r["relationship"]].add(r["direction"])
+    conflicting = sorted(k for k, d in rel_dirs.items() if len(d) > 1)
+    if verdict == "divergent" and not conflicting:
+        verdict = "different_relationships"
+        statement = (f"No disagreement on {label}: results go both ways, but never "
+                     f"for the same relationship. Positive: "
+                     f"{'; '.join(sorted(by_dir['positive']))}. Negative: "
+                     f"{'; '.join(sorted(by_dir['negative']))}.")
+    elif verdict == "divergent":
+        statement = (f"Papers disagree on {label}: "
+                     f"{'; '.join(conflicting)} reported both positive and negative.")
 
     caveats = []
     if n < 2:
@@ -878,6 +1028,121 @@ def _claim(construct: dict, findings: List[dict], by_paper: Dict[str, dict],
                                   for m in construct["variables_in_findings"][:8]],
         "evidence": supporting,
         "contradictions": contradicting,
+        "not_counted": not_counted,
+        "relationships_by_direction": {d: sorted(v) for d, v in sorted(by_dir.items())},
+        "conflicting_relationships": conflicting,
+        "caveats": caveats,
+    }
+
+
+def _relationship_row(rel: dict, dirs: Dict[str, Set[str]], findings: List[dict],
+                      by_paper: Dict[str, dict], min_papers: int,
+                      thresh: float) -> dict:
+    """One relationship across papers: the claim, then each side's evidence."""
+    counts = {d: len(p) for d, p in dirs.items()}
+    papers = set().union(*dirs.values()) if dirs else set()
+    substantive = {d: c for d, c in counts.items() if d in SUBSTANTIVE_DIRECTIONS}
+    majority, maj_n = (max(substantive.items(), key=lambda kv: kv[1])
+                       if substantive else (None, 0))
+    total = sum(substantive.values())
+    agreement = maj_n / total if total else 0.0
+    pos, neg = dirs.get("positive", set()), dirs.get("negative", set())
+    with_dir = set().union(*(dirs[d] for d in dirs if d in SUBSTANTIVE_DIRECTIONS)) \
+        if substantive else set()
+    if not with_dir:
+        verdict = "no_directional_finding"
+    elif rel["kind"] == "change_over_time":
+        # A stability coefficient (prior X predicts later X, positive) and a mean
+        # decline (X decreases, negative) are different quantities with the same
+        # sign vocabulary; setting them against each other reports a conflict
+        # nobody found. Trends are listed, not judged.
+        verdict = "change_over_time"
+    elif len(with_dir) < min_papers:
+        verdict = "insufficient_papers"
+    elif pos and neg:
+        verdict = "divergent"
+    elif agreement >= thresh:
+        verdict = "consensus"
+    else:
+        verdict = "mixed"
+    label = rel["label"]
+    words = {"positive": "positive", "negative": "negative", "null": "no effect",
+             "mixed": "mixed", "unspecified": "direction not stated"}
+    if verdict == "divergent":
+        statement = (f"Papers disagree on {label}: {len(pos)} paper(s) report "
+                     f"positive, {len(neg)} report negative.")
+    elif verdict == "consensus":
+        statement = (f"Papers agree on {label}: {words.get(majority)} in "
+                     f"{agreement:.0%} of results across {len(with_dir)} papers.")
+    elif verdict == "insufficient_papers":
+        statement = f"{label}: {words.get(majority, 'reported')} \u2014 one paper only."
+    elif verdict == "mixed":
+        statement = f"{label}: mixed across {len(with_dir)} papers."
+    elif verdict == "change_over_time":
+        statement = (f"{label}: " + "; ".join(
+            f"{words.get(d, d)} in {len(p)} paper(s)" for d, p in sorted(dirs.items()))
+            + ". Trends and stability are listed, not compared across papers.")
+    else:
+        statement = f"{label}: no direction reported."
+
+    evidence = []
+    for f in findings:
+        pid = f["paper_id"]
+        paper = by_paper.get(pid) or {}
+        ev = f.get("evidence") or {}
+        evidence.append({
+            "paper_id": pid,
+            "finding_index": f.get("_finding_index"),
+            "direction": f.get("direction"),
+            "claim_type": f.get("claim_type"),
+            "directionality": f.get("directionality"),
+            "statement": f.get("statement"),
+            "effect_size": f.get("effect_size"),
+            "statistic": f.get("statistic"),
+            "analytic_n": f.get("analytic_n"),
+            "subgroup": f.get("subgroup"),
+            "section": ev.get("section"),
+            "page": ev.get("page"),
+            "quote": ev.get("quote"),
+            "table_context": ev.get("table_context"),
+            "summary_not_in_evidence": f.get("summary_not_in_evidence"),
+            "strength": _strength(paper, f),
+        })
+    order = {"positive": 0, "negative": 1, "null": 2, "mixed": 3, "unspecified": 4}
+    evidence.sort(key=lambda e: (order.get(e["direction"], 9), e["paper_id"]))
+
+    # One paper stating both signs for one relationship is usually an abstract
+    # contradicting its own results — worth a reader's attention on its own.
+    within = sorted(pos & neg)
+    caveats = []
+    if within:
+        caveats.append("the same paper reports both positive and negative for this "
+                       "relationship (check abstract against results)")
+    if len(papers) > 1:
+        samples = {(by_paper.get(p, {}).get("dataset") or {}).get("sample_n")
+                   for p in papers}
+        if len(samples) == 1 and None not in samples:
+            caveats.append("papers report the same sample size \u2014 likely the same "
+                           "children, so agreement is not independent")
+    if rel["kind"] == "change_over_time":
+        caveats.append("change over time in one variable, not an association")
+    constructs = sorted({str(f.get("construct_label") or f.get("construct"))
+                         for f in findings
+                         if f.get("construct_label") or f.get("construct")})
+    return {
+        "label": label,
+        "kind": rel["kind"],
+        "constructs": constructs,
+        "variables": rel["variables"],
+        "verdict": verdict,
+        "claim": statement,
+        "paper_count": len(papers),
+        "papers": sorted(papers),
+        "papers_by_direction": {d: sorted(p) for d, p in sorted(dirs.items())},
+        "majority_direction": majority,
+        "agreement": round(agreement, 3),
+        "within_paper_conflict": within,
+        "evidence": evidence,
         "caveats": caveats,
     }
 

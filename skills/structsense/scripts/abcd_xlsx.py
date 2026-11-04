@@ -1,22 +1,24 @@
 """One Excel workbook for a whole ABCD run, laid out for people to read.
 
-The per-paper Markdown files put 10+ columns into a pipe table and truncate every
-quote at ~90 characters, so they are hard to read and there is one of them per
-paper. This workbook replaces them: one file, one sheet per kind of thing, one row
-per item, every quote in full, and plain-language values where the JSON uses
-internal codes. The JSON stays the machine record; nothing here is new data.
+Per-paper Markdown put 10+ columns into pipe tables and cut every quote short, one
+file per paper. This workbook is the readable output instead: one file, every
+quote in full, plain words where the JSON uses codes. The JSON stays the machine
+record; nothing here is new data.
 
-Sheets
-  README          what each sheet holds and what the coded values mean
-  Papers          one row per paper
-  Findings        one row per verified finding (claim type, directionality, quote)
-  Variables       one row per variable use, with its ABCD dictionary mapping
-  Models          one row per analysis
-  Constructs      one row per construct mention
-  Rejected        claims that failed verification, and why
-  Claims          cross-paper claims (synthesis), one row per claim
-  Claim evidence  the paper-by-paper evidence behind each claim
-  Construct summary  consensus / divergence per construct
+Sheets, in reading order
+  README       how to read the workbook; what each coded value means
+  Cross-paper  one block per relationship (e.g. family conflict <-> externalizing):
+               a heading row with the verdict, then every paper's finding on it,
+               so where and how papers agree or disagree is on one screen
+  Findings     every verified finding, paper by paper in reading order, with its
+               claim type, directionality and the cross-paper block it belongs to
+  Papers, Variables, Models, Constructs, Rejected (only when something was)
+
+Findings and Cross-paper hold the same results seen two ways: Findings is what
+each paper said; Cross-paper groups those same rows by relationship. Earlier
+versions also had Claims, Claim evidence and Construct summary sheets, which
+repeated the findings under construct-level verdicts and read as three copies of
+one table; they are gone.
 
 Claim types follow Blake's Claim Framework (explicit, implicit, comparison,
 correlation, observation), extended with associative, descriptive and causal:
@@ -36,7 +38,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 # How a variable mention was tied to the ABCD data dictionary, in words.
 MATCH_STATUS = {
@@ -57,10 +59,25 @@ DIRECTION_WORDS = {
     "mixed": "mixed", "unspecified": "not stated",
 }
 
-# Excel cell limit is 32,767 characters; a quote never gets near it, but a
-# used_context could, and an over-long cell makes the file unopenable.
-_CELL_MAX = 32000
+VERDICT_WORDS = {
+    "consensus": "Papers agree",
+    "divergent": "Papers disagree",
+    "mixed": "Mixed results",
+    "insufficient_papers": "One paper only",
+    "no_directional_finding": "No direction reported",
+    "change_over_time": "Change over time (not compared)",
+}
+
+ROLE_ORDER = {"predictor": 0, "mediator": 1, "moderator": 2, "outcome": 3,
+              "covariate": 4, "confounder": 5, "control": 6, "instrument": 7}
+
+# Fill colours (ARGB-less hex) for the cross-paper heading rows.
+FILL = {"divergent": "F8CBAD", "consensus": "C6EFCE", "within": "FFE699",
+        "default": "D9E1F2", "header": "305496", "band": "F2F2F2"}
+
+_CELL_MAX = 32000          # Excel's per-cell limit is 32,767 characters
 _ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_WS = re.compile(r"\s+")
 
 
 def _cell(value: Any) -> Any:
@@ -74,12 +91,15 @@ def _cell(value: Any) -> Any:
         value = "; ".join(str(_cell(v)) for v in value if v not in (None, ""))
     elif isinstance(value, dict):
         value = json.dumps(value, ensure_ascii=False)
-    s = _ILLEGAL.sub(" ", str(value)).strip()
-    return s[:_CELL_MAX]
+    return _ILLEGAL.sub(" ", str(value)).strip()[:_CELL_MAX]
 
+
+# --------------------------------------------------------------------------- #
+# paper names
+# --------------------------------------------------------------------------- #
 
 def _base_label(doc: dict) -> str:
-    """A short handle a reader recognises: 'Aaron 2025' from the file name, else the DOI."""
+    """'Aaron 2025' from the file name, else the DOI."""
     meta = doc.get("source_metadata") or {}
     stem = Path(str(meta.get("source_path") or "")).stem
     m = re.match(r"([A-Za-z][A-Za-z'\-]*?)-(\d{4})(?:-|$)", stem)
@@ -102,8 +122,84 @@ def paper_labels(papers: Sequence[dict]) -> List[str]:
     return out
 
 
+def _ids_to_labels(papers: Sequence[dict], labels: Sequence[str]) -> Dict[str, str]:
+    out = {}
+    for d, label in zip(papers, labels):
+        meta = d.get("source_metadata") or {}
+        for key in (d.get("paper_id"), meta.get("doi")):
+            if key:
+                out[str(key)] = label
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# small readers
+# --------------------------------------------------------------------------- #
+
 def _ev(item: dict) -> dict:
     return item.get("evidence") or {}
+
+
+def _where(ev: dict) -> str:
+    sec, page = ev.get("section"), ev.get("page")
+    return ", ".join(x for x in (str(sec) if sec else "", f"p. {page}" if page else "") if x)
+
+
+def _sentence(ev: dict) -> str:
+    """The whole sentence a short quote sits in, from the stored context.
+
+    Extractors quote fragments ("conflict mediated the path between financial
+    strain at"); the context the verifier kept around the quote finishes the
+    sentence. Returned only when it adds something.
+    """
+    quote = _WS.sub(" ", str(ev.get("quote") or "")).strip()
+    ctx = _WS.sub(" ", str(ev.get("used_context") or "")).strip()
+    if not quote or not ctx:
+        return ""
+    i = ctx.find(quote)
+    if i < 0:
+        return ""
+    start = max(ctx.rfind(". ", 0, i), ctx.rfind("? ", 0, i))
+    start = 0 if start < 0 else start + 2
+    end_m = re.search(r"[.?!](?:\s|$)", ctx[i + len(quote) - 1:])
+    end = len(ctx) if not end_m else i + len(quote) - 1 + end_m.end()
+    sent = ctx[start:end].strip()
+    if ev.get("quote_widened_to_sentence"):
+        return ""          # the quote already is the whole sentence
+    return sent if len(sent) > len(quote) + 10 else ""
+
+
+def _quote(ev: dict) -> str:
+    """The paper's sentence; a trailing ellipsis where layout cut it off."""
+    q = str(ev.get("quote") or "")
+    return q + " \u2026" if q and ev.get("sentence_cut_by_layout") else q
+
+
+def _context(ev: dict) -> str:
+    """What makes a table row readable: caption, columns, group, footnote, row labels."""
+    ctx = ev.get("table_context") or {}
+    if not ctx:
+        return ""
+    parts = [ctx.get("caption"), ctx.get("columns") and f"Columns: {ctx['columns']}",
+             ctx.get("group") and f"Row group: {ctx['group']}",
+             ctx.get("footnote") and f"Footnote {ctx['footnote']}",
+             ctx.get("row_labels") and "Rows: " + "; ".join(ctx["row_labels"])]
+    return "\n".join(p for p in parts if p)
+
+
+def _checks(f: dict) -> List[str]:
+    ev = _ev(f)
+    out = []
+    gap = f.get("summary_not_in_evidence") or {}
+    missing = list(gap.get("variables") or []) + list(gap.get("statistics") or [])
+    if missing:
+        out.append("summary names what the quote does not: " + ", ".join(missing)
+                   + " (rely on the quote)")
+    if f.get("combines_several_results"):
+        out.append("combines several results: split into one finding per result")
+    if ev.get("sentence_cut_by_layout"):
+        out.append("sentence interrupted by a figure, table or page break")
+    return out
 
 
 def _abcd_variable(v: dict) -> str:
@@ -123,134 +219,144 @@ def _releases(v: dict) -> List[str]:
             or (v.get("context_mapping") or {}).get("dd_releases") or [])
 
 
+def _strength(e: dict) -> str:
+    st = e.get("strength") or {}
+    if not st:
+        return ""
+    return f"{st.get('level')}: " + "; ".join(st.get("reasons") or [])
+
+
 # --------------------------------------------------------------------------- #
-# rows
+# sheet contents
 # --------------------------------------------------------------------------- #
 
+# The quote is the paper's own words, verified against its text. The summary is
+# the extractor's one-sentence paraphrase: useful to scan, never evidence, so it
+# is labelled as such and comes after the quote.
+QUOTE_COL = "Quote from paper (verbatim)"
+SUMMARY_COL = "Summary (paraphrase, not verbatim)"
+CROSS_COLS = ["ID", "Verdict", "Relationship", "Paper", "Direction", QUOTE_COL,
+              SUMMARY_COL, "Claim type", "Effect size", "Statistic", "n",
+              "Strength of evidence", "Where in paper"]
+FINDING_COLS = ["Paper", "Where in paper", QUOTE_COL, SUMMARY_COL, "Claim type",
+                "Directionality", "Effect size", "Statistic", "n", "Subgroup",
+                "Table context (verbatim)", "Full sentence", "Check", "Relationship",
+                "Cross-paper ID", "Variables",
+                "Construct", "Role", "Effect sign"]
 PAPER_COLS = ["Paper", "Title", "DOI", "Study", "Data release", "Sample size",
-              "Design", "Variables", "Findings", "Rejected claims"]
-FINDING_COLS = ["Paper", "Finding", "Claim type", "Directionality", "Direction (sign)",
-                "Role", "Construct", "Variables", "Effect size", "Statistic", "n",
-                "Subgroup", "Section", "Page", "Quote from paper"]
-VARIABLE_COLS = ["Paper", "Mentioned as", "Description", "Role", "Timepoint",
+              "Design", "Findings", "Variables", "Models", "Rejected items"]
+VARIABLE_COLS = ["Paper", "Variable (as written)", "Role", "Description", "Timepoint",
                  "Instrument", "Respondent", "ABCD variable", "ABCD table", "Domain",
-                 "How it was matched", "Releases containing it", "Section", "Page",
+                 "Dictionary match", "Releases containing it", "Where in paper",
                  "Quote from paper"]
-MODEL_COLS = ["Paper", "Analysis", "Kind", "Hypothesis", "Predictors", "Outcomes",
-              "Mediators", "Moderators", "Covariates", "Software", "Section",
+MODEL_COLS = ["Paper", "Analysis", "Kind", "Hypothesis", "Predictors", "Mediators",
+              "Moderators", "Outcomes", "Covariates", "Software", "Where in paper",
               "Quote from paper"]
 CONSTRUCT_COLS = ["Paper", "Construct", "Cognitive Atlas id", "Cognitive Atlas label",
-                  "Word used in paper", "Section", "Quote from paper"]
+                  "Wording", "Where in paper", "Quote from paper"]
 REJECTED_COLS = ["Paper", "Item type", "Reason", "What was proposed", "Quote proposed"]
-CLAIM_COLS = ["Claim", "Statement", "Verdict", "Papers", "Agreement", "Construct",
-              "Measured by", "Caveats"]
-CLAIM_EVIDENCE_COLS = ["Claim", "Supports or contradicts", "Paper", "Data release",
-                       "Direction (sign)", "Result", "Effect size", "Statistic", "n",
-                       "Strength", "Why that strength", "Section", "Quote from paper"]
-CONSTRUCT_SUMMARY_COLS = ["Construct", "Verdict", "Papers", "Majority direction",
-                          "Agreement", "Directions reported", "Measured by"]
+
+# First row of every sheet: what the sheet is for, in one sentence.
+SHEET_NOTES = {
+    "Cross-paper": ("Compares papers. Each coloured row is one relationship between "
+                    "variables with a verdict (do the papers agree?); the rows under "
+                    "it are each paper's finding on it, with effect size and quote. "
+                    "Green = agree, red = disagree, yellow = a paper contradicts itself."),
+    "Findings": ("Every result each paper reported about its own data, in the order "
+                 "it appears in the paper. One row = one finding. The quote is the "
+                 "paper's own words, checked against its text; the summary next to "
+                 "it is the extractor's paraphrase. 'Cross-paper ID' links to the "
+                 "Cross-paper sheet."),
+    "Papers": "One row per paper in this run: title, DOI, ABCD release, sample, design.",
+    "Variables": ("The measures each paper used, the role each played in the analysis "
+                  "(predictor, mediator, outcome, covariate, ...) and the ABCD "
+                  "data-dictionary variable it maps to."),
+    "Models": ("The statistical analyses each paper ran: one row per model, with the "
+               "variables that went in as predictors, mediators, moderators, "
+               "outcomes and covariates."),
+    "Constructs": ("The broader concepts the variables measure (e.g. 'externalizing "
+                   "symptoms', 'working memory') as each paper names them, with the "
+                   "Cognitive Atlas id when one was found. Used to recognise that "
+                   "different papers' variables measure the same thing."),
+    "Rejected": ("Items the extractor proposed that the verifier removed: the quote "
+                 "is not in the paper, or the result belongs to cited work rather "
+                 "than this study. Kept so you can see what was dropped and why."),
+}
+
+
+def _finding_index_to_rel(synthesis: Optional[dict]) -> Dict[Tuple[str, int], dict]:
+    out: Dict[Tuple[str, int], dict] = {}
+    for r in (synthesis or {}).get("relationships") or []:
+        for e in r.get("evidence") or []:
+            if e.get("finding_index") is not None:
+                out[(str(e.get("paper_id")), int(e["finding_index"]))] = r
+    return out
+
+
+def finding_rows(doc: dict, p: str, rel_of: Dict[Tuple[str, int], dict]):
+    pid = str(doc.get("paper_id"))
+    items = list(enumerate(doc.get("findings") or []))
+    # Reading order: where the quote sits in the paper.
+    items.sort(key=lambda t: (_ev(t[1]).get("start") is None, _ev(t[1]).get("start") or 0))
+    for i, f in items:
+        ev = _ev(f)
+        rel = rel_of.get((pid, i)) or {}
+        yield [p, _where(ev), _quote(ev), f.get("statement"), f.get("claim_type"),
+               f.get("directionality"), f.get("effect_size") or f.get("estimate"),
+               f.get("statistic"), f.get("analytic_n"), f.get("subgroup"),
+               _context(ev), _sentence(ev), _checks(f), rel.get("label"),
+               rel.get("relationship_id"), f.get("variables"),
+               f.get("construct_label") or f.get("construct"), f.get("role"),
+               DIRECTION_WORDS.get(f.get("direction"), f.get("direction"))]
 
 
 def paper_row(doc: dict, p: str) -> List[Any]:
     meta = doc.get("source_metadata") or {}
     return [p, meta.get("paper_title"), meta.get("doi") or doc.get("paper_id"),
             meta.get("study"), meta.get("data_release"), meta.get("sample_size"),
-            meta.get("design"), len(doc.get("variables") or []),
-            len(doc.get("findings") or []), len(doc.get("rejected") or [])]
+            meta.get("design"), len(doc.get("findings") or []),
+            len(doc.get("variables") or []), len(doc.get("models") or []),
+            len(doc.get("rejected") or [])]
 
 
-def finding_rows(doc: dict, p: str) -> Iterable[List[Any]]:
-    for f in doc.get("findings") or []:
-        ev = _ev(f)
-        yield [p, f.get("statement"), f.get("claim_type"), f.get("directionality"),
-               DIRECTION_WORDS.get(f.get("direction"), f.get("direction")),
-               f.get("role"), f.get("construct_label") or f.get("construct"),
-               f.get("variables"), f.get("effect_size") or f.get("estimate"),
-               f.get("statistic"), f.get("analytic_n"), f.get("subgroup"),
-               ev.get("section"), ev.get("page"), ev.get("quote")]
-
-
-def variable_rows(doc: dict, p: str) -> Iterable[List[Any]]:
-    for v in doc.get("variables") or []:
+def variable_rows(doc: dict, p: str):
+    vs = sorted(doc.get("variables") or [],
+                key=lambda v: ROLE_ORDER.get(str(v.get("role") or ""), 9))
+    for v in vs:
         ev = _ev(v)
-        yield [p, v.get("mention_as_written") or v.get("name"), v.get("label"),
-               v.get("role_summary") or v.get("role"),
+        yield [p, v.get("mention_as_written") or v.get("name"),
+               v.get("role_summary") or v.get("role"), v.get("label"),
                v.get("timepoint_normalized") or v.get("timepoint"),
                v.get("instrument"), v.get("respondent"), _abcd_variable(v),
                v.get("nda_or_nbdc_table"), v.get("nbdc_domain"), _match_status(v),
-               _releases(v), ev.get("section"), ev.get("page"), ev.get("quote")]
+               _releases(v), _where(ev), ev.get("quote")]
 
 
-def model_rows(doc: dict, p: str) -> Iterable[List[Any]]:
+def model_rows(doc: dict, p: str):
     for m in doc.get("models") or []:
         ev = _ev(m)
         yield [p, m.get("specification"), m.get("kind"), m.get("tests_hypothesis"),
-               m.get("predictors"), m.get("outcomes"), m.get("mediators"),
-               m.get("moderators"), m.get("covariates"), m.get("software"),
-               ev.get("section"), ev.get("quote")]
+               m.get("predictors"), m.get("mediators"), m.get("moderators"),
+               m.get("outcomes"), m.get("covariates"), m.get("software"),
+               _where(ev), ev.get("quote")]
 
 
-def construct_rows(doc: dict, p: str) -> Iterable[List[Any]]:
+def construct_rows(doc: dict, p: str):
     for c in doc.get("constructs") or []:
         ev = _ev(c)
         in_quote = ev.get("label_in_quote")
         yield [p, c.get("construct"), c.get("construct_id"), c.get("construct_label"),
                "verbatim" if in_quote else ("paraphrased" if in_quote is False else ""),
-               ev.get("section"), ev.get("quote")]
+               _where(ev), ev.get("quote")]
 
 
-def rejected_rows(doc: dict, p: str) -> Iterable[List[Any]]:
+def rejected_rows(doc: dict, p: str):
     for r in doc.get("rejected") or []:
         claim = r.get("claim") or {}
-        what = claim.get("statement") or claim.get("name") or claim.get("variable") \
-            or claim.get("construct") or claim
+        what = (claim.get("statement") or claim.get("name") or claim.get("variable")
+                or claim.get("construct") or claim)
         yield [p, r.get("section"), str(r.get("reason") or "").replace("_", " "),
                what, r.get("claimed_quote")]
-
-
-def _labels_by_id(papers: Sequence[dict], labels: Sequence[str]) -> Dict[str, str]:
-    out = {}
-    for d, label in zip(papers, labels):
-        meta = d.get("source_metadata") or {}
-        for key in (d.get("paper_id"), meta.get("doi")):
-            if key:
-                out[str(key)] = label
-    return out
-
-
-def claim_rows(syn: dict, labels: Dict[str, str]) -> Iterable[List[Any]]:
-    for c in syn.get("claims") or []:
-        measured = c.get("measured_by") or c.get("variables_in_findings") or []
-        yield [c.get("claim_id"), c.get("claim"), c.get("verdict"),
-               [labels.get(str(p), p) for p in c.get("papers") or []],
-               c.get("agreement"), c.get("construct_label"),
-               [m.get("variable") if isinstance(m, dict) else m for m in measured],
-               c.get("caveats")]
-
-
-def claim_evidence_rows(syn: dict, labels: Dict[str, str]) -> Iterable[List[Any]]:
-    for c in syn.get("claims") or []:
-        for side, items in (("supports", c.get("evidence")),
-                            ("contradicts", c.get("contradictions"))):
-            for e in items or []:
-                st = e.get("strength") or {}
-                yield [c.get("claim_id"), side,
-                       labels.get(str(e.get("paper_id")), e.get("paper_id")),
-                       e.get("data_release"),
-                       DIRECTION_WORDS.get(e.get("direction"), e.get("direction")),
-                       e.get("statement"), e.get("effect_size"), e.get("statistic"),
-                       e.get("analytic_n"), st.get("level"), st.get("reasons"),
-                       e.get("section"), e.get("quote")]
-
-
-def construct_summary_rows(syn: dict) -> Iterable[List[Any]]:
-    for c in syn.get("constructs") or []:
-        dirs = c.get("directions") or {}
-        yield [c.get("construct_label") or c.get("construct_id_or_key"), c.get("verdict"),
-               c.get("paper_count"), c.get("majority_direction"), c.get("agreement"),
-               ", ".join(f"{DIRECTION_WORDS.get(k, k)}: {n}" for k, n in dirs.items()),
-               [m.get("variable") if isinstance(m, dict) else m
-                for m in c.get("measured_by") or []]]
 
 
 # --------------------------------------------------------------------------- #
@@ -258,16 +364,22 @@ def construct_summary_rows(syn: dict) -> Iterable[List[Any]]:
 # --------------------------------------------------------------------------- #
 
 README_ROWS = [
-    ("Sheet", "What it holds"),
-    ("Papers", "One row per paper in the run."),
-    ("Findings", "One row per result the paper reports about its own data. Every quote was found verbatim in the paper."),
-    ("Variables", "One row per variable the study used, with the ABCD data-dictionary variable it maps to."),
-    ("Models", "One row per analysis (model) the paper ran."),
-    ("Constructs", "One row per psychological / biological construct mentioned, with its Cognitive Atlas id when one was found."),
-    ("Rejected", "Items the extractor proposed that failed verification (quote not in the paper, or the result belongs to cited work)."),
-    ("Claims", "Cross-paper claims: what the set of papers supports for each construct."),
-    ("Claim evidence", "The paper-by-paper results behind each claim, including the ones that contradict it."),
-    ("Construct summary", "Per construct: whether the papers agree on the direction of the effect."),
+    ("How to read this workbook", ""),
+    ("Cross-paper", "Start here. Each coloured row is one relationship between variables (e.g. family conflict ↔ externalizing) with a verdict. The rows under it are every paper's finding on that relationship: direction, effect size, where in the paper and the exact quote. Papers 'disagree' only when they report opposite signs for the same relationship."),
+    ("Findings", "Every finding each paper reported about its own data, in the order it appears in the paper. 'Quote from paper (verbatim)' is the paper's own sentence, checked against its text. 'Summary (paraphrase, not verbatim)' is the extractor's one-line restatement, there to scan quickly; rely on the quote. 'Cross-paper ID' points to the block in the Cross-paper sheet that groups it with other papers."),
+    ("Papers", "One row per paper: title, DOI, ABCD release, sample, design."),
+    ("Variables", "The measures each paper used, the role each played (predictor, mediator, outcome, covariate, ...) and the ABCD data-dictionary variable it maps to."),
+    ("Models", "The statistical analyses each paper ran, one row per model, with which variables were predictors, mediators, moderators, outcomes and covariates. Use it to see how a finding was obtained."),
+    ("Constructs", "The broader concepts the variables measure (e.g. 'externalizing symptoms', 'working memory'), with the Cognitive Atlas id when found. This is how variables from different papers are recognised as measuring the same thing."),
+    ("Rejected", "Present only when the verifier rejected something (quote not in the paper, or a result that belongs to cited work)."),
+    ("", ""),
+    ("Verdict", "Meaning"),
+    ("Papers agree", "Two or more papers report the same direction for this relationship."),
+    ("Papers disagree", "Two or more papers report opposite directions (positive vs negative) for the same relationship."),
+    ("Mixed results", "Two or more papers, but no direction reaches 70% of the results (e.g. positive and no-effect)."),
+    ("One paper only", "Only one paper reports this relationship, so there is nothing to compare."),
+    ("Change over time (not compared)", "A trend or stability of one variable over time. Listed for context; a mean decline and a stability coefficient are different quantities, so they are not judged against each other."),
+    ("Yellow row", "The same paper reports both positive and negative for this relationship, usually the abstract contradicting the results."),
     ("", ""),
     ("Claim type", "Meaning"),
     ("explicit", "States directly that one thing changes another, with an effect verb (increases, prevents, reduces)."),
@@ -278,7 +390,7 @@ README_ROWS = [
     ("associative", "Links two variables with association wording (associated with, linked to, predicted)."),
     ("descriptive", "Describes the sample or a distribution without relating two variables."),
     ("causal", "Uses causal wording (causes, leads to, results in, due to, mediates)."),
-    ("", "explicit, implicit, comparison, correlation and observation: C. Blake, 'Beyond genes, proteins, and abstracts: Identifying scientific claims from full-text biomedical articles', J Biomed Inform 43(2):173-189, 2010, doi:10.1016/j.jbi.2009.11.001. associative, descriptive and causal extend that framework."),
+    ("Source", "explicit, implicit, comparison, correlation, observation: C. Blake, 'Beyond genes, proteins, and abstracts: Identifying scientific claims from full-text biomedical articles', J Biomed Inform 43(2):173-189, 2010, doi:10.1016/j.jbi.2009.11.001. associative, descriptive and causal extend that framework."),
     ("", ""),
     ("Directionality", "Meaning"),
     ("increase", "The claim says the outcome goes up."),
@@ -286,57 +398,152 @@ README_ROWS = [
     ("mixed", "Parts of the claim go in opposite directions."),
     ("support", "The claim affirms a relationship without a sign."),
     ("(blank)", "A reported null / absent effect, or not given."),
-    ("", ""),
-    ("Direction (sign)", "The sign of the effect used to compare papers: positive, negative, no effect, mixed, not stated."),
+    ("Effect sign", "The sign used to compare papers: positive, negative, no effect, mixed, not stated."),
 ]
 
-_WIDE = {"Finding", "Quote from paper", "Description", "Statement", "Result",
-         "Title", "Analysis", "Quote proposed", "What was proposed", "Caveats",
-         "Why that strength", "What it holds", "Meaning"}
-_MEDIUM = {"Section", "Variables", "Predictors", "Outcomes", "Mediators", "Moderators",
-           "Covariates", "Measured by", "How it was matched", "Construct",
-           "Mentioned as", "Timepoint", "Instrument", "Papers", "Directions reported"}
+_WIDE = {"Finding", "Quote from paper", QUOTE_COL, SUMMARY_COL, "Full sentence",
+         "Table context (verbatim)", "Check", "Description", "Title",
+         "Analysis", "Quote proposed", "What was proposed"}
+_MEDIUM = {"Relationship", "Where in paper", "Variables", "Predictors", "Outcomes",
+           "Mediators", "Moderators", "Covariates", "Dictionary match", "Construct",
+           "Variable (as written)", "Timepoint", "Instrument", "Strength of evidence",
+           "Verdict", "Design"}
 
 
 def _width(header: str) -> int:
     if header in _WIDE:
-        return 60
+        return 55
     if header in _MEDIUM:
-        return 28
-    return max(12, min(20, len(header) + 2))
+        return 26
+    return max(11, min(18, len(header) + 2))
 
 
-def _add_sheet(wb, title: str, headers: Sequence[str], rows: Iterable[Sequence[Any]]):
+def _styles():
     from openpyxl.styles import Alignment, Font, PatternFill
+    return Alignment, Font, PatternFill
+
+
+def _drop_empty_columns(headers: Sequence[str], rows: List[List[Any]],
+                        keep: Sequence[str] = ("Paper",)) -> Tuple[List[str], List[List[Any]]]:
+    cols = [i for i, h in enumerate(headers)
+            if h in keep or any(r[i] not in ("", None) for r in rows)]
+    return [headers[i] for i in cols], [[r[i] for i in cols] for r in rows]
+
+
+def _table_sheet(wb, title: str, headers: Sequence[str], rows: Iterable[Sequence[Any]],
+                 *, band_by: Optional[int] = 0):
+    Alignment, Font, PatternFill = _styles()
     from openpyxl.utils import get_column_letter
 
+    data = [[_cell(v) for v in r] for r in rows]
+    headers, data = _drop_empty_columns(list(headers), data)
     ws = wb.create_sheet(title)
-    ws.append(list(headers))
-    for r in rows:
-        ws.append([_cell(v) for v in r])
-    bold = Font(bold=True, color="FFFFFF")
-    fill = PatternFill("solid", fgColor="305496")
-    for c in ws[1]:
-        c.font, c.fill = bold, fill
+    _note_row(ws, title, len(headers))
+    ws.append(headers)
+    for r in data:
+        ws.append(r)
+    for c in ws[2]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor=FILL["header"])
         c.alignment = Alignment(vertical="center", wrap_text=True)
     wrap = Alignment(wrap_text=True, vertical="top")
-    for row in ws.iter_rows(min_row=2):
+    band = PatternFill("solid", fgColor=FILL["band"])
+    last, shade = None, False
+    for row in ws.iter_rows(min_row=3):
+        if band_by is not None:
+            key = row[band_by].value
+            if key != last:
+                shade, last = not shade, key
         for c in row:
             c.alignment = wrap
+            if band_by is not None and shade:
+                c.fill = band
     for i, h in enumerate(headers, start=1):
         ws.column_dimensions[get_column_letter(i)].width = _width(h)
-    ws.freeze_panes = "B2" if len(headers) > 1 else "A2"
-    if ws.max_row > 1:
-        ws.auto_filter.ref = ws.dimensions
+    ws.freeze_panes = "C3" if len(headers) > 2 else "A3"
+    if ws.max_row > 2:
+        ws.auto_filter.ref = f"A2:{get_column_letter(len(headers))}{ws.max_row}"
+    return ws
+
+
+def _note_row(ws, title: str, width: int) -> None:
+    """Row 1: one sentence on what the sheet is for, across the table's width."""
+    Alignment, Font, _ = _styles()
+    ws.append([SHEET_NOTES.get(title, "")])
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max(width, 1))
+    c = ws.cell(row=1, column=1)
+    c.font = Font(italic=True, color="404040")
+    c.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.row_dimensions[1].height = 45
+
+
+def _cross_paper_sheet(wb, synthesis: dict, labels: Dict[str, str]):
+    """Heading row per relationship, its evidence underneath, one paper per row."""
+    Alignment, Font, PatternFill = _styles()
+    from openpyxl.utils import get_column_letter
+
+    ws = wb.create_sheet("Cross-paper", 1)
+    _note_row(ws, "Cross-paper", len(CROSS_COLS))
+    ws.append(CROSS_COLS)
+    for c in ws[2]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor=FILL["header"])
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    wrap = Alignment(wrap_text=True, vertical="top")
+    grey = Font(color="808080")
+
+    for r in synthesis.get("relationships") or []:
+        papers = [labels.get(str(p), p) for p in r.get("papers") or []]
+        verdict = VERDICT_WORDS.get(r.get("verdict"), r.get("verdict"))
+        within = [labels.get(str(p), p) for p in r.get("within_paper_conflict") or []]
+        if within:
+            verdict += " · conflict within " + ", ".join(within)
+        claim = str(r.get("claim") or "")
+        caveats = [c for c in r.get("caveats") or []
+                   if not c.startswith("change over time")]
+        if caveats:
+            claim += "  Caveats: " + "; ".join(caveats) + "."
+        ws.append([_cell(v) for v in (r.get("relationship_id"), verdict, r.get("label"),
+                                      papers, "", claim)] + [""] * (len(CROSS_COLS) - 6))
+        head = ws.max_row
+        colour = (FILL["within"] if within else
+                  FILL.get(r.get("verdict"), FILL["default"]))
+        for c in ws[head]:
+            c.font = Font(bold=True)
+            c.fill = PatternFill("solid", fgColor=colour)
+            c.alignment = wrap
+        ws.merge_cells(start_row=head, start_column=6, end_row=head,
+                       end_column=len(CROSS_COLS))
+        for e in r.get("evidence") or []:
+            ws.append([_cell(v) for v in (
+                r.get("relationship_id"), "", "", labels.get(str(e.get("paper_id")),
+                                                             e.get("paper_id")),
+                DIRECTION_WORDS.get(e.get("direction"), e.get("direction")),
+                "\n\n".join(x for x in (e.get("quote"), _context(e)) if x),
+                "\n".join(_checks({**e, "evidence": e}) and
+                          [str(e.get("statement") or ""), "CHECK: " + "; ".join(_checks({**e, "evidence": e}))]
+                          or [str(e.get("statement") or "")]),
+                e.get("claim_type"),
+                e.get("effect_size"), e.get("statistic"), e.get("analytic_n"),
+                _strength(e), _where(e))])
+            row = ws[ws.max_row]
+            for c in row:
+                c.alignment = wrap
+            row[0].font = grey   # the id stays on evidence rows so filters work
+        ws.append([])            # a blank line between blocks
+    for i, h in enumerate(CROSS_COLS, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = _width(h)
+    ws.column_dimensions["A"].width = 6
+    ws.freeze_panes = "D3"
     return ws
 
 
 def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
     try:
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font
     except ImportError as exc:  # listed in requirements.txt
         raise RuntimeError("the xlsx format needs openpyxl (pip install openpyxl)") from exc
+    Alignment, Font, _ = _styles()
 
     wb = Workbook()
     readme = wb.active
@@ -346,31 +553,32 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
     for row in readme.iter_rows():
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
-        if row[0].value in ("Sheet", "Claim type", "Directionality"):
+        if row[0].value in ("How to read this workbook", "Verdict", "Claim type",
+                            "Directionality"):
             for c in row:
                 c.font = Font(bold=True)
-    readme.column_dimensions["A"].width = 22
+    readme.column_dimensions["A"].width = 30
     readme.column_dimensions["B"].width = 110
 
     names = paper_labels(papers)
+    labels = _ids_to_labels(papers, names)
+    has_cross = bool(synthesis and synthesis.get("relationships")) and len(papers) > 1
+    if has_cross:
+        _cross_paper_sheet(wb, synthesis, labels)
+    rel_of = _finding_index_to_rel(synthesis if has_cross else None)
 
-    def rows(fn):
-        return (r for d, p in zip(papers, names) for r in fn(d, p))
+    def rows(fn, *extra):
+        return (r for d, p in zip(papers, names) for r in fn(d, p, *extra))
 
-    _add_sheet(wb, "Papers", PAPER_COLS,
-               (paper_row(d, p) for d, p in zip(papers, names)))
-    _add_sheet(wb, "Findings", FINDING_COLS, rows(finding_rows))
-    _add_sheet(wb, "Variables", VARIABLE_COLS, rows(variable_rows))
-    _add_sheet(wb, "Models", MODEL_COLS, rows(model_rows))
-    _add_sheet(wb, "Constructs", CONSTRUCT_COLS, rows(construct_rows))
-    _add_sheet(wb, "Rejected", REJECTED_COLS, rows(rejected_rows))
-    if synthesis:
-        labels = _labels_by_id(papers, names)
-        _add_sheet(wb, "Claims", CLAIM_COLS, claim_rows(synthesis, labels))
-        _add_sheet(wb, "Claim evidence", CLAIM_EVIDENCE_COLS,
-                   claim_evidence_rows(synthesis, labels))
-        _add_sheet(wb, "Construct summary", CONSTRUCT_SUMMARY_COLS,
-                   construct_summary_rows(synthesis))
+    _table_sheet(wb, "Findings", FINDING_COLS, rows(finding_rows, rel_of))
+    _table_sheet(wb, "Papers", PAPER_COLS,
+                 (paper_row(d, p) for d, p in zip(papers, names)), band_by=None)
+    _table_sheet(wb, "Variables", VARIABLE_COLS, rows(variable_rows))
+    _table_sheet(wb, "Models", MODEL_COLS, rows(model_rows))
+    _table_sheet(wb, "Constructs", CONSTRUCT_COLS, rows(construct_rows))
+    rejected = list(rows(rejected_rows))
+    if rejected:
+        _table_sheet(wb, "Rejected", REJECTED_COLS, rejected)
     return wb
 
 
@@ -386,10 +594,18 @@ def write_workbook(papers: Sequence[dict], path: Path,
 # CLI: build the workbook from an existing output directory
 # --------------------------------------------------------------------------- #
 
-def load_dir(out_dir: Path) -> tuple[List[dict], Optional[dict]]:
+def load_dir(out_dir: Path) -> Tuple[List[dict], Optional[dict]]:
+    """Per-paper JSON from `out_dir`, and a synthesis that has relationships.
+
+    A synthesis written before relationships existed is recomputed from the
+    per-paper files rather than shown without its cross-paper sheet.
+    """
     papers = [json.loads(p.read_text()) for p in sorted(Path(out_dir).glob("*_abcd.json"))]
     syn_path = Path(out_dir) / "abcd_synthesis.json"
     syn = json.loads(syn_path.read_text()) if syn_path.exists() else None
+    if len(papers) > 1 and not (syn or {}).get("relationships"):
+        from scripts.abcd_synthesize import synthesize
+        syn = synthesize(papers)
     return papers, syn
 
 
@@ -406,7 +622,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         print(f"no *_abcd.json files in {a.out_dir}", file=sys.stderr)
         return 1
     out = write_workbook(papers, a.output or a.out_dir / "abcd_results.xlsx", syn)
-    print(f"{len(papers)} papers{' + synthesis' if syn else ''} -> {out}")
+    print(f"{len(papers)} papers{' + cross-paper' if syn else ''} -> {out}")
     return 0
 
 

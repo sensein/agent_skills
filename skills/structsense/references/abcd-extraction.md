@@ -117,10 +117,13 @@ paper's `provenance.retrieval`.
 Every run emits three formats by default: **JSON** (machine record per paper,
 includes rejected claims), **Turtle** (triples for a graph store, PROV-O
 provenance), and **one Excel workbook for the whole run**, `abcd_results.xlsx`,
-which is the file to read. It has a sheet each for Papers, Findings (with claim
-type and directionality), Variables, Models, Constructs and Rejected, plus Claims,
-Claim evidence and Construct summary from the synthesis. Every row carries the
-paper and the full quote, and a README sheet explains the coded values. Per-paper
+which is the file to read. Its sheets are README, **Cross-paper** (one block per
+relationship: a heading row with the verdict, then each paper's finding on it),
+**Findings** (each paper's results in reading order, with claim type,
+directionality and the cross-paper block it belongs to), Papers, Variables,
+Models, Constructs, and Rejected when anything was rejected. Row 1 of each sheet
+says what the sheet is for. Every row names its paper and carries the full quote,
+plus the full sentence when the quote is a fragment. Per-paper
 **Markdown** is opt-in (`--formats json,ttl,xlsx,md`). **codebook** is opt-in too
 (`--formats ...,codebook`) and writes the run in the ABCD annotators' own coding
 scheme for diffing against hand-coded data. To build the workbook from an
@@ -192,6 +195,53 @@ line-wrapping are normalised (a PDF text layer mangles these and no model
 reproduces them exactly); the characters themselves must still be present, in
 order. Quotes under 25 characters are refused — a fragment that short matches by
 accident.
+
+**Quotes are whole sentences.** After an item passes verification and the
+own-study gate, its quote is widened to the full sentence(s) it sits in, verbatim
+from the same text, with `start`/`end` updated. The extractor's own span is kept
+as `quote_as_extracted` and `quote_widened_to_sentence: true` is set. The quote is
+widened after the gate, so this never changes what is kept. Table and figure
+quotes stay as the row. A sentence that a figure, table or page break interrupts
+in the extracted text ends where the break is and gets `sentence_cut_by_layout:
+true`. The continuation is not guessed, because on a two-column page the next
+block is often the other column. A finding whose `effect_size` holds two values
+of one metric (`r = −.15 …; r = −.41 …`) is flagged `combines_several_results`;
+the prompt asks for one finding per result.
+
+**Text extraction keeps tables out of sentences.** The PyMuPDF backend reads each
+page block by block, puts rotated text (a table printed sideways) after the
+prose, and drops running headers and footers (blocks repeated on half the pages
+or more). Its earlier sorted plain-text mode merged a sideways table into the
+prose word by word ("Heightened familyvariables conflict … baselinewhen
+controllingand …"), so quotes from that text could not be read or found in the
+paper. Provenance now records which backend produced the text
+(`provenance.text_extractor`) instead of `unknown`.
+
+**One input per paper: duplicates are found by content, not by name.** Before any
+extraction, every input is checked against the others:
+
+1. **Identical bytes** (sha256): `paper (1).pdf`, a renamed copy, a copy in
+   another folder.
+2. **Same text**: a quick text read (PyMuPDF, else pdfminer; .txt/.md/.html read
+   directly) is fingerprinted as word pairs. Two files are the same paper when
+   ≥ 60% of the smaller one's word pairs appear in the other, or ≥ 40% plus the
+   same DOI on the first page. Dataset DOIs (`10.15154/…`, NDA) don't count,
+   because every ABCD paper cites them. On ABCD papers, copies of one paper
+   score 0.85–1.00 (including a text dump whose layout wove a table into the
+   prose) and different papers by the same authors on the same cohort score
+   0.10–0.23. This catches a PDF plus its `.txt` dump, a results folder's
+   `text/` copies, re-downloads with different bytes, and renamed copies.
+
+Of a group of duplicates, the kept file is the original format (PDF first), then
+the fuller text, then the oldest file, then the copy nearest the top of the
+folder without a "(1)"/"copy" marker. Each skipped file is printed with the
+reason and kept file, and listed in the run summary. A file whose text can't be
+read (a scan with no text layer) is checked by checksum only.
+
+Two *different* papers that share a file name are both processed, under distinct
+output names. The original document keeps `<stem>_abcd.*`, and the other gets
+`<stem>_<ext>_abcd.*` (or `<stem>_<folder>_<ext>`), so neither overwrites the
+other and existing payloads still match the original.
 
 The requirement is **per-section**, because "present in the paper" differs by
 claim type:
@@ -717,6 +767,33 @@ python -m scripts.abcd_synthesize ./out --min-papers 3 --out ./out/abcd_synthesi
 **Counting is by paper, never by finding.** A paper reporting one association
 across six models must not outvote five other papers; that would make verbosity
 look like evidence.
+
+### Relationships: where papers actually disagree
+
+`relationships[]` groups findings by **what they are about**: the resolved
+variables, not the construct alone. Two results disagree only when they concern
+the same relationship and have opposing signs. Grouping by construct alone made
+"income → lower family conflict" (negative) and "financial strain → higher family
+conflict" (positive) look like papers disagreeing about family conflict.
+
+| `kind` | When |
+|---|---|
+| `association` | two variables (growth factors kept apart: an intercept is not a slope) |
+| `multi_variable` | three or more (mediation paths) |
+| `change_over_time` | one variable, or several that each change over time ("both decreased over time"). Listed, never judged across papers: a stability coefficient and a mean decline share sign words, not meaning, so the verdict is `change_over_time` |
+| `unspecified` | no variables, or a moderator with nothing else named |
+
+Verdicts are the construct ones (`consensus`, `divergent`, `mixed`,
+`insufficient_papers`, `no_directional_finding`), plus `change_over_time`.
+`within_paper_conflict` lists papers that report both signs for one relationship,
+which is usually an abstract contradicting its own results. Each relationship's
+`evidence[]` has every paper's finding with effect, statistic, n, strength,
+section, page and quote, plus `finding_index` back into that paper's `findings[]`.
+
+A construct claim whose opposing signs all come from different relationships now
+has the verdict `different_relationships` (not `divergent`), and its statement
+names which relationships go which way. Trend findings are kept as `not_counted`
+rather than counted as an association's direction.
 
 ### Claims
 

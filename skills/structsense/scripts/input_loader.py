@@ -508,30 +508,77 @@ def _try_pymupdf(path: Path, *, errors: list[str]) -> Optional[str]:
             t = _pymupdf_page_text(page)
             if t and t.strip():
                 pages.append(t)
-        return "\n\n".join(pages).strip()
+        return "\n\n".join(_drop_running_lines(pages)).strip()
     finally:
         doc.close()
 
 
+def _drop_running_lines(pages: list[str]) -> list[str]:
+    """Remove running headers/footers: blocks repeated on most pages.
+
+    A journal footer ("https://doi.org/... Published online by Cambridge University
+    Press") sits between the last line of one page and the first of the next, so a
+    sentence crossing the page break reads as "... behavior and https://doi.org/...
+    Published online ...". A block whose text (digits folded, so page numbers
+    match) recurs on at least half the pages is page furniture, not prose.
+    Needs 4+ pages; shorter documents are returned unchanged.
+    """
+    if len(pages) < 4:
+        return pages
+    def key(block: str) -> str:
+        return re.sub(r"\d+", "#", " ".join(block.split())).lower()
+    counts: dict[str, int] = {}
+    split = [[b for b in re.split(r"\n[ \t]*\n", p) if b.strip()] for p in pages]
+    for blocks in split:
+        for k in {key(b) for b in blocks}:
+            counts[k] = counts.get(k, 0) + 1
+    furniture = {k for k, n in counts.items()
+                 if n >= max(3, len(pages) // 2) and len(k) < 200}
+    return ["\n\n".join(b for b in blocks if key(b) not in furniture)
+            for blocks in split]
+
+
 def _pymupdf_page_text(page) -> str:
-    """Page text in reading order, keeping caption and table blocks.
+    """Page text in reading order, block by block, with rotated text last.
 
     `page.get_text()` with default flags returns blocks in the PDF's internal
     order, which on a two-column paper interleaves the columns and scatters a
-    figure caption into the middle of unrelated body text. That is the mechanism
-    behind "the caption is in the PDF but I cannot locate the passage": the words
-    are all present, just not contiguous, so a passage-level match fails.
+    figure caption into the middle of unrelated body text.
 
-    `sort=True` orders blocks top-to-bottom / left-to-right, which keeps a caption
-    together as one block. It is not column-aware — GROBID still does that better —
-    but it turns scrambled text into merely mis-sequenced text, and a caption that
-    survives as one contiguous block is locatable.
+    `get_text("text", sort=True)` fixes the order but merges everything on one
+    visual line into one line of text. A table printed sideways (common for wide
+    correlation tables) then lands inside the prose, word by word:
+    "Heightened familyvariables conflict mediated ... baselinewhen controllingand
+    externalizingfor child...". Quotes taken from that text are fragments of
+    sentences no reader could find in the paper.
+
+    So: sorted *blocks* from the "dict" output, each block's lines joined on
+    their own, and any rotated line (a sideways table, a margin note) kept out of
+    the prose and appended after the page's upright text. Every character is
+    still there; only the order changes.
     """
     try:
-        return page.get_text("text", sort=True)
+        data = page.get_text("dict", sort=True)
     except TypeError:
         # Older PyMuPDF without the sort kwarg.
         return page.get_text()
+    upright: list[str] = []
+    rotated: list[str] = []
+    for block in data.get("blocks") or []:
+        if block.get("type") != 0:        # images
+            continue
+        up, rot = [], []
+        for line in block.get("lines") or []:
+            text = "".join(span.get("text", "") for span in line.get("spans") or [])
+            if not text.strip():
+                continue
+            dx, dy = line.get("dir") or (1.0, 0.0)
+            (up if abs(dy) < 0.1 and dx > 0 else rot).append(text)
+        if up:
+            upright.append("\n".join(up))
+        if rot:
+            rotated.append("\n".join(rot))
+    return "\n\n".join(upright + rotated)
 
 
 def _try_pdfminer(path: Path, *, errors: list[str]) -> Optional[str]:

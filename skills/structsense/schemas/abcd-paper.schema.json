@@ -477,6 +477,21 @@
         },
         "verified": {
           "const": true
+        },
+        "quote_as_extracted": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The extractor's quote before it was widened to the whole sentence."
+        },
+        "quote_widened_to_sentence": {
+          "type": "boolean",
+          "description": "quote was widened, verbatim from the same text, to the full sentence(s) containing the extractor's quote. Done after verification and the scope gate, so it never changes what is kept."
+        },
+        "sentence_cut_by_layout": {
+          "type": "boolean",
+          "description": "The sentence is interrupted by a figure, table or page break in the extracted text; the continuation is not guessed."
         }
       }
     },
@@ -1224,6 +1239,10 @@
         "scope_signals": {
           "type": "object",
           "additionalProperties": true
+        },
+        "combines_several_results": {
+          "type": "boolean",
+          "description": "effect_size holds two values of the same metric: two results folded into one finding."
         }
       }
     },

@@ -45,6 +45,7 @@ if __package__ in (None, ""):  # executed as a file, not as part of the package
     from pathlib import Path as _Path
     _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
 
+import bisect
 import re
 import unicodedata
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -123,6 +124,9 @@ class TextIndex:
 
     def __init__(self, text: str):
         self.raw = text or ""
+        # _map indexes this string (NFKC folds a ligature into two letters), so
+        # anything that reasons about offsets — sentence widening — works on it.
+        self.nfkc = unicodedata.normalize("NFKC", self.raw)
         self.norm, self._map = self._build(self.raw)
         self._lower = self.norm.lower()
 
@@ -277,6 +281,269 @@ def verify_evidence(item: dict, index: TextIndex, *,
         "verified": True,
     }
     return out, None
+
+
+# --------------------------------------------------------------------------- #
+# full-sentence quotes
+# --------------------------------------------------------------------------- #
+
+# A sentence quoted for a reader must be one they can find: extractors quote
+# fragments ("conflict mediated the path between financial strain at"), which pass
+# verification but read as nothing. After verification the quote is widened to the
+# sentence(s) it sits in, verbatim from the same text, so it is still checkable.
+MAX_SENTENCE_CHARS = 700
+_ABBREV = re.compile(r"(?:\bet al|\be\.g|\bi\.e|\bvs|\bcf|\bFigs?|\bEq|\bNo|\bca|"
+                     r"\bapprox|\bresp|\bSuppl|\bVol|\bpp?|\b[A-Z])$")
+_PARA = re.compile(r"\n[ \t]*\n")
+
+
+_SENT_END = re.compile(r"[.?!][\"'\u201d)]?\s+(?=[A-Z0-9\"'\u201c(\[])")
+_SENT_END_RIGHT = re.compile(r"[.?!][\"'\u201d)]?(?=\s+[A-Z0-9\"'\u201c(\[]|\s*$)")
+
+
+def _continues(raw: str, para: "re.Match") -> bool:
+    """Is a blank line just a column/page break inside a sentence?
+
+    True when the text before it does not end a sentence and the text after it
+    starts in lower case ("... suggesting that externalizing behavior and" /
+    "family conflict bidirectionally predict ...").
+    """
+    before = raw[:para.start()].rstrip()
+    after = raw[para.end():].lstrip()
+    return bool(before) and bool(after) and before[-1] not in ".?!:" and after[0].islower()
+
+
+def _sentence_bounds(raw: str, start: int, end: int) -> Tuple[int, int]:
+    """Offsets of the sentence(s) containing raw[start:end].
+
+    A sentence ends at . ? ! followed by whitespace and a capital, digit, quote or
+    bracket, unless the word before it is an abbreviation (et al., e.g., Fig.).
+    A blank line (paragraph, heading, table block) is a boundary unless it is a
+    column or page break in the middle of a sentence.
+    """
+    # Left: the last paragraph start before the quote, hopping back over breaks
+    # that split a sentence.
+    lo = max(0, start - MAX_SENTENCE_CHARS)
+    base = lo
+    paras = list(_PARA.finditer(raw, lo, start))
+    for m in reversed(paras):
+        if not _continues(raw, m):
+            base = m.end()
+            break
+    left = base
+    # endpos one past `start` so the lookahead can see the quote's first letter.
+    for m in _SENT_END.finditer(raw, base, min(len(raw), start + 1)):
+        if m.end() <= start and not _ABBREV.search(raw[base:m.start()]):
+            left = m.end()
+    # Right: the first sentence end after the quote, crossing mid-sentence breaks.
+    hi = min(len(raw), end + MAX_SENTENCE_CHARS)
+    limit = hi
+    for m in _PARA.finditer(raw, end, hi):
+        if not _continues(raw, m):
+            limit = m.start()
+            break
+    right = limit
+    for m in _SENT_END_RIGHT.finditer(raw, max(start, end - 1), limit):
+        if not _ABBREV.search(raw[left:m.start()]):
+            right = m.end()
+            break
+    return left, right
+
+
+def expand_quote_to_sentence(item: dict, index: TextIndex) -> dict:
+    """Widen a verified quote to its whole sentence, verbatim. Table cells are left
+    alone: a table row has no sentence, and widening it would pull in the table."""
+    ev = dict(item.get("evidence") or {})
+    start, end = ev.get("start"), ev.get("end")
+    section = str(ev.get("section") or "")
+    if not isinstance(start, int) or not isinstance(end, int) or end <= start:
+        return item
+    # "Table 3", "Results - Table 2", "Table S1".
+    if re.search(r"\b(?:table|figure|fig\.)\s*[A-Z]?\d", section, re.I):
+        # A table row is unreadable alone ("Family Conflict Time 2a 0.070 0.024
+        # 0.024**"): what it predicts, what the columns are and what "a" means
+        # are in the table's caption, headings and footnotes. Attach those,
+        # verbatim, as the row's evidence context.
+        ctx = table_context(index, start, end)
+        if ctx:
+            ev["table_context"] = ctx
+            return {**item, "evidence": ev}
+        return item
+    left, right = _sentence_bounds(index.nfkc, start, end)
+    if (left, right) == (start, end) or right - left > MAX_SENTENCE_CHARS:
+        return item
+    # Map raw offsets into the normalised text the quote is stored in.
+    ns = bisect.bisect_left(index._map, left)
+    ne = bisect.bisect_left(index._map, right)
+    sentence = index.norm[ns:ne].strip()
+    old = str(ev.get("quote") or "")
+    if len(sentence) <= len(old) or normalize(old).lower() not in sentence.lower():
+        return item
+    # A run of numbers and asterisks is a table that leaked into the prose; do not
+    # present that as the paper's sentence.
+    if re.search(r"(?:[-\u2212]?\d*\.\d+\**\s+){4,}", sentence):
+        return item
+    ev.update({"quote_as_extracted": old, "quote": sentence,
+               "start": left, "end": right, "quote_widened_to_sentence": True})
+    # A figure, table or page break can cut a sentence in two. Its continuation
+    # is not reliably the next lower-case block (two-column pages put the other
+    # column there), so the cut is recorded rather than guessed across.
+    if sentence[-1:] not in ".?!:)\"'\u201d":
+        ev["sentence_cut_by_layout"] = True
+    return {**item, "evidence": ev}
+
+
+_CAPTION = re.compile(r"(?:^|\n)[ \t]*(Table\s*[A-Z]?\d+[.:]?[^\n]*)", re.I)
+_BLOCKS = re.compile(r"\n[ \t]*\n")
+
+
+def table_context(index: TextIndex, start: int, end: int) -> Optional[dict]:
+    """Caption, column headings, the row's group heading and its footnote.
+
+    Read from the text around the row: the nearest "Table N" caption before it
+    (within 6000 characters), the block after the caption (column headings), the
+    last heading block between caption and row that ends in ":" ("Externalizing
+    Time 3 predicted by:") plus "Covariates:" when the row sits under it, and the
+    footnote for a trailing letter on the row label ("Time 2a" -> "a the 'b'
+    path"). Every piece is verbatim. None when no caption is found.
+    """
+    raw = index.nfkc
+    lo = max(0, start - 6000)
+    caps = list(_CAPTION.finditer(raw, lo, start))
+    if not caps:
+        return None
+    cap = caps[-1]
+    blocks = [b for b in _BLOCKS.split(raw[cap.start(1):start]) if b.strip()]
+    if not blocks:
+        return None
+    flat = lambda b: " ".join(b.split())
+    caption = flat(blocks[0])
+    columns = flat(blocks[1]) if len(blocks) > 1 and len(blocks[1]) < 120 else None
+    labels = [flat(b) for b in blocks[2:] if flat(b).endswith(":") and len(b) < 150]
+    group = None
+    under_covariates = bool(labels) and labels[-1].lower().startswith("covariate")
+    outcome_labels = [l for l in labels if not l.lower().startswith("covariate")]
+    # A quote that starts with its own heading ("Family Conflict Time 2 predicted
+    # by: Financial Strain ...") already says what the row belongs to.
+    if outcome_labels and not re.search(r":\s", raw[start:end]):
+        group = outcome_labels[-1] + (" Covariates:" if under_covariates else "")
+    # Row labels of a correlation matrix give its numbered columns their meaning.
+    # A correlation matrix numbers its columns ("... M(SD)/% 1 2 3 ... 10"); the
+    # numbered row labels, before AND after this row, say what each column is.
+    row_labels = None
+    if columns and re.search(r"(?:\b\d+\s+){2,}\d+\s*$", columns):
+        after = []
+        for b in _BLOCKS.split(raw[end:end + 4000]):
+            if not b.strip():
+                continue
+            if not re.match(r"\s*\d+\.\s", b):
+                break
+            after.append(b)
+        label = re.compile(r"(\d+\.\s+[^\d\u2013\u2212\-(]+(?:\([^)]{1,20}\))?)")
+        here = raw[start:end]
+        row_labels = [m.group(1).strip().rstrip(" .") for m in
+                      (label.match(flat(b)) for b in blocks[2:] + [here] + after) if m][:20] or None
+    footnote = None
+    # The row's own label: the first line of the quote that is not a heading.
+    row_label = next((ln.strip() for ln in raw[start:end].split("\n")
+                      if ln.strip() and not ln.strip().endswith(":")), "")
+    m = re.search(r"(?<=[0-9A-Za-z])([a-z])$", row_label)
+    if m:
+        letter = m.group(1)
+        fm = re.search(rf"\n[ \t]*\n[ \t]*{letter}\s?(?=[A-Za-z\u201c\"'])([^\n]{{3,160}})",
+                       raw[end:end + 2500])
+        if fm:
+            footnote = f"{letter}: {fm.group(1).strip()}"
+    return {k: v for k, v in {"caption": caption, "columns": columns, "group": group,
+                              "row_labels": row_labels, "footnote": footnote}.items() if v}
+
+
+# --------------------------------------------------------------------------- #
+# is the one-line summary backed by its own evidence?
+# --------------------------------------------------------------------------- #
+
+_SUMMARY_STOP = set("""the and with that this from were was have has been than over also
+both more less which their there after before between among into only each other such
+these those when while did does not any all its they them being would could may might
+for but had are per via who whom whose one two its our out off own same very
+however though although within without about across based using used""".split())
+# Words that describe the kind of variable rather than which one ("externalizing
+# behaviors" vs "Externalizing"), and timepoint words, which a summary translates
+# ("Time 2" -> "1-year follow-up") from the paper's design section.
+_GENERIC = {"behav", "probl", "score", "total", "level", "measu", "repor", "youth",
+            "child", "paren", "time", "year", "years", "basel", "follo", "wave", "waves",
+            "month", "later", "earli", "prior"}
+# A statistic: a decimal, a percentage, or a number with a thousands separator.
+_STAT = re.compile(r"(?<![\w.])[-\u2212]?(?:\d*\.\d+|\d+(?:,\d{3})+|\d+(?:\.\d+)?%)")
+
+
+def _stems(text: str) -> set:
+    return {w[:5] for w in re.findall(r"[a-z]{3,}", (text or "").lower())
+            if w not in _SUMMARY_STOP and w[:5] not in _GENERIC}
+
+
+def _evidence_text(ev: dict) -> str:
+    ctx = ev.get("table_context") or {}
+    parts = [ev.get("quote") or ""]
+    for v in ctx.values():
+        parts.append(" ".join(v) if isinstance(v, list) else str(v))
+    return " ".join(parts)
+
+
+def _norm_num(n: str) -> str:
+    n = n.replace("\u2212", "-").replace(",", "")
+    sign = "-" if n.startswith("-") else ""
+    return sign + n.lstrip("-").lstrip("0")
+
+
+def check_summaries(doc: dict) -> int:
+    """Flag a finding whose summary names a variable or statistic its evidence lacks.
+
+    `statement` is the extractor's paraphrase and is never matched against the
+    paper, so it can carry details from elsewhere ("Child sex did not moderate any
+    path of the financial strain -> family conflict -> internalizing mediation"
+    over a quote that says only "no significant differences by child sex"). For
+    every variable or construct of this paper that the summary names, at least
+    half of its words must appear in the evidence: the quote, plus a table row's
+    caption, headings, row labels and footnote. Every statistic in the summary
+    (decimals, percentages) must appear there too. Timepoint wording and verbs
+    ("predicted", "associated") are not checked. This flags but does not reject:
+    the quote is still verified evidence.
+    """
+    phrases: List[str] = []
+    for v in doc.get("variables") or []:
+        phrases += [str(v.get(k) or "") for k in ("name", "mention_as_written", "measure")]
+        phrases += [str(a) for a in v.get("aliases") or []]
+    for c in doc.get("constructs") or []:
+        phrases.append(str(c.get("construct") or ""))
+    flagged = 0
+    for f in doc.get("findings") or []:
+        ev = f.get("evidence") or {}
+        evidence = _evidence_text(ev)
+        have = _stems(evidence)
+        said = _stems(f.get("statement") or "")
+        missing: List[str] = []
+        seen: List[set] = []
+        # Most specific first; among equals the shortest wording, so the flag
+        # says "family conflict", not "Family conflict year 1".
+        cands = sorted(set(phrases + [str(x) for x in f.get("variables") or []]),
+                       key=lambda t: (-len(_stems(t)), len(t), t))
+        for phrase in cands:
+            ps = _stems(phrase)
+            if not ps or not ps <= said or any(ps <= m for m in seen):
+                continue
+            if len(ps & have) / len(ps) < 0.5:
+                missing.append(phrase.strip())
+                seen.append(ps)
+        nums_have = {_norm_num(n) for n in _STAT.findall(evidence)}
+        nums = [n for n in _STAT.findall(f.get("statement") or "")
+                if _norm_num(n) not in nums_have]
+        f.pop("summary_not_in_evidence", None)
+        if missing or nums:
+            f["summary_not_in_evidence"] = {"variables": missing,
+                                            "statistics": list(dict.fromkeys(nums))}
+            flagged += 1
+    return flagged
 
 
 # --------------------------------------------------------------------------- #
@@ -732,6 +999,9 @@ def verify_payload(payload: dict, text: str, *,
             )
             if item is not None and not why:
                 item, why = gate_scope(item, strict=strict_scope)
+            # After the scope gate, so widening can never change what is kept.
+            if item is not None and not why:
+                item = expand_quote_to_sentence(item, index)
             if why or item is None:
                 why = why or "no_evidence"
                 reasons[why] = reasons.get(why, 0) + 1
@@ -785,6 +1055,7 @@ def verify_payload(payload: dict, text: str, *,
     abcd_roles.annotate(out)
     out["rejected"] = rejected
     out["coverage"] = _coverage_audit(out)
+    out["summaries_not_in_evidence"] = check_summaries(out)
 
     by_status: Dict[str, int] = {}
     for v in out["variables"]:
@@ -966,8 +1237,23 @@ def _norm_optional(value: Any, allowed: Sequence[str],
     return v if v in allowed else None
 
 
+# One metric reported twice in one effect_size ("r = -.15 (...); r = -.41 (...)")
+# means two results were folded into one finding. "b = 0.098, beta = 0.056" is
+# one result in two metrics and is fine.
+_EFFECT_METRIC = re.compile(
+    r"(?<![A-Za-z])(rs?|ρ|rho|b|B|β|beta|OR|HR|RR|d|g|η2|η²|R2|R²|t|F|z)\s*[=<>]",
+    re.UNICODE)
+
+
+def combines_several_results(effect_size: Any) -> bool:
+    metrics = [m.group(1).lower() for m in _EFFECT_METRIC.finditer(str(effect_size or ""))]
+    return len(metrics) != len(set(metrics))
+
+
 def _normalize_finding(item: dict, atlas) -> dict:
     out = dict(item)
+    if combines_several_results(out.get("effect_size")):
+        out["combines_several_results"] = True
     out["direction"] = _norm_enum(out.get("direction"), DIRECTIONS, "unspecified")
     out["claim_type"] = _norm_optional(out.get("claim_type"), CLAIM_TYPES,
                                        _CLAIM_TYPE_ALIASES)

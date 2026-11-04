@@ -149,9 +149,10 @@
               "divergent",
               "mixed",
               "insufficient_papers",
-              "no_directional_finding"
+              "no_directional_finding",
+              "different_relationships"
             ],
-            "description": "divergent = positive AND negative both reported (opposing signs), which is stronger than merely differing magnitudes."
+            "description": "divergent = positive AND negative both reported (opposing signs), which is stronger than merely differing magnitudes. different_relationships = opposing signs, but each from a different relationship (different variable pairs), so no two results actually conflict."
           },
           "evidence": {
             "type": "array",
@@ -625,6 +626,105 @@
               "type": "string"
             },
             "description": "Why the claim may be weaker than it looks: single paper, different releases, or the same sample size across papers (agreement that is not independent)."
+          }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "description": "One row per relationship (the resolved variables a finding is about), across papers. This is the unit at which results can disagree: two findings conflict only when they concern the same relationship and have opposing signs. change_over_time relationships (a trend or stability of one variable) are listed but never judged across papers.",
+      "items": {
+        "type": "object",
+        "required": [
+          "relationship_id",
+          "label",
+          "kind",
+          "verdict",
+          "claim",
+          "paper_count",
+          "evidence"
+        ],
+        "properties": {
+          "relationship_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "association",
+              "multi_variable",
+              "change_over_time",
+              "unspecified"
+            ]
+          },
+          "constructs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "consensus",
+              "divergent",
+              "mixed",
+              "insufficient_papers",
+              "no_directional_finding",
+              "change_over_time"
+            ]
+          },
+          "claim": {
+            "type": "string"
+          },
+          "paper_count": {
+            "type": "integer"
+          },
+          "papers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "papers_by_direction": {
+            "type": "object"
+          },
+          "majority_direction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "agreement": {
+            "type": "number"
+          },
+          "within_paper_conflict": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Papers that report both positive and negative for this relationship, usually an abstract contradicting its own results."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

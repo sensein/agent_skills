@@ -84,6 +84,15 @@ PDF_SUFFIXES = abcd_inputs.PAPER_SUFFIXES
 SECTIONS = ("variables", "constructs", "models", "findings")
 
 
+# Output name per input path (abcd_inputs.output_stems): two different papers that
+# share a file name must not write the same <stem>_abcd.json.
+_STEMS: Dict[str, str] = {}
+
+
+def _stem(path: Path) -> str:
+    return _STEMS.get(str(Path(path)), Path(path).stem)
+
+
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -103,6 +112,11 @@ def load_text(path: Path, *, grobid_url: Optional[str] = None,
         extractor = (meta or {}).get("extractor", "unknown") if isinstance(meta, dict) else "unknown"
     else:
         text, extractor = result, "unknown"
+    if extractor == "unknown":
+        # process_file returns the text alone; the backend it used is recorded
+        # module-level. Without this every run's provenance said "unknown".
+        from scripts import input_loader
+        extractor = input_loader.LAST_BACKEND or "unknown"
     return text, extractor
 
 
@@ -246,7 +260,7 @@ def extract_paper(path: Path, *, llm_model: str, dictionary: Optional[Dictionary
                               releases=releases, nda_release=nda_release,
                               study=study)
 
-    paper_id = meta.get("doi") or path.stem
+    paper_id = meta.get("doi") or _stem(path)
     doc = {
         "paper_id": str(paper_id),
         "source_metadata": {
@@ -336,7 +350,7 @@ def review_paper(doc: dict, path: Path, a: argparse.Namespace, *, out_dir: Path,
 
     status = "skipped (--no-judge)"
     if not a.no_judge:
-        jdir = out_dir / "judge" / path.stem
+        jdir = out_dir / "judge" / _stem(path)
         if a.llm_model and doc["provenance"].get("extraction_path") == "api":
             from scripts.llm_client import call
             s = rj.run_panel("abcd", doc, call=call, default_model=a.judge_model or a.llm_model,
@@ -369,7 +383,7 @@ def review_paper(doc: dict, path: Path, a: argparse.Namespace, *, out_dir: Path,
     # command is the output loop
     fb = a.feedback or (out_dir / "feedback" if (out_dir / "feedback").is_dir() else None)
     if fb is not None:
-        f = fb / f"{path.stem}.feedback.json" if fb.is_dir() else fb
+        f = fb / f"{_stem(path)}.feedback.json" if fb.is_dir() else fb
         if f.is_file():
             from scripts import human_feedback as hf
             spec = json.loads(f.read_text())
@@ -383,9 +397,9 @@ def review_paper(doc: dict, path: Path, a: argparse.Namespace, *, out_dir: Path,
         from scripts import human_feedback as hf
 
         def _render(d: dict) -> str:
-            return ", ".join(p.name for p in abcd_export.write_all(d, out_dir / f"{path.stem}_abcd",
+            return ", ".join(p.name for p in abcd_export.write_all(d, out_dir / f"{_stem(path)}_abcd",
                                                                     kind="paper", formats=("json", "md")).values())
-        status = hf.interactive("abcd", doc, out_dir / f"{path.stem}_abcd.json", render=_render,
+        status = hf.interactive("abcd", doc, out_dir / f"{_stem(path)}_abcd.json", render=_render,
                                 timeout=a.feedback_timeout or None, tools=tools)
         doc["provenance"]["human_feedback"] = status
         if status == "aborted":
@@ -404,7 +418,7 @@ def _resolve_inputs(target: str, *, download_dir: Optional[Path],
           file=sys.stderr)
     if summary.get("duplicates_dropped"):
         print(f"  {summary['duplicates_dropped']} duplicate file(s) skipped "
-              f"(identical content) — {summary['files_seen']} files, "
+              f"(same paper: identical file or same text) — {summary['files_seen']} files, "
               f"{summary['papers_total']} unique papers", file=sys.stderr)
     if summary["papers_unresolved"]:
         print(f"  {summary['papers_unresolved']} could not be resolved "
@@ -575,6 +589,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                   f"{NDA_SEARCH_PAPER_BUDGET}-paper budget for live lookups; "
                   "pass --nda-api on to force it", file=sys.stderr)
     inputs = [p.path for p in papers if p.path]
+    _STEMS.update({str(k): v for k, v in abcd_inputs.output_stems(inputs).items()})
     fetch_prov = {str(p.path): p.provenance for p in papers if p.origin != "local"}
     if a.prepare:
         plan = []
@@ -585,7 +600,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
             except Exception as exc:
                 plan.append({"paper": str(path), "error": str(exc)})
                 continue
-            sidecar = text_dir / f"{path.stem}.txt"
+            sidecar = text_dir / f"{_stem(path)}.txt"
             if path.suffix.lower() != ".txt":
                 try:
                     text_dir.mkdir(parents=True, exist_ok=True)
@@ -597,7 +612,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                 "text": str(sidecar),
                 "chars": len(text),
                 "chunks_if_api_path": len(_chunks(text, a.llm_model or "unknown")),
-                "write_payload_to": str(payload_dir / f"{path.stem}.payload.json"),
+                "write_payload_to": str(payload_dir / f"{_stem(path)}.payload.json"),
             })
         payload_dir.mkdir(parents=True, exist_ok=True)
         print(json.dumps({
@@ -634,7 +649,8 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                 if not line:
                     continue
                 rec = json.loads(line)
-                key = Path(str(rec.get("source_path") or rec.get("paper") or "")).stem
+                src = str(rec.get("source_path") or rec.get("paper") or "")
+                key = _stem(Path(src)) if src else ""
                 if key:
                     payload_map[key] = rec
         else:
@@ -648,11 +664,11 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         try:
             this_payload = override
             if payload_map:
-                this_payload = payload_map.get(path.stem)
+                this_payload = payload_map.get(_stem(path))
                 if this_payload is None:
                     failures.append((path, "no payload provided for this paper"))
                     print(f"SKIPPED {path.name}: no payload "
-                          f"(expected {path.stem}.payload.json)", file=sys.stderr)
+                          f"(expected {_stem(path)}.payload.json)", file=sys.stderr)
                     continue
             doc = extract_paper(path, llm_model=a.llm_model, dictionary=dictionary,
                                 atlas=atlas, grobid_url=a.grobid_url,
@@ -679,7 +695,7 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         doc["provenance"]["input_detected_as"] = input_summary["detected_as"]
         doc["provenance"]["input_duplicates_dropped"] = input_summary.get(
             "duplicates_dropped")
-        base = out_dir / f"{path.stem}_abcd"
+        base = out_dir / f"{_stem(path)}_abcd"
         paths = abcd_export.write_all(doc, base, kind="paper", formats=formats)
         v = doc["verification"]
         cov = doc.get("coverage") or {}

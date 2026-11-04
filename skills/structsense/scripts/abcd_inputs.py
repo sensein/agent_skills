@@ -35,11 +35,14 @@ if __package__ in (None, ""):  # executed as a file, not as part of the package
 import csv
 import hashlib
 import json
+import math
 import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
+import zlib
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
@@ -332,15 +335,9 @@ def resolve(target: str | Path, *, download_dir: Optional[Path] = None,
         kind = "directory"
         files = sorted(f for f in p.rglob("*")
                        if f.suffix.lower() in PAPER_SUFFIXES and not _ignored(f))
-        # Drop extracted-text sidecars. `--prepare` writes <stem>.txt next to each
-        # document, and counting both would process the same paper twice — and,
-        # because outputs are named from the stem, have the second run overwrite
-        # the first.
-        doc_stems = {f.with_suffix("").as_posix() for f in files
-                     if f.suffix.lower() in DOCUMENT_SUFFIXES}
-        files = [f for f in files
-                 if f.suffix.lower() in DOCUMENT_SUFFIXES
-                 or f.with_suffix("").as_posix() not in doc_stems]
+        # Extracted-text sidecars (`--prepare` writes <stem>.txt next to each
+        # document), copies in other folders and re-downloads are all caught by
+        # _drop_duplicate_files, which compares content, not names.
         papers = [Paper(path=f, title=f.stem) for f in files]
 
     elif p.is_file() and p.suffix.lower() in PAPER_SUFFIXES:
@@ -435,16 +432,205 @@ def _drop_duplicate_files(papers: List[Paper]) -> Tuple[List[Paper], List[dict]]
                       "sha256": digest[:16], "reason": "identical file content"})
         print(f"  skipping duplicate {Path(path).name} — identical to "
               f"{Path(str(first.path)).name}", file=sys.stderr)
-    return kept, dupes
+    return _drop_same_content(kept, dupes)
+
+
+# --------------------------------------------------------------------------- #
+# same paper, different file: compare what the files say
+# --------------------------------------------------------------------------- #
+
+# Which copy of one paper to keep: the original document before any text dump.
+_FORMAT_RANK = {".pdf": 0, ".docx": 1, ".html": 2, ".htm": 2, ".pptx": 2,
+                ".md": 3, ".txt": 4}
+# Share of the smaller text's word pairs found in the other text. Measured on
+# ABCD papers: a copy of the same paper scores 0.85-0.88 even when one copy's
+# text layer has a sideways table woven through it, and two different papers by
+# the same authors on the same cohort score 0.10-0.23.
+SAME_PAPER_OVERLAP = 0.60
+# With the same DOI printed on the first page, a lower overlap is enough (e.g. a
+# preprint and its published version). The DOI alone is not: ABCD papers all
+# cite the same NDA dataset DOIs.
+SAME_DOI_OVERLAP = 0.40
+_DATASET_DOI_PREFIXES = ("10.15154/",)    # NDA collection/study DOIs
+_MIN_SHINGLES = 200                       # below this a text is too short to judge
+_SKETCH = 256                             # bottom-k sketch size for candidate pairs
+
+
+def _quick_text(path: Path) -> Optional[str]:
+    """Enough of a file's text to compare it with another file; None if unreadable.
+
+    Fast on purpose (no Docling, no OCR): this runs on every input before any
+    extraction. A PDF with no text layer returns None and is compared by
+    checksum only.
+    """
+    suffix = path.suffix.lower()
+    try:
+        if suffix in (".txt", ".md"):
+            return path.read_text(errors="replace")
+        if suffix in (".html", ".htm"):
+            return re.sub(r"<[^>]+>", " ", path.read_text(errors="replace"))
+        if suffix == ".pdf":
+            try:
+                try:
+                    import pymupdf as fitz
+                except ImportError:
+                    import fitz
+                with fitz.open(str(path)) as doc:
+                    return "\n".join(page.get_text() for page in doc)
+            except ImportError:
+                pass
+            try:
+                from pdfminer.high_level import extract_text
+                return extract_text(str(path), maxpages=8)
+            except ImportError:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+def _fingerprint(text: str) -> Tuple[set, Optional[str]]:
+    """(word-pair shingles, first-page DOI). Word pairs, not longer runs: a text
+    layer that interleaves a table breaks long runs but leaves most pairs intact."""
+    t = unicodedata.normalize("NFKC", text or "").lower()
+    t = re.sub(r"-\s*\n\s*", "", t)                    # re-join hyphenated words
+    words = re.findall(r"[a-z]{3,}", t)
+    shingles = {zlib.crc32(f"{a} {b}".encode()) for a, b in zip(words, words[1:])}
+    doi = None
+    for m in DOI_RE.finditer(unicodedata.normalize("NFKC", text or "")[:6000]):
+        cand = m.group(0).rstrip(".").lower()
+        if not cand.startswith(_DATASET_DOI_PREFIXES):
+            doi = cand
+            break
+    return shingles, doi
+
+
+def _overlap(a: set, b: set) -> float:
+    small, big = (a, b) if len(a) <= len(b) else (b, a)
+    return len(small & big) / len(small) if small else 0.0
+
+
+def _drop_same_content(papers: List[Paper], dupes: List[dict]) -> Tuple[List[Paper], List[dict]]:
+    """Keep one input per paper when different files hold the same paper.
+
+    A checksum only catches byte-identical copies. The same paper also arrives as
+    a PDF plus a text dump (`--prepare` sidecars, a results folder's `text/`), a
+    re-download with different bytes, or a renamed copy in another folder.
+    Processing each counts one study several times in every synthesis verdict.
+    Files are compared on their text: a shared DOI plus overlap, or high overlap
+    on its own. A file whose text cannot be read is kept and only checksum-deduped.
+    """
+    info: Dict[int, Tuple[set, Optional[str], int]] = {}
+    for i, pap in enumerate(papers):
+        if not pap.path:
+            continue
+        text = _quick_text(Path(str(pap.path)))
+        if text is None:
+            continue
+        sh, doi = _fingerprint(text)
+        if len(sh) >= _MIN_SHINGLES:
+            info[i] = (sh, doi, len(text))
+
+    # Candidate pairs: share a DOI, or share a value of their bottom-k sketch.
+    buckets: Dict[Any, List[int]] = {}
+    for i, (sh, doi, _) in info.items():
+        for h in sorted(sh)[:_SKETCH]:
+            buckets.setdefault(h, []).append(i)
+        if doi:
+            buckets.setdefault(("doi", doi), []).append(i)
+    pairs = {(x, y) for idx in buckets.values() if 1 < len(idx) < 200
+             for n, x in enumerate(idx) for y in idx[n + 1:]}
+
+    parent = list(range(len(papers)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    why: Dict[Tuple[int, int], str] = {}
+    for x, y in sorted(pairs):
+        (sx, dx, _), (sy, dy, _) = info[x], info[y]
+        ov = _overlap(sx, sy)
+        same_doi = bool(dx and dx == dy)
+        if ov >= SAME_PAPER_OVERLAP or (same_doi and ov >= SAME_DOI_OVERLAP):
+            parent[find(y)] = find(x)
+            why[(x, y)] = (f"same paper: {ov:.0%} of the text overlaps"
+                           + (f", same DOI {dx}" if same_doi else ""))
+
+    def rank(i: int) -> tuple:
+        """Original format first, then the fuller text (lengths within ~5% tie, so
+        a metadata-only difference does not decide), then the oldest file (the
+        first download, not the later copy), then the cleaner name."""
+        path = Path(str(papers[i].path))
+        length = info.get(i, (None, None, 0))[2]
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            mtime = float("inf")
+        marker, depth, *_ = _copy_rank(path)
+        return (_FORMAT_RANK.get(path.suffix.lower(), 2),
+                -round(math.log(max(length, 1)) / 0.05), marker, depth, mtime,
+                len(path.stem), path.stem)
+
+    groups: Dict[int, List[int]] = {}
+    for i in range(len(papers)):
+        groups.setdefault(find(i), []).append(i)
+    keep = set()
+    for members in groups.values():
+        best = min(members, key=rank)
+        keep.add(best)
+        for i in members:
+            if i == best:
+                continue
+            reason = next((r for (x, y), r in why.items() if {x, y} & {i}),
+                          "same paper (text overlap)")
+            dupes.append({"dropped": str(papers[i].path), "kept": str(papers[best].path),
+                          "reason": reason})
+            show = lambda q: "/".join(Path(str(q)).parts[-2:])
+            print(f"  skipping {show(papers[i].path)} — {reason}; "
+                  f"keeping {show(papers[best].path)}", file=sys.stderr)
+    return [p for i, p in enumerate(papers) if i in keep], dupes
+
+
+def output_stems(paths: Sequence[Path]) -> Dict[Path, str]:
+    """A distinct output name per input. Outputs are named `<stem>_abcd.*`, so two
+    different papers called `paper.pdf` (in two folders) or `paper.pdf` and an
+    unrelated `paper.txt` would overwrite each other. Colliding stems get the
+    extension, then the parent folder, appended."""
+    out: Dict[Path, str] = {}
+    by_stem: Dict[str, List[Path]] = {}
+    for p in paths:
+        by_stem.setdefault(Path(p).stem, []).append(Path(p))
+    for stem, group in by_stem.items():
+        # The original document keeps the plain name, so its payload, judge
+        # folder and earlier outputs still line up; only the others are renamed.
+        group = sorted(group, key=lambda q: (_FORMAT_RANK.get(q.suffix.lower(), 2),
+                                             _copy_rank(q)))
+        out[group[0]] = stem
+        taken = {stem}
+        for q in group[1:]:
+            name = f"{stem}_{q.suffix.lstrip('.').lower()}"
+            if name in taken:
+                name = f"{stem}_{q.parent.name}_{q.suffix.lstrip('.').lower()}"
+            n = 2
+            while name in taken:
+                name, n = f"{stem}_{n}", n + 1
+            taken.add(name)
+            out[q] = name
+    return out
 
 
 _COPY_MARKER = re.compile(r"[ _-]*\((\d+)\)$|[ _-]copy(?:\s*\d+)?$", re.I)
 
 
 def _copy_rank(path: Path) -> tuple:
-    """Lower is preferred: no "(1)"/"copy" marker, then the shorter name."""
+    """Lower is preferred: no "(1)"/"copy" marker, then the file nearest the top of
+    the input folder (the original, not a copy in a subfolder; its name is the one
+    payloads and earlier outputs use), then the shorter name."""
     stem = path.stem
-    return (1 if _COPY_MARKER.search(stem) else 0, len(stem), stem)
+    return (1 if _COPY_MARKER.search(stem) else 0, len(path.parts), len(stem), stem)
 
 
 def _sha256(path: Path) -> str:

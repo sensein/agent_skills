@@ -207,6 +207,13 @@ One entry per claim about a relationship. Fields:
 A finding's quote must contain at least one of the variables in `variables[]`,
 otherwise the verifier drops it as unsupported.
 
+**One finding = one result**: one effect for one set of variables. A sentence or
+table row that reports two coefficients ("FC intercept with externalizing slope,
+r = −.15; externalizing intercept with slope, r = −.41") is **two findings** that
+share the quote, each with its own `variables[]` and `effect_size`. Two metrics
+for the same result ("b = 0.098, β = 0.056") are one finding. The verifier flags
+a finding whose `effect_size` holds two values of the same metric.
+
 ### Claim types
 
 The first five types come from Blake's Claim Framework (C. Blake, "Beyond genes,
@@ -270,9 +277,15 @@ Two role calls that are routinely got wrong:
 }
 ```
 
-- `quote` — **required**, verbatim, at least 25 characters. Include enough
-  surrounding words to make the claim checkable; a bare variable name is not
-  enough context. If a claim spans two sentences, quote both.
+- `quote` — **required**, verbatim, at least 25 characters. Quote the **whole
+  sentence**, from its first word to its full stop, never a fragment
+  ("conflict mediated the path between financial strain at" is a fragment; the
+  sentence is "Heightened family conflict mediated the path between financial
+  strain at baseline and externalizing behaviors two years later, even when
+  controlling for child sex, income, and past externalizing behavior."). If a
+  claim spans two sentences, quote both. For a table, quote the whole row with
+  its row label. The verifier widens a fragment to its sentence, but only when
+  the text around it is clean prose, so quote whole sentences yourself.
 - `section` — the paper's own section heading ("Methods", "2.3 Measures",
   "Results", "Table 2"). Use `"Table N"` / `"Figure N"` when that is where it
   appears.

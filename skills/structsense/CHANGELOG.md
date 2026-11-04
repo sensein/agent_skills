@@ -1,12 +1,93 @@
 # Changelog
 
+## Unreleased — Every finding's summary is checked against its own evidence
+
+- **A summary could say more than its quote.** `statement` is the extractor's
+  paraphrase and was never compared with the paper. "Child sex did not moderate
+  any path of the financial strain → family conflict → internalizing mediation"
+  sat on the quote "Moderated mediation analyses indicated no significant
+  differences by child sex." `check_summaries` flags any finding whose summary
+  names one of the paper's variables or constructs, or a statistic, that the
+  evidence lacks (`summary_not_in_evidence`; the count is
+  `summaries_not_in_evidence`). Verbs and timepoint wording are not checked. On
+  the two Aaron 2025 papers, 11 of 111 findings are flagged, each a real gap.
+- **Table rows carry their table.** A row quote ("Family Conflict Time 2a 0.070
+  0.024 0.024**") now has `evidence.table_context`, all verbatim: caption, column
+  headings, the row's group heading ("Externalizing Time 3 predicted by:"), its
+  footnote ("a: the 'b' path"), and for a correlation matrix the numbered row
+  labels that give the columns their meaning. Sections such as "Results - Table
+  2" are recognised as tables.
+- Workbook: the quote comes first and is labelled "Quote from paper (verbatim)",
+  the paraphrase is "Summary (paraphrase, not verbatim)", "Table context
+  (verbatim)" is a column, and the Check column names whatever the summary says
+  that its evidence does not.
+
+## Unreleased — Full-sentence quotes; tables kept out of the prose
+
+- **Quotes are the paper's whole sentence.** The verifier widens each verified
+  quote to its sentence(s), verbatim from the text, after the scope gate so what
+  is kept is unchanged (`quote_as_extracted`, `quote_widened_to_sentence`).
+  Sentence ends respect abbreviations (et al., e.g., Fig.), and a column or page
+  break in mid-sentence is crossed. A sentence interrupted by a figure is cut at
+  the break and flagged `sentence_cut_by_layout`; its continuation is not guessed.
+  Table rows stay as quoted. On the two Aaron 2025 papers, 38 of 45 non-table
+  quotes were fragments and are now full sentences; the rest were already whole.
+- **PyMuPDF text no longer merges sideways tables into sentences.** The backend
+  reads block by block, appends rotated text after the page's prose, and drops
+  running headers/footers. The old sorted plain-text mode produced "Heightened
+  familyvariables conflict mediated … baselinewhen controllingand …".
+- `provenance.text_extractor` records the backend (it was always `unknown`).
+- Findings whose effect size holds two values of one metric are flagged
+  `combines_several_results`. The extractor prompt now requires whole-sentence
+  quotes and one finding per result.
+- **Duplicate inputs are found by content, not by name.** Previously only
+  byte-identical files and a `.txt` with the same name *in the same folder* were
+  skipped. A text copy elsewhere (a results folder's `text/`, scanned when
+  `--out-dir` points somewhere else), a re-downloaded PDF with different bytes,
+  or a renamed copy were each processed as another paper; the synthesis counted
+  one study several times, and same-named outputs overwrote each other. Now
+  inputs are compared by text (word-pair overlap ≥ 60%, or ≥ 40% with the same
+  first-page DOI; NDA dataset DOIs ignored). On the test folder, 5 files resolve
+  to 2 papers. Different papers that share a file name are both kept under
+  distinct output names (`abcd_inputs.output_stems`); the original keeps the
+  plain name.
+- Workbook: a "Check" column shows these flags, and a cut sentence ends in "…".
+
+## Unreleased — Cross-paper disagreement is per relationship, with its evidence
+
+- **"Papers disagree on family conflict" was usually false.** Synthesis grouped
+  findings by construct only, so "income → lower family conflict" and "financial
+  strain → higher family conflict" counted as opposing results, and so did a
+  decline over time in one variable. The new `relationships[]` groups findings by
+  resolved variables. A relationship is `divergent` only when the same
+  relationship has both signs. Change over time is listed but never judged across
+  papers. `within_paper_conflict` flags a paper that reports both signs, such as
+  an abstract that contradicts its own results. On the two Aaron 2025 papers, the
+  three "divergent" constructs become: family conflict ↔ externalizing
+  **consensus** positive; family conflict ↔ internalizing **mixed**; one real
+  conflict, inside one paper (family conflict over time: increasing in the
+  abstract, decreasing in the results).
+- Construct claims whose opposing signs come from different relationships get the
+  verdict `different_relationships` and name the relationships on each side.
+  Trend findings go to `not_counted`.
+- Workbook: the Claims, Claim evidence and Construct summary sheets, which
+  repeated the findings three ways, are replaced by one **Cross-paper** sheet. Each
+  relationship is a colour-coded heading row (green agree, red disagree, yellow
+  self-contradiction) followed by each paper's finding with effect, strength,
+  location and quote. Findings link to it by `Cross-paper ID` and are in reading
+  order with the full sentence beside fragment quotes. Every sheet's first row
+  says what the sheet is for. Empty columns are dropped, and Rejected appears
+  only when something was rejected.
+- `abcd_xlsx <out_dir>` recomputes the synthesis when the saved one predates
+  relationships.
+
 ## Unreleased — ABCD results as one Excel workbook
 
 - Per-paper Markdown was hard to read (10+ column pipe tables, quotes cut at ~90
   characters, one file per paper). The default human-readable output is now one
   workbook for the run, `abcd_results.xlsx` (`scripts/abcd_xlsx.py`). It has a
-  README sheet, Papers, Findings, Variables, Models, Constructs, Rejected, and, when
-  the run has a synthesis, Claims, Claim evidence and Construct summary. Each row
+  README sheet, Papers, Findings, Variables, Models, Constructs and Rejected (the
+  cross-paper sheets are described in the entry above). Each row
   names its paper (author + year, with a/b for same author and year) and carries
   the full quote. Match statuses are spelled out, with wrapped text, frozen
   headers and filters.
