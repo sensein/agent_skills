@@ -587,6 +587,60 @@ Supporting Info** / **DV Supporting Info**, and the document-level fields map to
 **Participant Age**. The `Role` column keeps the finer distinction the human
 scheme has no code for, so nothing is lost in the translation.
 
+### Sentence-level annotation (the Sentences sheet)
+
+A human annotator works sentence by sentence: `paper_id · sentence_id · section ·
+text · is_claim · claim_type · causal_language · direction · hedged · notes`, with
+cross-references in the notes ("restates 105", "paper says DMN here and DAN
+there"). The verifier produces the same table as `sentences[]` in the JSON and the
+**Sentences** sheet of the workbook (`scripts/abcd_sentences.py`):
+
+- **Numbering.** Every prose sentence from the abstract to the conclusion is
+  numbered in the order of the extracted text, with its section ("Results - 3.4
+  Prenatal Tobacco Exposure ..."). Table blocks, running headers, licence lines
+  and reference entries are skipped. Two-column PDFs put headings out of reading
+  order, so where a finding quotes a sentence the extractor's section wins, and
+  sentences between two that agree inherit it. A "References" heading that the
+  layout put before the Conclusion does not end the numbering. Ids are this
+  tool's; another annotator's numbering can differ by the front matter they count.
+- **is_claim.** `yes` when a finding or a sentence claim quotes the sentence;
+  `possibly (no finding extracted)` for a Results sentence that reads as a result
+  but has neither (orange in the sheet); `not assessed` for abstract, discussion
+  and conclusion sentences when the payload carries no `sentence_claims`; `no`
+  otherwise.
+- **sentence_claims.** The extractor's claims outside the findings: the abstract,
+  the discussion's restatements, the conclusion. Each is anchored to a sentence id,
+  rejected if it reports cited work, and carries `restates` and `conflicts_with`
+  (resolved to ids). An inconsistency is shown in both sentences' notes and the
+  rows are yellow.
+- **causal_language** (`correlational` / `direct_causal` / `conditional_causal`)
+  and **hedged** are set on prose findings too, from the extractor or, when it
+  gave none, from the wording ("did not impact" is a negated causal verb, so
+  correlational).
+
+Findings stay result-level, which is finer than a sentence: a table row is a
+finding with no sentence id, and its **Section** reads "Results - 3.3 Societal
+Factors ... › Table 3", the section of the first sentence that cites the table.
+
+### Checks the sentence layer adds
+
+On Vishnubhotla 2026 (10.1002/brb3.71168) against the human annotation:
+
+| Problem | What the verifier does now |
+|---|---|
+| A quote joining two sentences ("food insecurity was linked with poorer outcomes. Being Black/African American ...") | Cut to the sentence the finding comes from; variables only the other sentence names are dropped and listed. A sentence that leans on the previous one ("Additionally, SCT was ...") keeps it as context, so its subgroup survives. |
+| Prose naming a network its cited table does not have ("within the default mode network"; Table 5's within-network row is Dorsal attention–Dorsal attention) | `cited_table_check: network_not_in_cited_table`, with the table's rows. Fires whether or not the extractor emitted the within-network result. |
+| "All 9 scales" when two Table 3 rows are not significant | `cited_table_check: cited_table_partly_supports`, read from the clause about the finding's own predictor (PTE's "all scales", not PME's "7 out of 9"). |
+| A sign the sentence does not state ("PTE was significantly associated with all scales") | Direction becomes `unspecified`; the extractor's sign is kept in `direction_as_extracted`. The table rows keep their own signs. |
+| A table printing a pair in both orders (Default mode–Dorsal attention and Dorsal attention–Default mode) | The second row gets `mirror_of` and is counted once in Cross-paper. |
+| A Results sentence with no finding | `possibly (no finding extracted)` in Sentences, listed in `verification.sentence_level`. |
+
+With the updated prompt the run agrees with the human annotation on is_claim for
+108 of the 109 sentences both have (the other 13 human rows are table captions and
+notes, which are not sentences here), and on direction for 46 of the 49 shared
+claims; two of the three differences are human labels the comparison itself
+questioned (105, 107).
+
 ## Each variable carries the mention AND the mapping
 
 The mention is the evidence; the dictionary entry is the interpretation. Both are
@@ -744,27 +798,46 @@ section, per-wave instances, and self-computed composites.
 
 ## Where the constructs come from
 
-The Cognitive Atlas (~918 concepts, ~856 tasks) is the construct vocabulary. It
-lets two papers using different measures — a Flanker score and a Stroop score —
-join on one construct id, which is what makes "where is the consensus?" a
-well-posed question.
+The Cognitive Atlas API (https://www.cognitiveatlas.org/api) is the construct
+vocabulary: ~918 concepts, ~857 tasks and ~221 disorders (ADHD, conduct disorder,
+obsessive-compulsive disorder — what CBCL scales are named after). It lets two
+papers using different measures join on one construct id, which is what makes
+"where is the consensus?" a well-posed question.
 
 ```bash
-python -m scripts.cognitive_atlas refresh                    # cache both vocabularies
-python -m scripts.cognitive_atlas map "working memory" "inhibitory control"
-python -m scripts.cognitive_atlas search inhibit             # propose candidates
+python -m scripts.cognitive_atlas refresh                    # download all three vocabularies
+python -m scripts.cognitive_atlas map "working memory" "conduct disorder"
+python -m scripts.cognitive_atlas api-search "inhibitory control"   # raw /search results
+python -m scripts.cognitive_atlas id trm_4a3fd79d096be       # look an id up
+python -m scripts.cognitive_atlas search inhibit             # substring search of the cache
 ```
 
-Matching is exact name → singularised name → declared alias. Not fuzzy, on
-purpose: "memory" must not silently become "working memory". Real consequence —
-`working memory` and `impulsivity` map; `inhibitory control` and `internalizing
-problems` do **not**, because the Atlas names those differently. Unmapped
-constructs are reported honestly and still grouped in the synthesis by their
-lowercased label (`unmapped:internalizing problems`). When something important is
-unmapped, run `search` and offer the candidates to the user — do not auto-pick.
-Independently of the Atlas, every construct is also looked up in the trusted
-ontology files (the review loop's concept-map step), so an Atlas miss can still
-carry a tool-verified COGAT / NBO / MF / HP mapping.
+Endpoints: `/api/v-alpha/concept`, `/task`, `/disorder` (whole vocabularies),
+`/search?q=` (live search) and `/<kind>?id=` (one entry). A term is mapped by
+exact name → singular → alias in the downloaded vocabularies, then, if that
+misses, through the live search endpoint, accepting only a concept, task or
+disorder whose name or alias equals the term. Every hit records the API URL that
+produced it (`mapping_source`), and the run's provenance lists the vocabularies'
+retrieval times and the number of live searches. The vocabulary cache is
+re-downloaded after `STRUCTSENSE_COGATLAS_MAX_AGE_DAYS` (default 30); if the API
+is down the stale cache is used and marked so. `--offline-atlas` uses the cache
+only and makes no search calls.
+
+Not fuzzy, on purpose: "memory" must not silently become "working memory". Search
+results that are contrasts (`cnt_`, one task condition minus another) are never
+accepted, and an alias counts only on an entry that lists at most two, because
+"internalizing" lists "worry, anxiety, negativity, depression" as related terms,
+not synonyms — "depression" does not become "internalizing". Hyphens fold to
+spaces, so "obsessive compulsive disorder" maps to the disorder the API names
+"obsessive-compulsive disorder". A model-supplied id is looked up through the API
+and still demoted unless the term maps to it; the demotion records whether the id
+exists and what the API calls it. Unmapped constructs are reported honestly and
+grouped in the synthesis by their lowercased label (`unmapped:internalizing
+problems`). When something important is unmapped, run `api-search` and offer the
+candidates to the user — do not auto-pick. Independently of the Atlas, every
+construct is also looked up in the trusted ontology files (the review loop's
+concept-map step), so an Atlas miss can still carry a tool-verified COGAT / NBO /
+MF / HP mapping.
 
 ## Reading the synthesis
 

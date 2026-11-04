@@ -484,7 +484,9 @@ def _stems(text: str) -> set:
 
 def _evidence_text(ev: dict) -> str:
     ctx = ev.get("table_context") or {}
-    parts = [ev.get("quote") or ""]
+    # A sentence that continues the one before it ("Additionally, SCT was ...")
+    # takes its subgroup from that sentence, which is evidence too.
+    parts = [ev.get("context_sentence_text") or "", ev.get("quote") or ""]
     for v in ctx.values():
         parts.append(" ".join(v) if isinstance(v, list) else str(v))
     return " ".join(parts)
@@ -934,12 +936,17 @@ def gate_construct(item: dict, atlas: Optional["ca_mod.CognitiveAtlas"]) -> dict
     if claimed:
         # The model supplied an id we could not confirm. Demote it — shape alone
         # is not evidence (same stance as iri_validation.py).
+        # Ask the API whether the id exists at all; even if it does, it is kept
+        # only when the term maps to it, so this is a record, not a rescue.
+        known = atlas.lookup_id(claimed) if (atlas and hasattr(atlas, "lookup_id")) else None
         out["construct_id"] = None
         out["mapping_provenance"] = "validation_failed"
         out["demoted_claim"] = {
             "construct_id": claimed,
             "reason": "not_returned_by_cognitive_atlas_lookup",
             "shape_valid": ca_mod.valid_id(claimed),
+            "exists_in_cognitive_atlas_api": bool(known),
+            "api_label_for_that_id": (known or {}).get("name"),
         }
     else:
         out["construct_id"] = None
@@ -1050,9 +1057,18 @@ def verify_payload(payload: dict, text: str, *,
                                      "outcome", "mediator", "moderator"),
                           strict_scope=True)
     out["variables"], merged_n = _merge_duplicate_variables(out["variables"])
+    # Sentence level: number the paper's sentences, cut joined quotes to one
+    # sentence, compare prose with the table it cites, mark pairs a table lists in
+    # both orders, and anchor the extractor's sentence_claims (abstract and
+    # discussion restatements) to sentence ids.
+    from scripts import abcd_sentences
+    sentence_stats = abcd_sentences.annotate(out, index, payload, gate_scope=gate_scope,
+                                             norm_enum=_norm_enum)
+    sentence_rejected = out.pop("rejected", [])
     # Roles last: every model has been verified and every duplicate folded in, so
     # the model arrays and the variable list finally refer to the same entries.
     abcd_roles.annotate(out)
+    rejected.extend(sentence_rejected)
     out["rejected"] = rejected
     out["coverage"] = _coverage_audit(out)
     # A summary that names what its evidence does not contain is a claim the
@@ -1115,6 +1131,7 @@ def verify_payload(payload: dict, text: str, *,
             "variables_role_unresolved", 0),
         "variables_with_nda_release_conflict": sum(
             1 for v in out["variables"] if v.get("nda_release_conflict")),
+        "sentence_level": sentence_stats,
         "rejected_as_cited_work": sum(
             1 for r in rejected
             if str(r.get("reason") or "").startswith(("finding_not_from",

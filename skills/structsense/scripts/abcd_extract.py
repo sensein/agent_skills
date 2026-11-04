@@ -81,7 +81,7 @@ PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "extractor-ab
 # The authority is abcd_inputs.PAPER_SUFFIXES, which docling widened well past PDF.
 PDF_SUFFIXES = abcd_inputs.PAPER_SUFFIXES
 
-SECTIONS = ("variables", "constructs", "models", "findings")
+SECTIONS = ("variables", "constructs", "models", "findings", "sentence_claims")
 
 
 # Output name per input path (abcd_inputs.output_stems): two different papers that

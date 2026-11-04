@@ -501,6 +501,10 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
                         adjusted_keys.add(k)
 
         for f_index, f in enumerate(doc.get("findings") or []):
+            # The same pair printed in the other order is the same result; it is
+            # still a row in Findings but counts once here.
+            if f.get("mirror_of") is not None:
+                continue
             ev_text = " ".join(str(x) for x in (
                 (f.get("evidence") or {}).get("quote"),
                 ((f.get("evidence") or {}).get("table_context") or {}).get("group")) if x)

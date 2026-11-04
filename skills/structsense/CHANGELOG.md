@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased — Sentence-level annotation, paper-vs-table checks, live Cognitive Atlas API
+
+Compared against a sentence-level human annotation of Vishnubhotla 2026
+(10.1002/brb3.71168) and the issue list from that comparison.
+
+- **Sentences sheet / `sentences[]`** in the human annotation's columns
+  (sentence_id, section, text, is_claim, claim_type, causal_language, direction,
+  hedged, notes), every prose sentence from the abstract to the conclusion, with
+  the Finding IDs from each sentence. New `scripts/abcd_sentences.py`.
+- **`sentence_claims[]`** in the extractor payload: claims in the abstract,
+  discussion and conclusion, anchored to sentence ids, with `restates` and
+  `conflicts_with`. Inconsistencies are shown in both sentences and highlighted.
+- **One sentence per prose finding.** A quote joining two sentences is cut to the
+  one the finding comes from; variables only the other names are dropped
+  ("race; food insecurity" → "race"). A continuing sentence keeps the previous
+  one as context, so its subgroup survives the summary check.
+- **Prose vs the table it cites:** a network the table does not have (Table 5:
+  "within the default mode network" vs the Dorsal attention–Dorsal attention
+  row), a sign the table contradicts, and "all 9 scales" when some rows are not
+  significant. Findings rows are yellow and the Check column says what differs.
+- **Sign not stated → unspecified**, with the extractor's sign kept aside.
+- **Pairs printed in both orders** (DMN–DAN / DAN–DMN) are marked `mirror_of` and
+  counted once in the synthesis.
+- **Results sentences with no finding** are listed as possibly missed.
+- **Findings sheet:** Finding ID, Sentence ID, Section (for a table row, the
+  citing section › Table N), Causal language, Hedged.
+- **Prompt:** whole-sentence quotes only; one finding per result clause; write the
+  network as the sentence names it; sign only when stated; `sentence_claims`;
+  `causal_language`; `hedged`.
+- **Cognitive Atlas through its API** (https://www.cognitiveatlas.org/api): live
+  `/search` when the downloaded vocabularies miss, `/<kind>?id=` to check a
+  model-supplied id, the disorder vocabulary added, cache refreshed after 30
+  days, contrasts and related-term aliases never accepted, hyphens folded.
+  `map`, `api-search` and `id` commands.
+- **Result on Vishnubhotla 2026:** is_claim agrees with the human annotation on
+  108 of 109 matched sentences, and direction on 46 of 49 shared claims.
+
 ## Unreleased — Evidence quality (GRADE-adapted) and claim status; unsupported summaries rejected
 
 - **Strength read "strong" for nearly every ABCD finding** (n = 11,868 and

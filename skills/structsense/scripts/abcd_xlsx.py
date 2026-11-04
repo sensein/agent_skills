@@ -190,6 +190,25 @@ def _context(ev: dict) -> str:
 def _checks(f: dict) -> List[str]:
     ev = _ev(f)
     out = []
+    for c in f.get("cited_table_check") or []:
+        out.append("PAPER INCONSISTENT WITH ITS TABLE: " + str(c.get("detail")))
+    if f.get("mirror_of") is not None:
+        out.append("same pair as another row of this table, printed in the other order: "
+                   "counted once in Cross-paper")
+    if ev.get("quote_cut_to_one_sentence"):
+        msg = ("the extractor's quote joined sentences "
+               + ", ".join(str(x) for x in sorted([*(f.get("sentence_ids") or []),
+                                                   *(ev.get("other_sentences_in_quote") or [])]))
+               + "; cut to the sentence this finding comes from")
+        if f.get("variables_dropped_with_other_sentence"):
+            msg += (" (dropped " + ", ".join(f["variables_dropped_with_other_sentence"])
+                    + ", named only in the other sentence)")
+        out.append(msg)
+    if ev.get("context_sentence"):
+        out.append(f"continues sentence {ev['context_sentence']}, which gives its subgroup")
+    if f.get("direction_not_in_sentence"):
+        out.append(f"the sentence states no sign; the extractor's "
+                   f"'{f.get('direction_as_extracted')}' came from elsewhere (heading or table)")
     gap = f.get("summary_not_in_evidence") or {}
     missing = list(gap.get("variables") or []) + list(gap.get("statistics") or [])
     if missing:
@@ -239,11 +258,16 @@ SUMMARY_COL = "Summary (paraphrase, not verbatim)"
 CROSS_COLS = ["ID", "Claim status", "Relationship", "Paper", "Direction", QUOTE_COL,
               SUMMARY_COL, "Claim type", "Effect size", "Statistic", "n",
               "Evidence quality", "Where in paper"]
-FINDING_COLS = ["Paper", "Where in paper", QUOTE_COL, SUMMARY_COL, "Claim type",
-                "Directionality", "Effect size", "Statistic", "n", "Subgroup",
+FINDING_COLS = ["Paper", "Finding ID", "Sentence ID", "Section", QUOTE_COL, SUMMARY_COL,
+                "Claim type", "Directionality", "Effect sign", "Causal language", "Hedged",
+                "Effect size", "Statistic", "n", "Subgroup",
                 "Table context (verbatim)", "Full sentence", "Check", "Relationship",
                 "Cross-paper ID", "Variables",
-                "Construct", "Role", "Effect sign"]
+                "Construct", "Role"]
+# The columns of a sentence-level human annotation, so the two can be laid side by
+# side; the last three tie each sentence to the Findings sheet.
+SENTENCE_COLS = ["paper_id", "sentence_id", "section", "text", "is_claim", "claim_type",
+                 "causal_language", "direction", "hedged", "notes", "Finding IDs"]
 PAPER_COLS = ["Paper", "Title", "DOI", "Study", "Data release", "Sample size",
               "Design", "Findings", "Variables", "Models", "Rejected items"]
 VARIABLE_COLS = ["Paper", "Variable (as written)", "Role", "Description", "Timepoint",
@@ -270,6 +294,13 @@ SHEET_NOTES = {
                  "paper's own words, checked against its text; the summary next to "
                  "it is the extractor's paraphrase. 'Cross-paper ID' links to the "
                  "Cross-paper sheet."),
+    "Sentences": ("The paper read sentence by sentence, in the columns of a human "
+                  "sentence-level annotation (sentence_id, section, text, is_claim, "
+                  "claim_type, causal_language, direction, hedged, notes). 'Finding IDs' "
+                  "points to the Findings rows from that sentence; table rows are in "
+                  "Findings only. Yellow = the paper is inconsistent here (with another "
+                  "sentence or with its own table). Orange = reads as a result but no "
+                  "finding was extracted."),
     "Papers": "One row per paper in this run: title, DOI, ABCD release, sample, design.",
     "Variables": ("The measures each paper used, the role each played in the analysis "
                   "(predictor, mediator, outcome, covariate, ...) and the ABCD "
@@ -297,21 +328,41 @@ def _finding_index_to_rel(synthesis: Optional[dict]) -> Dict[Tuple[str, int], di
     return out
 
 
+def finding_ids(doc: dict) -> Dict[int, str]:
+    """F1, F2, ... in reading order (where the quote sits in the paper)."""
+    items = list(enumerate(doc.get("findings") or []))
+    items.sort(key=lambda t: (_ev(t[1]).get("start") is None, _ev(t[1]).get("start") or 0))
+    return {i: f"F{n}" for n, (i, _) in enumerate(items, start=1)}
+
+
 def finding_rows(doc: dict, p: str, rel_of: Dict[Tuple[str, int], dict]):
     pid = str(doc.get("paper_id"))
-    items = list(enumerate(doc.get("findings") or []))
-    # Reading order: where the quote sits in the paper.
-    items.sort(key=lambda t: (_ev(t[1]).get("start") is None, _ev(t[1]).get("start") or 0))
+    ids = finding_ids(doc)
+    items = sorted(enumerate(doc.get("findings") or []), key=lambda t: int(ids[t[0]][1:]))
     for i, f in items:
         ev = _ev(f)
         rel = rel_of.get((pid, i)) or {}
-        yield [p, _where(ev), _quote(ev), f.get("statement"), f.get("claim_type"),
-               f.get("directionality"), f.get("effect_size") or f.get("estimate"),
+        hedge = f.get("hedged")
+        yield [p, ids[i], f.get("sentence_ids"), ev.get("paper_section") or _where(ev),
+               _quote(ev), f.get("statement"), f.get("claim_type"),
+               f.get("directionality"),
+               DIRECTION_WORDS.get(f.get("direction"), f.get("direction")),
+               f.get("causal_language"), None if hedge is None else bool(hedge),
+               f.get("effect_size") or f.get("estimate"),
                f.get("statistic"), f.get("analytic_n"), f.get("subgroup"),
                _context(ev), _sentence(ev), _checks(f), rel.get("label"),
                rel.get("relationship_id"), f.get("variables"),
-               f.get("construct_label") or f.get("construct"), f.get("role"),
-               DIRECTION_WORDS.get(f.get("direction"), f.get("direction"))]
+               f.get("construct_label") or f.get("construct"), f.get("role")]
+
+
+def sentence_rows(doc: dict, p: str):
+    pid = str(doc.get("paper_id"))
+    ids = finding_ids(doc)
+    for r in doc.get("sentences") or []:
+        yield [pid, r.get("sentence_id"), r.get("section"), r.get("text"), r.get("is_claim"),
+               r.get("claim_type"), r.get("causal_language"), r.get("direction"),
+               r.get("hedged"), r.get("notes"),
+               [ids[i] for i in r.get("findings") or [] if i in ids]]
 
 
 def paper_row(doc: dict, p: str) -> List[Any]:
@@ -370,7 +421,8 @@ def rejected_rows(doc: dict, p: str):
 README_ROWS = [
     ("How to read this workbook", ""),
     ("Cross-paper", "Start here. Each coloured row is one relationship between variables (e.g. family conflict ↔ externalizing) with a verdict. The rows under it are every paper's finding on that relationship: direction, effect size, where in the paper and the exact quote. Papers 'disagree' only when they report opposite signs for the same relationship."),
-    ("Findings", "Every finding each paper reported about its own data, in the order it appears in the paper. 'Quote from paper (verbatim)' is the paper's own sentence, checked against its text. 'Summary (paraphrase, not verbatim)' is the extractor's one-line restatement, there to scan quickly; rely on the quote. 'Cross-paper ID' points to the block in the Cross-paper sheet that groups it with other papers."),
+    ("Findings", "Every finding each paper reported about its own data, in the order it appears in the paper (Finding ID F1, F2, ...). 'Sentence ID' links to the Sentences sheet; 'Section' says where in the paper, and for a table row the section that cites the table and the table ('Results - 3.3 ... > Table 3'). 'Check' lists what the verifier found: the sentence disagreeing with the table it cites, a pair printed in both orders, a joined quote cut to one sentence, a sign the sentence does not state. 'Quote from paper (verbatim)' is the paper's own sentence, checked against its text. 'Summary (paraphrase, not verbatim)' is the extractor's one-line restatement, there to scan quickly; rely on the quote. 'Cross-paper ID' points to the block in the Cross-paper sheet that groups it with other papers."),
+    ("Sentences", "Every prose sentence of each paper with an id and its section, in the same columns as a sentence-level human annotation, so the two can be compared row by row. is_claim: yes (a finding or a sentence claim quotes it), no, possibly (reads as a result in Results but nothing was extracted: check it), not assessed (abstract or discussion, when the extractor gave no sentence-level claims). Notes give restatements ('restates 97'), inconsistencies ('INCONSISTENT with 134: ...', or with the table the sentence cites) and how many findings came from the sentence. Sentence ids are numbered by this tool over the extracted text, so they can differ from another annotator's numbering."),
     ("Papers", "One row per paper: title, DOI, ABCD release, sample, design."),
     ("Variables", "The measures each paper used, the role each played (predictor, mediator, outcome, covariate, ...) and the ABCD data-dictionary variable it maps to."),
     ("Models", "The statistical analyses each paper ran, one row per model, with which variables were predictors, mediators, moderators, outcomes and covariates. Use it to see how a finding was obtained."),
@@ -604,7 +656,18 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
     def rows(fn, *extra):
         return (r for d, p in zip(papers, names) for r in fn(d, p, *extra))
 
-    _table_sheet(wb, "Findings", FINDING_COLS, rows(finding_rows, rel_of))
+    fws = _table_sheet(wb, "Findings", FINDING_COLS, rows(finding_rows, rel_of))
+    ordered = [doc["findings"][i] for doc in papers
+               for i in sorted(finding_ids(doc), key=lambda k: int(finding_ids(doc)[k][1:]))]
+    _, _, PatternFill = _styles()
+    yellow = PatternFill("solid", fgColor=FILL["within"])
+    for row, f in zip(fws.iter_rows(min_row=3), ordered):
+        if f.get("cited_table_check"):
+            for c in row:
+                c.fill = yellow
+    if any(d.get("sentences") for d in papers):
+        ws = _table_sheet(wb, "Sentences", SENTENCE_COLS, rows(sentence_rows))
+        _mark_sentence_rows(ws, [r for d in papers for r in d.get("sentences") or []])
     _table_sheet(wb, "Papers", PAPER_COLS,
                  (paper_row(d, p) for d, p in zip(papers, names)), band_by=None)
     _table_sheet(wb, "Variables", VARIABLE_COLS, rows(variable_rows))
@@ -614,6 +677,19 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
     if rejected:
         _table_sheet(wb, "Rejected", REJECTED_COLS, rejected)
     return wb
+
+
+def _mark_sentence_rows(ws, sentences: Sequence[dict]) -> None:
+    """Yellow where the paper is inconsistent, orange where a result may be missing."""
+    _, _, PatternFill = _styles()
+    yellow = PatternFill("solid", fgColor=FILL["within"])
+    orange = PatternFill("solid", fgColor="F4B183")
+    for row, s in zip(ws.iter_rows(min_row=3), sentences):
+        fill = yellow if s.get("inconsistent") else (
+            orange if str(s.get("is_claim") or "").startswith("possibly") else None)
+        if fill:
+            for c in row:
+                c.fill = fill
 
 
 def write_workbook(papers: Sequence[dict], path: Path,

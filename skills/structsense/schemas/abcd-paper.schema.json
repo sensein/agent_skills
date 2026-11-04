@@ -161,7 +161,8 @@
               "variables",
               "constructs",
               "models",
-              "findings"
+              "findings",
+              "sentence_claims"
             ]
           },
           "reason": {
@@ -407,6 +408,166 @@
     "summaries_not_in_evidence": {
       "type": "integer",
       "description": "Findings rejected because their summary named a variable, construct or statistic their evidence does not contain."
+    },
+    "sentences": {
+      "type": "array",
+      "description": "Every prose sentence from the abstract to the back matter, numbered in reading order of the extracted text, in the columns of a sentence-level human annotation (sentence_id, section, text, is_claim, claim_type, causal_language, direction, hedged, notes). is_claim is 'yes' when a finding or a sentence claim quotes the sentence, 'no' otherwise, 'possibly (no finding extracted)' for a Results sentence that reads as a result but has none, and 'not assessed' for abstract/discussion sentences when the payload carried no sentence_claims. Table rows are not sentences; they are findings.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "sentence_id",
+          "section",
+          "text",
+          "is_claim"
+        ],
+        "properties": {
+          "sentence_id": {
+            "type": "integer"
+          },
+          "section": {
+            "type": "string"
+          },
+          "section_as_walked": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "is_claim": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no",
+              "possibly (no finding extracted)",
+              "not assessed"
+            ]
+          },
+          "claim_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "causal_language": {
+            "enum": [
+              "correlational",
+              "direct_causal",
+              "conditional_causal",
+              null
+            ]
+          },
+          "direction": {
+            "enum": [
+              "positive",
+              "negative",
+              "null",
+              "mixed",
+              "unspecified",
+              null
+            ]
+          },
+          "hedged": {
+            "enum": [
+              "yes",
+              "no",
+              null
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "inconsistent": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "sentence_claims": {
+      "type": "array",
+      "description": "Claims about this study's results stated outside the findings (abstract, discussion restatements, conclusion), anchored to a sentence id. restates and conflicts_with point at other sentence ids.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "sentence_id",
+          "quote"
+        ],
+        "properties": {
+          "sentence_id": {
+            "type": "integer"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "claim_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "positive",
+              "negative",
+              "null",
+              "mixed",
+              "unspecified"
+            ]
+          },
+          "causal_language": {
+            "enum": [
+              "correlational",
+              "direct_causal",
+              "conditional_causal"
+            ]
+          },
+          "hedged": {
+            "type": "boolean"
+          },
+          "restates": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "conflicts_with": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sentence_id": {
+                  "type": "integer"
+                },
+                "detail": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -953,8 +1114,10 @@
           "enum": [
             "concept",
             "task",
+            "disorder",
             null
-          ]
+          ],
+          "description": "Which Cognitive Atlas vocabulary the id comes from (trm_ concept, tsk_ task, dso_ disorder)."
         },
         "match_method": {
           "type": [
@@ -1256,6 +1419,67 @@
         "summary_not_in_evidence": {
           "type": "object",
           "description": "What the summary names that its evidence lacks. Present only on rejected[] claims: such a finding is rejected, not kept."
+        },
+        "sentence_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "The numbered sentence (see sentences[]) a prose finding quotes. Empty for a table row."
+        },
+        "causal_language": {
+          "enum": [
+            "correlational",
+            "direct_causal",
+            "conditional_causal",
+            null
+          ],
+          "description": "How the sentence talks: association wording, causal wording, or hedged causal wording. Not set for table rows."
+        },
+        "hedged": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mirror_of": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Index of the finding this table row mirrors: the same pair printed in the other order (Default mode\u2013Dorsal attention / Dorsal attention\u2013Default mode). Counted once."
+        },
+        "cited_table_check": {
+          "type": "array",
+          "description": "Where the prose sentence and the table it cites disagree: network_not_in_cited_table, variable_not_in_cited_table, sign_differs_from_cited_table, cited_table_partly_supports (an 'all scales' the table's non-significant rows do not bear out).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "direction_not_in_sentence": {
+          "type": "boolean",
+          "description": "The extractor gave a sign the sentence does not state; direction is set to unspecified and the given sign kept in direction_as_extracted."
+        },
+        "direction_as_extracted": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variables_dropped_with_other_sentence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Variables named only by a second sentence that the extractor joined into the quote; removed when the quote was cut to one sentence."
         }
       }
     },

@@ -126,9 +126,11 @@ structsense/
 │   ├── abcd_dictionary.py   ← ABCD/HBCD dictionary: build release snapshots (bundled
 │   │                          workbook / NDA API / CSV), resolve a mention across
 │   │                          releases and namings. CLI: build/info/lookup/releases
-│   ├── cognitive_atlas.py   ← Cognitive Atlas concepts + tasks, cached; tool-only
+│   ├── cognitive_atlas.py   ← Cognitive Atlas API: concepts, tasks, disorders, live search; tool-only
 │   ├── abcd_verify.py       ← the verifier: anchor every quote in the paper, gate
 │   │                          variables on the dictionary, constructs on the Atlas
+│   ├── abcd_sentences.py    ← sentence ids + sections, one sentence per quote, prose vs
+│   │                          cited table, mirrored pairs, sentence_claims (Sentences sheet)
 │   ├── abcd_inputs.py       ← input resolver: PDF / directory / DOI table / DOI,
 │   │                          fetching open-access PDFs (no paywall, no proxy)
 │   ├── abcd_extract.py      ← driver: one argument, auto-detected. --prepare/--payload

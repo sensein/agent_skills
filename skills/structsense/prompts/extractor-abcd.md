@@ -212,6 +212,77 @@ One entry per claim about a relationship. Fields:
 A finding's quote must contain at least one of the variables in `variables[]`,
 otherwise the verifier drops it as unsupported.
 
+- `causal_language` — `correlational` | `direct_causal` | `conditional_causal`.
+  How the sentence talks, not what the design supports: "was associated with",
+  "predicted", "did not impact" are `correlational`; "impacts", "plays a pivotal
+  role in", "leads to" are `direct_causal`; "may impact", "could contribute" are
+  `conditional_causal`. Omit it for a table row.
+- `hedged` — `true` when the sentence hedges ("may", "suggest", "tended to",
+  "likely"), else `false`.
+
+**A prose finding's quote is ONE sentence.** Never join two sentences into one
+quote. The verifier cuts a joined quote to the sentence that carries the finding
+and drops variables only the other sentence names, so "food insecurity was linked
+with poorer outcomes. Being Black/African American was associated with lower
+scores" can no longer make a race finding about food insecurity. When a sentence
+leans on the one before for its subgroup ("In those with PTE exclusively, ...
+Additionally, SCT was ..."), quote the second sentence alone and put the subgroup
+in `subgroup`; the verifier keeps the earlier sentence as context.
+
+**Every result clause is its own finding, and every Results sentence that states a
+result gets at least one.** "With PTE, there was decreased intra-network
+connectivity within the default mode network and higher inter-network connectivity
+between the default mode and dorsal attention networks" is two findings: one for
+the within-network result (`variables: ["PTE", "Default mode–Default mode"]`,
+negative) and one for the between-network result. An unsigned summary sentence
+("There were significant differences in intra- and inter-network correlations with
+five behavioral scale scores") and the signed one after it ("Overall, there was
+increased inter-network connectivity and lower intra-network connectivity
+associated with higher scores") are two findings too. The verifier lists any
+Results sentence that reads as a result but has no finding.
+
+**The sign is what the sentence says.** "PTE was significantly associated with all
+scales" has no sign: `direction: "unspecified"`, even if the section heading says
+"poorer CBCL scores" and the table shows positive t-values. The table rows carry
+their own signs. A sign the sentence does not state is moved aside by the verifier.
+
+**Write the network or group exactly as the sentence names it**, even if you think
+the paper means another. The verifier compares the sentence with the table it cites
+(Table 5 has a Dorsal attention–Dorsal attention row, not a Default mode–Default
+mode one) and reports the mismatch; a silently corrected name hides it.
+
+**A table that lists a pair in both orders** (Default mode–Dorsal attention and
+Dorsal attention–Default mode) gets one finding per printed row. The verifier marks
+the second as a mirror so it is counted once.
+
+### `sentence_claims[]` — the paper's own claims outside the findings
+
+A human annotator marks every sentence that claims something about this study's
+results, including the abstract, the discussion's restatements, and the
+conclusion. `findings[]` hold the results once, where they are reported;
+`sentence_claims[]` hold the other places the paper states them, so the paper can be
+read sentence by sentence and a restatement that disagrees with its result is
+caught.
+
+Add one entry for every **abstract, discussion or conclusion** sentence that states
+a result of THIS study (not one that reports prior work, motivates the study, or
+describes methods). A results-section sentence that already has a finding does not
+need one. An own-study result that appears only in the discussion ("the presence of
+a maternal college degree did not impact behavioral scores in this study") is a
+finding as well. Fields:
+
+- `quote` — the whole sentence, verbatim
+- `claim_type` — as for findings
+- `direction` — `positive` | `negative` | `null` | `mixed` | `unspecified`
+- `causal_language`, `hedged` — as for findings
+- `restates` — the verbatim Results sentence (or a distinctive part of it) this
+  sentence restates, or `null`
+- `conflicts_with` — `[{"quote": "...", "detail": "abstract says within the DAN,
+  results say within the default mode network"}]` when the restatement and the
+  result disagree on a network, group, sign or count; else `[]`
+- `notes` — anything a reader needs ("several factors in one sentence", "‘predictor’
+  is regression wording")
+
 **One finding = one result**: one effect for one set of variables. A sentence or
 table row that reports two coefficients ("FC intercept with externalizing slope,
 r = −.15; externalizing intercept with slope, r = −.41") is **two findings** that
@@ -434,8 +505,19 @@ at the same waves — or on three different subsamples.
         "section": "Results", "page": 7
       }
     }
+  ],
+  "sentence_claims": [
+    {
+      "quote": "Adolescents with PTE had higher inter-network connectivity between the DMN and DAN and lower intra-network connectivity within the DAN.",
+      "claim_type": "associative", "direction": "mixed",
+      "causal_language": "correlational", "hedged": false,
+      "restates": "With PTE, there was decreased intra- network connectivity within the default mode network",
+      "conflicts_with": [{"quote": "With PTE, there was decreased intra- network connectivity within the default mode network",
+                          "detail": "within the DAN here, within the default mode network in Results"}],
+      "notes": null
+    }
   ]
 }
 ```
 
-Emit all four arrays even when empty. Omit no required field; use `null`.
+Emit all five arrays even when empty. Omit no required field; use `null`.
