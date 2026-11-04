@@ -220,10 +220,11 @@ def _releases(v: dict) -> List[str]:
 
 
 def _strength(e: dict) -> str:
+    """'MODERATE' then the grading steps, one per line."""
     st = e.get("strength") or {}
     if not st:
         return ""
-    return f"{st.get('level')}: " + "; ".join(st.get("reasons") or [])
+    return str(st.get("level") or "").upper() + "\n" + "\n".join(st.get("reasons") or [])
 
 
 # --------------------------------------------------------------------------- #
@@ -235,9 +236,9 @@ def _strength(e: dict) -> str:
 # is labelled as such and comes after the quote.
 QUOTE_COL = "Quote from paper (verbatim)"
 SUMMARY_COL = "Summary (paraphrase, not verbatim)"
-CROSS_COLS = ["ID", "Verdict", "Relationship", "Paper", "Direction", QUOTE_COL,
+CROSS_COLS = ["ID", "Claim status", "Relationship", "Paper", "Direction", QUOTE_COL,
               SUMMARY_COL, "Claim type", "Effect size", "Statistic", "n",
-              "Strength of evidence", "Where in paper"]
+              "Evidence quality", "Where in paper"]
 FINDING_COLS = ["Paper", "Where in paper", QUOTE_COL, SUMMARY_COL, "Claim type",
                 "Directionality", "Effect size", "Statistic", "n", "Subgroup",
                 "Table context (verbatim)", "Full sentence", "Check", "Relationship",
@@ -254,7 +255,7 @@ MODEL_COLS = ["Paper", "Analysis", "Kind", "Hypothesis", "Predictors", "Mediator
               "Quote from paper"]
 CONSTRUCT_COLS = ["Paper", "Construct", "Cognitive Atlas id", "Cognitive Atlas label",
                   "Wording", "Where in paper", "Quote from paper"]
-REJECTED_COLS = ["Paper", "Item type", "Reason", "What was proposed", "Quote proposed"]
+REJECTED_COLS = ["Paper", "Item type", "Reason", "Why", "What was proposed", "Quote proposed"]
 
 # First row of every sheet: what the sheet is for, in one sentence.
 SHEET_NOTES = {
@@ -279,8 +280,9 @@ SHEET_NOTES = {
                    "Cognitive Atlas id when one was found. Used to recognise that "
                    "different papers' variables measure the same thing."),
     "Rejected": ("Items the extractor proposed that the verifier removed: the quote "
-                 "is not in the paper, or the result belongs to cited work rather "
-                 "than this study. Kept so you can see what was dropped and why."),
+                 "is not in the paper, the result belongs to cited work, or the "
+                 "summary names something its quote does not contain. Kept so you "
+                 "can see what was dropped and why; none of it is used anywhere else."),
 }
 
 
@@ -356,7 +358,7 @@ def rejected_rows(doc: dict, p: str):
         what = (claim.get("statement") or claim.get("name") or claim.get("variable")
                 or claim.get("construct") or claim)
         yield [p, r.get("section"), str(r.get("reason") or "").replace("_", " "),
-               what, r.get("claimed_quote")]
+               r.get("detail"), what, r.get("claimed_quote")]
 
 
 # --------------------------------------------------------------------------- #
@@ -380,6 +382,22 @@ README_ROWS = [
     ("One paper only", "Only one paper reports this relationship, so there is nothing to compare."),
     ("Change over time (not compared)", "A trend or stability of one variable over time. Listed for context; a mean decline and a stability coefficient are different quantities, so they are not judged against each other."),
     ("Yellow row", "The same paper reports both positive and negative for this relationship, usually the abstract contradicting the results."),
+    ("", ""),
+    ("Claim status", "Meaning (Cross-paper heading rows). Scale after https://www.ncbi.nlm.nih.gov/books/NBK543866/"),
+    ("Established", "Community standards are met for adding the claim to the body of evidence: high-quality evidence warrants high confidence, nothing against it, replicated in independent samples (2+ cohorts). All-ABCD corpora cannot reach this: the papers share one cohort."),
+    ("Provisionally established", "Moderate-quality evidence warrants a high level of confidence in the claim (nothing against it)."),
+    ("Arguably true", "Neither of the above, but moderate-or-better evidence warrants significantly more confidence in the claim than in its negation, or low-quality evidence warrants high confidence in it."),
+    ("Speculative", "None of the other categories (e.g. evidence on both sides, or only very low quality)."),
+    ("Arguably false", "Mirror of arguably true, for the negation (the opposite sign, or no effect)."),
+    ("Provisionally ruled out", "Moderate-quality evidence warrants a high level of confidence in the negation of the claim."),
+    ("Ruled out", "High-quality evidence, replicated in independent samples, warrants high confidence in the negation."),
+    ("", ""),
+    ("Evidence quality", "Meaning (each finding). Levels after Atkins et al. 2004 (GRADE Working Group, BMJ 328:1490)"),
+    ("High", "Further research is highly unlikely to have a significant impact on our confidence in the claim."),
+    ("Moderate", "Further research is moderately unlikely to have a significant impact on our confidence in the claim."),
+    ("Low", "Further research is moderately likely to have a significant impact on our confidence in the claim."),
+    ("Very low", "Further research is highly likely to have a significant impact on our confidence in the claim."),
+    ("How a finding is graded", "Observational studies start at Low (randomised at High), as in GRADE. +1 longitudinal and adjusted for covariates; +1 large standardized effect (|r| or |beta| >= .30, d >= .80, ratio >= 2); -1 no effect size or statistic; -1 n < 1,000; -1 subgroup only. The steps are listed in each row's 'Evidence quality' cell."),
     ("", ""),
     ("Claim type", "Meaning"),
     ("explicit", "States directly that one thing changes another, with an effect verb (increases, prevents, reduces)."),
@@ -406,8 +424,8 @@ _WIDE = {"Finding", "Quote from paper", QUOTE_COL, SUMMARY_COL, "Full sentence",
          "Analysis", "Quote proposed", "What was proposed"}
 _MEDIUM = {"Relationship", "Where in paper", "Variables", "Predictors", "Outcomes",
            "Mediators", "Moderators", "Covariates", "Dictionary match", "Construct",
-           "Variable (as written)", "Timepoint", "Instrument", "Strength of evidence",
-           "Verdict", "Design"}
+           "Variable (as written)", "Timepoint", "Instrument", "Evidence quality",
+           "Verdict", "Claim status", "Design"}
 
 
 def _width(header: str) -> int:
@@ -494,11 +512,16 @@ def _cross_paper_sheet(wb, synthesis: dict, labels: Dict[str, str]):
 
     for r in synthesis.get("relationships") or []:
         papers = [labels.get(str(p), p) for p in r.get("papers") or []]
-        verdict = VERDICT_WORDS.get(r.get("verdict"), r.get("verdict"))
+        cs = r.get("claim_status") or {}
+        verdict = ((str(cs.get("status")).capitalize() + "\n(" if cs else "Not graded\n(")
+                   + VERDICT_WORDS.get(r.get("verdict"), str(r.get("verdict"))) + ")")
         within = [labels.get(str(p), p) for p in r.get("within_paper_conflict") or []]
         if within:
             verdict += " · conflict within " + ", ".join(within)
         claim = str(r.get("claim") or "")
+        if cs:
+            claim += (f"  Claim: {cs.get('claim')}. Status: {cs.get('status')}, "
+                      f"because {cs.get('why')}.")
         caveats = [c for c in r.get("caveats") or []
                    if not c.startswith("change over time")]
         if caveats:
@@ -554,7 +577,7 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
         if row[0].value in ("How to read this workbook", "Verdict", "Claim type",
-                            "Directionality"):
+                            "Directionality", "Claim status", "Evidence quality"):
             for c in row:
                 c.font = Font(bold=True)
     readme.column_dimensions["A"].width = 30

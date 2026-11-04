@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — Evidence quality (GRADE-adapted) and claim status; unsupported summaries rejected
+
+- **Strength read "strong" for nearly every ABCD finding** (n = 11,868 and
+  longitudinal made almost everything strong). It is replaced by evidence
+  quality on the GRADE levels (Atkins et al. 2004, *BMJ* 328:1490): observational
+  findings start low; +1 longitudinal and covariate-adjusted, +1 large
+  standardized effect; −1 no effect size or statistic, −1 n < 1,000, −1 subgroup.
+  Each step is listed. On the two Aaron 2025 papers: 3 high, 27 moderate, 50 low,
+  20 very low.
+- **Claim status per relationship** on the scale at
+  https://www.ncbi.nlm.nih.gov/books/NBK543866/ (established … ruled out), from
+  the quality of evidence for and against. "Established" needs independent
+  cohorts, so ABCD-only corpora top out at provisionally established, and the
+  status says why. A tie between positive and negative is speculative. Change
+  over time is not graded.
+- **A finding whose summary names what its evidence lacks is rejected**, not
+  flagged: it goes to `rejected[]` with reason `summary_not_in_evidence` and the
+  unmatched names. The extractor prompt says so. 11 findings on the two test
+  papers.
+- Workbook: the Cross-paper heading rows show the claim status and why; the
+  evidence rows show the quality level and its steps; README defines both scales
+  with their sources; Rejected has a "Why" column.
+
 ## Unreleased — Every finding's summary is checked against its own evidence
 
 - **A summary could say more than its quote.** `statement` is the extractor's
@@ -10,7 +33,8 @@
   names one of the paper's variables or constructs, or a statistic, that the
   evidence lacks (`summary_not_in_evidence`; the count is
   `summaries_not_in_evidence`). Verbs and timepoint wording are not checked. On
-  the two Aaron 2025 papers, 11 of 111 findings are flagged, each a real gap.
+  the two Aaron 2025 papers, 11 of 111 findings are flagged, each a real gap
+  (now rejected, see the entry above).
 - **Table rows carry their table.** A row quote ("Family Conflict Time 2a 0.070
   0.024 0.024**") now has `evidence.table_context`, all verbatim: caption, column
   headings, the row's group heading ("Externalizing Time 3 predicted by:"), its

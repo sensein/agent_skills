@@ -403,6 +403,10 @@
       "type": "object",
       "additionalProperties": true,
       "description": "Variables x analyses, each cell the role that analysis gave it."
+    },
+    "summaries_not_in_evidence": {
+      "type": "integer",
+      "description": "Findings rejected because their summary named a variable, construct or statistic their evidence does not contain."
     }
   },
   "$defs": {
@@ -492,6 +496,11 @@
         "sentence_cut_by_layout": {
           "type": "boolean",
           "description": "The sentence is interrupted by a figure, table or page break in the extracted text; the continuation is not guessed."
+        },
+        "table_context": {
+          "type": "object",
+          "description": "Verbatim caption, column headings, row group heading, footnote and (correlation matrix) row labels of the table a row quote comes from.",
+          "additionalProperties": true
         }
       }
     },
@@ -1243,6 +1252,10 @@
         "combines_several_results": {
           "type": "boolean",
           "description": "effect_size holds two values of the same metric: two results folded into one finding."
+        },
+        "summary_not_in_evidence": {
+          "type": "object",
+          "description": "What the summary names that its evidence lacks. Present only on rejected[] claims: such a finding is rejected, not kept."
         }
       }
     },

@@ -725,6 +725,45 @@
             "items": {
               "type": "string"
             }
+          },
+          "claim_status": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Where the relationship's claim stands, after the scale at https://www.ncbi.nlm.nih.gov/books/NBK543866/ , from the quality of the evidence for and against it. Null for change_over_time (not graded: stability and mean change are different quantities).",
+            "properties": {
+              "claim": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "established",
+                  "provisionally established",
+                  "arguably true",
+                  "speculative",
+                  "arguably false",
+                  "provisionally ruled out",
+                  "ruled out"
+                ]
+              },
+              "why": {
+                "type": "string"
+              },
+              "papers_for": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "papers_against": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }
@@ -894,10 +933,12 @@
             "level": {
               "type": "string",
               "enum": [
-                "strong",
+                "high",
                 "moderate",
-                "weak"
-              ]
+                "low",
+                "very low"
+              ],
+              "description": "GRADE-adapted evidence quality (Atkins et al. 2004): high = further research highly unlikely to change confidence ... very low = highly likely to."
             },
             "band": {
               "type": "string",

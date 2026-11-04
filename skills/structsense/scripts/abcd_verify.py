@@ -1055,7 +1055,33 @@ def verify_payload(payload: dict, text: str, *,
     abcd_roles.annotate(out)
     out["rejected"] = rejected
     out["coverage"] = _coverage_audit(out)
+    # A summary that names what its evidence does not contain is a claim the
+    # paper does not support there: reject it like a quote that is not in the
+    # paper, keeping it in rejected[] with what did not match.
     out["summaries_not_in_evidence"] = check_summaries(out)
+    kept_f = []
+    for f in out.get("findings") or []:
+        gap = f.get("summary_not_in_evidence")
+        if not gap:
+            kept_f.append(f)
+            continue
+        what = ", ".join(list(gap.get("variables") or []) + list(gap.get("statistics") or []))
+        rejected.append({
+            "section": "findings",
+            "reason": "summary_not_in_evidence",
+            "detail": f"the summary names {what}, which the quote does not contain",
+            "claim": {k: f.get(k) for k in ("statement", "role", "direction", "variables")
+                      if f.get(k) is not None},
+            "claimed_quote": str((f.get("evidence") or {}).get("quote") or "")[:300] or None,
+        })
+    if len(kept_f) != len(out.get("findings") or []):
+        n_rej = len(out["findings"]) - len(kept_f)
+        out["findings"] = kept_f
+        sec = counts.setdefault("findings", {"kept": 0, "rejected": 0})
+        sec["kept"] = len(kept_f)
+        sec["rejected"] = sec.get("rejected", 0) + n_rej
+        sec["reason_summary_not_in_evidence"] = n_rej
+        out["coverage"] = _coverage_audit(out)
 
     by_status: Dict[str, int] = {}
     for v in out["variables"]:

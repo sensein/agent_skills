@@ -181,7 +181,12 @@ and the pipeline deliberately keeps them separate from the raw measure.
 
 One entry per claim about a relationship. Fields:
 
-- `statement` — a one-sentence paraphrase of the result
+- `statement` — a one-sentence paraphrase of the result, saying **only what the
+  quote (or, for a table row, its table) says**. Every variable, construct and
+  statistic it names must be in that evidence. If the detail you want to state
+  comes from another sentence (the covariates, which mediation the paths belong
+  to), quote that sentence too. A finding whose summary names something its
+  evidence lacks is **rejected**.
 - `direction` — `positive` | `negative` | `null` | `mixed` | `unspecified`.
   Use `null` for an explicitly reported non-significant/absent effect. Use
   `unspecified` only when the paper reports a relationship without a sign.

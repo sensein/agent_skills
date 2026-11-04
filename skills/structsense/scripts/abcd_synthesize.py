@@ -67,11 +67,6 @@ AGREEMENT_THRESHOLD = 0.70
 SUBSTANTIVE_DIRECTIONS = ("positive", "negative", "null")
 _WS = re.compile(r"\s+")
 
-# Sample-size bands for the strength rating. ABCD's own full cohort is ~11,800, so
-# a study on a few hundred children is a subsample analysis, not a small study in
-# the usual sense — the bands are set for that context and reported with the
-# output rather than left implicit.
-STRENGTH_BANDS = ((5000, "large"), (1000, "moderate"), (0, "small"))
 
 
 def _now() -> str:
@@ -158,6 +153,9 @@ def _relationship(finding: dict, vindex: "VariableIndex") -> dict:
         name = str(name or "").strip()
         if not name:
             continue
+        # "Externalizing (1)" is externalizing at timepoint 1: the timepoint is
+        # not part of what the relationship is about.
+        name = re.sub(r"\s*\((?:\d+|T\d+|time \d+|wave \d+)\)\s*$", "", name, flags=re.I) or name
         base = _GROWTH_FACTOR.sub("", name) or name
         bkey = vindex.key(base) or _norm_key(base)
         if not bkey:
@@ -491,7 +489,25 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
                     c_measures[cid][key].add(pid)
                     pair[(key, cid)].add(pid)
 
+        # Outcomes of models that adjusted for covariates: a finding about one of
+        # them (and not a bivariate correlation) was estimated with confounders
+        # controlled, which the quality grade credits.
+        adjusted_keys: Set[str] = set()
+        for m in doc.get("models") or []:
+            if m.get("covariates"):
+                for o in (m.get("outcomes") or []) + (m.get("mediators") or []):
+                    k = vindex.key(o)
+                    if k:
+                        adjusted_keys.add(k)
+
         for f_index, f in enumerate(doc.get("findings") or []):
+            ev_text = " ".join(str(x) for x in (
+                (f.get("evidence") or {}).get("quote"),
+                ((f.get("evidence") or {}).get("table_context") or {}).get("group")) if x)
+            f = {**f, "_adjusted": bool(
+                str(f.get("claim_type") or "") not in ("correlation", "descriptive")
+                and (any(vindex.key(v) in adjusted_keys for v in f.get("variables") or [])
+                     or _ADJUSTED_WORDS.search(ev_text)))}
             cid, label, mapped = construct_key(f)
             c_label.setdefault(cid, label)
             c_mapped.setdefault(cid, mapped)
@@ -651,13 +667,25 @@ def synthesize(docs: List[dict], *, min_papers: int = DEFAULT_MIN_PAPERS,
             "scope": ("own-study only — the per-paper verifier rejects variables and "
                       "results attributed to cited work"),
             "strength_rating": {
-                "bands": {"large": ">= 5000", "moderate": "1000-4999",
-                          "small": "< 1000"},
-                "inputs": ["analytic sample n", "design (longitudinal vs "
-                           "cross-sectional)", "replication across papers",
-                           "whether an effect size and statistic were reported"],
-                "note": ("Derived from what the papers reported — never a judgement "
-                         "about quality beyond those inputs."),
+                "framework": ("GRADE-adapted evidence quality (Atkins et al. 2004, "
+                              "BMJ 328:1490): high / moderate / low / very low"),
+                "start": "observational = low, randomised = high",
+                "up": ["+1 longitudinal and covariate-adjusted",
+                       "+1 large standardized effect (|r|,|beta| >= .30; d >= .80; ratio >= 2)"],
+                "down": ["-1 no effect size or statistic", "-1 n < 1,000",
+                         "-1 subgroup only"],
+                "inputs": ["design", "covariate adjustment", "effect size",
+                           "analytic sample n", "subgroup"],
+                "note": ("Only what the papers reported; each step is listed in "
+                         "the finding's reasons."),
+            },
+            "claim_status": {
+                "scale": list(CLAIM_STATUSES),
+                "source": "https://www.ncbi.nlm.nih.gov/books/NBK543866/",
+                "rule": ("per relationship: evidence for the majority sign vs "
+                         "against (opposite sign or null), each paper counted "
+                         "once at its best quality; 'established' needs high "
+                         "quality replicated in independent cohorts"),
             },
             "note": ("Findings are counted once per paper per construct, so a paper "
                      "reporting many models cannot outweigh other papers."),
@@ -867,41 +895,187 @@ def _construct_row(cid: str, label: str, mapped: bool, dirs: Dict[str, Set[str]]
 # claims
 # --------------------------------------------------------------------------- #
 
-def _strength(paper: dict, finding: dict) -> dict:
-    """Rate one paper's support for a claim, from what it reported.
+QUALITY_LEVELS = ("very low", "low", "moderate", "high")
+_ADJUSTED_WORDS = re.compile(r"control(?:ling|led)? for|adjust|over and above|"
+                             r"accounting for|covariate", re.I)
+_STD_EFFECT = re.compile(r"(?<![A-Za-z])(?:rs?|r_s|\u03c1|rho|\u03b2|beta|d|g)\s*=\s*"
+                         r"([-\u2212]?\d*\.\d+)(?:\s*[\u2013\-]\s*([-\u2212]?\d*\.\d+))?", re.I)
+_RATIO = re.compile(r"(?<![A-Za-z])(?:OR|HR|RR|IRR)\s*=\s*(\d*\.?\d+)", re.I)
 
-    Everything here is a fact the paper stated (sample size, design, whether an
-    effect size was printed) plus one corpus fact (was it replicated). No quality
-    judgement is invented, and every input is listed in `reasons` so a reader can
-    disagree with the label rather than the score.
+
+def _large_effect(effect: Any) -> Optional[str]:
+    """'|r| = .58' when a standardized effect is large (|r|, |beta| >= .30;
+    d/g >= .80; OR/HR/RR >= 2 or <= .5), else None. Unstandardized b is not
+    judged: its size depends on the units."""
+    text = str(effect or "")
+    for m in _STD_EFFECT.finditer(text):
+        vals = [abs(float(v.replace("\u2212", "-"))) for v in m.groups() if v]
+        metric = m.group(0).split("=")[0].strip().lower()
+        bar = 0.80 if metric in ("d", "g") else 0.30
+        if vals and max(vals) >= bar:
+            return f"|{metric}| = {max(vals):.2f}"
+    for m in _RATIO.finditer(text):
+        v = float(m.group(1))
+        if v >= 2 or (0 < v <= 0.5):
+            return f"ratio = {v:g}"
+    return None
+
+
+def _strength(paper: dict, finding: dict) -> dict:
+    """Quality of the evidence one finding provides, graded like GRADE.
+
+    Levels and meanings follow the GRADE Working Group (Atkins et al. 2004,
+    BMJ 328:1490): high = further research is highly unlikely to change our
+    confidence; moderate = moderately unlikely; low = moderately likely; very low
+    = highly likely. As in GRADE, observational evidence starts at low and
+    randomised evidence at high, then moves one level per factor:
+
+      +1  longitudinal design AND estimated with covariates controlled
+          (temporal order plus confounder adjustment)
+      +1  large standardized effect (|r| or |beta| >= .30, d >= .80, ratio >= 2)
+      -1  no effect size and no test statistic reported (precision unknown)
+      -1  analytic n < 1,000 (imprecision)
+      -1  subgroup-only result (indirectness)
+
+    Every step is in `reasons`, so a reader can disagree with a step rather than
+    with an opaque score. Only facts the paper reported are used.
     """
     dataset = (paper or {}).get("dataset") or {}
     n = _first_int(finding.get("analytic_n"), dataset.get("analytic_sample"),
                    dataset.get("sample_size"))
-    band = next(name for floor, name in STRENGTH_BANDS if (n or 0) >= floor)
-    reasons = [f"n = {n:,}" if n else "no sample size reported"]
-
     design = str(dataset.get("design") or "")
+    randomised = bool(re.search(r"randomi[sz]ed|\brct\b|trial", design, re.I))
     longitudinal = bool(re.search(r"longitud|wave|follow[\s-]?up|prospectiv",
                                   design, re.I))
-    reasons.append(design or "design not stated")
-
-    has_effect = bool(finding.get("effect_size"))
-    if not has_effect:
-        reasons.append("no effect size reported")
-    if finding.get("subgroup"):
-        reasons.append(f"subgroup only: {finding['subgroup']}")
-
-    score = {"large": 3, "moderate": 2, "small": 1}[band]
-    if longitudinal:
+    adjusted = bool(finding.get("_adjusted"))
+    score = 3 if randomised else 1
+    reasons = ["starts high (randomised design)" if randomised
+               else "starts low (observational study)"]
+    if longitudinal and adjusted:
         score += 1
-    if not has_effect:
+        reasons.append("+1 longitudinal and adjusted for covariates")
+    elif longitudinal:
+        reasons.append("longitudinal, but this estimate is not covariate-adjusted")
+    large = _large_effect(finding.get("effect_size"))
+    if large:
+        score += 1
+        reasons.append(f"+1 large effect ({large})")
+    if not finding.get("effect_size") and not finding.get("statistic"):
         score -= 1
+        reasons.append("-1 no effect size or statistic reported")
+    if n is not None and n < 1000:
+        score -= 1
+        reasons.append(f"-1 n = {n:,} (< 1,000)")
+    elif n is None:
+        reasons.append("sample size not reported")
+    else:
+        reasons.append(f"n = {n:,}")
     if finding.get("subgroup"):
         score -= 1
-    level = "strong" if score >= 4 else "moderate" if score == 3 else "weak"
-    return {"level": level, "band": band, "sample_n": n,
-            "longitudinal": longitudinal, "reasons": reasons}
+        reasons.append(f"-1 subgroup only: {finding['subgroup']}")
+    level = QUALITY_LEVELS[max(0, min(3, score))]
+    return {"level": level, "score": max(0, min(3, score)), "sample_n": n,
+            "longitudinal": longitudinal, "adjusted": adjusted, "reasons": reasons,
+            "framework": "GRADE-adapted (Atkins et al. 2004)"}
+
+
+CLAIM_STATUSES = ("established", "provisionally established", "arguably true",
+                  "speculative", "arguably false", "provisionally ruled out",
+                  "ruled out")
+
+
+def _claim_status(rel_label: str, evidence: List[dict], majority: Optional[str],
+                  by_paper: Dict[str, dict]) -> dict:
+    """Where the claim stands, on the scale established ... ruled out.
+
+    The claim is the relationship with the majority sign ("financial strain <->
+    family conflict is positive"); with no signed majority, that there is an
+    association at all. Evidence for it is findings with that sign; evidence for
+    its negation is the opposite sign or a reported null. Per paper, a side counts
+    once, at its best quality.
+
+      established              high-quality evidence, nothing against, and
+                               replicated in independent samples (>= 2 cohorts)
+      provisionally established  moderate (or unreplicated high) evidence,
+                               nothing against
+      arguably true            low-quality evidence with nothing against, or
+                               moderate+ evidence with more papers for than against
+      speculative              none of the above
+      arguably false / provisionally ruled out / ruled out: the mirror image.
+
+    Definitions after the claim-status scale at
+    https://www.ncbi.nlm.nih.gov/books/NBK543866/ ; quality levels after Atkins
+    et al. (2004).
+    """
+    # The claim's sign: the one more papers report. A tie between positive and
+    # negative is not a claim either way.
+    sign_papers = {d: {str(e.get("paper_id")) for e in evidence if e.get("direction") == d}
+                   for d in ("positive", "negative")}
+    n_pos, n_neg = len(sign_papers["positive"]), len(sign_papers["negative"])
+    claim_dir = ("positive" if n_pos > n_neg else "negative" if n_neg > n_pos else None)
+    if claim_dir is None and n_pos:
+        return {"claim": f"{rel_label}: there is an association",
+                "status": "speculative",
+                "why": (f"the sign is disputed: {n_pos} paper(s) report positive and "
+                        f"{n_neg} negative"),
+                "papers_for": sorted(sign_papers["positive"] | sign_papers["negative"]),
+                "papers_against": sorted({str(e.get("paper_id")) for e in evidence
+                                          if e.get("direction") == "null"})}
+    for_q: Dict[str, int] = {}
+    against_q: Dict[str, int] = {}
+    for e in evidence:
+        d = e.get("direction")
+        q = int((e.get("strength") or {}).get("score", 0))
+        pid = str(e.get("paper_id"))
+        if claim_dir and d == claim_dir:
+            for_q[pid] = max(for_q.get(pid, 0), q)
+        elif d == "null" or (claim_dir and d in ("positive", "negative") and d != claim_dir):
+            against_q[pid] = max(against_q.get(pid, 0), q)
+    claim = (f"{rel_label} is {claim_dir}" if claim_dir
+             else f"{rel_label}: there is an association")
+
+    def cohorts(pids) -> Set[str]:
+        out = set()
+        for p in pids:
+            ds = (by_paper.get(p) or {}).get("dataset") or {}
+            out.add(str(ds.get("cohort") or ds.get("study") or p).lower())
+        return out
+
+    def decide(side: Dict[str, int], other: Dict[str, int], pos: bool) -> Tuple[str, str]:
+        best = max(side.values())
+        names = (("established", "provisionally established", "arguably true")
+                 if pos else ("ruled out", "provisionally ruled out", "arguably false"))
+        level = QUALITY_LEVELS[best]
+        if not other:
+            independent = len(side) >= 2 and len(cohorts(side)) >= 2
+            if best == 3 and independent:
+                return names[0], f"high-quality evidence from {len(side)} independent samples, none against"
+            if best >= 2:
+                why = f"{level}-quality evidence, none against"
+                if best == 3:
+                    why += ("; not established: " + ("one paper only" if len(side) < 2
+                            else "the papers analyse the same cohort, so it is not an independent replication"))
+                return names[1], why
+            if best == 1:
+                return names[2], "low-quality evidence, none against"
+            return "speculative", "only very low-quality evidence"
+        if len(side) > len(other) and best >= 2:
+            return names[2], (f"{len(side)} paper(s) for vs {len(other)} against, "
+                              f"best evidence {level}")
+        return "speculative", f"{len(side)} paper(s) for vs {len(other)} against"
+
+    if for_q and (len(for_q) >= len(against_q) or not against_q):
+        status, why = decide(for_q, against_q, True)
+    elif against_q and not for_q:
+        status, why = decide(against_q, for_q, False)
+    elif against_q:
+        status, why = decide(against_q, for_q, False)
+    else:
+        status, why = "speculative", "no finding with a direction"
+    if status == "speculative" and for_q and against_q:
+        why = f"{len(for_q)} paper(s) for vs {len(against_q)} against: evidence on both sides"
+    return {"claim": claim, "status": status, "why": why,
+            "papers_for": sorted(for_q), "papers_against": sorted(against_q)}
 
 
 def _claim(construct: dict, findings: List[dict], by_paper: Dict[str, dict],
@@ -1126,12 +1300,15 @@ def _relationship_row(rel: dict, dirs: Dict[str, Set[str]], findings: List[dict]
                            "children, so agreement is not independent")
     if rel["kind"] == "change_over_time":
         caveats.append("change over time in one variable, not an association")
+    status = (None if rel["kind"] == "change_over_time"
+              else _claim_status(label, evidence, majority, by_paper))
     constructs = sorted({str(f.get("construct_label") or f.get("construct"))
                          for f in findings
                          if f.get("construct_label") or f.get("construct")})
     return {
         "label": label,
         "kind": rel["kind"],
+        "claim_status": status,
         "constructs": constructs,
         "variables": rel["variables"],
         "verdict": verdict,

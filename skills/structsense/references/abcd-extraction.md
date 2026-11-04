@@ -208,6 +208,14 @@ block is often the other column. A finding whose `effect_size` holds two values
 of one metric (`r = −.15 …; r = −.41 …`) is flagged `combines_several_results`;
 the prompt asks for one finding per result.
 
+**A summary must say no more than its evidence.** Every variable, construct and
+statistic of the paper that a finding's `statement` names must appear in its
+quote, or for a table row in the row plus its verbatim `table_context` (caption,
+column headings, group heading, footnote, correlation-matrix row labels). A
+finding that fails is **rejected** (`rejected[]`, reason
+`summary_not_in_evidence`, with the unmatched names), not kept with a warning.
+Verbs and timepoint wording are not checked.
+
 **Text extraction keeps tables out of sentences.** The PyMuPDF backend reads each
 page block by block, puts rotated text (a table printed sideways) after the
 prose, and drops running headers and footers (blocks repeated on half the pages
@@ -767,6 +775,50 @@ python -m scripts.abcd_synthesize ./out --min-papers 3 --out ./out/abcd_synthesi
 **Counting is by paper, never by finding.** A paper reporting one association
 across six models must not outvote five other papers; that would make verbosity
 look like evidence.
+
+### Evidence quality of each finding
+
+Levels follow the GRADE Working Group (Atkins D, et al. Grading quality of
+evidence and strength of recommendations. *BMJ* 2004;328:1490):
+
+| Level | Interpretation |
+|---|---|
+| High | Further research is highly unlikely to have a significant impact on our confidence in the claim |
+| Moderate | Further research is moderately unlikely to have a significant impact on our confidence in the claim |
+| Low | Further research is moderately likely to have a significant impact on our confidence in the claim |
+| Very low | Further research is highly likely to have a significant impact on our confidence in the claim |
+
+As in GRADE, observational evidence starts **low** and randomised evidence
+**high**. A finding then moves one level for each of these: +1 longitudinal and
+covariate-adjusted (the finding is about an outcome of a model with covariates,
+and is not a bivariate correlation); +1 large standardized effect (|r| or |β| ≥
+.30, d ≥ .80, ratio ≥ 2; unstandardized b is not judged); −1 no effect size and
+no statistic; −1 n < 1,000; −1 subgroup only. The steps are in
+`strength.reasons`. This adapts GRADE to single findings from what the paper
+reports. It is not a GRADE review: risk of bias, inconsistency and publication
+bias are not assessed.
+
+### Claim status of each relationship
+
+Each relationship's claim (its majority sign, or "there is an association" when
+only nulls exist) gets a status on the scale at
+<https://www.ncbi.nlm.nih.gov/books/NBK543866/>: established · provisionally
+established · arguably true · speculative · arguably false · provisionally ruled
+out · ruled out. Evidence *for* is findings with the claim's sign. Evidence
+*against* is the opposite sign or a reported null. Each paper counts once per
+side, at its best quality.
+
+| Status | Rule here |
+|---|---|
+| established | high-quality evidence, nothing against, replicated in ≥ 2 independent cohorts |
+| provisionally established | moderate-quality evidence (or unreplicated high), nothing against |
+| arguably true | low-quality evidence with nothing against, or moderate+ evidence with more papers for than against |
+| speculative | anything else: evidence on both sides, a disputed sign, or only very low quality |
+| arguably false · provisionally ruled out · ruled out | the same rules applied to the negation |
+
+All-ABCD corpora cannot reach *established*: the papers share one cohort, so
+agreement is not an independent replication, and the status says so. Change
+over time is not graded (`claim_status: null`).
 
 ### Relationships: where papers actually disagree
 
