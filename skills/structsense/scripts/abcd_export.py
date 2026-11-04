@@ -4,7 +4,9 @@ Three renderings of the same verified payload, because three different consumers
 need it:
 
   * **JSON** — the machine record. Everything, including `rejected[]`.
-  * **Markdown** — tables a human reads in a PR or a lab notebook.
+  * **Markdown** — tables a human reads in a PR or a lab notebook (opt-in with
+    `--formats ...,md`; the default human-readable output is the single Excel
+    workbook from scripts/abcd_xlsx.py).
   * **Turtle** — triples for a graph store (e.g. BrainKB), so provenance survives
     into a queryable form.
 
@@ -291,10 +293,13 @@ def paper_markdown(doc: dict) -> str:
         "## Findings",
         "",
         md_table(
-            ["Finding", "Direction", "Role", "Construct", "Effect", "Section", "Quote"],
+            ["Finding", "Claim type", "Directionality", "Direction", "Role",
+             "Construct", "Effect", "Section", "Quote"],
             [
                 (
                     _trunc(f.get("statement"), 90),
+                    f.get("claim_type") or "—",
+                    f.get("directionality") or "—",
                     f.get("direction"),
                     f.get("role"),
                     f.get("construct_label") or f.get("construct") or "—",
@@ -530,6 +535,12 @@ def paper_turtle(doc: dict) -> str:
         out.append(f"{node_} a abcd:Finding ;")
         out.append(f"    abcd:statement {lit(f.get('statement'))} ;")
         out.append(f"    abcd:direction {lit(f.get('direction'))} ;")
+        # Claim type: Blake's Claim Framework (J Biomed Inform 43(2):173-189, 2010,
+        # doi:10.1016/j.jbi.2009.11.001), extended; see abcd_verify.CLAIM_TYPES.
+        if f.get("claim_type"):
+            out.append(f"    abcd:claimType {lit(f['claim_type'])} ;")
+        if f.get("directionality"):
+            out.append(f"    abcd:directionality {lit(f['directionality'])} ;")
         out.append(f"    abcd:role {lit(f.get('role'))} ;")
         if f.get("construct_id"):
             out.append(f"    abcd:aboutConstruct cogat:{f['construct_id']} ;")
@@ -1076,8 +1087,12 @@ def write_all(doc: dict, base: Path, *, kind: str = "paper",
     cb_fn = paper_codebook_tsv if kind == "paper" else synthesis_codebook_tsv
     written: Dict[str, Path] = {}
     for fmt in formats:
+        if fmt == "xlsx":
+            # One workbook for the whole run, not one per paper: written by the
+            # caller through scripts/abcd_xlsx.py once every paper is done.
+            continue
         if fmt not in ("json", "md", "ttl", "codebook"):
-            raise ValueError(f"unknown format {fmt!r} (json | md | ttl | codebook)")
+            raise ValueError(f"unknown format {fmt!r} (json | md | ttl | codebook | xlsx)")
         # APPEND the extension; never with_suffix(). Paper filenames routinely embed
         # a DOI ("Whitmore-2023-10.1162_imag_a_00037"), and with_suffix() would treat
         # ".1162_imag_a_00037_abcd" as the suffix and replace it — truncating the name

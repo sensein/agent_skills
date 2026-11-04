@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased — ABCD results as one Excel workbook
+
+- Per-paper Markdown was hard to read (10+ column pipe tables, quotes cut at ~90
+  characters, one file per paper). The default human-readable output is now one
+  workbook for the run, `abcd_results.xlsx` (`scripts/abcd_xlsx.py`). It has a
+  README sheet, Papers, Findings, Variables, Models, Constructs, Rejected, and, when
+  the run has a synthesis, Claims, Claim evidence and Construct summary. Each row
+  names its paper (author + year, with a/b for same author and year) and carries
+  the full quote. Match statuses are spelled out, with wrapped text, frozen
+  headers and filters.
+- Default `--formats` is now `json,ttl,xlsx` for `abcd_extract` and
+  `abcd_synthesize`. `md` is opt-in.
+- `python -m scripts.abcd_xlsx <out_dir>` builds the workbook from an existing run.
+
+## Unreleased — ABCD findings carry a claim type and a directionality
+
+- `findings[]` items now have `claim_type` (`explicit`, `implicit`, `comparison`,
+  `correlation`, `observation` from Blake's Claim Framework, C. Blake, J Biomed
+  Inform 43(2):173–189, 2010, doi:10.1016/j.jbi.2009.11.001, extended with
+  `associative`, `descriptive`, `causal`) and `directionality` (`increase`,
+  `decrease`, `mixed`, `support`). The extractor prompt defines each type, gives
+  examples, and sets a precedence for sentences that fit more than one.
+- `direction` (positive/negative/null/mixed/unspecified) is unchanged, so the
+  cross-paper synthesis counts exactly as before.
+- The verifier maps common variants and sets unknown values to `null`. The
+  Markdown findings table and the Turtle (`abcd:claimType`,
+  `abcd:directionality`) include both fields. Rejected claims keep them too.
+
 ## Unreleased — Scopes on modality or topic alone; controlled access with no named committee
 
 - **A scope pinned only by a modality or a topic failed `ApplicabilityScopeShape`.**

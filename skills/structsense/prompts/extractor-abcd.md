@@ -185,6 +185,15 @@ One entry per claim about a relationship. Fields:
 - `direction` — `positive` | `negative` | `null` | `mixed` | `unspecified`.
   Use `null` for an explicitly reported non-significant/absent effect. Use
   `unspecified` only when the paper reports a relationship without a sign.
+- `claim_type` — how the sentence states the claim (one value, see
+  **Claim types** below).
+- `directionality` — what the claim asserts: `increase` | `decrease` |
+  `mixed` | `support`. `increase`/`decrease` when the claim says the outcome
+  goes up or down (elevated, higher, poorer scores, prevented, reduced);
+  `mixed` when parts of the claim go in opposite directions ("increased
+  DMN–DAN connectivity and decreased within-DAN connectivity"); `support` when
+  the claim affirms a relationship without a sign ("was associated with",
+  "predicted"). Use `null` for a reported null/absent effect.
 - `role` — the role of the variable the finding is *about* (see roles)
 - `construct` — the construct this finding concerns, if identifiable
 - `variables[]` — the variable strings involved
@@ -197,6 +206,30 @@ One entry per claim about a relationship. Fields:
 
 A finding's quote must contain at least one of the variables in `variables[]`,
 otherwise the verifier drops it as unsupported.
+
+### Claim types
+
+The first five types come from Blake's Claim Framework (C. Blake, "Beyond genes,
+proteins, and abstracts: Identifying scientific claims from full-text biomedical
+articles", *J Biomed Inform* 43(2):173–189, 2010). The last three extend it.
+
+| `claim_type` | The sentence… | Example |
+|---|---|---|
+| `explicit` | states directly that one thing acts on or changes another, with an effect verb (increases, prevents, induces, reduces) | "Trauma reportedly also increases the frequency of hematopoietic progenitor cells." · "Indeed, glycine prevented Wy-14643-stimulated superoxide production by Kupffer cells." |
+| `implicit` | reports a change that follows an exposure or condition without a verb linking the two; the relationship is implied | "In liver the number of peroxisomes increases from about 500–600/cell to >5000/cell after exposure to peroxisome proliferators" |
+| `comparison` | compares a measure between named groups or conditions | "The plasma level of nm23-H1 protein was significantly elevated in AML patients (n = 102; …) compared with the healthy controls (n = 21, …; P = 0.001)." |
+| `correlation` | reports a correlation between two measures, usually with a correlation statistic (r, ρ) | "…weak but statistically significant correlation was observed between the plasma nm23-H1 level and the WBC count (Fig. 1, n = 102, r = 0.437, P < 0.0001)." |
+| `observation` | reports a result in a group or condition without naming the comparator | "However, the plasma nm21-H1 protein level was increased in SML-M3 patients (P = 0.0002)." |
+| `associative` | links two variables with association wording ("associated with", "linked to", "related to", "predicted"), not a correlation coefficient | "PTE was significantly associated with increased connectivity between the DMN and DAN…" |
+| `descriptive` | characterizes the sample or a distribution (prevalence, means, frequencies) without relating two variables | "Mean CBCL total problems score was 22.4 (SD 18.1) at baseline." |
+| `causal` | uses causal wording: causes, leads to, results in, due to, a mediated/indirect pathway | "Screen time led to poorer sleep, which in turn mediated…" |
+
+If more than one fits, use the first match in this order: `comparison`,
+`correlation`, `causal`, `explicit`, `implicit`, `associative`, `observation`,
+`descriptive`. A sex-difference sentence ("Boys had poorer scores on eight of the
+scales, while girls…") is a `comparison`. Choose based on the paper's wording,
+not on what the design could support. An associational design described with
+"increases" is still `explicit`; the claim is how the author stated it.
 
 ## Roles
 

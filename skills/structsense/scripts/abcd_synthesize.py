@@ -913,7 +913,9 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     help="*_abcd.json files, or directories containing them")
     ap.add_argument("--out", type=Path, default=Path("abcd_synthesis"),
                     help="output stem (default: ./abcd_synthesis)")
-    ap.add_argument("--formats", default="json,md,ttl")
+    ap.add_argument("--formats", default="json,ttl,xlsx",
+                    help="comma list of json, ttl, xlsx, md, codebook; xlsx writes one "
+                         "workbook (<out>.xlsx) with every paper and the synthesis")
     ap.add_argument("--min-papers", type=int, default=DEFAULT_MIN_PAPERS)
     ap.add_argument("--agreement-threshold", type=float, default=AGREEMENT_THRESHOLD)
     a = ap.parse_args(argv)
@@ -935,6 +937,11 @@ def _cli(argv: Optional[List[str]] = None) -> int:
           f"({t['variables_with_table']} with a table, "
           f"{t['consistent_mediators']} consistent mediators, "
           f"{t['consistent_moderators']} moderators, {t['contested_roles']} contested)")
+    if "xlsx" in formats:
+        from scripts import abcd_xlsx
+
+        written["xlsx"] = abcd_xlsx.write_workbook(
+            docs, a.out.parent / f"{a.out.name}.xlsx", syn)
     for fmt, path in written.items():
         print(f"  {fmt}: {path}")
     return 0

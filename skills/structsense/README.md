@@ -378,16 +378,20 @@ python -m scripts.abcd_extract paper.pdf --payload paper.payload.json
 python -m scripts.abcd_extract ./papers --llm-model MODEL   # a framework calls an API
 ```
 
-Every run writes `<stem>_abcd.json`, `.md` (tables) and `.ttl` (PROV-O triples) into
-`<input>/abcd_results/`, never beside the papers — plus `abcd_synthesis.{json,md,ttl}`
-when there is more than one paper:
+Every run writes one Excel workbook to read, `abcd_results.xlsx` (a sheet per
+Papers / Findings / Variables / Models / Constructs / Rejected and the cross-paper
+Claims), plus `<stem>_abcd.json` and `.ttl` (PROV-O triples) per paper, into
+`<input>/abcd_results/`, never beside the papers. `abcd_synthesis.{json,ttl}` is
+added when there is more than one paper. Per-paper Markdown is opt-in
+(`--formats json,ttl,xlsx,md`):
 
 ```
 papers/                                  <- your PDFs, untouched
 └── abcd_results/                        <- --out-dir to put it elsewhere
-    ├── <stem>_abcd.{json,md,ttl}        one set per paper
+    ├── abcd_results.xlsx                the file to read: all papers + synthesis
+    ├── <stem>_abcd.{json,ttl}           one set per paper
     ├── <stem>_abcd.codebook.tsv         --formats ...,codebook (opt-in)
-    ├── abcd_synthesis.{json,md,ttl}     the cross-paper pass
+    ├── abcd_synthesis.{json,ttl}        the cross-paper pass
     ├── text/<stem>.txt                  --prepare writes extracted text here
     └── payloads/<stem>.payload.json     ...and expects your payloads here
 ```

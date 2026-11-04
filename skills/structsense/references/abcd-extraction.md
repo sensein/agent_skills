@@ -114,20 +114,27 @@ the reason; download those yourself and point at the directory. Each fetch recor
 the service that answered, the URL, the license where known, and a sha256, into the
 paper's `provenance.retrieval`.
 
-Every run emits three formats by default: **JSON** (machine record, includes
-rejected claims), **Markdown** (tables to read), **Turtle** (triples for a graph
-store, PROV-O provenance). Restrict with `--formats json,md`. A fourth,
-**codebook**, is opt-in — `--formats json,md,ttl,codebook` — and writes the run in
-the ABCD annotators' own coding scheme for diffing against hand-coded data.
+Every run emits three formats by default: **JSON** (machine record per paper,
+includes rejected claims), **Turtle** (triples for a graph store, PROV-O
+provenance), and **one Excel workbook for the whole run**, `abcd_results.xlsx`,
+which is the file to read. It has a sheet each for Papers, Findings (with claim
+type and directionality), Variables, Models, Constructs and Rejected, plus Claims,
+Claim evidence and Construct summary from the synthesis. Every row carries the
+paper and the full quote, and a README sheet explains the coded values. Per-paper
+**Markdown** is opt-in (`--formats json,ttl,xlsx,md`). **codebook** is opt-in too
+(`--formats ...,codebook`) and writes the run in the ABCD annotators' own coding
+scheme for diffing against hand-coded data. To build the workbook from an
+earlier run's output: `python -m scripts.abcd_xlsx <out_dir>`.
 
 ## Where the output goes
 
 ```
 papers/                                  <- inputs, never written to
 └── abcd_results/                        <- everything this skill produces
-    ├── <stem>_abcd.{json,md,ttl}
+    ├── abcd_results.xlsx                one workbook: every paper + synthesis
+    ├── <stem>_abcd.{json,ttl}           (.md with --formats ...,md)
     ├── <stem>_abcd.codebook.tsv         --formats ...,codebook
-    ├── abcd_synthesis.{json,md,ttl}
+    ├── abcd_synthesis.{json,ttl}
     ├── text/<stem>.txt                  extracted text (--prepare)
     ├── payloads/<stem>.payload.json     agent payloads (--prepare -> --payload)
     ├── judge/<stem>/{packets,reviews}/  the judge panel's packets and reviews
@@ -616,6 +623,30 @@ study's tables, admin elements are dropped, and what survives is offered to a hu
 `--nda-api auto` (default) confirms printed names always but only searches for runs
 of at most 25 papers — a 770-paper corpus would mean thousands of requests.
 Responses cache under `~/.cache/structsense/nda_api`, so a rerun is offline.
+
+## Claim type and directionality of a finding
+
+Each `findings[]` item has a `claim_type` and a `directionality`, alongside the
+`direction` that the synthesis counts.
+
+- `claim_type`: `explicit` · `implicit` · `comparison` · `correlation` ·
+  `observation` · `associative` · `descriptive` · `causal`. The first five are
+  the Claim Framework of C. Blake, "Beyond genes, proteins, and abstracts:
+  Identifying scientific claims from full-text biomedical articles", *Journal of
+  Biomedical Informatics* 43(2):173–189, 2010
+  ([doi:10.1016/j.jbi.2009.11.001](https://doi.org/10.1016/j.jbi.2009.11.001)).
+  The other three extend it. Definitions, examples and the precedence for
+  sentences that fit several types are in `prompts/extractor-abcd.md`
+  ("Claim types").
+- `directionality`: `increase` · `decrease` · `mixed` · `support`. This is what
+  the claim asserts. `support` means the relationship holds but no sign is
+  given. A reported null effect has `directionality: null` and
+  `direction: "null"`.
+
+The verifier maps common variants to these values (`comparisons` →
+`comparison`, `increased` → `increase`) and sets anything else to `null`
+instead of guessing. Both fields appear in the Markdown findings table and in
+the Turtle (`abcd:claimType`, `abcd:directionality`).
 
 ## Only what this study did
 

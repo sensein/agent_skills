@@ -11,7 +11,7 @@ Pipeline per paper:
       -> concept map constructs (concept_mapping: trusted ontology files first)
       -> judge panel (record_judge: same judges and gates as NER) -> corrections
       -> human feedback (optional: --feedback ops file, or --human-feedback interactive)
-      -> write <stem>_abcd.{json,md,ttl}
+      -> write <stem>_abcd.{json,ttl} (+ .md opt-in) and one abcd_results.xlsx for the run
 
 What this deliberately does NOT do: infer variables a paper "probably" used, or
 enumerate the data dictionary. The paper is the only source of what was used; the
@@ -438,7 +438,10 @@ def _cli(argv: Optional[List[str]] = None) -> int:
                     help="restrict dictionary snapshots to these releases (repeatable)")
     ap.add_argument("--out-dir", type=Path, default=None,
                     help=f"where results go (default: <input>/{DEFAULT_OUT_DIRNAME})")
-    ap.add_argument("--formats", default="json,md,ttl")
+    ap.add_argument("--formats", default="json,ttl,xlsx",
+                    help="comma list of json, ttl, xlsx, md, codebook. xlsx is ONE "
+                         "workbook for the whole run (abcd_results.xlsx); md writes a "
+                         "Markdown file per paper")
     ap.add_argument("--grobid-url", default=os.getenv("GROBID_URL"))
     ap.add_argument("--no-docling", action="store_true",
                     help="skip the Docling extraction backend. It gives the best "
@@ -701,6 +704,13 @@ def _cli(argv: Optional[List[str]] = None) -> int:
         print(f"synthesis: {t['papers']} papers, {t['consensus_constructs']} consensus, "
               f"{t['divergent_constructs']} divergent -> "
               f"{', '.join(str(p.name) for p in paths.values())}")
+
+    if "xlsx" in formats and written_docs:
+        from scripts import abcd_xlsx
+
+        wb = abcd_xlsx.write_workbook(written_docs, out_dir / "abcd_results.xlsx",
+                                      syn if do_synth else None)
+        print(f"workbook: {wb.name}")
 
     if written_docs:
         print(f"results in {out_dir}")

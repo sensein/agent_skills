@@ -69,6 +69,33 @@ ROLES = ("predictor", "outcome", "mediator", "moderator", "covariate",
 
 DIRECTIONS = ("positive", "negative", "null", "mixed", "unspecified")
 
+# Claim types for findings. explicit / implicit / comparison / correlation /
+# observation are Blake's Claim Framework:
+#   C. Blake, "Beyond genes, proteins, and abstracts: Identifying scientific claims
+#   from full-text biomedical articles", Journal of Biomedical Informatics
+#   43(2):173-189, 2010. doi:10.1016/j.jbi.2009.11.001
+# associative / descriptive / causal extend it. Definitions and the precedence used
+# when several fit are in prompts/extractor-abcd.md.
+CLAIM_TYPES = ("explicit", "implicit", "comparison", "correlation", "observation",
+               "associative", "descriptive", "causal")
+# Spellings a model plausibly emits for the same type.
+_CLAIM_TYPE_ALIASES = {
+    "comparisons": "comparison", "comparative": "comparison",
+    "correlations": "correlation", "correlational": "correlation",
+    "observations": "observation", "observational": "observation",
+    "association": "associative", "associations": "associative",
+    "description": "descriptive", "causation": "causal",
+}
+
+# What the claim asserts, separate from `direction` (the effect sign the synthesis
+# counts). A reported null effect has no directionality: it is left None.
+DIRECTIONALITY = ("support", "increase", "decrease", "mixed")
+_DIRECTIONALITY_ALIASES = {
+    "supports": "support", "supported": "support",
+    "increases": "increase", "increased": "increase",
+    "decreases": "decrease", "decreased": "decrease",
+}
+
 
 def normalize(s: str) -> str:
     """Fold PDF artefacts so a real quote matches the extracted text.
@@ -713,7 +740,8 @@ def verify_payload(payload: dict, text: str, *,
                     "reason": why,
                     "claim": {k: raw.get(k) for k in
                               ("name", "variable", "construct", "statement", "role",
-                               "direction") if raw.get(k) is not None},
+                               "direction", "claim_type", "directionality")
+                              if raw.get(k) is not None},
                     "claimed_quote": (str((raw.get("evidence") or {}).get("quote")
                                           or raw.get("quote") or ""))[:300] or None,
                 })
@@ -930,9 +958,21 @@ def _normalize_model(item: dict) -> dict:
     return out
 
 
+def _norm_optional(value: Any, allowed: Sequence[str],
+                   aliases: dict) -> Optional[str]:
+    """Like _norm_enum, but an unknown value becomes None rather than a guess."""
+    v = str(value or "").strip().lower().replace(" ", "_")
+    v = aliases.get(v, v)
+    return v if v in allowed else None
+
+
 def _normalize_finding(item: dict, atlas) -> dict:
     out = dict(item)
     out["direction"] = _norm_enum(out.get("direction"), DIRECTIONS, "unspecified")
+    out["claim_type"] = _norm_optional(out.get("claim_type"), CLAIM_TYPES,
+                                       _CLAIM_TYPE_ALIASES)
+    out["directionality"] = _norm_optional(out.get("directionality"),
+                                           DIRECTIONALITY, _DIRECTIONALITY_ALIASES)
     out["role"] = _norm_enum(out.get("role"), ROLES, "unspecified")
     if out.get("construct") and atlas:
         hit = atlas.map_term(str(out["construct"]))

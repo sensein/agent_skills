@@ -1111,7 +1111,40 @@
             "null",
             "mixed",
             "unspecified"
-          ]
+          ],
+          "description": "Sign of the effect, used by the cross-paper synthesis (consensus/divergence). Kept beside `directionality`, which says what the claim asserts."
+        },
+        "claim_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "explicit",
+            "implicit",
+            "comparison",
+            "correlation",
+            "observation",
+            "associative",
+            "descriptive",
+            "causal",
+            null
+          ],
+          "description": "How the paper states the claim. explicit, implicit, comparison, correlation and observation follow Blake's Claim Framework (C. Blake, 'Beyond genes, proteins, and abstracts: Identifying scientific claims from full-text biomedical articles', J Biomed Inform 43(2):173-189, 2010, doi:10.1016/j.jbi.2009.11.001); associative, descriptive and causal extend it. One value per finding, chosen by the precedence in prompts/extractor-abcd.md. null = the extractor gave no valid type."
+        },
+        "directionality": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "support",
+            "increase",
+            "decrease",
+            "mixed",
+            null
+          ],
+          "description": "What the claim asserts: increase / decrease of the outcome, mixed (parts of the claim go in opposite directions), or support (the relationship holds, without a sign). null for a reported null/absent effect or when not given."
         },
         "role": {
           "$ref": "#/$defs/Role"
