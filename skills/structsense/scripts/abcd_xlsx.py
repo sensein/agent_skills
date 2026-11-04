@@ -260,9 +260,11 @@ REJECTED_COLS = ["Paper", "Item type", "Reason", "Why", "What was proposed", "Qu
 # First row of every sheet: what the sheet is for, in one sentence.
 SHEET_NOTES = {
     "Cross-paper": ("Compares papers. Each coloured row is one relationship between "
-                    "variables with a verdict (do the papers agree?); the rows under "
-                    "it are each paper's finding on it, with effect size and quote. "
-                    "Green = agree, red = disagree, yellow = a paper contradicts itself."),
+                    "variables with its claim status; the rows under it are each "
+                    "paper's finding on it, with effect size, evidence quality and "
+                    "quote. A \u2194 B means A is associated with B, with no direction "
+                    "implied (see README). Green = agree, red = disagree, yellow = a "
+                    "paper contradicts itself."),
     "Findings": ("Every result each paper reported about its own data, in the order "
                  "it appears in the paper. One row = one finding. The quote is the "
                  "paper's own words, checked against its text; the summary next to "
@@ -374,6 +376,14 @@ README_ROWS = [
     ("Models", "The statistical analyses each paper ran, one row per model, with which variables were predictors, mediators, moderators, outcomes and covariates. Use it to see how a finding was obtained."),
     ("Constructs", "The broader concepts the variables measure (e.g. 'externalizing symptoms', 'working memory'), with the Cognitive Atlas id when found. This is how variables from different papers are recognised as measuring the same thing."),
     ("Rejected", "Present only when the verifier rejected something (quote not in the paper, or a result that belongs to cited work)."),
+    ("", ""),
+    ("Relationship notation", "Meaning (the 'Relationship' column)"),
+    ("A \u2194 B", "A is associated with B. The arrow has two heads on purpose: it says the two variables are related, NOT which one predicts or causes the other. One block pools every finding about the pair: correlations (no direction), A predicting B, and B predicting A. Read the individual findings under the block for direction."),
+    ("A / B / C", "A finding about three or more variables at once, usually a mediation path (e.g. financial strain \u2192 family conflict \u2192 externalizing). The order is alphabetical, not the causal order; the path is in the finding's quote and summary."),
+    ("A over time", "Change or stability of one variable across waves (e.g. family conflict decreasing over time, or prior externalizing predicting later externalizing). Not an association between two variables, so it is listed but not graded."),
+    ("A and B over time", "Two variables each changing over time (\"both decreased over time\"). Two trends, not an association between them."),
+    ("A as moderator", "A finding about a moderator where the paper does not name the other variables in that sentence."),
+    ("\u2192 in a summary", "Inside a finding's summary or quote, \u2192 is the paper's own direction (A \u2192 B: A predicts B, as the paper states it). It is never added by the cross-paper grouping."),
     ("", ""),
     ("Verdict", "Meaning"),
     ("Papers agree", "Two or more papers report the same direction for this relationship."),
@@ -577,7 +587,8 @@ def build_workbook(papers: Sequence[dict], synthesis: Optional[dict] = None):
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
         if row[0].value in ("How to read this workbook", "Verdict", "Claim type",
-                            "Directionality", "Claim status", "Evidence quality"):
+                            "Directionality", "Claim status", "Evidence quality",
+                            "Relationship notation"):
             for c in row:
                 c.font = Font(bold=True)
     readme.column_dimensions["A"].width = 30

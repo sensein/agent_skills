@@ -828,6 +828,15 @@ the same relationship and have opposing signs. Grouping by construct alone made
 "income → lower family conflict" (negative) and "financial strain → higher family
 conflict" (positive) look like papers disagreeing about family conflict.
 
+**Notation.** `A ↔ B` means *A is associated with B*. The two-headed arrow
+is deliberate: a relationship is keyed on the unordered pair of variables, so
+one block pools correlations (no direction), A predicting B, and B predicting A.
+It never asserts which variable predicts or causes the other; the direction is
+in each finding. `A / B / C` is a finding about three or more variables (usually
+a mediation path), listed alphabetically, not in causal order. `A over time` is
+change or stability of one variable. A `→` inside a summary or quote is the
+paper's own direction and is never added by the grouping.
+
 | `kind` | When |
 |---|---|
 | `association` | two variables (growth factors kept apart: an intercept is not a slope) |
