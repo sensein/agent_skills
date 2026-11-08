@@ -81,6 +81,25 @@ class RealNodeTests(unittest.TestCase):
         self.assertEqual(guard.parse_alloc({"SLURM_JOB_GPUS": "2"})[0], 1)
 
 
+class ConfinementTests(unittest.TestCase):
+    LEAF_OPEN = "a *:* rwm\n"
+
+    def test_leaf_open_but_one_of_one_visible_passes(self):
+        self.assertEqual(run_check(alloc=1, visible_env=1, smi=["GPU-1eba0f94"], devices_list=[self.LEAF_OPEN, None]), [])
+        self.assertEqual(guard.confinement([self.LEAF_OPEN], ["GPU-1eba0f94"], 1), "restricted")
+
+    def test_four_visible_one_allocated_fails(self):
+        smi = ["GPU-a", "GPU-b", "GPU-c", "GPU-d"]
+        problems = run_check(alloc=1, visible_env=1, smi=smi, devices_list=[self.LEAF_OPEN])
+        self.assertTrue(any("shows 4 GPU(s)" in p for p in problems))
+        self.assertTrue(any("not enforced" in p for p in problems))
+
+    def test_restricted_ancestor_and_unreadable(self):
+        self.assertEqual(guard.confinement([self.LEAF_OPEN, "c 195:0 rwm\n"], ["a"] * 4, 1), "restricted")
+        self.assertEqual(guard.confinement([None], ["a"] * 4, 1), "unknown")
+        self.assertEqual(guard.confinement([], ["a"] * 4, 1), "unknown")
+
+
 class Python36Tests(unittest.TestCase):
     def test_guard_parses_as_python_3_6(self):
         import ast
@@ -113,7 +132,7 @@ class GuardCheckTests(unittest.TestCase):
         self.assertEqual(run_check(apps=other, foreign_pids={4242}), [])
 
     def test_open_devices_list_and_wrong_cgroup(self) -> None:
-        self.assertIn("not enforced", run_check(devices_list="a *:* rwm\n")[0])
+        self.assertEqual(run_check(devices_list=["a *:* rwm\n"]), [])
         self.assertIn("job_77", run_check(cgroup_path="/user.slice/session-1.scope")[0])
 
     def test_no_slurm_or_no_allocation(self) -> None:

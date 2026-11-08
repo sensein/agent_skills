@@ -87,6 +87,29 @@ def devices_list_open(text):
     return any(re.fullmatch(r"a\s+\*:\*\s+rwm", ln.strip()) for ln in text.splitlines())
 
 
+def confinement(levels, smi, alloc):
+    """Confinement verdict: "restricted", "open" or "unknown".
+
+    ``levels`` holds ``devices.list`` texts from the leaf cgroup up to the job
+    level (a str is one level; None/empty = unreadable). Slurm restricts devices
+    on the job cgroup, so a leaf reading ``a *:* rwm`` proves nothing. Enumeration
+    is the primary evidence: no more GPUs visible than allocated means confined.
+    "open" requires every readable level open AND enumeration showing extra GPUs.
+    """
+    if smi is not None and alloc is not None and len(smi) <= alloc:
+        return "restricted"
+    if isinstance(levels, str):
+        levels = [levels]
+    texts = [t for t in (levels or []) if t is not None]
+    if not texts:
+        return "unknown"
+    if any(not devices_list_open(t) for t in texts):
+        return "restricted"
+    if smi is not None and alloc is not None and len(smi) > alloc:
+        return "open"
+    return "unknown"
+
+
 def pid_in_job(cgroup_text, job_id):
     """Whether a process's ``/proc/<pid>/cgroup`` places it in this Slurm job."""
     return bool(job_id) and re.search(rf"job_{re.escape(job_id)}(?!\d)", cgroup_text) is not None
@@ -111,8 +134,9 @@ def check(alloc, alloc_src, visible_env, smi, apps, foreign_pids, cgroup_path, j
             problems.append(f"GPU {a['gpu']} is in use by pid {a['pid']} ({a['name']}), not part of this job")
     if job_id and cgroup_path and f"job_{job_id}" not in cgroup_path:
         problems.append(f"process cgroup {cgroup_path!r} does not contain job_{job_id}")
-    if devices_list is not None and devices_list_open(devices_list):
-        problems.append("cgroup devices.list allows all devices (a *:* rwm): GPU confinement is not enforced")
+    if confinement(devices_list, smi, alloc) == "open":
+        problems.append("no cgroup level restricts devices (all read a *:* rwm) and more GPUs are visible "
+                        "than allocated: GPU confinement is not enforced")
     return problems
 
 
@@ -147,10 +171,15 @@ def main():
             foreign.add(a["pid"])
     cg_self = _read("/proc/self/cgroup") or ""
     cg_path = parse_cgroup_path(cg_self)
-    devices = None
+    devices = []
     m = re.search(r"^\d+:[^:]*devices[^:]*:(.*)$", cg_self, re.M)
     if m:
-        devices = _read(f"/sys/fs/cgroup/devices{m.group(1)}/devices.list")
+        path = m.group(1)
+        while path and path != "/":
+            devices.append(_read(f"/sys/fs/cgroup/devices{path}/devices.list"))
+            if re.search(r"/job_\d+$", path):
+                break
+            path = path.rsplit("/", 1)[0]
     problems = check(alloc=alloc, alloc_src=src, visible_env=parse_visible(env), smi=smi, apps=apps,
                      foreign_pids=foreign, cgroup_path=cg_path, job_id=job_id, devices_list=devices)
     node = env.get("SLURMD_NODENAME", os.uname()[1])
@@ -163,7 +192,8 @@ def main():
               f"cgroup={cg_path!r}", file=sys.stderr)
         print("orcd_alloc_guard: refusing to run outside the allocation", file=sys.stderr)
         return 1
-    print(f"orcd_alloc_guard: ok on {node} job {job_id}: {alloc} GPU(s), confined")
+    print(f"orcd_alloc_guard: ok on {node} job {job_id}: {alloc} GPU(s), confinement "
+          f"{confinement(devices, smi, alloc)}")
     return 0
 
 
