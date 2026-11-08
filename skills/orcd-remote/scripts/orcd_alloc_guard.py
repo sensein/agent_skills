@@ -11,10 +11,10 @@ Verifies, from inside the job, that it is confined to the GPUs Slurm allocated:
 3. where cgroup information exists, device confinement is in effect.
 
 On any mismatch it prints what it saw and exits 1, so the job stops instead of
-running on GPUs it was not granted. Stdlib only; no GPU needed to import it.
+running on GPUs it was not granted. Stdlib only and Python 3.6 compatible (the system python3 on compute nodes);
+no GPU needed to import it. Counts are compared, never indices: SLURM_JOB_GPUS holds
+physical indices while a confined job sees its devices renumbered from 0.
 """
-from __future__ import annotations
-
 import os
 import re
 import subprocess
@@ -23,7 +23,7 @@ import sys
 UUID_RE = re.compile(r"UUID:\s*((?:GPU|MIG)-[0-9a-fA-F-]+)")
 
 
-def parse_smi_list(text: str) -> list[str]:
+def parse_smi_list(text):
     """``nvidia-smi -L`` output -> one entry per device (its UUID when present)."""
     out = []
     for line in text.splitlines():
@@ -34,17 +34,17 @@ def parse_smi_list(text: str) -> list[str]:
     return out
 
 
-def parse_compute_apps(text: str) -> list[dict]:
-    """``--query-compute-apps=gpu_uuid,pid,process_name --format=csv,noheader`` -> dicts."""
+def parse_compute_apps(text):
+    """``--query-compute-apps=pid,gpu_uuid,process_name --format=csv,noheader`` -> dicts."""
     apps = []
     for line in text.splitlines():
         parts = [p.strip() for p in line.split(",", 2)]
-        if len(parts) >= 2 and parts[1].isdigit():
-            apps.append({"gpu": parts[0], "pid": int(parts[1]), "name": parts[2] if len(parts) > 2 else ""})
+        if len(parts) >= 2 and parts[0].isdigit():
+            apps.append({"pid": int(parts[0]), "gpu": parts[1], "name": parts[2] if len(parts) > 2 else ""})
     return apps
 
 
-def parse_alloc(env: dict[str, str]) -> tuple[int | None, str]:
+def parse_alloc(env):
     """Allocated GPU count and where it came from, from the Slurm environment."""
     v = env.get("SLURM_GPUS_ON_NODE", "").strip()
     if v:
@@ -57,7 +57,7 @@ def parse_alloc(env: dict[str, str]) -> tuple[int | None, str]:
     return None, ""
 
 
-def parse_visible(env: dict[str, str]) -> int | None:
+def parse_visible(env):
     """Device count named by ``CUDA_VISIBLE_DEVICES``; None when unset, 0 when empty/NoDevFiles."""
     v = env.get("CUDA_VISIBLE_DEVICES")
     if v is None:
@@ -68,7 +68,7 @@ def parse_visible(env: dict[str, str]) -> int | None:
     return len([x for x in v.split(",") if x.strip()])
 
 
-def parse_cgroup_path(text: str) -> str:
+def parse_cgroup_path(text):
     """Unified (v2) or devices-controller (v1) path from ``/proc/<pid>/cgroup``."""
     v1 = ""
     for line in text.splitlines():
@@ -82,19 +82,17 @@ def parse_cgroup_path(text: str) -> str:
     return v1
 
 
-def devices_list_open(text: str) -> bool:
+def devices_list_open(text):
     """True when a cgroup v1 ``devices.list`` allows every device (``a *:* rwm``)."""
     return any(re.fullmatch(r"a\s+\*:\*\s+rwm", ln.strip()) for ln in text.splitlines())
 
 
-def pid_in_job(cgroup_text: str, job_id: str) -> bool:
+def pid_in_job(cgroup_text, job_id):
     """Whether a process's ``/proc/<pid>/cgroup`` places it in this Slurm job."""
     return bool(job_id) and re.search(rf"job_{re.escape(job_id)}(?!\d)", cgroup_text) is not None
 
 
-def check(*, alloc: int | None, alloc_src: str, visible_env: int | None, smi: list[str] | None,
-          apps: list[dict], foreign_pids: set[int], cgroup_path: str, job_id: str,
-          devices_list: str | None) -> list[str]:
+def check(alloc, alloc_src, visible_env, smi, apps, foreign_pids, cgroup_path, job_id, devices_list):
     """Return a list of problems; empty means the job sees only its allocation."""
     problems = []
     if not job_id:
@@ -107,8 +105,9 @@ def check(*, alloc: int | None, alloc_src: str, visible_env: int | None, smi: li
         problems.append(f"nvidia-smi unavailable but {alloc} GPU(s) allocated")
     if visible_env is not None and alloc is not None and visible_env != alloc:
         problems.append(f"CUDA_VISIBLE_DEVICES names {visible_env} device(s) but {alloc_src} allocates {alloc}")
+    visible_uuids = set(smi or [])
     for a in apps:
-        if a["pid"] in foreign_pids:
+        if a["pid"] in foreign_pids and (not visible_uuids or a["gpu"] in visible_uuids):
             problems.append(f"GPU {a['gpu']} is in use by pid {a['pid']} ({a['name']}), not part of this job")
     if job_id and cgroup_path and f"job_{job_id}" not in cgroup_path:
         problems.append(f"process cgroup {cgroup_path!r} does not contain job_{job_id}")
@@ -117,15 +116,15 @@ def check(*, alloc: int | None, alloc_src: str, visible_env: int | None, smi: li
     return problems
 
 
-def _run(cmd: list[str]) -> str | None:
+def _run(cmd):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=60)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return r.stdout if r.returncode == 0 else None
 
 
-def _read(path: str) -> str | None:
+def _read(path):
     try:
         with open(path) as fh:
             return fh.read()
@@ -133,13 +132,13 @@ def _read(path: str) -> str | None:
         return None
 
 
-def main() -> int:
+def main():
     env = dict(os.environ)
     job_id = env.get("SLURM_JOB_ID", "")
     alloc, src = parse_alloc(env)
     smi_text = _run(["nvidia-smi", "-L"])
     smi = parse_smi_list(smi_text) if smi_text is not None else None
-    apps_text = _run(["nvidia-smi", "--query-compute-apps=gpu_uuid,pid,process_name", "--format=csv,noheader"])
+    apps_text = _run(["nvidia-smi", "--query-compute-apps=pid,gpu_uuid,process_name", "--format=csv,noheader"])
     apps = parse_compute_apps(apps_text or "")
     foreign = set()
     for a in apps:
@@ -154,7 +153,7 @@ def main() -> int:
         devices = _read(f"/sys/fs/cgroup/devices{m.group(1)}/devices.list")
     problems = check(alloc=alloc, alloc_src=src, visible_env=parse_visible(env), smi=smi, apps=apps,
                      foreign_pids=foreign, cgroup_path=cg_path, job_id=job_id, devices_list=devices)
-    node = env.get("SLURMD_NODENAME", os.uname().nodename)
+    node = env.get("SLURMD_NODENAME", os.uname()[1])
     if problems:
         print(f"orcd_alloc_guard: FAIL on {node} job {job_id or '?'}", file=sys.stderr)
         for p in problems:

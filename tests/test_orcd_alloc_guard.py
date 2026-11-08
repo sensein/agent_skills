@@ -17,7 +17,7 @@ SMI_2 = (
 )
 
 
-def run_check(**over) -> list[str]:
+def run_check(**over):
     base = dict(alloc=2, alloc_src="SLURM_GPUS_ON_NODE", visible_env=2, smi=guard.parse_smi_list(SMI_2),
                 apps=[], foreign_pids=set(), cgroup_path="/system.slice/slurmstepd.scope/job_77/step_batch",
                 job_id="77", devices_list=None)
@@ -32,7 +32,7 @@ class GuardParsingTests(unittest.TestCase):
         self.assertEqual(guard.parse_smi_list("No devices were found\n"), [])
 
     def test_compute_apps(self) -> None:
-        apps = guard.parse_compute_apps("GPU-aaaa, 4242, python\nGPU-bbbb, 99, /usr/bin/x y\n")
+        apps = guard.parse_compute_apps("4242, GPU-aaaa, python\n99, GPU-bbbb, /usr/bin/x y\n")
         self.assertEqual(apps[0], {"gpu": "GPU-aaaa", "pid": 4242, "name": "python"})
         self.assertEqual(len(apps), 2)
         self.assertEqual(guard.parse_compute_apps(""), [])
@@ -64,6 +64,33 @@ class GuardParsingTests(unittest.TestCase):
         self.assertFalse(guard.pid_in_job("0::/user.slice/x", "77"))
 
 
+class RealNodeTests(unittest.TestCase):
+    """Output captured on a real node: physical index 2, one device visible as GPU 0."""
+
+    ENV = {"SLURM_JOB_GPUS": "2", "SLURM_GPUS_ON_NODE": "1", "CUDA_VISIBLE_DEVICES": "0"}
+    SMI = "GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-f412d81d-0000-1111-2222-333344445555)\n"
+
+    def test_renumbered_indices_pass_by_count(self):
+        alloc, src = guard.parse_alloc(self.ENV)
+        self.assertEqual((alloc, src), (1, "SLURM_GPUS_ON_NODE"))
+        self.assertEqual(guard.parse_visible(self.ENV), 1)
+        smi = guard.parse_smi_list(self.SMI)
+        self.assertEqual(run_check(alloc=alloc, alloc_src=src, visible_env=1, smi=smi), [])
+
+    def test_job_gpus_fallback_counts_not_indices(self):
+        self.assertEqual(guard.parse_alloc({"SLURM_JOB_GPUS": "2"})[0], 1)
+
+
+class Python36Tests(unittest.TestCase):
+    def test_guard_parses_as_python_3_6(self):
+        import ast
+        src = (SCRIPTS / "orcd_alloc_guard.py").read_text()
+        ast.parse(src, feature_version=(3, 6))
+        self.assertNotIn("from __future__ import annotations", src)
+        self.assertNotIn("capture_output", src)
+        self.assertNotIn("dataclass", src)
+
+
 class GuardCheckTests(unittest.TestCase):
     def test_clean_allocation_passes(self) -> None:
         self.assertEqual(run_check(), [])
@@ -78,10 +105,12 @@ class GuardCheckTests(unittest.TestCase):
         self.assertIn("CUDA_VISIBLE_DEVICES names 1", run_check(visible_env=1)[0])
 
     def test_foreign_process_on_gpu(self) -> None:
-        apps = guard.parse_compute_apps("GPU-aaaa, 4242, python\n")
+        apps = guard.parse_compute_apps("4242, GPU-aaaa1111-2222-3333-4444-555566667777, python\n")
         problems = run_check(apps=apps, foreign_pids={4242})
         self.assertIn("pid 4242", problems[0])
         self.assertEqual(run_check(apps=apps, foreign_pids=set()), [])
+        other = guard.parse_compute_apps("4242, GPU-zzzz-not-visible, python\n")
+        self.assertEqual(run_check(apps=other, foreign_pids={4242}), [])
 
     def test_open_devices_list_and_wrong_cgroup(self) -> None:
         self.assertIn("not enforced", run_check(devices_list="a *:* rwm\n")[0])
