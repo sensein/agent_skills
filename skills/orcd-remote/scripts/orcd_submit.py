@@ -24,12 +24,31 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
+import os
 import re
 import shlex
 import sys
 from pathlib import Path
 
 import orcd_common as oc
+
+
+DEFAULTS_FILE = Path(__file__).resolve().parent.parent / "assets" / "defaults.json"
+
+
+def default_exclude() -> str:
+    """Default node exclusion list: $ORCD_EXCLUDE, else assets/defaults.json ``exclude``.
+
+    ``--exclude ''`` on the command line clears it for one run.
+    """
+    env = os.environ.get("ORCD_EXCLUDE")
+    if env is not None:
+        return env.strip()
+    try:
+        return str(json.loads(DEFAULTS_FILE.read_text()).get("exclude", "")).strip()
+    except (OSError, ValueError):
+        return ""
 
 
 def parse_walltime(spec: str) -> int | None:
@@ -201,6 +220,8 @@ def build_flags(args: argparse.Namespace, partition: str) -> list[str]:
         flags += ["--gres", gres]
     if args.nodes != 1:
         flags += ["-N", str(args.nodes)]
+    if getattr(args, "exclude", ""):
+        flags += ["--exclude", args.exclude]
     if args.name:
         flags += ["-J", args.name]
     if args.array:
@@ -268,8 +289,100 @@ def gpu_ceiling_note(args: argparse.Namespace, ceilings: dict[str, dict[str, int
     return ""
 
 
-def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
-    """Ask the scheduler what each partition would do with this exact request."""
+def parse_mem_mb(spec: str) -> int:
+    """Megabytes for an sbatch ``--mem`` value (bare number = MB)."""
+    m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*([KMGT]?)B?\s*", spec.upper())
+    if not m:
+        return 0
+    mult = {"K": 1 / 1024, "": 1, "M": 1, "G": 1024, "T": 1024 * 1024}[m.group(2)]
+    return int(float(m.group(1)) * mult)
+
+
+def _tres(text: str) -> dict[str, int]:
+    """``cpu=64,mem=1000G,gres/gpu=4,gres/gpu:h100=4`` -> ints (mem in MB)."""
+    out: dict[str, int] = {}
+    for item in text.split(","):
+        k, _, v = item.partition("=")
+        if not k or not v or v == "N/A":
+            continue
+        out[k] = parse_mem_mb(v) if k == "mem" else int(re.sub(r"\D", "", v) or 0)
+    return out
+
+
+_BAD_STATE = ("DRAIN", "DOWN", "FAIL", "MAINT", "NOT_RESPONDING", "POWER", "RESERVED", "INVAL")
+
+
+def fetch_live(host: str) -> dict:
+    """Partition MaxTime, per-node free resources and pending counts, in one ssh call."""
+    script = r'''
+set +e
+echo "@@PART"
+scontrol show partition -o 2>/dev/null | sed -E 's/^PartitionName=([^ ]+).* MaxTime=([^ ]+).*/\1|\2/' | grep '|'
+echo "@@MEMB"
+sinfo -h -N -o "%R|%N" 2>/dev/null
+echo "@@NODE"
+scontrol show node -o 2>/dev/null
+echo "@@PEND"
+squeue -h -t PD -o "%P" 2>/dev/null | sort | uniq -c
+'''
+    blocks = oc.parse_kv_blocks(oc.run_remote(script, host=host, timeout=120, check=False))
+    max_time = {}
+    for line in blocks.get("PART", []):
+        n, _, t = line.partition("|")
+        if n.strip():
+            max_time[n.strip()] = t.strip()
+    members: dict[str, list[str]] = {}
+    for line in blocks.get("MEMB", []):
+        part, _, node = line.partition("|")
+        if node.strip():
+            members.setdefault(part.strip(), []).append(node.strip())
+    nodes = {}
+    for line in blocks.get("NODE", []):
+        name = re.search(r"NodeName=(\S+)", line)
+        if not name:
+            continue
+        state = (re.search(r"\sState=(\S+)", line) or [None, ""])[1]
+        cfg = _tres((re.search(r"CfgTRES=(\S*)", line) or [None, ""])[1])
+        alloc = _tres((re.search(r"AllocTRES=(\S*)", line) or [None, ""])[1])
+        nodes[name.group(1)] = {"state": state, "cfg": cfg, "alloc": alloc}
+    pending = {}
+    for line in blocks.get("PEND", []):
+        m = re.match(r"\s*(\d+)\s+(\S+)", line)
+        if m:
+            pending[m.group(2)] = int(m.group(1))
+    return {"max_time": max_time, "members": members, "nodes": nodes, "pending": pending}
+
+
+def live_fit(args: argparse.Namespace, live: dict, part: str, excluded: set[str]) -> list[str]:
+    """Nodes of ``part`` (not excluded) with the requested cpus/mem/gres idle right now."""
+    need_mem = parse_mem_mb(args.mem)
+    fits = []
+    for name in live["members"].get(part, []):
+        node = live["nodes"].get(name)
+        if node is None or name in excluded:
+            continue
+        state = node["state"].upper()
+        if any(b in state for b in _BAD_STATE) or not (state.startswith("IDLE") or state.startswith("MIXED")):
+            continue
+        cfg, alloc = node["cfg"], node["alloc"]
+        if cfg.get("cpu", 0) - alloc.get("cpu", 0) < args.cpus:
+            continue
+        if cfg.get("mem") and need_mem and cfg["mem"] - alloc.get("mem", 0) < need_mem:
+            continue
+        if args.gpus:
+            key = f"gres/gpu:{args.gpu_type}" if args.gpu_type else "gres/gpu"
+            if key not in cfg or cfg[key] - alloc.get(key, 0) < args.gpus:
+                continue
+        fits.append(name)
+    return fits
+
+
+def plan(args: argparse.Namespace, partitions: list[str]) -> list[dict]:
+    """Ask the scheduler what each partition would do with this exact request.
+
+    Each row carries the ``sbatch --test-only`` estimate (which ignores
+    backfill) and a live fit check against currently idle node resources.
+    """
     lines = ["set +e"]
     for p in partitions:
         flags = " ".join(shlex.quote(f) for f in build_flags(args, p))
@@ -279,6 +392,9 @@ def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
         )
     out = oc.run_remote("\n".join(lines), host=args.host, timeout=240, check=False)
     ceilings = qos_gpu_ceilings(args) if args.gpus else {}
+    live = fetch_live(args.host)
+    excluded = {x for x in re.split(r"[,\s]+", args.exclude or "") if x}
+    want_s = parse_walltime(args.time)
 
     rows = []
     for line in out.splitlines():
@@ -286,14 +402,39 @@ def plan(args: argparse.Namespace, partitions: list[str]) -> list[list[str]]:
         if len(f) < 3:
             continue
         part, ok, detail = f[0].strip(), f[1].strip(), f[2].strip()
+        mt = live["max_time"].get(part, "")
+        mt_s = parse_walltime(mt)
+        exceeds = bool(want_s and mt_s and want_s > mt_s)
+        fit_nodes = live_fit(args, live, part, excluded)
+        row = {"partition": part, "allowed": ok == "OK", "fits_now": bool(fit_nodes) and not exceeds,
+               "fit_nodes": fit_nodes[:5], "would_start": "-", "node": "-",
+               "max_time": mt or "?", "exceeds_time": exceeds, "excluded": sorted(excluded),
+               "pending_jobs": live["pending"].get(part, 0), "note": ""}
         if ok == "OK":
             when = re.search(r"\d{4}-\d{2}-\d{2}T[\d:]+", detail)
             node = re.search(r"on nodes? (\S+)", detail)
-            note = gpu_ceiling_note(args, ceilings.get(part, {})) if args.gpus else ""
-            rows.append([part, "yes", when.group(0) if when else "?", node.group(1) if node else "?", note])
+            row["would_start"] = when.group(0) if when else "?"
+            row["node"] = node.group(1) if node else "?"
+            row["note"] = gpu_ceiling_note(args, ceilings.get(part, {})) if args.gpus else ""
         else:
-            rows.append([part, "no", "-", "-", detail[:58]])
+            row["note"] = detail[:58]
+        if exceeds:
+            row["note"] = f"EXCEEDS time limit (MaxTime {mt})"
+        rows.append(row)
     return rows
+
+
+def _render(r: dict) -> list[str]:
+    if r["exceeds_time"]:
+        state = "EXCEEDS time limit"
+    elif r["fits_now"]:
+        state = "fits now"
+    elif r["allowed"]:
+        state = f"queued (estimate {r['would_start']})"
+    else:
+        state = "no"
+    return [r["partition"], "yes" if r["allowed"] else "no", state, r["max_time"], r["would_start"],
+            r["node"], ",".join(r["fit_nodes"][:2]) or "-", str(r["pending_jobs"]), r["note"]]
 
 
 def main() -> int:
@@ -313,10 +454,16 @@ def main() -> int:
     ap.add_argument("--array", help="array spec, e.g. 0-99")
     ap.add_argument("--output", help="stdout path pattern, e.g. logs/%%x-%%j.out")
     ap.add_argument("--chdir", help="job working directory (sbatch -D); default is $HOME, the slowest tier")
+    ap.add_argument("--exclude", metavar="NODES", default=None,
+                    help="comma-separated nodes to exclude (sbatch --exclude), for --plan and submission; "
+                         "default from $ORCD_EXCLUDE or assets/defaults.json; '' clears it")
+    ap.add_argument("--json", action="store_true", help="with --plan, print machine-readable JSON only")
     ap.add_argument("--plan", action="store_true", help="only show where this would land, submit nothing")
     ap.add_argument("--queue", action="store_true", help="show your queue")
     ap.add_argument("--status", help="show details for a job id")
     args = ap.parse_args()
+    if args.exclude is None:
+        args.exclude = default_exclude()
 
     problem = literal_path_problem(args)
     if problem:
@@ -365,22 +512,46 @@ def main() -> int:
                     partitions = filtered
 
         rows = plan(args, partitions)
-        # A row the scheduler accepts but a QOS GPU ceiling can never admit is
-        # not viable -- it would sit in the queue indefinitely.
-        viable = [r for r in rows if r[1] == "yes" and not r[4].startswith("EXCEEDS")]
-        rows.sort(key=lambda r: (r[1] != "yes", r[2]))
+        # A row the scheduler accepts but a QOS GPU ceiling can never admit, or a
+        # -t above MaxTime, is not viable -- it would never run.
+        viable = [r for r in rows if r["allowed"] and not r["exceeds_time"]
+                  and not r["note"].startswith("EXCEEDS")]
+        rows.sort(key=lambda r: (not r["allowed"], r["exceeds_time"], not r["fits_now"], r["would_start"]))
+        viable.sort(key=lambda r: (not r["fits_now"], r["would_start"]))
+
+        res_now, reservations = fetch_reservations(args.host)
+        clash = reservation_conflict(reservations, parse_walltime(args.time), res_now,
+                                     args.partition)
+        best_row = viable[0] if viable else None
+
+        if args.json and args.plan:
+            print(json.dumps({
+                "request": {"cpus": args.cpus, "mem": args.mem, "time": args.time, "gpus": args.gpus,
+                            "gpu_type": args.gpu_type, "nodes": args.nodes},
+                "excluded": sorted(x for x in re.split(r"[,\s]+", args.exclude or "") if x),
+                "rows": rows,
+                "soonest": ({"partition": best_row["partition"], "fits_now": best_row["fits_now"],
+                             "would_start": best_row["would_start"]} if best_row else None),
+                "reservation_warning": reservation_warning(clash, args.time) if clash else "",
+                "note": "sbatch --test-only start estimates ignore backfill; trust fits_now",
+            }, indent=2))
+            return 0 if best_row else 1
 
         oc.heading("Where this request would land")
-        oc.table(rows, ["PARTITION", "ALLOWED", "WOULD START", "NODE", "NOTE"])
-        if any(r[4].startswith("EXCEEDS") for r in rows):
+        if args.exclude:
+            print(f"Excluding nodes: {args.exclude}")
+        oc.table([_render(r) for r in rows],
+                 ["PARTITION", "ALLOWED", "STATUS", "MAXTIME", "WOULD START", "NODE", "FREE NODES", "PEND", "NOTE"])
+        print("\nSTATUS: `fits now` = an allowed, non-excluded node has the cpus/mem/gres idle right now "
+              "(pending jobs ahead of you are not counted; PEND shows them).\n"
+              "`queued (estimate ...)` comes from sbatch --test-only, which ignores backfill and can be "
+              "badly pessimistic: trust `fits now` over it.")
+        if any(r["note"].startswith("EXCEEDS") and not r["exceeds_time"] for r in rows):
             print("\nEXCEEDS: --test-only ignores QOS TRES ceilings; those rows would queue forever and are excluded.")
 
         # A reservation the walltime crosses holds the job with no distinct
         # state: WOULD START above already lands past the window, but the
         # reason is worth naming, along with the walltime that runs now.
-        res_now, reservations = fetch_reservations(args.host)
-        clash = reservation_conflict(reservations, parse_walltime(args.time), res_now,
-                                     args.partition)
         if clash:
             print(reservation_warning(clash, args.time))
 
@@ -388,9 +559,11 @@ def main() -> int:
             print("\nNo partition accepts this request (usual causes: over the QOS limit, or -t above MaxTime).")
             return 1
 
-        viable.sort(key=lambda r: r[2])
-        best = viable[0][0]
-        print(f"\nSoonest start: {best} at {viable[0][2]}")
+        best = best_row["partition"]
+        if best_row["fits_now"]:
+            print(f"\nSoonest start: {best} (fits now on {', '.join(best_row['fit_nodes'][:2])})")
+        else:
+            print(f"\nSoonest start: {best} at {best_row['would_start']} (test-only estimate; ignores backfill)")
 
         if args.plan:
             print("\n--plan given, so nothing was submitted.")

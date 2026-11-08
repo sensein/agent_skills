@@ -179,6 +179,19 @@ python3 orcd_submit.py --status <jobid>
 - `--plan` before any long job: partition choice moves start time from minutes
   to days, and it names any reservation the `-t` would cross (a maintenance
   window holds such a job until it ends, reported only as `PENDING`).
+- **Run `--plan` before every submission, and use `--exclude NODES`** (also
+  applied to real submission). Default exclusion: `$ORCD_EXCLUDE`, else
+  `assets/defaults.json` (`{"exclude": "nodeNNNN,..."}`, empty by default); `--exclude ''` clears it.
+  Without it `--plan` can name a node you never run on.
+- **Trust `fits now` over test-only start times.** `--plan` shows each
+  partition's MaxTime (`EXCEEDS time limit` when `-t` is above it) and whether
+  an allowed, non-excluded node has the cpus/mem/gres idle right now.
+  `sbatch --test-only` ignores backfill and can report days for a job that
+  starts at once. `fits now` ignores pending jobs ahead of you (`PEND` column).
+  Soonest-start pick ranks fits-now first.
+- **Programs can choose a partition**: `orcd_submit.py --plan --json ...` prints
+  `rows` (each with `fits_now`, `max_time`, `exceeds_time`, `excluded`,
+  `would_start`, `pending_jobs`) and `soonest`; e.g. a pipeline's placement hook.
 - **Always set `--mem`.** Default is 1 GB per CPU; jobs die mid-run.
 - **Arrays**: each task is a submitted job. Max array = partition
   `MaxSubmitPU + 1` (`orcd_snapshot.py` prints it); `%K` throttles concurrency
