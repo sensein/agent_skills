@@ -25,30 +25,12 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import os
 import re
 import shlex
 import sys
 from pathlib import Path
 
 import orcd_common as oc
-
-
-DEFAULTS_FILE = Path(__file__).resolve().parent.parent / "assets" / "defaults.json"
-
-
-def default_exclude() -> str:
-    """Default node exclusion list: $ORCD_EXCLUDE, else assets/defaults.json ``exclude``.
-
-    ``--exclude ''`` on the command line clears it for one run.
-    """
-    env = os.environ.get("ORCD_EXCLUDE")
-    if env is not None:
-        return env.strip()
-    try:
-        return str(json.loads(DEFAULTS_FILE.read_text()).get("exclude", "")).strip()
-    except (OSError, ValueError):
-        return ""
 
 
 def parse_walltime(spec: str) -> int | None:
@@ -309,7 +291,65 @@ def _tres(text: str) -> dict[str, int]:
     return out
 
 
-_BAD_STATE = ("DRAIN", "DOWN", "FAIL", "MAINT", "NOT_RESPONDING", "POWER", "RESERVED", "INVAL")
+_BAD_STATE = ("DRAIN", "DOWN", "FAIL", "MAINT", "NOT_RESPONDING", "INVAL")
+_NOT_NOW = ("POWER", "RESERVED")  # healthy but not placeable right now: not reported as skipped
+_GPU_REASON = re.compile(r"gpu|gres|nvidia|nvml|xid|ecc|cuda", re.I)
+
+
+def _gres_gpu_count(text: str) -> int | None:
+    """Total GPUs in a node ``Gres``/``GresUsed`` value, e.g. ``gpu:h100:4(S:0-1)``; None if no gpu entry."""
+    total, seen = 0, False
+    for item in re.split(r",(?![^()]*\))", text or ""):
+        m = re.match(r"gpu(?::[A-Za-z0-9_.-]+)?:(\d+)", item.strip())
+        if m:
+            total += int(m.group(1))
+            seen = True
+    return total if seen else None
+
+
+def parse_node_line(line: str) -> dict | None:
+    """One ``scontrol show node -o`` line -> state, reason, configured/used GRES and TRES."""
+    name = re.search(r"NodeName=(\S+)", line)
+    if not name:
+        return None
+    reason = re.search(r"\sReason=(.*?)(?:\s\[\S+@[^\]]*\]|\s\w+=|$)", line)
+    return {
+        "name": name.group(1),
+        "state": (re.search(r"\sState=(\S+)", line) or [None, ""])[1],
+        "reason": reason.group(1).strip() if reason else "",
+        "gres": (re.search(r"\sGres=(\S*)", line) or [None, ""])[1],
+        "gres_used": (re.search(r"\sGresUsed=(\S*)", line) or [None, ""])[1],
+        "cfg": _tres((re.search(r"CfgTRES=(\S*)", line) or [None, ""])[1]),
+        "alloc": _tres((re.search(r"AllocTRES=(\S*)", line) or [None, ""])[1]),
+    }
+
+
+def node_unhealthy(node: dict) -> str:
+    """Why a node must not be used, or "" if it looks healthy.
+
+    Down/drained/failing/unresponsive/invalid/maintenance states, a GPU count in
+    ``Gres`` that disagrees with ``CfgTRES gres/gpu`` or with ``GresUsed``, and a
+    GPU-related ``Reason`` on a node still marked usable.
+    """
+    state = node["state"].upper()
+    bad = [b for b in _BAD_STATE if b in state]
+    if bad:
+        reason = node.get("reason", "")
+        return f"state {node['state']}" + (f" ({reason})" if reason else "")
+    if not (state.startswith("IDLE") or state.startswith("MIXED") or state.startswith("ALLOC")):
+        return f"state {node['state'] or 'unknown'}"
+    gres = _gres_gpu_count(node.get("gres", ""))
+    cfg = node.get("cfg", {}).get("gres/gpu")
+    if gres is not None and cfg is not None and gres != cfg:
+        return f"GRES mismatch: Gres reports {gres} gpu, CfgTRES {cfg}"
+    used = _gres_gpu_count(node.get("gres_used", ""))
+    if gres is not None and used is not None and used > gres:
+        return f"GRES mismatch: GresUsed {used} gpu exceeds Gres {gres}"
+    if gres is None and cfg:
+        return f"GRES mismatch: CfgTRES {cfg} gpu but no Gres gpu entry"
+    if node.get("reason") and _GPU_REASON.search(node["reason"]):
+        return f"reason: {node['reason']}"
+    return ""
 
 
 def fetch_live(host: str) -> dict:
@@ -338,13 +378,10 @@ squeue -h -t PD -o "%P" 2>/dev/null | sort | uniq -c
             members.setdefault(part.strip(), []).append(node.strip())
     nodes = {}
     for line in blocks.get("NODE", []):
-        name = re.search(r"NodeName=(\S+)", line)
-        if not name:
-            continue
-        state = (re.search(r"\sState=(\S+)", line) or [None, ""])[1]
-        cfg = _tres((re.search(r"CfgTRES=(\S*)", line) or [None, ""])[1])
-        alloc = _tres((re.search(r"AllocTRES=(\S*)", line) or [None, ""])[1])
-        nodes[name.group(1)] = {"state": state, "cfg": cfg, "alloc": alloc}
+        node = parse_node_line(line)
+        if node:
+            node["unhealthy"] = node_unhealthy(node)
+            nodes[node["name"]] = node
     pending = {}
     for line in blocks.get("PEND", []):
         m = re.match(r"\s*(\d+)\s+(\S+)", line)
@@ -354,7 +391,7 @@ squeue -h -t PD -o "%P" 2>/dev/null | sort | uniq -c
 
 
 def live_fit(args: argparse.Namespace, live: dict, part: str, excluded: set[str]) -> list[str]:
-    """Nodes of ``part`` (not excluded) with the requested cpus/mem/gres idle right now."""
+    """Nodes of ``part`` (healthy, not excluded) with the requested cpus/mem/gres idle right now."""
     need_mem = parse_mem_mb(args.mem)
     fits = []
     for name in live["members"].get(part, []):
@@ -362,7 +399,8 @@ def live_fit(args: argparse.Namespace, live: dict, part: str, excluded: set[str]
         if node is None or name in excluded:
             continue
         state = node["state"].upper()
-        if any(b in state for b in _BAD_STATE) or not (state.startswith("IDLE") or state.startswith("MIXED")):
+        if node.get("unhealthy") or any(b in state for b in _NOT_NOW) or not (
+                state.startswith("IDLE") or state.startswith("MIXED")):
             continue
         cfg, alloc = node["cfg"], node["alloc"]
         if cfg.get("cpu", 0) - alloc.get("cpu", 0) < args.cpus:
@@ -377,11 +415,23 @@ def live_fit(args: argparse.Namespace, live: dict, part: str, excluded: set[str]
     return fits
 
 
-def plan(args: argparse.Namespace, partitions: list[str]) -> list[dict]:
+def skipped_nodes(live: dict, partitions: list[str]) -> list[dict]:
+    """Unhealthy nodes in ``partitions`` with the reason each is skipped."""
+    out = []
+    for part in partitions:
+        for name in live["members"].get(part, []):
+            node = live["nodes"].get(name)
+            if node and node.get("unhealthy"):
+                out.append({"node": name, "partition": part, "reason": node["unhealthy"]})
+    return sorted(out, key=lambda r: (r["partition"], r["node"]))
+
+
+def plan(args: argparse.Namespace, partitions: list[str]) -> tuple[list[dict], list[dict]]:
     """Ask the scheduler what each partition would do with this exact request.
 
     Each row carries the ``sbatch --test-only`` estimate (which ignores
-    backfill) and a live fit check against currently idle node resources.
+    backfill) and a live fit check against currently idle, healthy node
+    resources. Returns ``(rows, skipped_nodes)``.
     """
     lines = ["set +e"]
     for p in partitions:
@@ -421,7 +471,7 @@ def plan(args: argparse.Namespace, partitions: list[str]) -> list[dict]:
         if exceeds:
             row["note"] = f"EXCEEDS time limit (MaxTime {mt})"
         rows.append(row)
-    return rows
+    return rows, skipped_nodes(live, partitions)
 
 
 def _render(r: dict) -> list[str]:
@@ -454,16 +504,14 @@ def main() -> int:
     ap.add_argument("--array", help="array spec, e.g. 0-99")
     ap.add_argument("--output", help="stdout path pattern, e.g. logs/%%x-%%j.out")
     ap.add_argument("--chdir", help="job working directory (sbatch -D); default is $HOME, the slowest tier")
-    ap.add_argument("--exclude", metavar="NODES", default=None,
-                    help="comma-separated nodes to exclude (sbatch --exclude), for --plan and submission; "
-                         "default from $ORCD_EXCLUDE or assets/defaults.json; '' clears it")
+    ap.add_argument("--exclude", metavar="NODES", default="",
+                    help="optional comma-separated nodes to exclude (sbatch --exclude), for --plan and "
+                         "submission; empty by default (unhealthy nodes are skipped automatically)")
     ap.add_argument("--json", action="store_true", help="with --plan, print machine-readable JSON only")
     ap.add_argument("--plan", action="store_true", help="only show where this would land, submit nothing")
     ap.add_argument("--queue", action="store_true", help="show your queue")
     ap.add_argument("--status", help="show details for a job id")
     args = ap.parse_args()
-    if args.exclude is None:
-        args.exclude = default_exclude()
 
     problem = literal_path_problem(args)
     if problem:
@@ -511,7 +559,7 @@ def main() -> int:
                 if filtered:
                     partitions = filtered
 
-        rows = plan(args, partitions)
+        rows, skipped = plan(args, partitions)
         # A row the scheduler accepts but a QOS GPU ceiling can never admit, or a
         # -t above MaxTime, is not viable -- it would never run.
         viable = [r for r in rows if r["allowed"] and not r["exceeds_time"]
@@ -529,6 +577,7 @@ def main() -> int:
                 "request": {"cpus": args.cpus, "mem": args.mem, "time": args.time, "gpus": args.gpus,
                             "gpu_type": args.gpu_type, "nodes": args.nodes},
                 "excluded": sorted(x for x in re.split(r"[,\s]+", args.exclude or "") if x),
+                "skipped_nodes": skipped,
                 "rows": rows,
                 "soonest": ({"partition": best_row["partition"], "fits_now": best_row["fits_now"],
                              "would_start": best_row["would_start"]} if best_row else None),
@@ -540,9 +589,13 @@ def main() -> int:
         oc.heading("Where this request would land")
         if args.exclude:
             print(f"Excluding nodes: {args.exclude}")
+        if skipped:
+            print("Skipped nodes (unhealthy):")
+            for r in skipped:
+                print(f"  {r['node']} ({r['partition']}): {r['reason']}")
         oc.table([_render(r) for r in rows],
                  ["PARTITION", "ALLOWED", "STATUS", "MAXTIME", "WOULD START", "NODE", "FREE NODES", "PEND", "NOTE"])
-        print("\nSTATUS: `fits now` = an allowed, non-excluded node has the cpus/mem/gres idle right now "
+        print("\nSTATUS: `fits now` = an allowed, healthy, non-excluded node has the cpus/mem/gres idle right now "
               "(pending jobs ahead of you are not counted; PEND shows them).\n"
               "`queued (estimate ...)` comes from sbatch --test-only, which ignores backfill and can be "
               "badly pessimistic: trust `fits now` over it.")
@@ -574,6 +627,11 @@ def main() -> int:
             return 0
 
         partition = args.partition or best
+        # Unhealthy nodes of the chosen partition are excluded from the real
+        # submission too, so the scheduler cannot place the job on one.
+        bad = [r["node"] for r in skipped if r["partition"] == partition]
+        if bad:
+            args.exclude = ",".join(sorted({*(x for x in re.split(r"[,\s]+", args.exclude or "") if x), *bad}))
         flags = build_flags(args, partition)
 
         if args.script:

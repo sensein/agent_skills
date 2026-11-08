@@ -179,19 +179,40 @@ python3 orcd_submit.py --status <jobid>
 - `--plan` before any long job: partition choice moves start time from minutes
   to days, and it names any reservation the `-t` would cross (a maintenance
   window holds such a job until it ends, reported only as `PENDING`).
-- **Run `--plan` before every submission, and use `--exclude NODES`** (also
-  applied to real submission). Default exclusion: `$ORCD_EXCLUDE`, else
-  `assets/defaults.json` (`{"exclude": "nodeNNNN,..."}`, empty by default); `--exclude ''` clears it.
-  Without it `--plan` can name a node you never run on.
+- **Run `--plan` before every submission.** Node health filtering is automatic:
+  nodes that are down, drained/draining, failing, not responding, invalid or in
+  maintenance, or whose `Gres` disagrees with `CfgTRES`/`GresUsed` (or whose
+  `Reason` names a GPU fault), are skipped for `fits now` and are excluded from
+  the real submission to the chosen partition. They are listed with their reason
+  under "Skipped nodes" (`skipped_nodes` in `--json`). `--exclude NODES` is an
+  optional plain flag, empty by default; no node names are built in.
 - **Trust `fits now` over test-only start times.** `--plan` shows each
   partition's MaxTime (`EXCEEDS time limit` when `-t` is above it) and whether
-  an allowed, non-excluded node has the cpus/mem/gres idle right now.
+  an allowed, healthy, non-excluded node has the cpus/mem/gres idle right now.
   `sbatch --test-only` ignores backfill and can report days for a job that
   starts at once. `fits now` ignores pending jobs ahead of you (`PEND` column).
   Soonest-start pick ranks fits-now first.
 - **Programs can choose a partition**: `orcd_submit.py --plan --json ...` prints
   `rows` (each with `fits_now`, `max_time`, `exceeds_time`, `excluded`,
-  `would_start`, `pending_jobs`) and `soonest`; e.g. a pipeline's placement hook.
+  `would_start`, `pending_jobs`), `skipped_nodes` (`node`, `partition`, `reason`)
+  and `soonest`; e.g. a pipeline's placement hook.
+- **Every GPU job script starts with the allocation guard**, so a job never runs
+  on GPUs outside its allocation (a node with a bad GRES config or missing
+  device confinement would otherwise expose, or collide with, other tenants'
+  GPUs). Right after the `#SBATCH` lines:
+  ```bash
+  python3 "$HOME/path/to/orcd-remote/scripts/orcd_alloc_guard.py" || exit 1
+  ```
+  It checks that `nvidia-smi -L` and `CUDA_VISIBLE_DEVICES` show exactly the
+  GPUs in `SLURM_GPUS_ON_NODE`/`SLURM_JOB_GPUS`, that no process outside this
+  job (by `/proc/<pid>/cgroup`) is using a visible GPU, and that the cgroup
+  devices list is not wide open. On any mismatch it prints what it saw to
+  stderr and exits 1. Failure meanings: "shows N GPU(s) but ... allocates M" =
+  the node does not confine devices or GRES is misconfigured; "in use by pid"
+  = another tenant is on your GPU; "devices.list allows all devices" = no
+  confinement. Do not work around it: resubmit with `--exclude <that node>` and
+  report the node to ORCD support. Copy the script to the cluster once (e.g.
+  under `~/.orcd-jobs/`) so jobs can call it.
 - **Always set `--mem`.** Default is 1 GB per CPU; jobs die mid-run.
 - **Arrays**: each task is a submitted job. Max array = partition
   `MaxSubmitPU + 1` (`orcd_snapshot.py` prints it); `%K` throttles concurrency
