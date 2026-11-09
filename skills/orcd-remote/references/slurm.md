@@ -2,7 +2,7 @@
 
 Cluster `eofe7`, Slurm 25.05, `select/cons_tres` with `CR_CORE_MEMORY`,
 backfill scheduler. Login nodes Rocky 8; most compute nodes advertise `rocky8`.
-`python3 scripts/orcd_resources.py --gpus --idle` gives the current personal
+`uv run scripts/orcd_resources.py --gpus --idle` gives the current personal
 answer; this file explains how to read it.
 
 ## Access is per person

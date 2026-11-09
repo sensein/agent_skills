@@ -9,9 +9,9 @@ Run this first, every time. It walks the chain of preconditions in dependency
 order and stops at the first broken link, because a later check cannot be
 meaningfully interpreted while an earlier one is failing.
 
-    python3 orcd_doctor.py                  # diagnose
-    python3 orcd_doctor.py --fix            # also write ~/.ssh/config and open the master
-    python3 orcd_doctor.py --sandbox-setup  # sandbox with internet: mint a key and
+    uv run orcd_doctor.py                  # diagnose
+    uv run orcd_doctor.py --fix            # also write ~/.ssh/config and open the master
+    uv run orcd_doctor.py --sandbox-setup  # sandbox with internet: mint a key and
                                             # print the command that authorizes it
 
 Exit status is 0 when the cluster is reachable and 1 otherwise, so callers can
@@ -273,7 +273,7 @@ def sandbox_setup(user: str, hostname: str, identity_path: str | None = None) ->
     else:
         print("Revoke later by deleting this key's line from ~/.ssh/authorized_keys.\n")
     print(
-        f"Then, from here:  python3 orcd_doctor.py --fix --user {user or '<username>'}\n"
+        f"Then, from here:  uv run orcd_doctor.py --fix --user {user or '<username>'}\n"
         "The private key dies with the container; mint a fresh one next time, never copy it out."
     )
     return 0
@@ -325,7 +325,7 @@ def main() -> int:
         for what in ("ssh client", "ssh key", "ssh config", "Duo / login node reachability"):
             rep.add(OK, what, "n/a on cluster (running on ORCD, commands run locally)")
         uvp = oc.cluster_uv()
-        rep.add(OK if uvp else BAD, "uv (required on cluster)", uvp or "missing: python3 orcd_uv.py --install")
+        rep.add(OK if uvp else BAD, "uv (required on cluster)", uvp or "missing: uv run orcd_uv.py --install")
         configured = True
         reachable = True
     else:
@@ -470,7 +470,7 @@ def main() -> int:
             else:
                 rep.add(
                     WARN, "uv (cluster $HOME)",
-                    "not installed; `python3 orcd_uv.py --install` (never edits shell profiles)",
+                    "not installed; `uv run orcd_uv.py --install` (never edits shell profiles)",
                 )
 
     rep.render()
@@ -523,14 +523,14 @@ def main() -> int:
         # Reachable as user@host, but every other script defaults to the alias.
         print(
             f"\nAccess works, but the `{args.host}` alias is not configured, and the other\n"
-            f"scripts default to it. Run `python3 orcd_doctor.py --fix --user {args.user}`\n"
+            f"scripts default to it. Run `uv run orcd_doctor.py --fix --user {args.user}`\n"
             f"once, or pass --host {args.user}@{args.hostname} to each of them.\n"
         )
         return 0
     print(
         "\nAccess is working. Next:\n"
-        "  python3 orcd_resources.py     # what you can actually run on\n"
-        "  python3 orcd_storage.py       # where to put data, and what is fast\n"
+        "  uv run orcd_resources.py     # what you can actually run on\n"
+        "  uv run orcd_storage.py       # where to put data, and what is fast\n"
     )
     return 0
 

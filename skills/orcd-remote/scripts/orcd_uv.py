@@ -10,9 +10,9 @@ The login nodes' system ``python3`` is 3.6 and neither ``uv`` nor ``conda`` is
 installed system-wide, so a per-user ``uv`` at ``~/.local/bin/uv`` in the
 cluster home directory is the supported way to get modern Python for jobs.
 
-    python3 orcd_uv.py                 # is uv installed on the cluster? on PATH?
-    python3 orcd_uv.py --install       # install it, or upgrade an existing one
-    python3 orcd_uv.py --add-to-path   # append a PATH line to a shell profile
+    uv run orcd_uv.py                 # is uv installed on the cluster? on PATH?
+    uv run orcd_uv.py --install       # install it, or upgrade an existing one
+    uv run orcd_uv.py --add-to-path   # append a PATH line to a shell profile
 
 The profile rule, which this script enforces rather than merely documents:
 **no shell profile is modified without the user's explicit approval.**
@@ -230,7 +230,7 @@ def main() -> int:
             status = add_to_path(args.host, args.profile)
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)
+        print("\nRun `uv run orcd_doctor.py` to diagnose access.", file=sys.stderr)
         return 1
 
     usable = bool(status["home_bin"] or status["on_path"])
@@ -240,11 +240,11 @@ def main() -> int:
         render(status)
         if not usable:
             print("\nuv is not installed. Install (or later upgrade) it with:\n"
-                  "    python3 orcd_uv.py --install")
+                  "    uv run orcd_uv.py --install")
         elif not status["on_path"]:
             print("\nuv works by absolute path ($HOME/.local/bin/uv). To put it on the\n"
                   "interactive PATH, ask the user first, then:\n"
-                  "    python3 orcd_uv.py --add-to-path --user-approved")
+                  "    uv run orcd_uv.py --add-to-path --user-approved")
 
     return 0 if usable else 2
 

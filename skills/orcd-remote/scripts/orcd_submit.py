@@ -12,17 +12,17 @@ which matters on ORCD, where an idle private partition and a six-hour queue on
 the shared GPU partition are both one flag apart.
 
     # See where a request would land, and how soon, in each partition
-    python3 orcd_submit.py --plan --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 2:00:00
+    uv run orcd_submit.py --plan --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 2:00:00
 
     # Submit a script, auto-selecting the soonest-starting partition
-    python3 orcd_submit.py --script train.sh --gpus 1 --cpus 8 --mem 64G --time 4:00:00
+    uv run orcd_submit.py --script train.sh --gpus 1 --cpus 8 --mem 64G --time 4:00:00
 
     # Pin the partition yourself
-    python3 orcd_submit.py --script train.sh --partition pi_satra --gpus 1
+    uv run orcd_submit.py --script train.sh --partition pi_satra --gpus 1
 
     # Check on things
-    python3 orcd_submit.py --queue
-    python3 orcd_submit.py --status 12345678
+    uv run orcd_submit.py --queue
+    uv run orcd_submit.py --status 12345678
 """
 from __future__ import annotations
 
@@ -670,8 +670,8 @@ def main() -> int:
             return 1
         print(
             f"\nTrack it with:\n"
-            f"  python3 orcd_submit.py --status {job.group(1)}\n"
-            f"  python3 orcd_submit.py --queue"
+            f"  uv run orcd_submit.py --status {job.group(1)}\n"
+            f"  uv run orcd_submit.py --queue"
         )
         if not (args.output or args.chdir):
             print(
@@ -682,7 +682,7 @@ def main() -> int:
 
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)
+        print("\nRun `uv run orcd_doctor.py` to diagnose access.", file=sys.stderr)
         return 1
 
 

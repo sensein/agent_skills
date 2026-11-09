@@ -22,9 +22,9 @@ read from ``/proc/mounts`` (never blocks) and sized individually under a
 timeout. And ``/orcd`` is autofs, so a directory only materialises once
 something touches it -- listing the parent is not a reliable inventory.
 
-    python3 orcd_storage.py             # what you can write to, and how fast
-    python3 orcd_storage.py --setup     # create your per-user dirs where missing
-    python3 orcd_storage.py --json
+    uv run orcd_storage.py             # what you can write to, and how fast
+    uv run orcd_storage.py --setup     # create your per-user dirs where missing
+    uv run orcd_storage.py --json
 """
 from __future__ import annotations
 
@@ -326,7 +326,7 @@ def main() -> int:
         raw = oc.run_remote(REMOTE, host=args.host, timeout=180)
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)
+        print("\nRun `uv run orcd_doctor.py` to diagnose access.", file=sys.stderr)
         return 1
 
     blocks = oc.parse_kv_blocks(raw)
