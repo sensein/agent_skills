@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Discover which ORCD filesystems this user can write to, and which are fast.
 
 ORCD encodes storage entitlement in Unix group names of the form
@@ -315,6 +319,7 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--group-config", help="group conventions JSON (default: $ORCD_GROUP_CONFIG, then the skill's assets/sensein.json)")
     args = ap.parse_args()
+    oc.require_uv()
     group_cfg = load_group_config(args.group_config)
 
     try:

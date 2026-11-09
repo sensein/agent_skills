@@ -6,10 +6,9 @@ description: Run work on MIT's ORCD/Engaging Slurm cluster (orcd-login.mit.edu, 
 # MIT ORCD Remote Execution
 
 Run work on MIT's ORCD cluster (`orcd-login.mit.edu`, Slurm cluster `eofe7`,
-"Engaging") from your own machine over one multiplexed SSH connection. The
-scripts run **locally** and reach the cluster over ssh; they do not run *on* a
-login node (no `orcd` alias there, and its `python3` is 3.6). Already on the
-cluster? Use `sinfo`/`sbatch` and the references directly.
+"Engaging") from your own machine over one multiplexed SSH connection, or directly when
+already on the cluster (see "On the cluster"). Every script is run with
+`uv run` (PEP 723 header, `requires-python >=3.10`, no dependencies).
 
 Every number below is a snapshot: trust script output over docs. When answering
 a person, lead with the decision (what to run, where, when it starts); evidence
@@ -20,10 +19,10 @@ after.
 Run the scripts by path from any directory; they find each other.
 
 ```bash
-python3 <skill>/scripts/orcd_doctor.py        # access working? exact fix if not; exit 0 = reachable
-python3 <skill>/scripts/orcd_resources.py --gpus --idle   # what you may run on, what is free now
-python3 <skill>/scripts/orcd_storage.py       # where data goes, quotas, tiers
-python3 <skill>/scripts/orcd_snapshot.py --save           # baseline config; later --diff (exit 2 = drift)
+uv run <skill>/scripts/orcd_doctor.py        # access working? exact fix if not; exit 0 = reachable
+uv run <skill>/scripts/orcd_resources.py --gpus --idle   # what you may run on, what is free now
+uv run <skill>/scripts/orcd_storage.py       # where data goes, quotas, tiers
+uv run <skill>/scripts/orcd_snapshot.py --save           # baseline config; later --diff (exit 2 = drift)
 ```
 
 ## Connection rules
@@ -49,7 +48,7 @@ No passwords over ssh: the key is installed through the portal
 1. `ssh-keygen -t ed25519` (passphrase held in `ssh-agent`).
 2. Sign in at <https://orcd-ood.mit.edu/>; **Clusters -> Shell Access**.
 3. Append the `.pub` line to `~/.ssh/authorized_keys` there.
-4. `python3 orcd_doctor.py --fix --user <mit-username>` (add `--identity <key>`
+4. `uv run orcd_doctor.py --fix --user <mit-username>` (add `--identity <key>`
    if the ORCD key is not the first of `id_ed25519`/`id_ecdsa`/`id_rsa`).
 
 **Cloud or sandbox session** (Claude Code on the web, CI): the key lives in an
@@ -134,13 +133,32 @@ access, and consolidation: one shared `HF_HOME` with every model **pinned by
 commit hash, never a floating `main`**; shared `models/`, `datasets/`,
 `cache/<tool>` (senselab); per-user `users/`.
 
+## On the cluster
+
+When already on ORCD (a login node, or a Claude session running there) the
+scripts need no ssh: `orcd_common.on_cluster()` is true when `sbatch`, `sinfo`
+and `squeue` are all on PATH (override: `ORCD_MODE=local|remote`), and every
+cluster call then runs `bash -c` locally from `$HOME`. `--host` still selects
+the ssh target in the remote case. The doctor reports the ssh checks (client,
+key, config, Duo) as "n/a on cluster".
+
+uv is required: the login node's `python3` is 3.6 and the scripts need 3.10+.
+Run them as `$HOME/.local/bin/uv run <skill>/scripts/orcd_<name>.py`. If uv is
+missing the scripts print the install step and stop; they never fall back to the
+system python3. Install it from a laptop with `uv run orcd_uv.py --install`, or on
+the cluster with `curl -LsSf https://astral.sh/uv/install.sh | sh` (writes only
+`$HOME/.local/bin`, edits no shell profile). The first `uv run` downloads a
+Python (about 30 MB, a few seconds to a minute on the login node) and caches it
+under `$HOME`; later runs start immediately. Do no compute on login nodes:
+scheduler and storage queries only.
+
 ## Python: uv in the cluster `$HOME`
 
-Login-node `python3` is 3.6 and there is no system uv or conda.
+Login-node `python3` is 3.6 and there is no system uv or conda; the skill scripts themselves need uv.
 
 ```bash
-python3 orcd_uv.py             # installed? version? on PATH?
-python3 orcd_uv.py --install   # install or upgrade; never edits shell profiles
+uv run orcd_uv.py             # installed? version? on PATH?
+uv run orcd_uv.py --install   # install or upgrade; never edits shell profiles
 ```
 
 Scripts call `$HOME/.local/bin/uv` by absolute path. **Any shell-profile edit
@@ -167,11 +185,11 @@ GitHub host key, so `git fetch` fails there by default. The doctor reports
 ## Submitting and tracking
 
 ```bash
-python3 orcd_submit.py --plan --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 2:00:00
-python3 orcd_submit.py --script train.sh --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 4:00:00 \
+uv run orcd_submit.py --plan --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 2:00:00
+uv run orcd_submit.py --script train.sh --gpus 1 --gpu-type h100 --cpus 8 --mem 64G --time 4:00:00 \
     --chdir /orcd/scratch/bcs/<NNN>/<user>/runs --output '%x-%j.out'
-python3 orcd_submit.py --queue
-python3 orcd_submit.py --status <jobid>
+uv run orcd_submit.py --queue
+uv run orcd_submit.py --status <jobid>
 ```
 
 - Other flags: `--partition` (pin), `--nodes`, `--array`, `--name`,
@@ -179,6 +197,40 @@ python3 orcd_submit.py --status <jobid>
 - `--plan` before any long job: partition choice moves start time from minutes
   to days, and it names any reservation the `-t` would cross (a maintenance
   window holds such a job until it ends, reported only as `PENDING`).
+- **Run `--plan` before every submission.** Node health filtering is automatic:
+  nodes that are down, drained/draining, failing, not responding, invalid or in
+  maintenance, or whose `Gres` disagrees with `CfgTRES`/`GresUsed` (or whose
+  `Reason` names a GPU fault), are skipped for `fits now` and are excluded from
+  the real submission to the chosen partition. They are listed with their reason
+  under "Skipped nodes" (`skipped_nodes` in `--json`). `--exclude NODES` is an
+  optional plain flag, empty by default; no node names are built in.
+- **Trust `fits now` over test-only start times.** `--plan` shows each
+  partition's MaxTime (`EXCEEDS time limit` when `-t` is above it) and whether
+  an allowed, healthy, non-excluded node has the cpus/mem/gres idle right now.
+  `sbatch --test-only` ignores backfill and can report days for a job that
+  starts at once. `fits now` ignores pending jobs ahead of you (`PEND` column).
+  Soonest-start pick ranks fits-now first.
+- **Programs can choose a partition**: `orcd_submit.py --plan --json ...` prints
+  `rows` (each with `fits_now`, `max_time`, `exceeds_time`, `excluded`,
+  `would_start`, `pending_jobs`), `skipped_nodes` (`node`, `partition`, `reason`)
+  and `soonest`; e.g. a pipeline's placement hook.
+- **Every GPU job script starts with the allocation guard**, so a job never runs
+  on GPUs outside its allocation (a node with a bad GRES config or missing
+  device confinement would otherwise expose, or collide with, other tenants'
+  GPUs). Right after the `#SBATCH` lines:
+  ```bash
+  "$HOME/.local/bin/uv" run --quiet "$HOME/path/to/orcd-remote/scripts/orcd_alloc_guard.py" || exit 1
+  ```
+  It checks that `nvidia-smi -L` and `CUDA_VISIBLE_DEVICES` show exactly the
+  GPUs in `SLURM_GPUS_ON_NODE`/`SLURM_JOB_GPUS`, that no process outside this
+  job (by `/proc/<pid>/cgroup`) is using a visible GPU, and that the cgroup
+  devices list is not wide open. On any mismatch it prints what it saw to
+  stderr and exits 1. Failure meanings: "shows N GPU(s) but ... allocates M" =
+  the node does not confine devices or GRES is misconfigured; "in use by pid"
+  = another tenant is on your GPU; "devices.list allows all devices" = no
+  confinement. Do not work around it: resubmit with `--exclude <that node>` and
+  report the node to ORCD support. Copy the script to the cluster once (e.g.
+  under `~/.orcd-jobs/`) so jobs can call it.
 - **Always set `--mem`.** Default is 1 GB per CPU; jobs die mid-run.
 - **Arrays**: each task is a submitted job. Max array = partition
   `MaxSubmitPU + 1` (`orcd_snapshot.py` prints it); `%K` throttles concurrency

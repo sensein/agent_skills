@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
-"""Shared SSH plumbing for the ORCD skill.
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
+"""Shared SSH plumbing for the ORCD skill; runs commands locally when already on ORCD.
 
 Every other script in this skill runs *locally* and reaches the cluster through
 one multiplexed SSH connection. Two facts about ORCD's login nodes drive the
@@ -43,6 +47,49 @@ SSH_OPTS = [
 ]
 
 
+def on_cluster() -> bool:
+    """True when this process is already on ORCD, so commands run locally and ssh is not used.
+
+    Rule: ``sbatch``, ``sinfo`` and ``squeue`` are all on PATH (the Slurm client
+    is installed only on the cluster's login and compute nodes). Override with
+    ``ORCD_MODE=local`` or ``ORCD_MODE=remote``.
+    """
+    mode = os.environ.get("ORCD_MODE", "").strip().lower()
+    if mode in ("local", "remote"):
+        return mode == "local"
+    return all(shutil.which(c) for c in ("sbatch", "sinfo", "squeue"))
+
+
+def cluster_uv() -> str:
+    """Path of uv on the cluster: ``$HOME/.local/bin/uv`` if executable, else uv on PATH, else ""."""
+    p = os.path.join(os.path.expanduser("~"), ".local", "bin", "uv")
+    if os.access(p, os.X_OK):
+        return p
+    return shutil.which("uv") or ""
+
+
+def require_uv() -> None:
+    """On the cluster, stop with the install step unless uv exists and the interpreter is uv's.
+
+    Never falls back to the system python3 (3.6 on the login nodes). Off the
+    cluster this does nothing.
+    """
+    if not on_cluster():
+        return
+    if not cluster_uv():
+        print("error: uv is not installed on this cluster account. Install it (writes only to "
+              "$HOME/.local/bin, edits no shell profile):\n"
+              "  python3 orcd_uv.py --install   (from a laptop, over ssh)\n"
+              "  or: curl -LsSf https://astral.sh/uv/install.sh | sh\n"
+              "then run scripts as: $HOME/.local/bin/uv run <script>", file=sys.stderr)
+        sys.exit(1)
+    if sys.version_info < (3, 10):
+        print("error: run this script with uv, not the system python3 (%d.%d):\n"
+              "  $HOME/.local/bin/uv run %s" % (sys.version_info[0], sys.version_info[1], sys.argv[0]),
+              file=sys.stderr)
+        sys.exit(1)
+
+
 class OrcdError(RuntimeError):
     """A cluster call could not be completed."""
 
@@ -61,6 +108,8 @@ def master_is_live(host: str = DEFAULT_HOST) -> bool:
     ``-O check`` asks the running master to confirm itself and never
     authenticates, so this is a cheap, side-effect-free probe.
     """
+    if on_cluster():
+        return True
     if not ssh_available():
         return False
     proc = subprocess.run(
@@ -78,6 +127,8 @@ def open_master(host: str = DEFAULT_HOST, timeout: int = 90, identity=None) -> t
     gets a real prompt here and can answer it. ``identity`` pins a key file for
     targets that have no config block yet. Returns ``(ok, message)``.
     """
+    if on_cluster():
+        return True, "running on the cluster; no ssh needed"
     if not ssh_available():
         return False, "no `ssh` binary found on PATH"
     if master_is_live(host):
@@ -110,6 +161,16 @@ def run_remote(
     survive intact regardless of what the caller wrote. stdin is closed so a
     stalled Duo prompt fails fast with a clear error instead of hanging forever.
     """
+    if on_cluster():
+        try:
+            proc = subprocess.run(["bash", "-c", script], capture_output=True, text=True,
+                                  stdin=subprocess.DEVNULL, timeout=timeout, cwd=os.path.expanduser("~"))
+        except subprocess.TimeoutExpired as exc:
+            raise OrcdError(f"local command timed out after {timeout}s") from exc
+        if proc.returncode != 0 and check:
+            detail = (proc.stderr or "").strip() or "\n".join((proc.stdout or "").strip().splitlines()[-3:])
+            raise OrcdError(f"command failed (exit {proc.returncode}): {detail}")
+        return proc.stdout
     if not ssh_available():
         raise OrcdError("no `ssh` binary found on PATH")
 
@@ -161,6 +222,12 @@ def scp_to(local: str, remote_path: str, host: str = DEFAULT_HOST, timeout: int 
     to relative for the same reason, rather than trusting the expand-path
     extension to exist on both ends.
     """
+    if on_cluster():
+        rel = remote_path[2:] if remote_path.startswith("~/") else remote_path
+        dest = os.path.join(os.path.expanduser("~"), rel)
+        if os.path.abspath(local) != os.path.abspath(dest):
+            shutil.copyfile(local, dest)
+        return
     if remote_path.startswith("~/"):
         remote_path = remote_path[2:]
     if "$" in remote_path:
