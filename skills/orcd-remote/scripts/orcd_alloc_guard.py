@@ -5,7 +5,7 @@
 # ///
 """Allocation guard: run at the top of every GPU job script.
 
-    python3 /path/to/orcd_alloc_guard.py || exit 1
+    uv run /path/to/orcd_alloc_guard.py || exit 1
 
 Verifies, from inside the job, that it is confined to the GPUs Slurm allocated:
 

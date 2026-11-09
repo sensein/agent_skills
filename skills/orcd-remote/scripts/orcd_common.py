@@ -79,7 +79,7 @@ def require_uv() -> None:
     if not cluster_uv():
         print("error: uv is not installed on this cluster account. Install it (writes only to "
               "$HOME/.local/bin, edits no shell profile):\n"
-              "  python3 orcd_uv.py --install   (from a laptop, over ssh)\n"
+              "  uv run orcd_uv.py --install   (from a laptop, over ssh)\n"
               "  or: curl -LsSf https://astral.sh/uv/install.sh | sh\n"
               "then run scripts as: $HOME/.local/bin/uv run <script>", file=sys.stderr)
         sys.exit(1)

@@ -1,6 +1,6 @@
 ---
 name: orcd-remote
-description: Run work on MIT's ORCD/Engaging Slurm cluster (orcd-login.mit.edu, eofe7) over SSH from a laptop or sandbox. Use whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue, cluster GPUs (H100/H200/A100/L40S), cluster scratch/storage/quotas, ssh trouble reaching orcd-login, or anything too big for a laptop - even without naming ORCD. Sets up key-based SSH (Duo via the OnDemand portal), discovers this user's own partitions, GPUs and storage instead of assuming, keeps job IO off $HOME, submits and tracks jobs, and diffs cluster config over time.
+description: Work with MIT's ORCD/Engaging Slurm cluster (eofe7), both from a laptop or sandbox over SSH (orcd-login.mit.edu) and when already ON the cluster, in a login node, a Claude session there, or inside a job. Use whenever the user mentions ORCD, Engaging, "the MIT cluster", Slurm, sbatch/srun/squeue/sacct, partitions, QOS limits, worker pools, cluster GPUs (H100/H200/A100/L40S), cluster scratch/storage/quotas, ssh trouble reaching orcd-login, or anything too big for a laptop - even without naming ORCD. Detects where it runs and executes locally on the cluster, otherwise over ssh (key + Duo via the OnDemand portal); discovers this user's own partitions, GPUs and storage instead of assuming, plans placement with live fit and node health, guards job allocations, keeps job IO off $HOME, submits and tracks jobs, and diffs cluster config over time.
 ---
 
 # MIT ORCD Remote Execution
@@ -115,6 +115,8 @@ hardcode a partition. `orcd_resources.py` asks the scheduler; `orcd_submit.py
   with `readlink -f`. `/orcd/scratch/orcd/<NNN>/<user>` shards are per-person.
 - Quotas appear only in `~/orcd/.quota` (`df` shows the whole filesystem);
   `orcd_storage.py` reads it.
+- With uv on scratch, `export UV_LINK_MODE=hardlink` (the default copies about
+  60k inodes per venv) and keep `UV_CACHE_DIR` on the same filesystem as the venvs.
 - Before placing a dataset, ask for file count and access pattern; size alone
   decides nothing.
 - Traps: bare `df -h` hangs on a stale mount (use `/proc/mounts` and
@@ -243,6 +245,27 @@ uv run orcd_submit.py --status <jobid>
   `PreemptMode=REQUEUE`. For checkpointed or idempotent work only: trap
   `--signal=B:USR1@120`, checkpoint, **exit non-zero**.
 
+## Partitions and worker pools
+
+- **Multi-partition submit** `sbatch -p a,b,c` takes ONE `--time/--mem/-c/--gres`.
+  With `EnforcePartLimits=ANY` (`scontrol show config | grep -i EnforcePartLimits`)
+  the job is accepted if valid on at least one listed partition, so a bad fit
+  shows up later as a job that never starts there, not as an error. Size the
+  request to be valid on every listed partition (smallest MaxTime/MaxMem, a GPU
+  type all have). Each partition applies its own QOS; pending reasons such as
+  `QOSGrpCpuLimit` or `QOSMaxGRESPerUser` come from that QOS.
+- **Different partitions are different hardware.** Pin `--gres=gpu:h100:1` when
+  timing or provenance matters, and record what ran:
+  `sacct -j <id> -o Partition,NodeList,AllocTRES`.
+- **Prefer a worker pool to one big multi-partition job** for large fan-out: a
+  small controller plus per-partition worker entries, each sized to that
+  partition's QOS, leasing items from a shared queue, with a host check before
+  claiming so bad nodes take nothing. Pattern and mechanics:
+  [references/pools.md](references/pools.md).
+- **Throttle by counting live jobs**, not by flooding the queue:
+  `squeue -h -u $USER -p <p> -t R,PD -o %P | wc -l` against that class's cap.
+  Group/QOS caps (e.g. a lab partition's `GrpTRES`) are shared across the lab.
+
 ## When something goes wrong
 
 | Symptom | Cause | Fix |
@@ -284,7 +307,8 @@ uv run orcd_submit.py --status <jobid>
 | [`orcd_uv.py`](scripts/orcd_uv.py) | Check/install/upgrade uv in the cluster `$HOME`; profile edits only with approval (`--profile` picks the file) |
 | [`orcd_submit.py`](scripts/orcd_submit.py) | Plan, submit, track; auto-select partition by start time; `--chdir` |
 | [`orcd_snapshot.py`](scripts/orcd_snapshot.py) | Config snapshot; `--save` baseline, `--diff` drift (exit 2), `--baseline <file>` |
-| [`orcd_common.py`](scripts/orcd_common.py) | Shared ssh plumbing |
+| [`orcd_alloc_guard.py`](scripts/orcd_alloc_guard.py) | Start of every GPU job script: verifies the job sees only its allocation |
+| [`orcd_common.py`](scripts/orcd_common.py) | Shared ssh plumbing; local execution when on the cluster |
 
-Stdlib-only Python 3, run locally. All accept `--host`; discovery scripts
+Stdlib-only, run with `uv run` (locally on the cluster, or over ssh from a laptop). All accept `--host`; discovery scripts
 accept `--json`.

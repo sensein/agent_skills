@@ -19,10 +19,10 @@ so this script asks the scheduler instead of assuming:
 ``--test-only`` never queues anything; it asks the scheduler to evaluate the
 request and report where it *would* land.
 
-    python3 orcd_resources.py              # partitions you can use
-    python3 orcd_resources.py --gpus       # add per-GPU-type access probing
-    python3 orcd_resources.py --idle       # add what is free right now
-    python3 orcd_resources.py --json       # machine-readable
+    uv run orcd_resources.py              # partitions you can use
+    uv run orcd_resources.py --gpus       # add per-GPU-type access probing
+    uv run orcd_resources.py --idle       # add what is free right now
+    uv run orcd_resources.py --json       # machine-readable
 """
 from __future__ import annotations
 
@@ -256,7 +256,7 @@ def main() -> int:
         raw = oc.run_remote(REMOTE, host=args.host, timeout=240)
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)
+        print("\nRun `uv run orcd_doctor.py` to diagnose access.", file=sys.stderr)
         return 1
 
     blocks = oc.parse_kv_blocks(raw)
