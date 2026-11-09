@@ -15,7 +15,8 @@ Usage:
     # validate + report what the result contains
     python export_review.py review.json --check
 
-    # export (default: md + ttl + json)
+    # export (default: md + ttl + json), then verify citations: exit 1 when a
+    # DOI/PMID belongs to another paper or the text cites a study not included
     python export_review.py review.json --outdir out/
     python export_review.py review.json --formats md ttl jsonld bib \
         charting appraisal per-group narrative --outdir out/
@@ -46,14 +47,17 @@ question-first into md / json / ttl / jsonld — an appendix, a
 do that themselves, so it holds for any review; ``--rq-themes`` relabels the
 sections when the protocol's questions carry no theme of their own.
 
-Requires the ``synthscholar`` package importable (``pip install synthscholar``
-or run from a checkout).
+Uses the skill's own copy of the ``synthscholar`` package (``vendor/``, see
+``vendor/VENDORED.md``); its libraries: ``pip install -r requirements.txt``.
 """
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
 
 ALL_FORMATS = [
     "md", "ttl", "jsonld", "json", "bib",
@@ -95,8 +99,7 @@ def _require_synthscholar():
     except ImportError as e:
         print(
             f"synthscholar is not importable ({e}).\n"
-            "Install it with `pip install synthscholar` (add the [fulltext] extra "
-            "for PDF parsing) or run this script from a checkout of the repo.",
+            "the skill's own copy is vendor/synthscholar (vendor/VENDORED.md); install its libraries with `pip install -r requirements.txt`.",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -119,9 +122,9 @@ def _require_synthscholar():
             + "\n  ".join(missing)
             + "\n\nPydantic discards unknown fields silently, so exports would look "
               "complete while recording nothing about which reports were retrieved "
-              "or whether each decision was made on the full text. Install the "
-              "development checkout instead:\n"
-              "  pip install -e /path/to/prisma-review-agent",
+              "or whether each decision was made on the full text. The skill's own "
+              "copy (vendor/synthscholar) has these fields: restore the skill folder "
+              "if that copy is missing or was replaced (vendor/VENDORED.md).",
             file=sys.stderr,
         )
         raise SystemExit(3)
@@ -198,6 +201,45 @@ def write_exports(result, outdir: str | Path, formats: list[str], base: str = "r
         if index:
             rq.merge_into_files(written, index, base=base)
     return written
+
+
+def check_citations(result, outdir: str | Path, base: str = "review",
+                    offline: bool = False) -> str:
+    """Verify the exported review's citations; return the verdict (PASS/FAIL/INCOMPLETE).
+
+    Every included study's DOI/PMID against Crossref/PubMed, and every PMID,
+    DOI and author–year citation in the generated text against the included
+    set. Writes ``<base>.citations.json|md`` beside the export — the report
+    ``generate_review_pdf.py`` gates on.
+    """
+    import json
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        from verify_citations import gate
+    except ImportError as e:
+        print(f"\n  FAIL  citation check needs httpx ({e}): `pip install httpx`")
+        return "INCOMPLETE"
+    review = json.loads(result.model_dump_json())
+    print()
+    exported = Path(outdir) / f"{base}.json"
+    report = gate(review, Path(outdir) / base, offline=offline,
+                  inputs=[exported] if exported.is_file() else [])
+    return report["summary"]["verdict"]
+
+
+def citation_outcome(verdict: str) -> int:
+    """Print what a non-PASS verdict means for delivery; return the exit code."""
+    if verdict == "PASS":
+        return 0
+    if verdict == "FAIL":
+        print("\n✗ Citation errors — fix them (references/citation_verification.md) "
+              "before handing the review over.")
+    else:
+        print("\n✗ Citations INCOMPLETE — some references could not be checked (offline, a "
+              "registry lookup failed, or no DOI/PMID). The export is a draft until a "
+              "verification run returns PASS.")
+    return 1
 
 
 def template_check(review_path: Path, page_limit: int | None, template: str) -> int:
@@ -290,6 +332,10 @@ def check(result) -> int:
         warnings.append("synthesis_text is empty — the Markdown will have no synthesis")
     if not result.data_charting_rubrics:
         warnings.append("no data_charting_rubrics — no per-article charting tables")
+    if n_inc - ft:
+        warnings.append(f"{n_inc - ft} included stud{'y' if n_inc - ft == 1 else 'ies'} without full text — "
+                        "a study cannot be evaluated on its abstract: retrieve them (fetch_ezproxy.py) or "
+                        "remove them (extract_evidence.py apply); delivery refuses them")
     if flow.assessed_on_abstract_only and not flow.assessed_on_full_text:
         warnings.append("every eligibility decision was made on an abstract — retrieve "
                         "full texts (fetch_ezproxy.py for paywalled papers) before "
@@ -562,6 +608,11 @@ def main() -> int:
     ap.add_argument("--rq-themes", metavar="PATH",
                     help='JSON map {"RQ1": "Participants", …} relabelling the '
                          "research-question sections, by id or major group")
+    ap.add_argument("--skip-citation-check", action="store_true",
+                    help="don't verify citations after exporting (verify_citations.py)")
+    ap.add_argument("--offline-citations", action="store_true",
+                    help="verify citations without registry lookups (syntax + in-text only; "
+                         "the verdict is then INCOMPLETE, so the export stays a draft)")
     args = ap.parse_args()
 
     _require_synthscholar()
@@ -594,7 +645,11 @@ def main() -> int:
     if "ttl" in args.formats:
         print("\nThe .ttl is SLR-ontology RDF — ingest it into a triple store "
               "(e.g. the brainkb skill's ingest tools) as-is.")
-    return 0
+    if args.skip_citation_check:
+        print("\nCitations NOT verified (--skip-citation-check).")
+        return 0
+    return citation_outcome(check_citations(result, args.outdir, args.base,
+                                            offline=args.offline_citations))
 
 
 if __name__ == "__main__":

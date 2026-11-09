@@ -139,7 +139,8 @@ window. Never retry-loop, and never split one job into many calls to get around 
 - **A SynthScholar review reaches BrainKB by being ingested, like any other RDF.**
   The `synthscholar` skill runs the review and writes `review.ttl`; a user with
   write access ingests it here, into the graph
-  `https://brainkb.org/synthscholar/reviews/<review_id>/` bound to a space. Going
+  `https://brainkb.org/synthscholar/<space>/reviews/<review_id>/` bound to that space
+  (a review is unique per space; the same run can go into several). Going
   through the ingest pipeline is what gives the review a job, PROV-O provenance and
   a search index. See "Ingest a SynthScholar review".
 
@@ -309,6 +310,24 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   `brainkb_create_space(slug, name, "private", description, space_type="team")`.
   If the user isn't authorized you'll get a 403 — an Admin can grant them
   `create_team_space` (see "Manage & delegate").
+- **Subspace** inside an existing space (any depth): pass `parent_slug` —
+  `brainkb_create_space(slug, name, "private", description, parent_slug="lab")`.
+  Needs manage rights on the parent; it takes the parent's space type. **Roles
+  inherit downward:** anyone with a role in a space (or any space above it) has the
+  same role in its subspaces; the strongest role wins, and roles never flow up.
+  **Visibility flows down from a public space:** everything in a public space is
+  public — making a space public makes all its subspaces public, a subspace created
+  under a public space is public, and a subspace of a public space can't be made
+  private (409; make the public space private first). Under a private space each
+  subspace is public or private on its own. Making a space private again leaves its
+  subspaces as they are — say so to the user, it can surprise. The parent
+  is fixed at creation. To see the structure: `brainkb_space_tree(slug)` (nested,
+  with the caller's role in each and whether it's inherited) or
+  `brainkb_get_space(slug)` (one space: graphs, direct and `inherited_members`,
+  `ancestors`, `subspaces`). In `brainkb_list_spaces()`, `parent_slug` links a
+  subspace to its parent and `role_inherited` marks inherited roles. Deleting a space
+  deletes every subspace below it too (see below).
+  Inherited members are changed in the space they come from, not in the subspace.
 - Bind a named graph to it (required before ingesting into that graph):
   `brainkb_add_space_graph(slug, graph_iri, description)` — `graph_iri` like
   `https://brainkb.org/graph/<slug>/`.
@@ -322,13 +341,36 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   and a named-graph IRI is **globally unique** (one graph belongs to exactly one
   space). Creating a space with a taken slug, or binding an already-registered
   graph, returns **409** — pick a different slug / IRI. Don't retry the same value.
-- **Deletion — what is and isn't removable:** spaces and named graphs are
-  **permanent — there is NO delete** (preserves provenance/history, same "we don't
-  hard-delete" policy as user accounts). What you *can* remove: a **space member**
-  (`brainkb_remove_*`/members endpoint) and a **fine-grained access rule**
-  (`brainkb_remove_access_rule`). To retire a space in practice, set it private
-  and/or remove members — you cannot delete it. So choose slugs/graph IRIs
-  deliberately: a typo can't be deleted, only abandoned.
+- **Reserved graphs:** an Admin/SuperAdmin can reserve a graph IRI (`exact`) or
+  every IRI under a prefix (`prefix`), optionally for one space, so nobody else can
+  register or bind it: `brainkb_reserve_graph(iri, match_type, reason, space_slug?)`,
+  `brainkb_list_reserved_graphs()`, `brainkb_unreserve_graph(reservation_id)`.
+  BrainKB's own `https://brainkb.org/metadata/…` and `…/provenance/…` graphs are
+  always reserved; nobody can bind them. A **403 that says "reserved"** when binding
+  or registering a graph is this, not a token or role problem: tell the user the
+  reason from the message, and suggest a different graph IRI, or asking an admin
+  (or, if it's reserved for a space, binding it from that space). Don't retry, and
+  don't try to get around it with a near-identical IRI. Always give a `reason` when
+  reserving — it's what refused users see.
+- **Deletion — what is and isn't removable:** anyone who manages a space can remove
+  a **space member** (`brainkb_remove_*`/members endpoint) or a **fine-grained
+  access rule** (`brainkb_remove_access_rule`), or retire it by setting it private.
+  **Deleting a space is SuperAdmin-only and irreversible:**
+  `brainkb_delete_space(slug, confirm_slug=slug)` drops its named graphs and their
+  ingestion-history (delta) graphs, the graphs' registry entries and the space's RDF
+  manifest, then its members, access rules, search entries and SynthScholar reviews
+  — and does the same to **every subspace below it, at any depth** (deepest first;
+  `subspaces_deleted` lists them). Only the deletion records survive, in provenance
+  (who, when, which graphs: `prov:invalidated`).
+  Rules: (1) only when the user explicitly asks to delete that space — never to
+  tidy up on your own initiative; (2) first show them the space and its subspaces
+  (`brainkb_space_tree`: graphs and members of each) and what will be lost, and get
+  an explicit yes in this conversation; (3) a non-SuperAdmin
+  gets 403 — say so, and offer to set it private instead; (4) a 502 means the
+  triplestore step failed and **nothing** was deleted: it is safe to retry. Do not
+  delete a graph with raw SPARQL `DROP GRAPH`: that leaves the space, its
+  registry entry and search index behind (the space still shows in the UI). Choose
+  slugs/graph IRIs deliberately anyway: only a SuperAdmin can remove a typo.
 - **See what's available to the user + their permission:** `brainkb_list_spaces()`
   returns each visible space annotated with the caller's own permission —
   `your_role` (`owner`/`editor`/`viewer`/`null`), `is_owner`, `access`
@@ -348,10 +390,14 @@ Call `brainkb_login(email, password, base_url?)`. Confirm with `brainkb_whoami()
   stuck.
 - **Ingesting "into a space" → resolve the graph first.** Ingest targets a
   **named graph IRI**, not a space. When the user says "ingest into the *hmba*
-  space", first find that space's graph: `brainkb_list_spaces()` (or
-  `brainkb_read_space("hmba")`) → use its registered graph IRI. If the space has
-  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first
-  (owner/editor). Then ingest into that `graph_iri`.
+  space", first call **`brainkb_list_writable_spaces()`**: it lists only the spaces
+  this user can actually ingest into (same checks as ingestion — membership,
+  inherited roles, write access rules, admin) with each space's graphs. Use that
+  space's graph IRI. If the space isn't listed, the user can't write to it: say so
+  (they need an editor role or a write rule) instead of trying. If it's listed with
+  no graph yet, `brainkb_add_space_graph(slug, graph_iri, description)` first. If
+  `can_ingest` is false, the user has no write-capable role at all — an admin must
+  give them one.
 - **A file, on the hosted remote: upload it, then ingest by id.** Run this (or have
   the user run it) — the HTTP library reads the file off disk, so not one byte enters
   your context:
@@ -445,9 +491,52 @@ other data. Nothing about the ingest itself is special-cased; what this section 
 is the IRI convention and the mistakes that are unrecoverable in an append-only
 store.
 
-**Where the TTL comes from.** Either source, same procedure from step 2 on:
+**Prefer ingesting the output directory.** One call puts the review in the
+graph *and* keeps the whole review in BrainKB: query_service registers the review's
+graph in the space, ingests `review.ttl` plus an import record (PROV-O: who, when,
+every kept file with media type, size and sha256, what was left out) as an ordinary
+job, and keeps the files — manuscript, PDF, figures, tables, search log,
+verification reports, everything but `work/` — for the review's page, readable by
+whoever can read the space. Steps 2–7 below still describe what happens; this does
+them:
 
-- **A local run** (the usual case) — the `synthscholar` skill's
+1. `brainkb_whoami()` — confirm the identity (as in step 1 below).
+2. `brainkb_list_writable_spaces()` → confirm the space and its visibility with the
+   user (see *Visibility follows the space* below). You need to be its owner or an
+   editor.
+3. `brainkb_synthscholar_ingest("<run>/output", space_slug)` — the folder holding
+   `review.json` and `review.ttl`. The graph is named by the space and the run's
+   own `protocol.review_id` (`…/synthscholar/<space>/reviews/review_local_<ts>/`),
+   the same IRI the by-hand route uses, so in one space the review lands in one
+   graph whichever way it came in, and a second attempt there is refused (409). The
+   same run can go into other spaces, each its own graph. Returns the `job_id`. Reads the MCP server's
+   filesystem, so it works where `brainkb_ingest_files` does (local stdio MCP, or
+   `MCP_INGEST_ROOT`); on the hosted remote, have the user do it in the UI:
+   **Ingest Knowledge Graph → SynthScholar review**.
+4. Steps 6–7 below: poll the job, reconcile the delta against the triple count.
+
+**Answering questions about an ingested review** — no SPARQL or admin role needed;
+these read under the space's rules (public spaces: no login) and page at ≤200:
+
+| Question | Call |
+|---|---|
+| Which reviews are there / about X? | `brainkb_synthscholar_list_reviews(q="X")` |
+| Overview: graph, files, search log, checks | `brainkb_synthscholar_get_review(id)` |
+| Which inclusions were read from the abstract only? via EZproxy? high RoB? | `brainkb_synthscholar_studies(id, full_text=False)` / `source="ezproxy"` / `rob="high"` |
+| Why were studies excluded? Which full-text decisions rested on the abstract? | `brainkb_synthscholar_screening(id, decision="exclude")` (see `counts.exclusion_reasons`) / `stage="full_text", assessed_on="abstract_only"` |
+| What evidence supports claim C? Which quotes were not matched in the source? | `brainkb_synthscholar_evidence(id, claim="C")` / `grounded=False` |
+| Which studies report Neo4j / what did study S-001 chart? | `brainkb_synthscholar_records(id, "charting", q="neo4j")` / `study="S-001"`; also `"appraisal"`, `"narrative"` |
+| The synthesis, limitations, search queries, per-group analysis | `brainkb_synthscholar_text(id, "synthesis")` (empty `section` = all) |
+| Which reviews include this paper? | `brainkb_synthscholar_find_study(doi=…)` / `pmid=…` / `title=…` |
+
+Quote counts from the `total` and `counts` the tools return, not from a page of
+items. The review's page is `/knowledge-base/synth-scholar/ingested/<id>`; the site
+search lists matching reviews above the records.
+
+**Ingesting the TTL by hand** (no import — e.g. only the `.ttl` is at hand).
+Either source, same procedure from step 2 on:
+
+- **A local run** — the `synthscholar` skill's
   `scripts/export_review.py … --formats md ttl` leaves `out/review.ttl` on disk.
 - **A hosted review** on mlservice — export it:
   `GET https://mlservice.brainkb.org/api/synth-scholar/public/reviews/<id>/export?format=ttl`
@@ -469,16 +558,18 @@ store.
    export, so the number may already be in hand.
 3. Pick the space and confirm it with the user. `brainkb_list_spaces()` shows
    `can_write` and `visibility` — see the visibility note below before choosing.
-4. **Derive the graph IRI from the review id — don't invent one.** It is always:
+4. **Derive the graph IRI from the space and the review id — don't invent one.** It is always:
    ```
-   https://brainkb.org/synthscholar/reviews/<review_id>/
+   https://brainkb.org/synthscholar/<space_slug>/reviews/<review_id>/
    ```
    `<review_id>` is the review's own id, verbatim: `review_0001_20260505234027`
    from mlservice, `review_local_<timestamp>` from a local run. It is
    `protocol.review_id` in the TTL and the `review_id` field in the API — read it,
-   don't compose one. One review, one graph, one IRI, wherever it ran; that is what
-   makes a review addressable across spaces and re-findable later. (The registry
-   normalises to a trailing slash, so include it.)
+   don't compose one. A review is unique per space: one review, one graph per
+   space, the same IRI the output-directory ingest uses, so it is re-findable and a
+   second ingest into that space is caught. (The registry normalises to a trailing
+   slash, so include it.) Reviews ingested before this convention keep
+   `https://brainkb.org/synthscholar/reviews/<review_id>/`.
 
    Then register it (owner/editor):
    `brainkb_add_space_graph(slug, graph_iri, "PRISMA review — <research question>")`.
@@ -495,7 +586,7 @@ store.
    import requests, hashlib, pathlib
 
    f = pathlib.Path("out/review.ttl")
-   GRAPH = "https://brainkb.org/synthscholar/reviews/review_0001_20260505234027/"
+   GRAPH = "https://brainkb.org/synthscholar/my-space/reviews/review_0001_20260505234027/"
 
    print(requests.post(
        "https://mcp.brainkb.org/upload",
@@ -522,8 +613,10 @@ SPARQL recipes still run against the **exported `.ttl`**, not the graph — arbi
 SPARQL on BrainKB needs an Admin role. Keep the file; ingesting doesn't replace it as
 the analysis surface.
 
-**Ingest each review exactly once.** Review ids are unique, so distinct reviews never
-collide — the hazard is re-ingesting the *same* review into the *same* graph. Ingest
+**Ingest each review exactly once per space.** Review ids are unique, so distinct
+reviews never collide, and the space is part of the graph IRI, so one review in two
+spaces is two graphs — the hazard is re-ingesting the *same* review into the *same*
+space's graph. Ingest
 is append-only with no replace, and a review export hangs its `content_text` literals
 off **blank nodes**, whose identity is per-parse: the second pass does not
 de-duplicate, it creates a disconnected copy of every abstract, permanently. So a
@@ -689,6 +782,13 @@ missing domain timestamp, and vice versa.
 - Publish: `brainkb_set_space_visibility(slug, "public")` (owner/manager). Warn that
   a public space is readable by **anyone, including unauthenticated clients**.
 - Add teammates: `brainkb_add_space_member(slug, email, "editor"|"viewer")`.
+- Rename or re-describe: `brainkb_update_space(slug, name=…, description=…)`
+  (owner/manager). To change the slug too, pass `new_slug=…`: the space's IRI and every
+  graph whose IRI is built from the old slug (`https://brainkb.org/graph/<slug>/…`,
+  `…/synthscholar/<slug>/…`) move to the new slug, with their history and reviews;
+  graphs with other IRIs keep theirs. Old slugs and IRIs stay as aliases (they resolve,
+  but ingest into an old IRI is refused with the new one). Before a slug change, list
+  the graphs that will move (`brainkb_get_space`) and confirm with the user.
 
 ### 8. Manage & delegate (RBAC)
 - **Admin vs SuperAdmin:** **SuperAdmin** is bootstrapped at deployment (env

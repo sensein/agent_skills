@@ -1,8 +1,8 @@
 """EZproxy client — vendored into the skill so it runs without the app installed.
 
 This is a self-contained copy of ``synthscholar.ezproxy``. The skill vendors it
-because that module ships only in the SynthScholar development checkout: the
-released package on PyPI predates it, so ``import synthscholar.ezproxy`` fails
+because the released package on PyPI predates that module, so
+``import synthscholar.ezproxy`` fails
 in an ordinary environment and the paywalled-retrieval path would be unusable.
 
 ``fetch_ezproxy.py`` prefers the installed ``synthscholar.ezproxy`` when it is
@@ -46,6 +46,10 @@ from typing import Optional
 from urllib.parse import quote, urljoin, urlparse
 
 import httpx
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
 
 logger = logging.getLogger(__name__)
 

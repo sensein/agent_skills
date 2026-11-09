@@ -18,6 +18,10 @@ import argparse
 import asyncio
 import os
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
 
 
 async def _run(dsn: str, batch_size: int) -> int:
@@ -50,8 +54,7 @@ def main() -> int:
     try:
         return asyncio.run(_run(args.dsn, args.batch_size))
     except ModuleNotFoundError as exc:
-        print(f"Cannot import synthscholar ({exc}). Run from the "
-              "SynthScholar env or add it to PYTHONPATH.", file=sys.stderr)
+        print(f"Cannot import synthscholar ({exc}): the skill's own copy is vendor/synthscholar (vendor/VENDORED.md); install its libraries with `pip install -r requirements.txt`.", file=sys.stderr)
         return 2
 
 
