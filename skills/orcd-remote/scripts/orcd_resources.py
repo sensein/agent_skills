@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Discover what *this* user can actually run on ORCD. Nothing is hardcoded.
 
 Partition access on ORCD is gated by Unix group membership (``AllowGroups``),
@@ -246,6 +250,7 @@ def main() -> int:
     ap.add_argument("--idle", action="store_true", help="show GPUs free right now")
     ap.add_argument("--json", action="store_true", help="emit JSON instead of tables")
     args = ap.parse_args()
+    oc.require_uv()
 
     try:
         raw = oc.run_remote(REMOTE, host=args.host, timeout=240)

@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Check, install, or upgrade `uv` in the cluster $HOME -- never touching a
 shell profile unless the user has explicitly approved that edit.
 

@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Allocation guard: run at the top of every GPU job script.
 
     python3 /path/to/orcd_alloc_guard.py || exit 1

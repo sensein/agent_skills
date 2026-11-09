@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Submit work to ORCD, choosing the partition by asking the scheduler.
 
 The useful trick here is that ``sbatch --test-only`` reports *when* a request
@@ -512,6 +516,7 @@ def main() -> int:
     ap.add_argument("--queue", action="store_true", help="show your queue")
     ap.add_argument("--status", help="show details for a job id")
     args = ap.parse_args()
+    oc.require_uv()
 
     problem = literal_path_problem(args)
     if problem:

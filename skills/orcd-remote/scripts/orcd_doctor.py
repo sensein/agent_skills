@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Check that ORCD access works, and say exactly what to fix when it does not.
 
 Run this first, every time. It walks the chain of preconditions in dependency
@@ -288,6 +292,7 @@ def main() -> int:
                          "if none exists, and print the command the account owner runs on "
                          "ORCD to authorize this environment")
     args = ap.parse_args()
+    oc.require_uv()
 
     # The local login name is a guess at the ORCD username -- wrong in most
     # sandboxes (root, runner) -- so say when it is being used.
@@ -314,95 +319,106 @@ def main() -> int:
     rep = Report()
     failure_detail = ""
 
-    # 1. ssh client present -- nothing else can be checked without it.
-    if not oc.ssh_available():
-        rep.add(BAD, "ssh client", "no `ssh` on PATH; install OpenSSH")
-        rep.render()
-        return 1
-    rep.add(OK, "ssh client", "found")
-
-    # 2. A key to offer.
-    identity, all_keys = find_identity(args.identity)
-    if identity is None:
-        rep.add(BAD, "ssh key", f"{args.identity} not found" if args.identity
-                else f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
-    else:
-        others = [k.name for k in all_keys[1:]]
-        extra = f" (also present: {', '.join(others)})" if others else ""
-        rep.add(OK, "ssh key", f"{identity.name}{extra}")
-
-    # 3. ~/.ssh/config entry, and the BatchMode trap (via `ssh -G`, so a
-    # `Host *` block or an Include'd file is seen too).
-    configured = config_has_host(args.host)
-    if configured:
-        rep.add(OK, f"ssh config [{args.host}]", "present")
-    elif args.fix and identity is not None:
-        block = write_config(args.host, args.hostname, args.user, identity)
-        configured = True
-        rep.add(OK, f"ssh config [{args.host}]", "written by --fix")
-        print("Appended to ~/.ssh/config:" + block)
-    else:
-        rep.add(WARN, f"ssh config [{args.host}]", "missing; re-run with --fix to write it")
-    # Regardless of the alias: a `Host *` block or an Include'd file can set
-    # it, and `ssh -G` reports the effective value either way.
-    if config_has_batchmode(args.host):
-        rep.add(BAD, "ssh BatchMode",
-                "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive")
-
-    # 4. Name resolution, checked here rather than inferred from ssh's stderr:
-    # open_master() inherits the terminal so Duo prompts stay visible, which
-    # means its stderr is not available for classification.
-    resolves = True
-    try:
-        socket.getaddrinfo(args.hostname, 22)
-        rep.add(OK, "hostname resolves", args.hostname)
-    except socket.gaierror as exc:
-        resolves = False
-        rep.add(BAD, "hostname resolves", f"{args.hostname}: {exc.strerror or exc}")
-
-    # 4b. TCP to port 22, probed before any ssh attempt. Cloud agent
-    # environments and locked-down networks often allow only HTTPS egress and
-    # silently drop SSH; without this probe the eventual ssh failure is
-    # indistinguishable from an auth problem and sends people chasing keys
-    # and Duo that were never broken.
+    local = oc.on_cluster()
     port_blocked = False
-    if resolves:
-        try:
-            socket.create_connection((args.hostname, 22), timeout=10).close()
-            rep.add(OK, "tcp port 22", "reachable")
-        except OSError as exc:
-            port_blocked = True
-            rep.add(BAD, "tcp port 22", f"cannot connect: {exc.strerror or exc}")
-
-    # 5. Reachability. This is the check that actually matters.
-    reachable = False
-    if identity is None:
-        rep.add(BAD, "login node reachable", "skipped: no key to offer")
-    elif not resolves:
-        rep.add(BAD, "login node reachable", "skipped: hostname does not resolve")
-        failure_detail = "could not resolve"
-    elif port_blocked:
-        rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
-        failure_detail = "port 22 blocked"
-    elif not configured and not args.user:
-        rep.add(BAD, "login node reachable", "skipped: no username (pass --user or set ORCD_USER)")
-        failure_detail = "no username"
+    if local:
+        for what in ("ssh client", "ssh key", "ssh config", "Duo / login node reachability"):
+            rep.add(OK, what, "n/a on cluster (running on ORCD, commands run locally)")
+        uvp = oc.cluster_uv()
+        rep.add(OK if uvp else BAD, "uv (required on cluster)", uvp or "missing: python3 orcd_uv.py --install")
+        configured = True
+        reachable = True
     else:
-        target = args.host if configured else f"{args.user}@{args.hostname}"
-        if oc.master_is_live(target):
-            rep.add(OK, "connection multiplexing", "master socket already live")
-            reachable = True
+        # 1. ssh client present -- nothing else can be checked without it.
+        if not oc.ssh_available():
+            rep.add(BAD, "ssh client", "no `ssh` on PATH; install OpenSSH")
+            rep.render()
+            return 1
+        rep.add(OK, "ssh client", "found")
+
+        # 2. A key to offer.
+        identity, all_keys = find_identity(args.identity)
+        if identity is None:
+            rep.add(BAD, "ssh key", f"{args.identity} not found" if args.identity
+                    else f"none of id_ed25519/id_ecdsa/id_rsa in {SSH_DIR}")
         else:
-            # Without a config block the key must be named explicitly, or ssh
-            # offers only the default files and an --identity key never gets used.
-            key = identity if (args.identity or not configured) else None
-            ok, msg = oc.open_master(target, identity=key)
-            if ok:
-                rep.add(OK, "login node reachable", msg)
+            others = [k.name for k in all_keys[1:]]
+            extra = f" (also present: {', '.join(others)})" if others else ""
+            rep.add(OK, "ssh key", f"{identity.name}{extra}")
+
+        # 3. ~/.ssh/config entry, and the BatchMode trap (via `ssh -G`, so a
+        # `Host *` block or an Include'd file is seen too).
+        configured = config_has_host(args.host)
+        if configured:
+            rep.add(OK, f"ssh config [{args.host}]", "present")
+        elif args.fix and identity is not None:
+            block = write_config(args.host, args.hostname, args.user, identity)
+            configured = True
+            rep.add(OK, f"ssh config [{args.host}]", "written by --fix")
+            print("Appended to ~/.ssh/config:" + block)
+        else:
+            rep.add(WARN, f"ssh config [{args.host}]", "missing; re-run with --fix to write it")
+        # Regardless of the alias: a `Host *` block or an Include'd file can set
+        # it, and `ssh -G` reports the effective value either way.
+        if config_has_batchmode(args.host):
+            rep.add(BAD, "ssh BatchMode",
+                    "effective `BatchMode yes` -- remove it; it breaks Duo keyboard-interactive")
+
+        # 4. Name resolution, checked here rather than inferred from ssh's stderr:
+        # open_master() inherits the terminal so Duo prompts stay visible, which
+        # means its stderr is not available for classification.
+        resolves = True
+        try:
+            socket.getaddrinfo(args.hostname, 22)
+            rep.add(OK, "hostname resolves", args.hostname)
+        except socket.gaierror as exc:
+            resolves = False
+            rep.add(BAD, "hostname resolves", f"{args.hostname}: {exc.strerror or exc}")
+
+        # 4b. TCP to port 22, probed before any ssh attempt. Cloud agent
+        # environments and locked-down networks often allow only HTTPS egress and
+        # silently drop SSH; without this probe the eventual ssh failure is
+        # indistinguishable from an auth problem and sends people chasing keys
+        # and Duo that were never broken.
+        port_blocked = False
+        if resolves:
+            try:
+                socket.create_connection((args.hostname, 22), timeout=10).close()
+                rep.add(OK, "tcp port 22", "reachable")
+            except OSError as exc:
+                port_blocked = True
+                rep.add(BAD, "tcp port 22", f"cannot connect: {exc.strerror or exc}")
+
+        # 5. Reachability. This is the check that actually matters.
+        reachable = False
+        if identity is None:
+            rep.add(BAD, "login node reachable", "skipped: no key to offer")
+        elif not resolves:
+            rep.add(BAD, "login node reachable", "skipped: hostname does not resolve")
+            failure_detail = "could not resolve"
+        elif port_blocked:
+            rep.add(BAD, "login node reachable", "skipped: port 22 is blocked")
+            failure_detail = "port 22 blocked"
+        elif not configured and not args.user:
+            rep.add(BAD, "login node reachable", "skipped: no username (pass --user or set ORCD_USER)")
+            failure_detail = "no username"
+        else:
+            target = args.host if configured else f"{args.user}@{args.hostname}"
+            if oc.master_is_live(target):
+                rep.add(OK, "connection multiplexing", "master socket already live")
                 reachable = True
             else:
-                rep.add(BAD, "login node reachable", msg)
-                failure_detail = msg
+                # Without a config block the key must be named explicitly, or ssh
+                # offers only the default files and an --identity key never gets used.
+                key = identity if (args.identity or not configured) else None
+                ok, msg = oc.open_master(target, identity=key)
+                if ok:
+                    rep.add(OK, "login node reachable", msg)
+                    reachable = True
+                else:
+                    rep.add(BAD, "login node reachable", msg)
+                    failure_detail = msg
+
 
     # 6. Only if we got in: confirm the cluster side looks sane.
     if reachable:

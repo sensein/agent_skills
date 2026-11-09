@@ -100,14 +100,57 @@ class ConfinementTests(unittest.TestCase):
         self.assertEqual(guard.confinement([], ["a"] * 4, 1), "unknown")
 
 
-class Python36Tests(unittest.TestCase):
-    def test_guard_parses_as_python_3_6(self):
-        import ast
-        src = (SCRIPTS / "orcd_alloc_guard.py").read_text()
-        ast.parse(src, feature_version=(3, 6))
-        self.assertNotIn("from __future__ import annotations", src)
-        self.assertNotIn("capture_output", src)
-        self.assertNotIn("dataclass", src)
+class Pep723Tests(unittest.TestCase):
+    def test_every_script_has_a_pep723_header_with_requires_python(self):
+        import re
+        scripts = sorted(SCRIPTS.glob("orcd_*.py"))
+        self.assertGreaterEqual(len(scripts), 8)
+        for path in scripts:
+            m = re.search(r"^# /// script\n((?:#.*\n)+?)# ///$", path.read_text(), re.M)
+            self.assertIsNotNone(m, path.name)
+            self.assertIn('requires-python = ">=3.10"', m.group(1), path.name)
+
+
+class ClusterModeTests(unittest.TestCase):
+    def test_on_cluster_rule_and_override(self):
+        import os
+        from unittest import mock
+        import orcd_common as oc
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ORCD_MODE", None)
+            with mock.patch("shutil.which", side_effect=lambda c: "/usr/bin/" + c):
+                self.assertTrue(oc.on_cluster())
+            with mock.patch("shutil.which", side_effect=lambda c: None if c == "squeue" else "/x"):
+                self.assertFalse(oc.on_cluster())
+            with mock.patch("shutil.which", return_value=None):
+                self.assertFalse(oc.on_cluster())
+                os.environ["ORCD_MODE"] = "local"
+                self.assertTrue(oc.on_cluster())
+            with mock.patch("shutil.which", return_value="/x"):
+                os.environ["ORCD_MODE"] = "remote"
+                self.assertFalse(oc.on_cluster())
+
+    def test_run_remote_runs_locally_on_cluster(self):
+        import os
+        from unittest import mock
+        import orcd_common as oc
+        with mock.patch.dict(os.environ, {"ORCD_MODE": "local"}):
+            self.assertEqual(oc.run_remote("echo hi; echo $((1+1))").split(), ["hi", "2"])
+            with self.assertRaises(oc.OrcdError):
+                oc.run_remote("exit 3")
+            self.assertEqual(oc.run_remote("exit 3", check=False), "")
+            self.assertTrue(oc.master_is_live())
+
+    def test_require_uv_stops_without_uv(self):
+        import os
+        from unittest import mock
+        import orcd_common as oc
+        with mock.patch.dict(os.environ, {"ORCD_MODE": "local"}), \
+                mock.patch.object(oc, "cluster_uv", return_value=""):
+            with self.assertRaises(SystemExit):
+                oc.require_uv()
+        with mock.patch.dict(os.environ, {"ORCD_MODE": "remote"}):
+            oc.require_uv()
 
 
 class GuardCheckTests(unittest.TestCase):

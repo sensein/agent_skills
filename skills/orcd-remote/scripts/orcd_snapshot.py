@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Capture ORCD's Slurm and storage configuration, and diff it against a baseline.
 
 Cluster configuration is not stable. Partitions are added and retired, QOS
@@ -483,6 +487,7 @@ def main() -> int:
     ap.add_argument("--baseline", help="explicit baseline path (default ~/.orcd/snapshots/<cluster>-latest.json)")
     ap.add_argument("--json", action="store_true", help="print the snapshot as JSON")
     args = ap.parse_args()
+    oc.require_uv()
 
     try:
         snap = build_snapshot(args.host)
