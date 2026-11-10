@@ -1,0 +1,237 @@
+# Desired state for a Lab Colab Space.
+#
+# The bootstrap copies this file into the private meta repo as .colab/config.toml.
+# From then on, the meta-repo copy is the source of truth: edit it there by PR
+# (`/colab improve`), and `colab.py plan` diffs the org against it.
+
+[org]
+name = "sensein"
+meta_repo = "lab-colab"          # private: config, ledgers, event snapshots, KG staging
+discuss_repo = "lab-colab"       # Discussions live in the meta repo unless split later
+project_title = "Lab portfolio"
+
+# ---------------------------------------------------------------------------
+# Work item types. Each becomes an org-level GitHub issue type plus an issue form.
+# Colors must be one of: gray, blue, green, yellow, orange, red, pink, purple.
+# ---------------------------------------------------------------------------
+[[types]]
+name = "Idea"
+color = "yellow"
+description = "A possibility worth triaging: promote, park, or drop."
+fields = [
+  { id = "idea", label = "The idea", kind = "textarea", required = true },
+  { id = "origin", label = "Where it came from (discussion, paper, finding)", kind = "input", required = false },
+]
+
+[[types]]
+name = "Question"
+color = "purple"
+description = "A research question with hypotheses and linked evidence."
+fields = [
+  { id = "question", label = "Research question", kind = "textarea", required = true },
+  { id = "hypotheses", label = "Hypotheses", kind = "textarea", required = false },
+]
+
+[[types]]
+name = "Experiment"
+color = "blue"
+description = "Tests a hypothesis; records results with provenance, negative ones too."
+fields = [
+  { id = "hypothesis", label = "Hypothesis", kind = "textarea", required = true },
+  { id = "data", label = "Data (pointers only, never restricted content)", kind = "textarea", required = true },
+  { id = "metrics", label = "Metrics, including imbalance-aware ones", kind = "textarea", required = true },
+  { id = "compute", label = "Compute plan (partition, GPUs, budget)", kind = "input", required = false },
+]
+
+[[types]]
+name = "Review"
+color = "green"
+description = "A literature review: query, sources, inclusion rule, synthesis."
+fields = [
+  { id = "query", label = "Search query", kind = "textarea", required = true },
+  { id = "sources", label = "Sources", kind = "input", required = true },
+  { id = "inclusion", label = "Inclusion rule", kind = "textarea", required = true },
+]
+
+[[types]]
+name = "Software"
+color = "gray"
+description = "A software change or project; done when released and documented."
+fields = [
+  { id = "goal", label = "What it should do", kind = "textarea", required = true },
+  { id = "repo", label = "Owning repo", kind = "input", required = true },
+]
+
+[[types]]
+name = "Model"
+color = "orange"
+description = "Building or adapting a model; done when evaluated against a baseline, with a card."
+fields = [
+  { id = "task", label = "Task and data", kind = "textarea", required = true },
+  { id = "baseline", label = "Baseline and evaluation set", kind = "textarea", required = true },
+]
+
+[[types]]
+name = "Infrastructure"
+color = "red"
+description = "Containers, launchers, runbooks; done when a second person verifies the runbook."
+fields = [
+  { id = "need", label = "What it enables", kind = "textarea", required = true },
+  { id = "runbook", label = "Runbook location", kind = "input", required = false },
+]
+
+[[types]]
+name = "Dataset"
+color = "pink"
+description = "Curated data with a datasheet, registered with access terms."
+fields = [
+  { id = "description", label = "Description (no participant-level detail)", kind = "textarea", required = true },
+  { id = "access", label = "Access terms and data-use reference", kind = "input", required = true },
+]
+
+[[types]]
+name = "Output"
+color = "purple"
+description = "A paper, preprint, talk, or grant section."
+fields = [
+  { id = "venue", label = "Venue and deadline", kind = "input", required = true },
+  { id = "contributors", label = "Contributors and proposed CRediT roles", kind = "textarea", required = false },
+]
+
+[[types]]
+name = "Task"
+color = "gray"
+description = "A unit of work under any item."
+fields = [
+  { id = "work", label = "What needs doing", kind = "textarea", required = true },
+]
+
+# ---------------------------------------------------------------------------
+# Typed links. part-of and depends-on are GitHub-native; the rest live in a
+# fenced ```links block in the issue body. Empty domain = any work item.
+# ---------------------------------------------------------------------------
+[edges]
+native = ["part-of", "depends-on"]
+body = ["addresses", "uses", "produces", "informs", "contributes-to", "derived-from"]
+kg_only = ["supersedes", "contradicts", "supports", "refines"]
+
+[edges.domain]
+addresses = ["Experiment", "Review"]
+
+# ---------------------------------------------------------------------------
+# Labels created in every member repo. The tier:* label is canonical for routing
+# because labels are visible to every API; the Project field mirrors it.
+# ---------------------------------------------------------------------------
+[[labels]]
+name = "tier:public"
+color = "0e8a16"
+description = "Visibility ceiling: public"
+
+[[labels]]
+name = "tier:lab"
+color = "fbca04"
+description = "Visibility ceiling: lab members"
+
+[[labels]]
+name = "tier:restricted"
+color = "b60205"
+description = "Visibility ceiling: named project members only"
+
+[[labels]]
+name = "agent-ready"
+color = "1d76db"
+description = "An agent may claim this without a briefing"
+
+[[labels]]
+name = "colab-delivery"
+color = "ededed"
+description = "Written by colab-bus; never re-routed"
+
+[[labels]]
+name = "agent-proposed"
+color = "c5def5"
+description = "Created by an agent; awaits a human accept"
+
+# Project v2 fields. gh can create TEXT, SINGLE_SELECT, DATE, NUMBER; an
+# ITERATION field must be added once in the web UI (plan says so).
+[[fields]]
+name = "Status"
+type = "SINGLE_SELECT"
+options = ["Proposed", "Accepted", "Ready", "In progress", "Blocked", "Review", "Done", "Parked", "Dropped"]
+
+[[fields]]
+name = "Sensitivity"
+type = "SINGLE_SELECT"
+options = ["public", "lab", "restricted"]
+
+[[fields]]
+name = "Lead"
+type = "TEXT"
+
+[[fields]]
+name = "Risk"
+type = "SINGLE_SELECT"
+options = ["high", "medium", "low"]
+
+[[fields]]
+name = "Target date"
+type = "DATE"
+
+[[fields]]
+name = "KG link"
+type = "TEXT"
+
+[[fields]]
+name = "Iteration"
+type = "ITERATION"
+
+# ---------------------------------------------------------------------------
+# Spaces: labels space:<name>. Empty here on purpose; the bootstrap proposes
+# one per active repo and the lab edits the list in the meta-repo copy.
+# ---------------------------------------------------------------------------
+[spaces]
+# example-space = { steward = "handle", repos = ["repo-a", "repo-b"] }
+
+# ---------------------------------------------------------------------------
+# Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
+# per space after that space passes the previous gate.
+# ---------------------------------------------------------------------------
+[[phases]]
+id = 0
+name = "Foundation"
+gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space has labels and forms; bus runs in dry-run with a fresh heartbeat."
+
+[[phases]]
+id = 1
+name = "Distill + sessions"
+gate = "Each space completes one cycle: distill -> claim -> PR -> handoff, with the lease honoured."
+switches = ["bus_live"]
+
+[[phases]]
+id = 2
+name = "Knowledge + routing"
+gate = "50 accepted knowledge nodes; BrainKB sandbox round trip verified; catch-up under 2 minutes."
+switches = ["agent_proposals", "auto_intake", "restricted"]
+
+[[phases]]
+id = 3
+name = "Self-evolution"
+gate = "An improve PR merged with a measured gain; cost per task reported against a Claude-only baseline."
+switches = ["self_improve"]
+
+# ---------------------------------------------------------------------------
+# Leak scan. Point `command` at the lab's own scanner if it has one; it must
+# print a JSON object of category -> count. Otherwise the built-in patterns run.
+# ---------------------------------------------------------------------------
+[scan]
+command = ""
+[scan.patterns]
+secret = ['ghp_[A-Za-z0-9]{36}', 'github_pat_[A-Za-z0-9_]{40,}', 'sk-ant-[A-Za-z0-9_-]{20,}', 'AKIA[0-9A-Z]{16}', '-----BEGIN [A-Z ]*PRIVATE KEY-----']
+path = ['''/orcd/(?:scratch|data|pool|home)/[^\s"']+''', '/home/[a-z][a-z0-9_-]+/']
+participant_id = []   # add the lab's participant-ID formats in the meta-repo copy
+
+[bus]
+poll_seconds = 300
+write_interval_seconds = 1.0     # stay under GitHub's content-creation limits
+fanout_digest_threshold = 20     # above this many subscribers, write one digest issue
+heartbeat_stale_minutes = 30

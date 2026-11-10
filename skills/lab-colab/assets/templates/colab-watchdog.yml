@@ -1,0 +1,54 @@
+# Alerts the lab when the colab-bus heartbeat goes stale (e.g. ORCD maintenance,
+# a long queue wait). Lives in the private meta repo.
+# Needs: repo variable COLAB_BUS_HEARTBEAT (written by the bus); optional variable
+# COLAB_STALE_MINUTES (default 30); optional secret SLACK_WEBHOOK_URL. Without the
+# secret it opens an issue instead.
+# GitHub disables scheduled workflows after 60 days without repository activity;
+# the rollout's regular PRs to .colab/ keep it active, or re-enable it from the Actions tab.
+name: colab-watchdog
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      SLACK: ${{ secrets.SLACK_WEBHOOK_URL }}
+      HEARTBEAT: ${{ vars.COLAB_BUS_HEARTBEAT }}
+      STALE_MINUTES: ${{ vars.COLAB_STALE_MINUTES || '30' }}
+    steps:
+      - name: Check heartbeat age
+        id: age
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime as dt
+          try:
+              at = json.loads(os.environ.get("HEARTBEAT") or "{}").get("at")
+              seen = dt.datetime.fromisoformat(at) if at else None
+          except (ValueError, TypeError, AttributeError):
+              seen = None
+          stale = seen is None or dt.datetime.now(dt.timezone.utc) - seen > dt.timedelta(minutes=int(os.environ["STALE_MINUTES"]))
+          last = seen.isoformat() if seen else "never"
+          msg = f"colab-bus heartbeat is stale (last: {last}). Is the Slurm job queued, or is ORCD down?"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"stale={'true' if stale else 'false'}\n")
+          with open("alert.txt", "w") as fh:
+              fh.write(msg)
+          with open("alert.json", "w") as fh:
+              json.dump({"text": msg}, fh)
+          PY
+      - name: Notify Slack
+        if: steps.age.outputs.stale == 'true' && env.SLACK != ''
+        run: curl -fsS -X POST -H 'Content-Type: application/json' --data @alert.json "$SLACK"
+      - name: Open an issue instead
+        if: steps.age.outputs.stale == 'true' && env.SLACK == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create colab-bus-down --repo "$GITHUB_REPOSITORY" --color b60205 --force >/dev/null
+          gh issue list --repo "$GITHUB_REPOSITORY" --label colab-bus-down --state open --json number -q '.[0].number' | grep -q . \
+            || gh issue create --repo "$GITHUB_REPOSITORY" --label colab-bus-down \
+                 --title "colab-bus heartbeat is stale" --body-file alert.txt
