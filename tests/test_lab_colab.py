@@ -34,7 +34,7 @@ def snapshot(**overrides) -> dict:
                                     {"name": "proj", "visibility": "private"},
                                     {"name": "senselab", "visibility": "public"}],
         "meta_repo_exists": True, "issue_types": [], "projects": [], "project_fields": {},
-        "labels": {}, "forms": {}, "rollout": colab.empty_rollout(),
+        "forms": {}, "rollout": colab.empty_rollout(),
     }
     base.update(overrides)
     return base
@@ -56,16 +56,12 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual([p["id"] for p in CONFIG["phases"]], [0, 1, 2, 3])
 
     def test_templates_exist(self) -> None:
-        for name in ("colab-bus.sbatch", "colab-watchdog.yml", "colab-links-check.yml", "subscriptions.toml"):
+        for name in ("colab-bus.sbatch", "colab-watchdog.yml", "subscriptions.toml"):
             self.assertTrue((SKILL / "assets" / "templates" / name).is_file(), name)
         tomllib.loads((SKILL / "assets" / "templates" / "subscriptions.toml").read_text())
 
-    def test_rendered_links_check_matches_config_and_script(self) -> None:
-        text = colab.render_links_check(CONFIG)
-        self.assertIn(colab.LINK_LINE.pattern, text)
-        self.assertNotIn("_EDGES}}", text)
-        allowed = json.loads(re.search(r"ALLOWED = set\((.*?)\)", text).group(1))
-        self.assertEqual(set(allowed), set(CONFIG["edges"]["body"]))
+    def test_no_labels_are_created_up_front(self) -> None:
+        self.assertTrue(all(lab.get("on_demand") for lab in CONFIG["labels"]))
 
 
 class PlanTests(unittest.TestCase):
@@ -85,13 +81,13 @@ class PlanTests(unittest.TestCase):
 
     def test_converged_org_only_asks_for_gate(self) -> None:
         cfg = config_with_spaces()
-        labels = [lab["name"] for lab in cfg["labels"]]
         snap = snapshot(
             issue_types=[t["name"] for t in cfg["types"]],
             projects=[{"number": 7, "title": "Lab portfolio"}],
             project_fields={"7": [{"name": f["name"], "options": f.get("options", [])} for f in cfg["fields"]]},
-            labels={"proj": labels + ["space:proj"], "lab-colab": labels},
-            forms={"proj": [colab.form_filename(t["name"]) for t in cfg["types"]]},
+            repos=[{"name": "lab-colab", "visibility": "private"}, {"name": "proj", "visibility": "private"},
+                   {"name": ".github", "visibility": "public"}],
+            forms={".github": [colab.form_filename(t["name"]) for t in cfg["types"]]},
             rollout={"spaces": {"proj": {"phase": -1, "bus": "dry-run"}}, "gates": []},
         )
         actions = colab.build_plan(cfg, snap)
@@ -106,10 +102,15 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(len(steps), 1)
         self.assertIn("Proposed", steps[0]["desc"])
 
-    def test_space_labels_and_forms_planned(self) -> None:
-        actions = colab.build_plan(config_with_spaces(), snapshot())
-        self.assertTrue(any("space:proj" in a["desc"] for a in actions))
-        self.assertTrue(any("issue forms to proj" in a["desc"] for a in actions))
+    def test_forms_go_org_wide_and_no_labels_are_planned(self) -> None:
+        snap = snapshot(repos=snapshot()["repos"] + [{"name": ".github", "visibility": "public"}],
+                        forms={"proj": ["bug.yml"]})
+        actions = colab.build_plan(config_with_spaces(), snap)
+        self.assertFalse(any("label" in (a.get("cmd") or []) for a in actions))
+        forms = [a for a in actions if "org-wide issue forms" in a["desc"]]
+        self.assertEqual(len(forms), 1)
+        self.assertIn("<clone of sensein/.github>/.github/ISSUE_TEMPLATE", forms[0]["cmd"])
+        self.assertTrue(any(a["kind"] == "manual" and "own issue templates" in a["desc"] and "proj" in a["desc"] for a in actions))
         self.assertTrue(any("dry-run" in a["desc"] for a in actions))
 
     def test_apply_without_yes_runs_nothing(self) -> None:
@@ -175,8 +176,9 @@ class FormsAndSeedTests(unittest.TestCase):
     def test_render_forms_and_seed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            written = colab.cmd_render_forms(CONFIG, tmp / "ISSUE_TEMPLATE", tmp / "workflows")
-            self.assertEqual(len(written), 11)
+            written = colab.cmd_render_forms(CONFIG, tmp / "ISSUE_TEMPLATE")
+            self.assertEqual(len(written), 10)
+            self.assertNotIn("labels:", written[0].read_text())
             exp = (tmp / "ISSUE_TEMPLATE" / "colab-experiment.yml").read_text()
             self.assertIn('type: "Experiment"', exp)
             self.assertIn("id: hypothesis", exp)
@@ -261,7 +263,7 @@ class BusTests(unittest.TestCase):
         self.assertEqual(len(bus.route(restricted, subs[1:2], {"other": "restricted"}, "me", restricted_ok=True)[0]), 1)
 
     def test_label_and_space_topics(self) -> None:
-        env = {"kind": "release", "repo": "x", "labels": ["topic:vllm", "space:proj"]}
+        env = {"kind": "release", "repo": "x", "labels": ["topic:vllm"], "spaces": ["proj"]}
         self.assertTrue(bus.matches({"topic": "label:topic:vllm"}, env))
         self.assertTrue(bus.matches({"topic": "space:proj"}, env))
         self.assertFalse(bus.matches({"topic": "space:proj", "events": ["issue"]}, env))
@@ -300,11 +302,11 @@ class BusTests(unittest.TestCase):
             bus.poll_once(fake, bus_config(), dest_live, subs, {}, Path(tmp), "me")
             self.assertEqual(len(fake.sent), 1)
             body = fake.sent[0][2]
-            self.assertIn(bus.DELIVERY_LABEL, body["labels"])
+            self.assertNotIn("labels", body)
             self.assertIn(bus.DELIVERY_MARKER, body["body"])
 
     def test_own_deliveries_are_never_rerouted(self) -> None:
-        delivered = [{"number": 9, "id": 9, "title": "[colab] x", "labels": [{"name": bus.DELIVERY_LABEL}],
+        delivered = [{"number": 9, "id": 9, "title": "[colab] x", "labels": [], "body": bus.DELIVERY_MARKER,
                       "state": "open", "created_at": "2026-11-09T02:00:00Z", "updated_at": "2026-11-09T02:00:00Z",
                       "html_url": "u", "user": {"login": "a-human"}}]
         with tempfile.TemporaryDirectory() as tmp:
@@ -331,6 +333,61 @@ class BusTests(unittest.TestCase):
             self.assertEqual(len(fake.sent), 1)
             self.assertIn("/lab-colab/issues", fake.sent[0][1])
             self.assertEqual(stats["deliveries"], 1)
+
+
+class ConfigDrivenBusTests(unittest.TestCase):
+    CFG = {"spaces": {"sails": {"repos": ["a", "shared"], "tier": "restricted"}, "speech": {"repos": ["shared", "b"]}}}
+
+    def test_space_tier_and_membership_come_from_config(self) -> None:
+        self.assertEqual(bus.repo_tiers(self.CFG), {"a": "restricted", "shared": "restricted"})
+        self.assertEqual(bus.repo_spaces(self.CFG)["shared"], ["sails", "speech"])
+        item = {"number": 1, "title": "t", "labels": [], "state": "open", "created_at": "x", "html_url": "u", "user": {"login": "a"}}
+        env = bus.envelopes_for("issue", "shared", "private", item, "restricted", ["sails", "speech"])[0]
+        self.assertEqual(env["tier"], "restricted")
+        self.assertEqual(env["summary"], "")
+        self.assertEqual(env["spaces"], ["sails", "speech"])
+        self.assertEqual(bus.dest_tier("private", None, "restricted"), "restricted")
+
+    def test_shared_repo_is_live_only_when_all_its_spaces_are(self) -> None:
+        cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"},
+               "spaces": {"src": {"repos": ["proj"]}, "x": {"repos": ["dest"]}, "y": {"repos": ["dest"]}},
+               "bus": {"write_interval_seconds": 0}}
+        subs = [{"topic": "repo:proj", "subscriber": "dest"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeGH()
+            bus.poll_once(fake, cfg, {"spaces": {"x": {"bus": "live"}}}, subs, {}, Path(tmp), "me")
+            self.assertEqual(fake.sent, [])
+
+    def test_links_block_checked_once_per_body_and_commented_when_live(self) -> None:
+        bad = [{"number": 7, "id": 7, "title": "t", "labels": [], "state": "open", "created_at": "2026-11-09T01:00:00Z",
+                "updated_at": "2026-11-09T01:00:00Z", "html_url": "u", "user": {"login": "a"},
+                "body": "```links\nfrobs: sensein/x#1\n```"}]
+        cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "spaces": {"proj": {"repos": ["proj"]}},
+               "edges": CONFIG["edges"], "bus": {"write_interval_seconds": 0}}
+        with tempfile.TemporaryDirectory() as tmp:
+            fake, state = FakeGH(issues=bad), {}
+            live = {"spaces": {"proj": {"bus": "live"}}}
+            bus.poll_once(fake, cfg, live, [], state, Path(tmp), "me")
+            comments = [x for x in fake.sent if x[1].endswith("/issues/7/comments")]
+            self.assertEqual(len(comments), 1)
+            self.assertIn("unknown edge", comments[0][2]["body"])
+            self.assertIn(bus.DELIVERY_MARKER, comments[0][2]["body"])
+            bus.poll_once(fake, cfg, live, [], state, Path(tmp), "me")
+            self.assertEqual(len([x for x in fake.sent if x[1].endswith("/comments")]), 1)
+
+
+class NextTests(unittest.TestCase):
+    def test_candidates_and_pick_next(self) -> None:
+        def item(n, status="Ready", ready="yes", kind="Issue"):
+            return {"status": status, "agent-ready": ready,
+                    "content": {"type": kind, "number": n, "repository": "sensein/p", "title": f"t{n}", "url": f"u{n}"}}
+        items = [item(1), item(2, status="Todo"), item(3, ready="no"), item(4, kind="PullRequest"), item(5), item(6)]
+        cands = colab.candidates(items)
+        self.assertEqual([c["number"] for c in cands], [1, 5, 6])
+        t0 = datetime(2026, 11, 10, tzinfo=timezone.utc)
+        lease = colab.compose_lease("someone", now=t0)
+        picked = colab.pick_next(cands, {"u1": [lease]}, {"u5": True}, now=t0 + timedelta(hours=1))
+        self.assertEqual([c["number"] for c in picked], [6])
 
 
 if __name__ == "__main__":

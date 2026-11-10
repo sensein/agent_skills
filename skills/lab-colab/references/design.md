@@ -58,19 +58,17 @@ derived-from: kg:example-node-1
 
 ### 1.4 Spaces
 
-- A space is a label `space:<name>`. It is created in each member repo of that space.
-- An item can carry several space labels.
-- Projects v2 filters by label but cannot group by label. Each space gets a saved view.
-- Spaces are defined in `[spaces]` in the meta-repo config. Each names a steward and its repos.
+- A space is a named area of work declared in `[spaces]` in the meta-repo config: one or more stewards, a list of existing repos, and an optional `tier = "restricted"`. It is not a repo or a folder.
+- Items in a listed repo belong to that space. Spaces may share repos.
+- An item joins a space its repo is not in through a `space:<name>` label, created on first use.
+- Each space gets a saved view on the org Project, filtered by repo or that label.
 
-## 2. Fields and labels
+## 2. Fields, and why there are almost no labels
 
 | Name | Kind | Values | Purpose |
 |---|---|---|---|
-| `tier:public`, `tier:lab`, `tier:restricted` | label | none | Canonical routing key. Visible to every API. |
-| Sensitivity | Project field, single select | public, lab, restricted | Mirrors the tier label. |
-| `agent-ready` | label | none | An agent may claim the item without a briefing. |
-| `agent-proposed` | label | none | Created by an agent. Awaits a human accept. |
+| Sensitivity | Project field, single select | public, lab, restricted | Shown on the board; mirrors the routing tier. |
+| Agent-ready | Project field, single select | yes, no | An agent may claim the item without a briefing. |
 | Status | Project field, single select | Proposed, Accepted, Ready, In progress, Blocked, Review, Done, Parked, Dropped | Workflow state. |
 | Lead | Project field, text | none | Person accountable for the item. |
 | Risk | Project field, single select | high, medium, low | Risk level. |
@@ -78,8 +76,9 @@ derived-from: kg:example-node-1
 | KG link | Project field, text | none | Knowledge node for the item. |
 | Iteration | Project field, iteration | none | Added once in the Project web UI. |
 
-- The default issue form sets `tier:lab`.
-- Routing reads the label. If the label and the Sensitivity field disagree, fix the field.
+- Routing tier = the strictest of repo visibility, the space `tier` setting, and a `tier:restricted` label. That label exists only for an exception, a restricted item in a lab repo, and is created on first use.
+- Agent-made items are marked by Status = Proposed alone.
+- Nothing else is a label. Space membership comes from the config, and the bus marks its deliveries with a hidden body marker.
 
 ## 3. Tiers
 
@@ -119,10 +118,11 @@ One envelope per item transition (opened, closed, published), not per edit.
 | `kind` | `issue`, `pull_request`, or `release`. |
 | `transition` | `opened`, `closed`, or `published`. |
 | `repo` | Source repo. |
-| `tier` | Stricter of the repo tier and the item's `tier:*` label. |
+| `tier` | Strictest of repo visibility, space `tier`, and a `tier:restricted` label. |
 | `source` | HTML URL of the item. |
 | `summary` | Title or name. Empty when the tier is restricted. |
 | `labels` | Label names. |
+| `spaces` | Spaces from the repo's config membership, plus any `space:*` labels. |
 | `sender` | Author login. |
 | `at` | When the transition happened. |
 
@@ -131,8 +131,10 @@ A public repo sets the base tier to public. Any other repo sets it to lab.
 ### 4.3 Dedupe, self-filter, routing
 
 - The bus skips any envelope ID it has seen. It keeps the newest 20,000 IDs, trimmed oldest first, and saves state after every envelope.
-- The bus never routes its own deliveries: each carries the `colab-delivery` label and an HTML marker. It also ignores events from its own login, by default the token's login.
+- The bus never routes its own deliveries: each carries a hidden HTML marker in its body. The bus adds no labels anywhere. It also ignores events from its own login, by default the token's login.
 - A subscription matches on topic and on its optional `events` list.
+- The bus validates each issue's fenced `links` block once per body version. It logs errors to `audit.jsonl`, and comments on the issue only when the repo's spaces are live. No per-repo workflow is needed.
+- A repo shared by several spaces counts as live, or restricted-enabled, only when all of its spaces are.
 - Destination tier = the stricter of the subscriber repo's real visibility and the subscription's `tier` override. An override can only tighten it. A repo whose visibility is unknown counts as public.
 - A delivery needs a destination tier at or above the event tier. Otherwise the bus drops it and logs the drop to `audit.jsonl`.
 - Restricted events move only for spaces whose `restricted` switch is on, and they carry no summary.
@@ -197,7 +199,7 @@ Flow:
 1. Store raw material in private ORCD group storage first.
 2. A local model on ORCD sets the tier.
 3. Restricted material goes to ORCD-only processing. Claude sessions see only aggregates or pointers.
-4. Proposed items follow the usual path: `agent-proposed` label, Status Proposed.
+4. Proposed items follow the usual path: Status Proposed.
 
 Consent:
 

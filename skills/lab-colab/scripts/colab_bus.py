@@ -14,7 +14,9 @@ Safety rules enforced here:
   - destination tier = max(actual repo visibility, declared override); unknown repo = public
   - events only move to an equal or stricter tier; anything else is dropped and audited
   - restricted events carry no summary, and move only for spaces with the `restricted` switch
-  - the bus never routes its own deliveries (label + marker), so it cannot loop
+  - the bus never routes its own deliveries (body marker), so it cannot loop
+  - it adds no labels anywhere: tier and space membership come from the config
+  - it validates each issue's fenced links block once per body version
   - one envelope per item transition (opened, closed, published), not per edit
 
 State lives in --state-dir (private group storage, not scratch).
@@ -22,6 +24,7 @@ State lives in --state-dir (private group storage, not scratch).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -36,7 +39,6 @@ from pathlib import Path
 
 API = "https://api.github.com"
 RANK = {"public": 0, "lab": 1, "restricted": 2}
-DELIVERY_LABEL = "colab-delivery"
 DELIVERY_MARKER = "<!-- colab-delivery -->"
 SEEN_CAP = 20000
 
@@ -44,19 +46,39 @@ SEEN_CAP = 20000
 # --------------------------------------------------------------------------- pure logic
 
 
-def tier_of(repo_visibility: str, labels: list[str]) -> str:
-    """Stricter of the repo's visibility and the item's tier:* label."""
+def _strictest(*tiers: str | None) -> str:
+    return max([t for t in tiers if t in RANK] or ["public"], key=RANK.__getitem__)
+
+
+def tier_of(repo_visibility: str, labels: list[str], declared: str | None = None) -> str:
+    """Stricter of the repo's visibility, its declared space tier, and an item tier:* label."""
     base = "public" if repo_visibility == "public" else "lab"
-    tiers = [lab.split(":", 1)[1] for lab in labels if lab.startswith("tier:") and lab.split(":", 1)[1] in RANK]
-    return max([base, *tiers], key=RANK.__getitem__)
+    tiers = [lab.split(":", 1)[1] for lab in labels if lab.startswith("tier:")]
+    return _strictest(base, declared, *tiers)
 
 
-def dest_tier(visibility: str | None, override: str | None = None) -> str:
-    """Where a delivery lands. Unknown visibility fails closed to public; an override only tightens."""
+def dest_tier(visibility: str | None, override: str | None = None, declared: str | None = None) -> str:
+    """Where a delivery lands. Unknown visibility fails closed to public; overrides only tighten."""
     actual = "lab" if visibility in ("private", "internal") else "public"
-    if override in RANK:
-        return max(actual, override, key=RANK.__getitem__)
-    return actual
+    return _strictest(actual, override, declared)
+
+
+def repo_spaces(config: dict) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for name, spec in (config.get("spaces") or {}).items():
+        for repo in spec.get("repos", []):
+            out.setdefault(repo, []).append(name)
+    return out
+
+
+def repo_tiers(config: dict) -> dict[str, str]:
+    """repo -> strictest `tier` declared by any space it belongs to."""
+    out: dict[str, str] = {}
+    for spec in (config.get("spaces") or {}).values():
+        if spec.get("tier") in RANK:
+            for repo in spec.get("repos", []):
+                out[repo] = _strictest(out.get(repo), spec["tier"])
+    return out
 
 
 def may_deliver(event_tier: str, to_tier: str) -> bool:
@@ -65,14 +87,15 @@ def may_deliver(event_tier: str, to_tier: str) -> bool:
 
 
 def is_delivery(item: dict) -> bool:
-    labels = [lab["name"] if isinstance(lab, dict) else lab for lab in item.get("labels", [])]
-    return DELIVERY_LABEL in labels or DELIVERY_MARKER in (item.get("body") or "")
+    return DELIVERY_MARKER in (item.get("body") or "")
 
 
-def envelopes_for(kind: str, repo: str, visibility: str, item: dict) -> list[dict]:
+def envelopes_for(kind: str, repo: str, visibility: str, item: dict,
+                  declared: str | None = None, spaces: list[str] | None = None) -> list[dict]:
     """One envelope per transition the item has reached; dedupe makes each fire once."""
     labels = [lab["name"] if isinstance(lab, dict) else lab for lab in item.get("labels", [])]
-    tier = tier_of(visibility, labels)
+    tier = tier_of(visibility, labels, declared)
+    member = sorted(set(spaces or []) | {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")})
     summary = "" if tier == "restricted" else (item.get("title") or item.get("name") or item.get("tag_name") or "")
     key = item.get("number", item.get("id"))
     if kind == "release":
@@ -84,7 +107,7 @@ def envelopes_for(kind: str, repo: str, visibility: str, item: dict) -> list[dic
     return [{
         "id": f"{repo}:{kind}:{key}:{transition}",
         "kind": kind, "transition": transition, "repo": repo, "tier": tier,
-        "source": item.get("html_url", ""), "summary": summary, "labels": labels,
+        "source": item.get("html_url", ""), "summary": summary, "labels": labels, "spaces": member,
         "sender": (item.get("user") or item.get("author") or {}).get("login", ""),
         "at": at,
     } for transition, at in transitions]
@@ -101,7 +124,7 @@ def matches(sub: dict, env: dict) -> bool:
     if scheme == "label":
         return value in env["labels"]
     if scheme == "space":
-        return f"space:{value}" in env["labels"]
+        return value in env.get("spaces", [])
     return False
 
 
@@ -122,6 +145,13 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
         else:
             drops.append({"to": sub["subscriber"], "reason": f"{env['tier']} -> {to}", "envelope": env["id"]})
     return deliveries, drops
+
+
+try:  # shared grammar; colab.py sits next to this file in the skill and in the meta repo
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from colab import parse_links, validate_links  # noqa: E402
+except ImportError:  # pragma: no cover
+    parse_links = validate_links = None
 
 
 def remember(state: dict, env_id: str) -> bool:
@@ -207,14 +237,15 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     org = config["org"]["name"]
     meta_repo = config["org"].get("meta_repo", "lab-colab")
     spaces = config.get("spaces") or {}
-    space_of = {r: name for name, spec in spaces.items() for r in spec.get("repos", [])}
+    member_of = repo_spaces(config)
+    declared = repo_tiers(config)
     space_state = rollout.get("spaces", {})
     interval = config.get("bus", {}).get("write_interval_seconds", 1.0)
     threshold = config.get("bus", {}).get("fanout_digest_threshold", 20)
     stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
 
     # Visibility of every repo we read from or deliver to, fetched fresh each poll (ETag-cheap).
-    repos = sorted(set(space_of) | {s["subscriber"] for s in subs} | {meta_repo})
+    repos = sorted(set(member_of) | {s["subscriber"] for s in subs} | {meta_repo})
     visibility: dict[str, str | None] = {}
     for repo in repos:
         try:
@@ -224,13 +255,16 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             visibility[repo] = None
             stats["errors"] += 1
     overrides = {s["subscriber"]: s.get("tier") for s in subs if s.get("tier")}
-    to_tiers = {r: dest_tier(visibility.get(r), overrides.get(r)) for r in repos}
+    to_tiers = {r: dest_tier(visibility.get(r), overrides.get(r), declared.get(r)) for r in repos}
 
     def live(repo: str) -> bool:
-        return space_state.get(space_of.get(repo, ""), {}).get("bus") == "live"
+        # a repo in several spaces is live only when all of them are
+        names = member_of.get(repo, [])
+        return bool(names) and all(space_state.get(n, {}).get("bus") == "live" for n in names)
 
     def restricted_ok(repo: str) -> bool:
-        return bool(space_state.get(space_of.get(repo, ""), {}).get("switches", {}).get("restricted"))
+        names = member_of.get(repo, [])
+        return bool(names) and all(space_state.get(n, {}).get("switches", {}).get("restricted") for n in names)
 
     def write(path: str, body: dict) -> bool:
         try:
@@ -242,8 +276,29 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             _append(state_dir / "audit.jsonl", {"write_failed": path, "error": str(err), "at": now()})
             return False
 
+    def check_links(item: dict, repo: str) -> None:
+        """Validate the links block once per body version; comment only when the repo is live."""
+        body = item.get("body") or ""
+        if "```links" not in body or "pull_request" in item or parse_links is None:
+            return
+        digest = hashlib.sha256(body.encode()).hexdigest()[:16]
+        key = f"{repo}#{item.get('number')}"
+        if checked.get(key) == digest:
+            return
+        checked[key] = digest
+        edges, errors = parse_links(body)
+        errors += validate_links(edges, config, (item.get("type") or {}).get("name") if isinstance(item.get("type"), dict) else None)
+        if not errors:
+            return
+        _append(state_dir / "audit.jsonl", {"links_errors": key, "errors": errors, "at": now()})
+        if live(repo):
+            gh_comment = "\n".join(["The links block has problems:", "", *[f"- {e}" for e in errors], "",
+                                     "Format: `<edge>: <owner>/<repo>#<n>` or `<edge>: kg:<id>`, one per line.", DELIVERY_MARKER])
+            write(f"/repos/{org}/{repo}/issues/{item.get('number')}/comments", {"body": gh_comment})
+
     cursors = state.setdefault("cursors", {})
-    for repo in sorted(space_of):
+    checked = state.setdefault("links_checked", {})
+    for repo in sorted(member_of):
         vis = visibility.get(repo)
         if vis is None:
             continue
@@ -257,10 +312,13 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             continue
         events = []
         for item in items:
-            if not is_delivery(item):
-                events += envelopes_for("pull_request" if "pull_request" in item else "issue", repo, vis, item)
+            if is_delivery(item):
+                continue
+            events += envelopes_for("pull_request" if "pull_request" in item else "issue", repo, vis, item,
+                                    declared.get(repo), member_of.get(repo))
+            check_links(item, repo)
         for rel in releases:
-            events += envelopes_for("release", repo, vis, rel)
+            events += envelopes_for("release", repo, vis, rel, declared.get(repo), member_of.get(repo))
         for env in sorted(events, key=lambda e: e["at"]):
             if not remember(state, env["id"]):
                 continue
@@ -279,7 +337,6 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                         "title": f"[colab digest] {env['kind']} {env['transition']} in {env['repo']}: {env['summary'] or 'restricted item'}"[:250],
                         "body": f"{DELIVERY_MARKER}\nSource: {env['source']}\nTier: {env['tier']}\n\nSubscribers:\n"
                                 + "\n".join(f"- {d['to']}" for d in deliveries),
-                        "labels": [DELIVERY_LABEL, f"tier:{env['tier']}"],
                     }):
                         stats["deliveries"] += 1
                 else:
@@ -291,7 +348,6 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     if write(f"/repos/{org}/{d['to']}/issues", {
                         "title": f"[colab] {env['kind']} {env['transition']} in {env['repo']}: {env['summary'] or 'restricted item'}"[:250],
                         "body": f"{DELIVERY_MARKER}\nDelivered by colab-bus.\n\nSource: {env['source']}\nTier: {env['tier']}\nEnvelope: `{env['id']}`",
-                        "labels": [DELIVERY_LABEL, f"tier:{env['tier']}"],
                     }):
                         stats["deliveries"] += 1
                 else:
