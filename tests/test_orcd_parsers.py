@@ -318,7 +318,8 @@ class CommonTransportTests(unittest.TestCase):
         return subprocess.CompletedProcess(args=[], returncode=rc, stdout=out, stderr=err)
 
     def test_ssh_exit_255_is_fatal_even_when_check_is_false(self) -> None:
-        with mock.patch.object(oc, "ssh_available", return_value=True), \
+        with mock.patch.object(oc, "on_cluster", return_value=False), \
+                mock.patch.object(oc, "ssh_available", return_value=True), \
                 mock.patch.object(oc.subprocess, "run",
                                   return_value=self.fake_proc(255, err="Connection closed")):
             with self.assertRaises(oc.OrcdError) as cm:
@@ -326,7 +327,8 @@ class CommonTransportTests(unittest.TestCase):
         self.assertIn("exit 255", str(cm.exception))
 
     def test_remote_error_text_survives_a_2_and_1_redirect(self) -> None:
-        with mock.patch.object(oc, "ssh_available", return_value=True), \
+        with mock.patch.object(oc, "on_cluster", return_value=False), \
+                mock.patch.object(oc, "ssh_available", return_value=True), \
                 mock.patch.object(oc.subprocess, "run",
                                   return_value=self.fake_proc(1, out="sacct: fatal: Bad job/step specified")):
             with self.assertRaises(oc.OrcdError) as cm:
