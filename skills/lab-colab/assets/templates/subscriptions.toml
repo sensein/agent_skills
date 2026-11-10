@@ -1,0 +1,19 @@
+# Who listens to what. The bus reads this file from the meta repo.
+#
+# topic:      repo:<name> | label:<label> | space:<space>
+# events:     optional list of issue, pull_request, release
+# subscriber: the repo that receives the delivery
+# deliver:    issue (default); session wake-ups are handled by members' sessions
+# tier:       optional override of the subscriber's tier (public, lab, restricted)
+#
+# Events only ever flow to an equal or stricter tier; anything else is dropped
+# and written to the bus audit log.
+
+# [[subscribe]]
+# topic = "repo:senselab"
+# events = ["release"]
+# subscriber = "example-private-project"
+
+# [[subscribe]]
+# topic = "label:topic:vllm"
+# subscriber = "example-infra"
