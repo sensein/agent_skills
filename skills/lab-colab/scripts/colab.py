@@ -122,6 +122,17 @@ def form_filename(type_name: str) -> str:
     return f"colab-{type_name.lower()}.yml"
 
 
+GQL_COLORS = ["GRAY", "BLUE", "GREEN", "YELLOW", "ORANGE", "RED", "PINK", "PURPLE"]
+
+
+def _options_mutation(options: list[str]) -> str:
+    """GraphQL mutation that replaces a single-select field's options."""
+    opts = ", ".join(f'{{name: {json.dumps(o)}, color: {GQL_COLORS[i % len(GQL_COLORS)]}, description: ""}}'
+                     for i, o in enumerate(options))
+    return ("mutation($id: ID!) { updateProjectV2Field(input: {fieldId: $id, singleSelectOptions: [" + opts + "]}) "
+            "{ projectV2Field { ... on ProjectV2SingleSelectField { name } } } }")
+
+
 def _field_options(fields: list) -> dict[str, list[str]]:
     """Accept field lists as names or {name, options} dicts."""
     out: dict[str, list[str]] = {}
@@ -177,8 +188,13 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
         if f["name"] in have_fields:
             missing = [o for o in f.get("options", []) if o not in have_fields[f["name"]]]
             if missing:
-                # e.g. every Project has a built-in Status; gh cannot edit its options
-                actions.append(_action("manual", 0, f"Project field {f['name']} exists; add options in the web UI: {', '.join(missing)}"))
+                # e.g. every Project has a built-in Status. GraphQL can replace its options;
+                # this resets values on existing items, so it is safe only on a new board.
+                actions.append(_action("gh", 0,
+                                       f"Set the options of Project field {f['name']} to: {', '.join(f['options'])} "
+                                       "(resets existing values; run on a new board only)",
+                                       ["gh", "api", "graphql", "-f", f"query={_options_mutation(f['options'])}",
+                                        "-f", f"id=<field id of {f['name']} on project {number}>"]))
             continue
         if f["type"] == "ITERATION":
             actions.append(_action("manual", 0, f"Add the '{f['name']}' iteration field in the Project web UI (gh cannot create it)"))
@@ -241,7 +257,23 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
 # --------------------------------------------------------------------------- apply
 
 
-def apply(actions: list[dict], yes: bool, throttle: float = 1.0) -> int:
+FIELD_ID = re.compile(r"<field id of (?P<name>.+?) on project (?P<number>\d+)>")
+
+
+def _resolve_field_id(part: str, org: str | None = None) -> str:
+    """Replace a `<field id of NAME on project N>` placeholder with the real node id."""
+    m = FIELD_ID.search(part)
+    if not m:
+        return part
+    owner = org or load_config()["org"]["name"]
+    fields = (_gh_json(["project", "field-list", m["number"], "--owner", owner, "--format", "json"]) or {}).get("fields", [])
+    fid = next((f["id"] for f in fields if f["name"] == m["name"]), None)
+    if fid is None:
+        raise SystemExit(f"field {m['name']!r} not found on project {m['number']}")
+    return part[: m.start()] + fid + part[m.end():]
+
+
+def apply(actions: list[dict], yes: bool, throttle: float = 1.0, org: str | None = None) -> int:
     import time
 
     runnable = [a for a in actions if a["kind"] == "gh"]
@@ -258,9 +290,10 @@ def apply(actions: list[dict], yes: bool, throttle: float = 1.0) -> int:
         return 0
     failures = 0
     for a in runnable:
-        if "<new project number>" in a["cmd"]:
+        if any("<new project number>" in part for part in a["cmd"]):
             print(f"skip (re-plan after the Project exists): {a['desc']}")
             continue
+        a = {**a, "cmd": [_resolve_field_id(part, org) for part in a["cmd"]]}
         proc = subprocess.run(a["cmd"], capture_output=True, text=True)
         status = "ok" if proc.returncode == 0 else f"FAILED: {proc.stderr.strip()[:200]}"
         failures += proc.returncode != 0
@@ -582,7 +615,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "plan":
             print(json.dumps(actions, indent=2))
             return 0
-        return apply(actions, args.yes, config.get("bus", {}).get("write_interval_seconds", 1.0))
+        return apply(actions, args.yes, config.get("bus", {}).get("write_interval_seconds", 1.0), org)
     if args.cmd == "seed":
         for path in cmd_seed(args.dest, args.config):
             print(path)

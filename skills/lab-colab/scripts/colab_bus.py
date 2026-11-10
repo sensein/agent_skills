@@ -297,14 +297,26 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             write(f"/repos/{org}/{repo}/issues/{item.get('number')}/comments", {"body": gh_comment})
 
     cursors = state.setdefault("cursors", {})
+    baseline_at = state.setdefault("baseline_at", {})
     checked = state.setdefault("links_checked", {})
     for repo in sorted(member_of):
         vis = visibility.get(repo)
         if vis is None:
             continue
         try:
-            since = cursors.get(repo, "1970-01-01T00:00:00Z")
-            items = gh.get(f"/repos/{org}/{repo}/issues?state=all&sort=updated&direction=asc&per_page=100&since={since}") or []
+            if repo not in cursors:
+                # Baseline: the bus starts from now. Record the newest update and the
+                # current releases as seen, and route nothing, so history never floods.
+                newest = gh.get(f"/repos/{org}/{repo}/issues?state=all&sort=updated&direction=desc&per_page=1") or []
+                for rel in gh.get(f"/repos/{org}/{repo}/releases?per_page=10") or []:
+                    for env in envelopes_for("release", repo, vis, rel):
+                        remember(state, env["id"])
+                cursors[repo] = newest[0]["updated_at"] if newest else now().replace("+00:00", "Z")
+                baseline_at[repo] = now().replace("+00:00", "Z")
+                stats["baselined"] = stats.get("baselined", 0) + 1
+                save()
+                continue
+            items = gh.get(f"/repos/{org}/{repo}/issues?state=all&sort=updated&direction=asc&per_page=100&since={cursors[repo]}") or []
             releases = gh.get(f"/repos/{org}/{repo}/releases?per_page=10") or []
         except urllib.error.URLError as err:
             stats["errors"] += 1
@@ -319,9 +331,12 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             check_links(item, repo)
         for rel in releases:
             events += envelopes_for("release", repo, vis, rel, declared.get(repo), member_of.get(repo))
+        base = baseline_at.get(repo, "")
         for env in sorted(events, key=lambda e: e["at"]):
             if not remember(state, env["id"]):
                 continue
+            if base and env["at"] and env["at"] < base:
+                continue  # happened before the bus started watching this repo
             stats["envelopes"] += 1
             _append(state_dir / "events.jsonl", env)
             deliveries, drops = route(env, subs, to_tiers, bot, restricted_ok(repo))

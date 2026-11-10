@@ -106,6 +106,7 @@ Flow rules:
 - Default poll interval is 300 seconds.
 - Requests use ETags. A 304 response means no change and costs no rate limit.
 - Each repo keeps a cursor: the newest `updated_at` seen. Visibility is re-read every poll.
+- The first poll of a repo is a baseline: it records the newest update and the current releases, and routes nothing. Events from before the baseline are never routed, so history cannot flood subscribers.
 - State lives in a private group-storage directory, never scratch. It holds cursors, ETags, seen IDs, and logs.
 
 ### 4.2 Envelope
