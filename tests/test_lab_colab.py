@@ -98,9 +98,12 @@ class PlanTests(unittest.TestCase):
     def test_builtin_status_options_become_manual_step(self) -> None:
         snap = snapshot(projects=[{"number": 7, "title": "Lab portfolio"}],
                         project_fields={"7": [{"name": "Status", "options": ["Todo", "In Progress", "Done"]}]})
-        steps = [a for a in colab.build_plan(CONFIG, snap) if a["kind"] == "manual" and "Status" in a["desc"]]
+        steps = [a for a in colab.build_plan(CONFIG, snap) if "field Status" in a["desc"]]
         self.assertEqual(len(steps), 1)
-        self.assertIn("Proposed", steps[0]["desc"])
+        self.assertEqual(steps[0]["kind"], "gh")
+        self.assertIn("updateProjectV2Field", " ".join(steps[0]["cmd"]))
+        self.assertIn("id=<field id of Status on project 7>", steps[0]["cmd"])
+        self.assertEqual(colab._resolve_field_id("id=plain"), "id=plain")
 
     def test_forms_go_org_wide_and_no_labels_are_planned(self) -> None:
         snap = snapshot(repos=snapshot()["repos"] + [{"name": ".github", "visibility": "public"}],
@@ -223,6 +226,11 @@ class FakeGH:
         return {}
 
 
+def watched() -> dict:
+    """State for a repo the bus already baselined before these test events."""
+    return {"cursors": {"proj": "2026-11-08T00:00:00Z"}, "baseline_at": {"proj": "2026-11-08T00:00:00Z"}}
+
+
 def bus_config(**bus) -> dict:
     return {"org": {"name": "sensein", "meta_repo": "lab-colab"},
             "spaces": {"proj": {"repos": ["proj"]}, "dest": {"repos": ["dest"]}},
@@ -283,7 +291,7 @@ class BusTests(unittest.TestCase):
     def test_dry_run_writes_nothing_and_dedupes(self) -> None:
         subs = [{"topic": "repo:proj", "subscriber": "dest"}]
         with tempfile.TemporaryDirectory() as tmp:
-            fake, state = FakeGH(), {}
+            fake, state = FakeGH(), watched()
             stats = bus.poll_once(fake, bus_config(), {"spaces": {}}, subs, state, Path(tmp), "colab-bus[bot]")
             self.assertEqual(stats["dry_run"], 1)
             self.assertEqual(fake.sent, [])
@@ -296,10 +304,10 @@ class BusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fake = FakeGH()
             src_live = {"spaces": {"proj": {"bus": "live"}}}
-            bus.poll_once(fake, bus_config(), src_live, subs, {}, Path(tmp), "me")
+            bus.poll_once(fake, bus_config(), src_live, subs, watched(), Path(tmp), "me")
             self.assertEqual(fake.sent, [])  # destination still dry-run
             dest_live = {"spaces": {"dest": {"bus": "live"}}}
-            bus.poll_once(fake, bus_config(), dest_live, subs, {}, Path(tmp), "me")
+            bus.poll_once(fake, bus_config(), dest_live, subs, watched(), Path(tmp), "me")
             self.assertEqual(len(fake.sent), 1)
             body = fake.sent[0][2]
             self.assertNotIn("labels", body)
@@ -311,14 +319,14 @@ class BusTests(unittest.TestCase):
                       "html_url": "u", "user": {"login": "a-human"}}]
         with tempfile.TemporaryDirectory() as tmp:
             stats = bus.poll_once(FakeGH(issues=delivered), bus_config(), {"spaces": {}},
-                                  [{"topic": "repo:proj", "subscriber": "dest"}], {}, Path(tmp), "me")
+                                  [{"topic": "repo:proj", "subscriber": "dest"}], watched(), Path(tmp), "me")
             self.assertEqual(stats["envelopes"], 0)
 
     def test_public_destination_never_gets_lab_content(self) -> None:
         subs = [{"topic": "repo:proj", "subscriber": "dest"}]
         with tempfile.TemporaryDirectory() as tmp:
             fake = FakeGH(visibility={"proj": "private", "dest": "public", "lab-colab": "private"})
-            stats = bus.poll_once(fake, bus_config(), {"spaces": {"dest": {"bus": "live"}}}, subs, {}, Path(tmp), "me")
+            stats = bus.poll_once(fake, bus_config(), {"spaces": {"dest": {"bus": "live"}}}, subs, watched(), Path(tmp), "me")
             self.assertEqual(fake.sent, [])
             self.assertEqual(stats["drops"], 1)
 
@@ -329,7 +337,7 @@ class BusTests(unittest.TestCase):
         cfg["spaces"]["meta"] = {"repos": ["lab-colab"]}
         with tempfile.TemporaryDirectory() as tmp:
             fake = FakeGH(visibility=vis)
-            stats = bus.poll_once(fake, cfg, {"spaces": {"meta": {"bus": "live"}}}, subs, {}, Path(tmp), "me")
+            stats = bus.poll_once(fake, cfg, {"spaces": {"meta": {"bus": "live"}}}, subs, watched(), Path(tmp), "me")
             self.assertEqual(len(fake.sent), 1)
             self.assertIn("/lab-colab/issues", fake.sent[0][1])
             self.assertEqual(stats["deliveries"], 1)
@@ -355,7 +363,7 @@ class ConfigDrivenBusTests(unittest.TestCase):
         subs = [{"topic": "repo:proj", "subscriber": "dest"}]
         with tempfile.TemporaryDirectory() as tmp:
             fake = FakeGH()
-            bus.poll_once(fake, cfg, {"spaces": {"x": {"bus": "live"}}}, subs, {}, Path(tmp), "me")
+            bus.poll_once(fake, cfg, {"spaces": {"x": {"bus": "live"}}}, subs, watched(), Path(tmp), "me")
             self.assertEqual(fake.sent, [])
 
     def test_links_block_checked_once_per_body_and_commented_when_live(self) -> None:
@@ -365,7 +373,7 @@ class ConfigDrivenBusTests(unittest.TestCase):
         cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "spaces": {"proj": {"repos": ["proj"]}},
                "edges": CONFIG["edges"], "bus": {"write_interval_seconds": 0}}
         with tempfile.TemporaryDirectory() as tmp:
-            fake, state = FakeGH(issues=bad), {}
+            fake, state = FakeGH(issues=bad), watched()
             live = {"spaces": {"proj": {"bus": "live"}}}
             bus.poll_once(fake, cfg, live, [], state, Path(tmp), "me")
             comments = [x for x in fake.sent if x[1].endswith("/issues/7/comments")]
@@ -374,6 +382,32 @@ class ConfigDrivenBusTests(unittest.TestCase):
             self.assertIn(bus.DELIVERY_MARKER, comments[0][2]["body"])
             bus.poll_once(fake, cfg, live, [], state, Path(tmp), "me")
             self.assertEqual(len([x for x in fake.sent if x[1].endswith("/comments")]), 1)
+
+
+class BaselineTests(unittest.TestCase):
+    def test_first_poll_baselines_and_routes_nothing(self) -> None:
+        subs = [{"topic": "repo:proj", "subscriber": "dest"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake, state = FakeGH(), {}
+            live = {"spaces": {"dest": {"bus": "live"}}}
+            stats = bus.poll_once(fake, bus_config(), live, subs, state, Path(tmp), "me")
+            self.assertEqual(stats.get("baselined"), 2)  # proj and dest
+            self.assertEqual(stats["envelopes"], 0)
+            self.assertEqual(fake.sent, [])
+            self.assertEqual(state["cursors"]["proj"], "2026-11-09T01:00:00Z")
+            # the same old issue seen again after the baseline is still not routed
+            bus.poll_once(fake, bus_config(), live, subs, state, Path(tmp), "me")
+            self.assertEqual(fake.sent, [])
+
+    def test_old_item_updated_after_baseline_is_not_reported_as_opened(self) -> None:
+        old = [{"number": 2, "id": 2, "title": "old", "labels": [], "state": "open", "created_at": "2025-01-01T00:00:00Z",
+                "updated_at": "2026-11-09T05:00:00Z", "html_url": "u", "user": {"login": "a"}}]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeGH(issues=old)
+            stats = bus.poll_once(fake, bus_config(), {"spaces": {"dest": {"bus": "live"}}},
+                                  [{"topic": "repo:proj", "subscriber": "dest"}], watched(), Path(tmp), "me")
+            self.assertEqual(fake.sent, [])
+            self.assertEqual(stats["envelopes"], 0)  # remembered, never routed
 
 
 class NextTests(unittest.TestCase):
