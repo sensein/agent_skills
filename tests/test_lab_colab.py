@@ -81,6 +81,7 @@ class PlanTests(unittest.TestCase):
 
     def test_converged_org_only_asks_for_gate(self) -> None:
         cfg = config_with_spaces()
+        cfg["sessions"]["issue"] = 5
         snap = snapshot(
             issue_types=[t["name"] for t in cfg["types"]],
             projects=[{"number": 7, "title": "Lab portfolio"}],
@@ -408,6 +409,79 @@ class BaselineTests(unittest.TestCase):
                                   [{"topic": "repo:proj", "subscriber": "dest"}], watched(), Path(tmp), "me")
             self.assertEqual(fake.sent, [])
             self.assertEqual(stats["envelopes"], 0)  # remembered, never routed
+
+
+class SessionHeartbeatTests(unittest.TestCase):
+    T0 = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+
+    def test_marker_roundtrip(self) -> None:
+        body = colab.session_comment("abc-123", "someone", self.T0, "28624405", "sensein/p#4")
+        [s] = colab.parse_sessions([{"id": 9, "body": body}])
+        self.assertEqual((s["session"], s["user"], s["job"], s["item"], s["comment_id"]),
+                         ("abc-123", "someone", "28624405", "sensein/p#4", 9))
+        self.assertEqual(s["beat"], self.T0)
+
+    def test_states(self) -> None:
+        s = {"beat": self.T0, "job": "77"}
+        self.assertEqual(colab.session_state(s, self.T0 + timedelta(minutes=30), 60, set()), "active")
+        self.assertEqual(colab.session_state(s, self.T0 + timedelta(hours=3), 60, {"77"}), "waiting")
+        self.assertEqual(colab.session_state(s, self.T0 + timedelta(hours=3), 60, set()), "stale")
+
+    def test_throttle(self) -> None:
+        last = {"at": self.T0.isoformat(), "job": None, "item": "a/b#1"}
+        self.assertFalse(colab.should_push(last, self.T0 + timedelta(minutes=5), 600, None, "a/b#1"))
+        self.assertTrue(colab.should_push(last, self.T0 + timedelta(minutes=11), 600, None, "a/b#1"))
+        self.assertTrue(colab.should_push(last, self.T0 + timedelta(minutes=1), 600, "5", "a/b#1"))
+        self.assertTrue(colab.should_push(None, self.T0, 600, None, None))
+
+    def test_throttled_beat_makes_no_network_call(self) -> None:
+        import io, os
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"XDG_CACHE_HOME": tmp}):
+            state = Path(tmp) / "colab" / "beats"
+            state.mkdir(parents=True)
+            (state / "s1.json").write_text(json.dumps({"at": self.T0.isoformat(), "user": "u", "job": None, "item": None}))
+            with mock.patch.object(colab, "_gh_json", side_effect=AssertionError("network")), \
+                    mock.patch.object(colab, "claimed_item", return_value=None), \
+                    mock.patch("sys.stdin", io.StringIO(json.dumps({"session_id": "s1", "cwd": tmp}))):
+                rc = colab.cmd_beat(CONFIG, None, None, None, True, False, now=self.T0 + timedelta(minutes=2))
+            self.assertEqual(rc, 0)
+
+    def test_claim_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            import subprocess
+            subprocess.run(["git", "init", "-q", tmp], check=True)
+            (Path(tmp) / ".git" / "colab-claim").write_text("sensein/p#12\n")
+            self.assertEqual(colab.claimed_item(tmp), "sensein/p#12")
+            (Path(tmp) / ".git" / "colab-claim").write_text("not an item")
+            self.assertIsNone(colab.claimed_item(tmp))
+
+    def test_default_lease_is_short_and_plan_creates_sessions_issue(self) -> None:
+        self.assertEqual(CONFIG["sessions"]["lease_minutes"], 45)
+        actions = colab.build_plan(CONFIG, snapshot())
+        self.assertTrue(any("Session activity" in a["desc"] for a in actions))
+        cfg = json.loads(json.dumps(CONFIG)); cfg["sessions"]["issue"] = 5
+        self.assertFalse(any("Session activity" in a["desc"] for a in colab.build_plan(cfg, snapshot())))
+
+    def test_bus_counts_sessions_and_audits_stale_claims_once(self) -> None:
+        now_t = datetime.now(timezone.utc)
+        comments = [{"id": 1, "body": colab.session_comment("a", "u1", now_t, None, None)},
+                    {"id": 2, "body": colab.session_comment("b", "u2", now_t - timedelta(hours=5), "88", "sensein/p#1")},
+                    {"id": 3, "body": colab.session_comment("c", "u3", now_t - timedelta(hours=5), None, "sensein/p#2")}]
+
+        class GH:
+            def get(self, path, cache=False):
+                return comments if "/issues/5/comments" in path else []
+
+        cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "sessions": {"issue": 5, "stale_minutes": 60}}
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {}
+            stats = bus.session_stats(GH(), cfg, state, Path(tmp), jobs=lambda ids: {"88"} & ids)
+            self.assertEqual(stats, {"sessions_active": 1, "sessions_waiting": 1, "sessions_stale": 1})
+            bus.session_stats(GH(), cfg, state, Path(tmp), jobs=lambda ids: {"88"} & ids)
+            audit = (Path(tmp) / "audit.jsonl").read_text().splitlines()
+            self.assertEqual(len(audit), 1)
+            self.assertIn("sensein/p#2", audit[0])
 
 
 class NextTests(unittest.TestCase):

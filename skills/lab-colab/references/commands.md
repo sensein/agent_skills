@@ -72,7 +72,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 **Steps.**
 
 1. Re-check the item. It must be Ready, have no open blocked-by link, and have no live lease held by another user. Stop if any check fails.
-2. Run `colab.py lease --user <login>`. The default lease is 4 hours. Use `--hours` to change it.
+2. Run `colab.py lease --user <login>`. The default lease is 45 minutes. Session heartbeats renew it while the session is active, so it lapses soon after a session stops.
 3. Post the marker as a comment. The marker has this form:
 
    ```
@@ -81,6 +81,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 4. Assign the item to the user.
 5. Set Status to In progress in the Project.
+6. Record the claim for this worktree, so hooks renew the lease: `echo <owner>/<repo>#<n> > "$(git rev-parse --git-dir)/colab-claim"`.
 
 **Guardrails.**
 
@@ -89,17 +90,17 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 ## handoff
 
-**Purpose.** Leave a checkpoint so the next session or person can continue. It also renews the lease.
+**Purpose.** Leave a checkpoint so the next session, person, or agent can continue. A session that runs out of tokens cannot hand off, so hand off at every meaningful step, not only at the end.
 
 **Reads.** Current session state, open PRs on the item, and run links.
 
-**Writes.** One checkpoint comment on the item, with a new lease marker in the same comment.
+**Writes.** One checkpoint comment on the item. The lease is renewed by session heartbeats, not here.
 
 **Steps.**
 
 1. Collect the current state, the next steps, the open questions, and links to PRs and runs.
 2. Write a checkpoint comment with four headings: State, Next steps, Open questions, and Links.
-3. Run `colab.py lease --user <login>`. Append the marker to the comment. This renews the lease for the default 4 hours.
+3. Before a long wait on a Slurm job, run `colab.py beat --session <id> --job <jobid>`, so the lease covers the job.
 4. Run `capture` next, to record knowledge from the session.
 
 **Guardrails.**
