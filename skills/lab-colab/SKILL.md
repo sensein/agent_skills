@@ -85,14 +85,39 @@ Give the bus its own fine-grained token (or a GitHub App installation token) in 
 
 Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login.
 
+## Session Heartbeats
+
+A session that runs out of tokens just stops, with no handoff. So the heartbeat comes from activity: Claude Code hooks run `colab.py beat` after tool use, and a session that makes no tool calls sends no beats. Beats cost no model tokens. They are throttled locally, so a GitHub write happens at most every 10 minutes per session.
+
+Each beat refreshes the session's comment in the meta repo's Session activity issue, and renews the session's lease on its claimed item. Leases default to 45 minutes, so a silent session's claim lapses within the hour and `next` offers the item again. The bus reports active, waiting, and stale sessions in its heartbeat.
+
+Install the hooks once per member, in `~/.claude/settings.json`. Use a Python 3.11+ interpreter, and point `COLAB_CONFIG` at the meta clone's config:
+
+```json
+{
+  "env": { "COLAB_CONFIG": "<meta clone>/.colab/config.toml" },
+  "hooks": {
+    "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command",
+      "command": "<python3.11+> <this-skill-dir>/scripts/colab.py beat --from-hook --background" }] }],
+    "Stop": [{ "matcher": "*", "hooks": [{ "type": "command",
+      "command": "<python3.11+> <this-skill-dir>/scripts/colab.py beat --from-hook --background" }] }]
+  }
+}
+```
+
+- **Claims.** On claim, record the item for the worktree with `echo owner/repo#n > "$(git rev-parse --git-dir)/colab-claim"`. Beats renew that item's lease.
+- **Long waits.** Before waiting on a long Slurm job, run `colab.py beat --session <id> --job <jobid>`. The lease then runs to the job's scheduled end plus 15 minutes, and the bus counts the session as waiting, not stale.
+- **Agents without hooks.** Call `beat` from their own loop. A timer loop keeps beating after the model has stopped, so use one only where hooks are unavailable.
+- **Recovery.** Another session, or another agent such as Codex acting for the same member, resumes from the item's last handoff checkpoint. Frequent handoffs are what make an abrupt stop cheap.
+
 ## Day-to-day Commands
 
 Each command is specified in [`references/commands.md`](./references/commands.md): what it reads, what it writes, and its contract. In short:
 
 - **`distill`**: turn a thread, meeting transcript, or notes into proposed typed items and links.
 - **`next`**: `colab.py next` lists Project items with Status = Ready and Agent-ready = yes that are unblocked and unleased, within the caller's access.
-- **`claim`**: assign the item, set In progress, and post a lease (`colab.py lease --user <me>`).
-- **`handoff`**: post a ledger checkpoint and renew the lease.
+- **`claim`**: assign the item, set In progress, post a lease (`colab.py lease --user <me>`, 45 minutes), and write the worktree's `colab-claim` file so hooks renew it.
+- **`handoff`**: post a ledger checkpoint. Hand off often: a session that runs out of tokens cannot write one.
 - **`capture`**: turn session results into knowledge items, staged in the meta repo.
 - **`brief`**: summarise what happened, challenges, and next steps for a space or the lab.
 - **`link`**: write a typed edge into the fenced `links` block. Validate it with `colab.py links --type <Type>`.

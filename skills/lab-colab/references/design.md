@@ -158,6 +158,13 @@ The mode is set per destination space in `.colab/rollout.json`. A dry-run space 
 - The `colab-watchdog` workflow in the meta repo alerts the lab when the heartbeat is stale: 30 minutes by default, or the `COLAB_STALE_MINUTES` variable.
 - Run one local poll with `colab_bus.py --meta <clone> --state-dir <dir> --token-file <file> --once`.
 
+### 4.5a Session heartbeats
+
+- Claude Code hooks call `colab.py beat` after tool use, so beats track real activity and stop when a session runs out of tokens.
+- Each session keeps one comment in the meta repo's Session activity issue, edited in place, with marker `<!-- colab-session id= user= beat= [job=] [item=] -->`.
+- A beat renews the member's lease on the claimed item. Leases default to 45 minutes; with `--job` they run to the Slurm job's scheduled end plus 15 minutes.
+- Each poll, the bus classifies sessions as active (a beat within `stale_minutes`), waiting (its Slurm job is still queued or running), or stale. It adds `sessions_active`, `sessions_waiting`, and `sessions_stale` to its heartbeat, and logs each stale session that held an item once to `audit.jsonl`.
+
 ### 4.6 Throttle and digest
 
 - Live writes are throttled to one per second (`write_interval_seconds = 1.0`).

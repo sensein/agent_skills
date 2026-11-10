@@ -222,6 +222,13 @@ secret = ['ghp_[A-Za-z0-9]{36}', 'github_pat_[A-Za-z0-9_]{40,}', 'sk-ant-[A-Za-z
 path = ['''/orcd/(?:scratch|data|pool|home)/[^\s"']+''', '/home/[a-z][a-z0-9_-]+/']
 participant_id = []   # add the lab's participant-ID formats in the meta-repo copy
 
+[sessions]
+# Session heartbeats. Claude Code hooks call `colab.py beat`; see SKILL.md.
+issue = 0                        # number of the "Session activity" issue in the meta repo (0 = not created yet)
+lease_minutes = 45               # a claim lapses this long after the session's last beat
+beat_min_seconds = 600           # at most one GitHub write per session per this many seconds
+stale_minutes = 60               # no beat this long, and no running Slurm job: the session is stale
+
 [bus]
 poll_seconds = 300
 write_interval_seconds = 1.0     # stay under GitHub's content-creation limits

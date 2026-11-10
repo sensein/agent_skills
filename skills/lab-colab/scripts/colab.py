@@ -15,7 +15,9 @@ Subcommands
   scan          Leak-scan files or stdin; exit 1 on any finding. --selftest checks
                 that every seeded case is caught.
   links         Parse and validate the fenced ```links block of an issue body.
-  lease         Compose or read a claim lease marker for an issue comment.
+  lease         Compose a claim lease marker for an issue comment (default 45 minutes).
+  beat          Session heartbeat: refresh this session's Session activity comment and renew
+                its lease. Called by Claude Code hooks; throttled; costs no model tokens.
   gate          Record a passed gate for a space in a local rollout.json and
                 switch on that phase's features for it.
 """
@@ -23,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -232,6 +235,13 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
         actions.append(_action("manual", 0,
                                "These space repos have their own issue templates, so the org-wide forms do not show there: "
                                f"{', '.join(own)}. Add colab forms to one only if its maintainers want them."))
+
+    if snapshot.get("meta_repo_exists") and not config.get("sessions", {}).get("issue"):
+        actions.append(_action("gh", 0, f"Create the 'Session activity' issue in {org}/{meta} for session heartbeats",
+                               ["gh", "issue", "create", "--repo", f"{org}/{meta}", "--title", "Session activity",
+                                "--body", "Each agent session keeps one comment here, refreshed by `colab.py beat`. "
+                                          "The bus reads them to tell active, waiting, and stale sessions apart."]))
+        actions.append(_action("manual", 0, "Put that issue's number in .colab/config.toml as [sessions] issue = N (by PR)"))
 
     rollout = snapshot.get("rollout") or empty_rollout()
     bus_seen = any(s.get("bus") for s in rollout.get("spaces", {}).values())
@@ -482,6 +492,163 @@ def live_lease(comments: list[str], now: datetime | None = None) -> dict | None:
     return latest
 
 
+# --------------------------------------------------------------------------- session heartbeats
+#
+# A session that runs out of tokens just stops: no handoff, no goodbye. So the
+# heartbeat comes from activity, not a timer. Claude Code hooks call `beat` after
+# tool use; no tool use means no beat. Beats are throttled locally (no network
+# most of the time) and cost no model tokens. Each session keeps one comment in
+# the meta repo's "Session activity" issue, edited in place, and a beat also
+# renews the session's lease on its claimed item. A session waiting on a long
+# Slurm job names it with --job; its lease then runs to the job's scheduled end.
+
+SESSION = re.compile(r"<!-- colab-session id=(?P<id>[A-Za-z0-9._-]+) user=(?P<user>[A-Za-z0-9-]+) "
+                     r"beat=(?P<beat>[0-9T:+-]+Z)(?: job=(?P<job>\d+))?(?: item=(?P<item>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#\d+))? -->")
+ITEM = re.compile(r"^(?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)#(?P<number>\d+)$")
+
+
+def _iso(t: datetime) -> str:
+    return t.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def compose_session(session: str, user: str, beat: datetime, job: str | None = None, item: str | None = None) -> str:
+    sid = re.sub(r"[^A-Za-z0-9._-]", "-", session)[:64]
+    marker = f"<!-- colab-session id={sid} user={user} beat={_iso(beat)}"
+    if job:
+        marker += f" job={job}"
+    if item:
+        marker += f" item={item}"
+    return marker + " -->"
+
+
+def session_comment(session: str, user: str, beat: datetime, job: str | None, item: str | None) -> str:
+    lines = [f"Session `{session[:12]}` of @{user}: last activity {_iso(beat)}."]
+    if item:
+        lines.append(f"Working on {item}.")
+    if job:
+        lines.append(f"Waiting on Slurm job {job}.")
+    return "\n".join(lines) + "\n\n" + compose_session(session, user, beat, job, item)
+
+
+def parse_sessions(comments: list[dict]) -> list[dict]:
+    """Session markers from the Session activity issue's comments."""
+    out = []
+    for c in comments:
+        m = SESSION.search(c.get("body") or "")
+        if m:
+            out.append({"comment_id": c.get("id"), "session": m["id"], "user": m["user"], "job": m["job"],
+                        "item": m["item"], "beat": datetime.fromisoformat(m["beat"].replace("Z", "+00:00"))})
+    return out
+
+
+def session_state(s: dict, now: datetime, stale_minutes: int, running_jobs: set[str]) -> str:
+    """active, waiting (its Slurm job still runs), or stale."""
+    if now - s["beat"] <= timedelta(minutes=stale_minutes):
+        return "active"
+    if s.get("job") and s["job"] in running_jobs:
+        return "waiting"
+    return "stale"
+
+
+def should_push(last: dict | None, now: datetime, min_interval: int, job: str | None, item: str | None) -> bool:
+    """Write to GitHub only when the interval passed or what the session is doing changed."""
+    if not last:
+        return True
+    if last.get("job") != job or last.get("item") != item:
+        return True
+    return (now - datetime.fromisoformat(last["at"])).total_seconds() >= min_interval
+
+
+def slurm_end(job: str) -> datetime | None:
+    """Scheduled end of a Slurm job, if this host can see it."""
+    try:
+        out = subprocess.run(["squeue", "-h", "-j", job, "-o", "%e"], capture_output=True, text=True, timeout=20).stdout.strip()
+        return datetime.fromisoformat(out).astimezone(timezone.utc) if out and out[0].isdigit() else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def claimed_item(cwd: str | None) -> str | None:
+    """The item this worktree has claimed: `<git dir>/colab-claim` holds `owner/repo#n`."""
+    try:
+        git_dir = subprocess.run(["git", "-C", cwd or ".", "rev-parse", "--absolute-git-dir"],
+                                 capture_output=True, text=True, timeout=10).stdout.strip()
+        text = Path(git_dir, "colab-claim").read_text().strip() if git_dir else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return text if ITEM.match(text) else None
+
+
+def _gh_send(method: str, path: str, body: dict) -> dict | None:
+    proc = subprocess.run(["gh", "api", "-X", method, path, "--input", "-"], input=json.dumps(body),
+                          capture_output=True, text=True)
+    return json.loads(proc.stdout) if proc.returncode == 0 and proc.stdout.strip() else None
+
+
+def _own_comment(path: str, marker: re.Pattern, match) -> dict | None:
+    for page in range(1, 11):
+        batch = _gh_json(["api", f"{path}/comments?per_page=100&page={page}"]) or []
+        for c in batch:
+            m = marker.search(c.get("body") or "")
+            if m and match(m):
+                return c
+        if len(batch) < 100:
+            return None
+    return None
+
+
+def cmd_beat(config: dict, session: str | None, item: str | None, job: str | None,
+             from_hook: bool, background: bool, now: datetime | None = None) -> int:
+    cwd = None
+    if from_hook:
+        try:
+            hook = json.loads(sys.stdin.read() or "{}")
+        except ValueError:
+            hook = {}
+        session = session or hook.get("session_id")
+        cwd = hook.get("cwd")
+    if not session:
+        print("beat needs --session or hook input with session_id", file=sys.stderr)
+        return 2
+    item = item or claimed_item(cwd)
+    now = now or datetime.now(timezone.utc)
+    sess_cfg = config.get("sessions", {})
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "colab" / "beats"
+    cache.mkdir(parents=True, exist_ok=True)
+    state_file = cache / f"{re.sub(r'[^A-Za-z0-9._-]', '-', session)[:64]}.json"
+    last = json.loads(state_file.read_text()) if state_file.exists() else None
+    if not should_push(last, now, int(sess_cfg.get("beat_min_seconds", 600)), job, item):
+        return 0  # throttled: no network
+    if background and os.fork() > 0:
+        return 0  # parent returns at once so the hook adds no latency
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    user = (last or {}).get("user") or (_gh_json(["api", "user"]) or {}).get("login", "")
+    issue = sess_cfg.get("issue")
+    if issue and user:
+        path = f"repos/{org}/{meta}/issues/{issue}"
+        body = session_comment(session, user, now, job, item)
+        mine = _own_comment(path, SESSION, lambda m: m["id"] == re.sub(r"[^A-Za-z0-9._-]", "-", session)[:64])
+        if mine:
+            _gh_send("PATCH", f"repos/{org}/{meta}/issues/comments/{mine['id']}", {"body": body})
+        else:
+            _gh_send("POST", f"{path}/comments", {"body": body})
+    m = ITEM.match(item or "")
+    if m and user:
+        # renew this member's lease on the claimed item; never create one (claim does that)
+        path = f"repos/{m['repo']}/issues/{m['number']}"
+        lease = _own_comment(path, LEASE, lambda x: x["user"] == user)
+        if lease:
+            minutes = float(sess_cfg.get("lease_minutes", 45))
+            until = now + timedelta(minutes=minutes)
+            end = slurm_end(job) if job else None
+            if end and end + timedelta(minutes=15) > until:
+                until = end + timedelta(minutes=15)
+            text = LEASE.sub(f"<!-- colab-lease user={user} until={_iso(until)} -->", lease["body"])
+            _gh_send("PATCH", f"repos/{m['repo']}/issues/comments/{lease['id']}", {"body": text})
+    state_file.write_text(json.dumps({"at": now.isoformat(), "user": user, "job": job, "item": item}))
+    return 0
+
+
 # --------------------------------------------------------------------------- next
 
 
@@ -598,12 +765,16 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("scan"); p.add_argument("paths", nargs="*"); p.add_argument("--selftest", action="store_true")
     p = sub.add_parser("links"); p.add_argument("--body", type=Path, help="file with the issue body (default stdin)")
     p.add_argument("--type", dest="source_type")
-    p = sub.add_parser("lease"); p.add_argument("--user", required=True); p.add_argument("--hours", type=float, default=4)
+    p = sub.add_parser("lease"); p.add_argument("--user", required=True); p.add_argument("--hours", type=float)
+    p = sub.add_parser("beat"); p.add_argument("--session"); p.add_argument("--item", help="owner/repo#n")
+    p.add_argument("--job", help="Slurm job the session is waiting on"); p.add_argument("--from-hook", action="store_true")
+    p.add_argument("--background", action="store_true", help="return at once; write in a forked child")
     p = sub.add_parser("gate")
     p.add_argument("--rollout", type=Path, required=True); p.add_argument("--space", required=True)
     p.add_argument("--phase", type=int, required=True); p.add_argument("--evidence", required=True)
     args = ap.parse_args(argv)
-    config = load_config(args.config)
+    env_cfg = os.environ.get("COLAB_CONFIG")
+    config = load_config(args.config or (Path(env_cfg) if env_cfg else None))
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
 
     if args.cmd == "status":
@@ -635,7 +806,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "next":
         return cmd_next(config, args.items, args.limit)
     if args.cmd == "lease":
-        print(compose_lease(args.user, args.hours))
+        hours = args.hours if args.hours is not None else float(config.get("sessions", {}).get("lease_minutes", 45)) / 60
+        print(compose_lease(args.user, hours))
+        return 0
+    if args.cmd == "beat":
+        try:
+            return cmd_beat(config, args.session, args.item, args.job, args.from_hook, args.background)
+        except Exception as err:  # a heartbeat must never break the session that calls it
+            print(f"beat skipped: {err!r}"[:300], file=sys.stderr)
+            return 0
         return 0
     if args.cmd == "gate":
         rollout = json.loads(args.rollout.read_text()) if args.rollout.exists() else empty_rollout()

@@ -149,9 +149,21 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 try:  # shared grammar; colab.py sits next to this file in the skill and in the meta repo
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from colab import parse_links, validate_links  # noqa: E402
+    from colab import parse_links, validate_links, parse_sessions, session_state  # noqa: E402
 except ImportError:  # pragma: no cover
-    parse_links = validate_links = None
+    parse_links = validate_links = parse_sessions = session_state = None
+
+
+def running_jobs(ids: set[str]) -> set[str]:
+    """Which of these Slurm job ids are still pending or running (the bus runs on the cluster)."""
+    if not ids:
+        return set()
+    try:
+        out = subprocess.run(["squeue", "-h", "-j", ",".join(sorted(ids)), "-o", "%i"],
+                             capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return set()
+    return {line.strip() for line in out.splitlines() if line.strip()}
 
 
 def remember(state: dict, env_id: str) -> bool:
@@ -230,6 +242,33 @@ def now() -> str:
 def _append(path: Path, record: dict) -> None:
     with open(path, "a") as fh:
         fh.write(json.dumps(record) + "\n")
+
+
+def session_stats(gh, config: dict, state: dict, state_dir: Path, jobs=running_jobs) -> dict:
+    """Count active, waiting, and stale agent sessions from the Session activity issue."""
+    sess = config.get("sessions", {})
+    if not sess.get("issue") or parse_sessions is None:
+        return {}
+    org, meta_repo = config["org"]["name"], config["org"].get("meta_repo", "lab-colab")
+    comments = []
+    for page in range(1, 11):
+        batch = gh.get(f"/repos/{org}/{meta_repo}/issues/{sess['issue']}/comments?per_page=100&page={page}", cache=True) or []
+        comments += batch
+        if len(batch) < 100:
+            break
+    sessions = parse_sessions(comments)
+    running = jobs({x["job"] for x in sessions if x.get("job")})
+    now_t = datetime.now(timezone.utc)
+    counts = {"sessions_active": 0, "sessions_waiting": 0, "sessions_stale": 0}
+    reported = state.setdefault("stale_reported", {})
+    for x in sessions:
+        st = session_state(x, now_t, int(sess.get("stale_minutes", 60)), running)
+        counts[f"sessions_{st}"] += 1
+        if st == "stale" and x.get("item") and reported.get(x["session"]) != x["beat"].isoformat():
+            reported[x["session"]] = x["beat"].isoformat()
+            _append(state_dir / "audit.jsonl", {"stale_session": x["session"], "user": x["user"], "item": x["item"],
+                                                "last_beat": x["beat"].isoformat(), "at": now()})
+    return counts
 
 
 def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path,
@@ -425,6 +464,7 @@ def main(argv: list[str] | None = None) -> int:
                 tmp.replace(state_path)
 
             stats = poll_once(gh, config, rollout, subs, state, args.state_dir, bot, save)
+            stats.update(session_stats(gh, config, state, args.state_dir))
             save()
             heartbeat(gh, config["org"]["name"], config["org"]["meta_repo"], stats)
             print(json.dumps({"at": now(), **stats}), flush=True)
