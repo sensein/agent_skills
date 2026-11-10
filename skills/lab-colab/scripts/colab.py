@@ -10,7 +10,8 @@ Subcommands
   apply         Run the plan's `gh` actions; needs --yes. File changes are never
                 applied here: they are printed as local steps for a reviewed PR.
   seed          Write the meta-repo starter files into a local checkout.
-  render-forms  Write one issue form per work type into a directory.
+  render-forms  Write one issue form per work type into a directory (org-wide: the .github repo).
+  next          List Ready, agent-ready, unblocked, unleased items on the org Project.
   scan          Leak-scan files or stdin; exit 1 on any finding. --selftest checks
                 that every seeded case is caught.
   links         Parse and validate the fenced ```links block of an issue body.
@@ -61,8 +62,14 @@ def _gh_json(args: list[str]) -> object | None:
     return json.loads(out) if out else None
 
 
-def observe(org: str, meta_repo: str) -> dict:
-    """Collect what exists in the org. Read-only."""
+def observe(config: dict) -> dict:
+    """Collect what exists in the org. Read-only.
+
+    Labels are not swept: none are created up front. Issue-template folders are
+    read only for the forms repo and the space repos.
+    """
+    org, meta_repo = config["org"]["name"], config["org"]["meta_repo"]
+    forms_repo = config["org"].get("forms_repo", ".github")
     repos = _gh_json(["repo", "list", org, "--limit", "1000", "--json", "name,visibility,isArchived"]) or []
     active = [r for r in repos if not r.get("isArchived")]
     types = _gh_json(["api", f"orgs/{org}/issue-types"]) or []
@@ -75,7 +82,6 @@ def observe(org: str, meta_repo: str) -> dict:
         "issue_types": [t["name"] for t in types if isinstance(t, dict)],
         "projects": [{"number": p["number"], "title": p["title"]} for p in projects],
         "project_fields": {},
-        "labels": {},
         "forms": {},
         "rollout": None,
     }
@@ -83,10 +89,8 @@ def observe(org: str, meta_repo: str) -> dict:
         fields = (_gh_json(["project", "field-list", str(p["number"]), "--owner", org, "--format", "json"]) or {}).get("fields", [])
         snapshot["project_fields"][str(p["number"])] = [
             {"name": f["name"], "options": [o["name"] for o in f.get("options", [])]} for f in fields]
-    for r in snapshot["repos"]:
-        name = r["name"]
-        labels = _gh_json(["label", "list", "--repo", f"{org}/{name}", "--limit", "300", "--json", "name"]) or []
-        snapshot["labels"][name] = [lab["name"] for lab in labels]
+    names = {r["name"] for r in snapshot["repos"]}
+    for name in sorted(({forms_repo} | set(repo_spaces(config))) & names):
         forms = _gh_json(["api", f"repos/{org}/{name}/contents/.github/ISSUE_TEMPLATE"]) or []
         snapshot["forms"][name] = [f["name"] for f in forms if isinstance(f, dict)]
     if snapshot["meta_repo_exists"]:
@@ -105,6 +109,15 @@ def space_repos(config: dict) -> dict[str, list[str]]:
     return {name: list(spec.get("repos", [])) for name, spec in (config.get("spaces") or {}).items()}
 
 
+def repo_spaces(config: dict) -> dict[str, list[str]]:
+    """repo -> the spaces it belongs to (membership is implied; no labels)."""
+    out: dict[str, list[str]] = {}
+    for name, spec in (config.get("spaces") or {}).items():
+        for repo in spec.get("repos", []):
+            out.setdefault(repo, []).append(name)
+    return out
+
+
 def form_filename(type_name: str) -> str:
     return f"colab-{type_name.lower()}.yml"
 
@@ -118,15 +131,6 @@ def _field_options(fields: list) -> dict[str, list[str]]:
         else:
             out[f["name"]] = list(f.get("options", []))
     return out
-
-
-def render_links_check(config: dict) -> str:
-    """The links-check workflow, with edge rules taken from the config."""
-    edges = config["edges"]
-    text = (TEMPLATES / "colab-links-check.yml").read_text()
-    return (text.replace("{{BODY_EDGES}}", json.dumps(sorted(edges["body"])))
-                .replace("{{NATIVE_EDGES}}", json.dumps(sorted(edges["native"])))
-                .replace("{{KG_EDGES}}", json.dumps(sorted(edges.get("kg_only", [])))))
 
 
 def _action(kind: str, phase: int, desc: str, cmd: list[str] | None = None, **extra) -> dict:
@@ -188,29 +192,30 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
     if not spaces:
         candidates = sorted(n for n in repos if n != meta)
         actions.append(_action("manual", 0,
-                               "Define spaces: edit [spaces] in .colab/config.toml (name, steward, repos). "
+                               "Define spaces: edit [spaces] in .colab/config.toml (name, stewards, repos, optional tier). "
                                f"Candidate repos: {', '.join(candidates[:40]) or 'none found'}"))
 
-    core = config.get("labels", [])
-    member_repos = sorted({r for rs in spaces.values() for r in rs} | ({meta} if snapshot.get("meta_repo_exists") else set()))
-    for repo in member_repos:
+    # No labels up front: tier comes from repo visibility and the space tier setting,
+    # and space membership from the repo lists. Labels appear only on first use.
+    for repo in sorted(repo_spaces(config)):
         if repo not in repos:
             actions.append(_action("manual", 0, f"Space repo {repo} not found in {org}; fix [spaces]"))
-            continue
-        have = set(snapshot.get("labels", {}).get(repo, []))
-        wanted = list(core) + [{"name": f"space:{s}", "color": "5319e7", "description": f"Space {s}"}
-                               for s, rs in spaces.items() if repo in rs]
-        for lab in wanted:
-            if lab["name"] not in have:
-                actions.append(_action("gh", 0, f"Label {lab['name']} in {repo}",
-                                       ["gh", "label", "create", lab["name"], "--repo", f"{org}/{repo}",
-                                        "--color", lab["color"], "--description", lab["description"], "--force"]))
-        forms = set(snapshot.get("forms", {}).get(repo, []))
-        missing = [t["name"] for t in config.get("types", []) if form_filename(t["name"]) not in forms]
-        if missing and repo != meta:
-            actions.append(_action("local", 0, f"Open a PR adding {len(missing)} issue forms to {repo}",
-                                   ["python", "colab.py", "render-forms", "--dest", f"<clone of {repo}>/.github/ISSUE_TEMPLATE",
-                                    "--workflows", f"<clone of {repo}>/.github/workflows"]))
+
+    # Issue forms once, org-wide, in the forms repo (GitHub's default templates).
+    forms_repo = config["org"].get("forms_repo", ".github")
+    if forms_repo not in repos:
+        actions.append(_action("manual", 0, f"Create {org}/{forms_repo} (public) to hold org-wide default issue forms"))
+    else:
+        have = set(snapshot.get("forms", {}).get(forms_repo, []))
+        missing = [t["name"] for t in config.get("types", []) if form_filename(t["name"]) not in have]
+        if missing:
+            actions.append(_action("local", 0, f"Open a PR adding {len(missing)} org-wide issue forms to {forms_repo}",
+                                   ["python", "colab.py", "render-forms", "--dest", f"<clone of {org}/{forms_repo}>/.github/ISSUE_TEMPLATE"]))
+    own = sorted(r for r in repo_spaces(config) if r != forms_repo and snapshot.get("forms", {}).get(r))
+    if own:
+        actions.append(_action("manual", 0,
+                               "These space repos have their own issue templates, so the org-wide forms do not show there: "
+                               f"{', '.join(own)}. Add colab forms to one only if its maintainers want them."))
 
     rollout = snapshot.get("rollout") or empty_rollout()
     bus_seen = any(s.get("bus") for s in rollout.get("spaces", {}).values())
@@ -276,11 +281,10 @@ def render_form(type_spec: dict) -> str:
         f"name: {q(type_spec['name'])}",
         f"description: {q(type_spec['description'])}",
         f"type: {q(type_spec['name'])}",
-        "labels: [\"tier:lab\"]",
         "body:",
         "  - type: markdown",
         "    attributes:",
-        "      value: " + q("Default tier is lab. Never paste restricted content; link to it. Add typed links in a fenced links block, e.g. uses: sensein/repo#12."),
+        "      value: " + q("Never paste restricted content; link to it. Add typed links in a fenced links block, one per line, e.g. uses: sensein/senselab#12."),
     ]
     for field in type_spec.get("fields", []):
         lines += [
@@ -304,14 +308,9 @@ def render_form(type_spec: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def cmd_render_forms(config: dict, dest: Path, workflows: Path | None = None) -> list[Path]:
+def cmd_render_forms(config: dict, dest: Path) -> list[Path]:
     dest.mkdir(parents=True, exist_ok=True)
     written = []
-    if workflows is not None:
-        workflows.mkdir(parents=True, exist_ok=True)
-        check = workflows / "colab-links-check.yml"
-        check.write_text(render_links_check(config))
-        written.append(check)
     for t in config.get("types", []):
         path = dest / form_filename(t["name"])
         path.write_text(render_form(t))
@@ -325,7 +324,6 @@ def cmd_seed(dest: Path, config_path: Path | None) -> list[Path]:
     The sbatch goes in as a template; the filled copy (real paths) lives in the
     bus state directory, outside git, so the meta repo keeps scanning clean.
     """
-    config = load_config(config_path)
     colab = dest / ".colab"
     colab.mkdir(parents=True, exist_ok=True)
     plan = {
@@ -333,7 +331,6 @@ def cmd_seed(dest: Path, config_path: Path | None) -> list[Path]:
         colab / "rollout.json": json.dumps(empty_rollout(), indent=2) + "\n",
         colab / "subscriptions.toml": (TEMPLATES / "subscriptions.toml").read_text(),
         dest / ".github" / "workflows" / "colab-watchdog.yml": (TEMPLATES / "colab-watchdog.yml").read_text(),
-        dest / ".github" / "workflows" / "colab-links-check.yml": render_links_check(config),
         dest / "bus" / "colab-bus.sbatch.template": (TEMPLATES / "colab-bus.sbatch").read_text(),
         dest / ".gitignore": "bus/*.local.sbatch\n",
     }
@@ -452,6 +449,75 @@ def live_lease(comments: list[str], now: datetime | None = None) -> dict | None:
     return latest
 
 
+# --------------------------------------------------------------------------- next
+
+
+def _norm(key: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", key.lower())
+
+
+def field_value(item: dict, name: str):
+    """Read a Project field from a `gh project item-list` item, whatever its key casing."""
+    want = _norm(name)
+    for key, value in item.items():
+        if _norm(key) == want:
+            return value
+    return None
+
+
+def candidates(items: list[dict]) -> list[dict]:
+    """Issues with Status = Ready and Agent-ready = yes. Visibility is GitHub's own check:
+    the list only holds items the caller can see."""
+    out = []
+    for it in items:
+        content = it.get("content") or {}
+        if content.get("type") != "Issue":
+            continue
+        if str(field_value(it, "Status") or "") != "Ready" or str(field_value(it, "Agent-ready") or "").lower() != "yes":
+            continue
+        out.append({"repo": content.get("repository", ""), "number": content.get("number"),
+                    "title": content.get("title", ""), "url": content.get("url", "")})
+    return out
+
+
+def pick_next(cands: list[dict], comments: dict[str, list[str]], blocked: dict[str, bool],
+              now: datetime | None = None, limit: int = 10) -> list[dict]:
+    """Drop items with a live lease or an open blocker."""
+    out = []
+    for c in cands:
+        if blocked.get(c["url"]) or live_lease(comments.get(c["url"], []), now):
+            continue
+        out.append(c)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def cmd_next(config: dict, items_path: Path | None, limit: int) -> int:
+    org = config["org"]["name"]
+    title = config["org"]["project_title"]
+    if items_path:
+        items = json.loads(items_path.read_text()).get("items", [])
+    else:
+        projects = (_gh_json(["project", "list", "--owner", org, "--limit", "1000", "--format", "json"]) or {}).get("projects", [])
+        project = next((p for p in projects if p["title"] == title), None)
+        if project is None:
+            print(f"No Project titled {title!r}; run the bootstrap plan first.", file=sys.stderr)
+            return 1
+        items = (_gh_json(["project", "item-list", str(project["number"]), "--owner", org,
+                           "--limit", "1000", "--format", "json"]) or {}).get("items", [])
+    cands = candidates(items)
+    comments: dict[str, list[str]] = {}
+    blocked: dict[str, bool] = {}
+    for c in cands[: limit * 3]:
+        path = f"repos/{c['repo']}/issues/{c['number']}"
+        comments[c["url"]] = [x.get("body", "") for x in (_gh_json(["api", f"{path}/comments?per_page=100"]) or [])]
+        blockers = _gh_json(["api", f"{path}/dependencies/blocked_by"]) or []
+        blocked[c["url"]] = any(b.get("state") == "open" for b in blockers if isinstance(b, dict))
+    print(json.dumps(pick_next(cands, comments, blocked, limit=limit), indent=2))
+    return 0
+
+
 # --------------------------------------------------------------------------- gate
 
 
@@ -494,7 +560,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--yes", action="store_true")
     p = sub.add_parser("seed"); p.add_argument("--dest", type=Path, required=True)
     p = sub.add_parser("render-forms"); p.add_argument("--dest", type=Path, required=True)
-    p.add_argument("--workflows", type=Path, help="also write the links-check workflow here")
+    p = sub.add_parser("next"); p.add_argument("--items", type=Path, help="saved `gh project item-list` JSON")
+    p.add_argument("--limit", type=int, default=10)
     p = sub.add_parser("scan"); p.add_argument("paths", nargs="*"); p.add_argument("--selftest", action="store_true")
     p = sub.add_parser("links"); p.add_argument("--body", type=Path, help="file with the issue body (default stdin)")
     p.add_argument("--type", dest="source_type")
@@ -507,10 +574,10 @@ def main(argv: list[str] | None = None) -> int:
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
 
     if args.cmd == "status":
-        print(json.dumps(observe(org, meta), indent=2))
+        print(json.dumps(observe(config), indent=2))
         return 0
     if args.cmd in ("plan", "apply"):
-        snapshot = json.loads(args.snapshot.read_text()) if args.snapshot else observe(org, meta)
+        snapshot = json.loads(args.snapshot.read_text()) if args.snapshot else observe(config)
         actions = build_plan(config, snapshot)
         if args.cmd == "plan":
             print(json.dumps(actions, indent=2))
@@ -521,7 +588,7 @@ def main(argv: list[str] | None = None) -> int:
             print(path)
         return 0
     if args.cmd == "render-forms":
-        for path in cmd_render_forms(config, args.dest, args.workflows):
+        for path in cmd_render_forms(config, args.dest):
             print(path)
         return 0
     if args.cmd == "scan":
@@ -532,6 +599,8 @@ def main(argv: list[str] | None = None) -> int:
         errors += validate_links(edges, config, args.source_type)
         print(json.dumps({"edges": edges, "errors": errors}, indent=2))
         return 1 if errors else 0
+    if args.cmd == "next":
+        return cmd_next(config, args.items, args.limit)
     if args.cmd == "lease":
         print(compose_lease(args.user, args.hours))
         return 0

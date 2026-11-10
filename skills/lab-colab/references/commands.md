@@ -24,7 +24,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 **Reads.** The source material at its own tier. Open items in the target space, to find duplicates.
 
-**Writes.** New issues with labels `agent-proposed`, `space:<name>`, and a tier label. Status is Proposed. Each body has a `links` block.
+**Writes.** New issues in a repo of the target space, added to the org Project with Status Proposed. No labels, except `space:<name>` when an item joins a space its repo is not in, or `tier:restricted` for an exception. Each body has a `links` block.
 
 **Steps.**
 
@@ -32,7 +32,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 2. Pick one type per candidate from the table in `design.md`.
 3. Link a candidate to an existing open item when one matches. Do not duplicate it.
 4. Write each body with its required fields and a `links` block. Run `colab.py links --type <Type>` on each body. Fix every error.
-5. Create the issues. Set the labels and Status as described under Writes.
+5. Create the issues, add them to the Project, and set Status as described under Writes.
 
 **Guardrails.**
 
@@ -44,13 +44,13 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 **Purpose.** List the items an agent may claim now.
 
-**Reads.** Open issues with label `agent-ready` and Status Ready in the space. Native blocked-by links. Comments, for lease markers. Tier labels.
+**Reads.** Org Project items with Status Ready and Agent-ready yes. Native blocked-by links. Comments, for lease markers.
 
 **Writes.** Nothing.
 
 **Steps.**
 
-1. Query open issues with label `agent-ready` and Status Ready in the requested space.
+1. Run `colab.py next`. It reads the org Project's items with Status Ready and Agent-ready yes.
 2. Drop any item with an open blocked-by (`depends-on`) link.
 3. Drop any item with a live lease. A live lease is the newest `colab-lease` marker whose `until` is later than now. The helper's `live_lease` check does this.
 4. Drop any item above the tier the session may read. Restricted items are never listed to a Claude session.
@@ -244,7 +244,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 **Steps.**
 
-1. Read the current tier from the tier label. Read the target audience tier.
+1. Read the current tier: repo visibility, the space `tier`, and any `tier:restricted` label. Read the target audience tier.
 2. If the target is equal or stricter, publish directly.
 3. If the target is looser, open a promotion PR with the content.
 4. Run `colab.py scan` on the content. Exit 0 is required.

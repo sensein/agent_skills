@@ -15,7 +15,7 @@ description: >-
 
 # Lab Colab Space
 
-Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped by `space:*` labels. A polling bus on ORCD moves events between repos, only ever toward stricter tiers.
+Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped into spaces: named areas of work declared in the config, each with stewards and a list of existing repos. A space is not a repo or a folder, and nothing is created in member repos up front. A polling bus on ORCD moves events between repos, only ever toward stricter tiers.
 
 Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command.
 
@@ -25,10 +25,10 @@ This skill obeys any higher-level instruction, project policy, or user constrain
 
 Hard rules, always:
 
-1. **Dry run first.** Org-level writes (repos, issue types, labels, Projects, fields) run only through `colab.py apply --yes`, after the user has seen the plan in this session and said yes. Approval for one plan does not carry over to the next.
+1. **Dry run first.** Org-level writes (repos, issue types, Projects, fields) run only through `colab.py apply --yes`, after the user has seen the plan in this session and said yes. Approval for one plan does not carry over to the next.
 2. **Never read restricted paths.** A Claude session sends what it reads to the model API, even on ORCD. Restricted data is processed only by ORCD jobs with open models, which return aggregates or pointers.
 3. **Scan before any push or post** to a looser tier: `colab.py scan <files>` must exit 0. Treat any finding as a stop.
-4. **Agents propose, humans accept.** Agent-made items get `agent-proposed` and Status = Proposed until a person accepts them.
+4. **Agents propose, humans accept.** Agent-made items get Status = Proposed until a steward or Lead accepts them.
 5. **PRs, not direct writes**, for every file change, to the repo's integration branch when it has one.
 6. **Stay under GitHub's content limits**: one write per second, and a digest issue instead of a fan-out above 20 targets.
 
@@ -57,7 +57,7 @@ Run this loop whenever the user asks to set up, continue, or check the rollout. 
 4. **Confirm.** Ask the user to approve the `gh` actions. Then `apply --snapshot ... --yes`. Re-observe and re-plan, because new objects (e.g. the Project number) unlock later actions.
 5. **Do the local steps**, each as a reviewed PR:
    - seed the meta repo: `colab.py seed --dest <meta clone>`;
-   - per space repo: `colab.py render-forms --dest <clone>/.github/ISSUE_TEMPLATE --workflows <clone>/.github/workflows`;
+   - issue forms once, org-wide: `colab.py render-forms --dest <clone of the org's .github repo>/.github/ISSUE_TEMPLATE`. Repos with their own templates keep them; the plan lists those;
    - scan every changed file before pushing.
 6. **Gates.** For a `gate` action, check the gate's criterion against real evidence (links to runs, PRs, scan output). Only then record it: `colab.py gate --rollout <meta clone>/.colab/rollout.json --space <s> --phase <n> --evidence <link>`. Commit the change by PR. Recording phase *n* switches on phase *n+1*'s features for that space only.
 7. **Report** what changed, what is waiting on a person, and the next gate per space.
@@ -66,7 +66,7 @@ The bootstrap upgrades itself through the same loop. Its config, subscriptions, 
 
 ### Rollout shape
 
-Phase 0 reaches **every** space with low-risk parts only: types, labels, forms, links, paste intake, dashboards, and the bus in **dry-run** (it logs what it would deliver and writes nothing but its heartbeat). Risky parts switch on per space, by gate: live bus writes (phase 1), then agent-initiated proposals, automatic intake, and the restricted tier (phase 2), then self-improvement (phase 3). Gates are in the config and in [`references/rollout.md`](./references/rollout.md).
+Phase 0 reaches **every** space with low-risk parts only: types, org-wide forms, links, paste intake, dashboards, and the bus in **dry-run** (it logs what it would deliver and writes nothing but its heartbeat). Risky parts switch on per space, by gate: live bus writes (phase 1), then agent-initiated proposals, automatic intake, and the restricted tier (phase 2), then self-improvement (phase 3). Gates are in the config and in [`references/rollout.md`](./references/rollout.md).
 
 ### Starting the bus
 
@@ -90,7 +90,7 @@ Org metadata (issue types, Projects) is changed only by `colab.py apply`, under 
 Each command is specified in [`references/commands.md`](./references/commands.md): what it reads, what it writes, and its contract. In short:
 
 - **`distill`**: turn a thread, meeting transcript, or notes into proposed typed items and links.
-- **`next`**: list Ready, unblocked, unleased `agent-ready` items within the caller's access.
+- **`next`**: `colab.py next` lists Project items with Status = Ready and Agent-ready = yes that are unblocked and unleased, within the caller's access.
 - **`claim`**: assign the item, set In progress, and post a lease (`colab.py lease --user <me>`).
 - **`handoff`**: post a ledger checkpoint and renew the lease.
 - **`capture`**: turn session results into knowledge items, staged in the meta repo.

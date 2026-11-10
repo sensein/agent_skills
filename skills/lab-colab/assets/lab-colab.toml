@@ -8,6 +8,7 @@
 name = "sensein"
 meta_repo = "lab-colab"          # private: config, ledgers, event snapshots, KG staging
 discuss_repo = "lab-colab"       # Discussions live in the meta repo unless split later
+forms_repo = ".github"           # org-wide default issue forms; repos with their own templates keep theirs
 project_title = "Lab portfolio"
 
 # ---------------------------------------------------------------------------
@@ -119,38 +120,19 @@ kg_only = ["supersedes", "contradicts", "supports", "refines"]
 addresses = ["Experiment", "Review"]
 
 # ---------------------------------------------------------------------------
-# Labels created in every member repo. The tier:* label is canonical for routing
-# because labels are visible to every API; the Project field mirrors it.
+# Labels. None are created up front. Tier comes from repo visibility plus the
+# space `tier` setting below; space membership comes from the repo lists. A
+# label is created only on first use, for an exception: one restricted item in
+# a lab repo, or an item joining a space its repo is not in.
 # ---------------------------------------------------------------------------
-[[labels]]
-name = "tier:public"
-color = "0e8a16"
-description = "Visibility ceiling: public"
-
-[[labels]]
-name = "tier:lab"
-color = "fbca04"
-description = "Visibility ceiling: lab members"
-
 [[labels]]
 name = "tier:restricted"
 color = "b60205"
 description = "Visibility ceiling: named project members only"
+on_demand = true
 
-[[labels]]
-name = "agent-ready"
-color = "1d76db"
-description = "An agent may claim this without a briefing"
-
-[[labels]]
-name = "colab-delivery"
-color = "ededed"
-description = "Written by colab-bus; never re-routed"
-
-[[labels]]
-name = "agent-proposed"
-color = "c5def5"
-description = "Created by an agent; awaits a human accept"
+[labels_space]
+color = "5319e7"                 # for space:<name> labels, created on first use
 
 # Project v2 fields. gh can create TEXT, SINGLE_SELECT, DATE, NUMBER; an
 # ITERATION field must be added once in the web UI (plan says so).
@@ -163,6 +145,11 @@ options = ["Proposed", "Accepted", "Ready", "In progress", "Blocked", "Review", 
 name = "Sensitivity"
 type = "SINGLE_SELECT"
 options = ["public", "lab", "restricted"]
+
+[[fields]]
+name = "Agent-ready"
+type = "SINGLE_SELECT"
+options = ["yes", "no"]
 
 [[fields]]
 name = "Lead"
@@ -190,7 +177,12 @@ type = "ITERATION"
 # one per active repo and the lab edits the list in the meta-repo copy.
 # ---------------------------------------------------------------------------
 [spaces]
-# example-space = { steward = "handle", repos = ["repo-a", "repo-b"] }
+# A space is a named area of work: a project, a theme, or shared infrastructure.
+# It is not a repo or a folder: just this entry. Items in the listed repos belong
+# to the space; spaces may share repos. Stewards (one or more) accept proposals
+# and name a Lead per item. Set tier = "restricted" for spaces whose repos may
+# hold restricted items; a repo shared by several spaces takes the strictest.
+# example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"], tier = "restricted" }
 
 # ---------------------------------------------------------------------------
 # Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
