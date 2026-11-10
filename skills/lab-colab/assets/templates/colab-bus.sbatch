@@ -36,6 +36,8 @@ on_usr1() {
 }
 trap on_usr1 USR1
 
+# Pull before starting: the bus imports its helper code once, at startup.
+git -C "$META" pull --ff-only -q || echo "$(date -Is) meta pull failed; using the last checkout"
 echo "$(date -Is) start job=$SLURM_JOB_ID restart=${SLURM_RESTART_COUNT:-0} node=$(hostname)"
 "$PY" "$META/bus/colab_bus.py" --meta "$META" --state-dir "$STATE_DIR" --token-file {{TOKEN_FILE}} &
 child=$!
