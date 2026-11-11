@@ -43,7 +43,7 @@ applicable.
 2. Extract source-grounded records using the mode's required schema. For NER,
    preserve distinct occurrences and their evidence; use the mask-recall pass
    when exhaustive recall is needed.
-3. Map concepts with the configured tools. For NER, use
+3. Map concepts with the configured tools (the trusted ontology files are fetched into a local cache on first use; see below). For NER, use
    `python -m scripts.concept_mapping map <result.json>`.
 4. Review with the mode's judge workflow and apply corrections through
    `scripts/review_loop.py` or `scripts/human_feedback.py`, not untracked edits.
@@ -61,6 +61,26 @@ applicable.
 For multiple papers, use `scripts/batch.py` for NER or the bulk workflow in
 `references/abcd-extraction.md` for ABCD/HBCD. Keep each paper's evidence and
 results distinct; use the mode's synthesis step for cross-paper conclusions.
+
+## Ontology files: downloaded on demand, not bundled
+
+The ~400 MB of trusted ontology files are **not in this repository** (claude.ai caps a
+plugin at 200 MB, so bundling them kept structsense out of the org plugin marketplace).
+`ontologies.json` lists each file with its asset URL, sha256, size and upstream IRI. The
+first run that needs one downloads it, verifies the sha256 and stores it in a cache shared
+by every run and project:
+
+`${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`
+
+```bash
+python -m scripts.ontology_cache prefetch --all          # or: prefetch cl.owl hp-base.owl  (offline / cluster use)
+python -m scripts.ontology_cache import-local <dir>      # seed the cache from a trusted_ontologes/ checkout (checksum-verified)
+python -m scripts.ontology_cache list | verify | dir     # state, re-hash, cache location
+```
+
+A file in `trusted_ontologes/` still wins over the cache. Offline with a cold cache,
+the affected ontologies are skipped with a warning that names `import-local`; prefetch
+before going offline. Details: [`trusted_ontologes/README.md`](trusted_ontologes/README.md).
 
 ## Model and tool use
 
