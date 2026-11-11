@@ -215,7 +215,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 **Steps.**
 
-1. Run `colab.py tag <owner>/<repo>#<n> <label> [<label>...]`. Add `--remove` to take labels off, and `--dry-run` to print the `gh` calls without running them.
+1. Run `colab.py tag <owner>/<repo>#<n> <label> [<label>...]`. Add `--remove` to take labels off (plus `--confirm-steward` for a `tier:*` label), and `--dry-run` to print the `gh` calls without running them.
 2. For each label it checks the repo, creates the label if it is missing, then adds it to the issue. `--remove` deletes it from the issue and never touches the repo's label.
 3. Writes run under your own `gh` login, at least one second apart. A failed write prints `FAILED` and exits 1.
 
@@ -223,7 +223,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 - Allowed labels only: `space:<name>` for a name in `[spaces]`, and each `[[labels]]` entry. Anything else exits 2 and lists the allowed set. To allow a new label, change the config by PR.
 - Repos in `[org] name` only. Labels are never created in other orgs' repos: any other repo exits 2, because external repos are tracked read-only.
-- Removing a `tier:*` label loosens the item's tier. It is allowed, with a warning: a steward of the item's space must confirm it.
+- Removing a `tier:*` label loosens the item's tier. A steward of the item's space must confirm it first; then pass `--confirm-steward`. Without it, `--remove tier:*` exits 2.
 
 ## credit
 

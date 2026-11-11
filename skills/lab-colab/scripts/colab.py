@@ -176,8 +176,8 @@ def observe(config: dict) -> dict:
         fields = (_gh_json(["project", "field-list", number, "--owner", org, "--format", "json"]) or {}).get("fields", [])
         snapshot["project_fields"][number] = [
             {"name": f["name"], "options": [o["name"] for o in f.get("options", [])]} for f in fields]
-    names = {r["name"] for r in snapshot["repos"]}
-    for name in sorted(({forms_repo} | set(repo_spaces(config))) & names):
+    actual = {r["name"].lower(): r["name"] for r in snapshot["repos"]}  # repo keys are lower-case
+    for name in sorted({actual[k.lower()] for k in {forms_repo} | set(repo_spaces(config)) if k.lower() in actual}):
         forms = _gh_json(["api", f"repos/{org}/{name}/contents/.github/ISSUE_TEMPLATE"]) or []
         snapshot["forms"][name] = [f["name"] for f in forms if isinstance(f, dict)]
     snapshot["external_repos"], snapshot["notes"] = observe_external(config)
@@ -193,27 +193,34 @@ def observe(config: dict) -> dict:
 # --------------------------------------------------------------------------- plan
 
 
-REPO_ENTRY = re.compile(r"^(?:(?P<owner>[A-Za-z0-9][A-Za-z0-9-]*)/)?(?P<name>[A-Za-z0-9_.-]+)$")
+# GitHub owners: letters, digits, hyphens. Repo names: letters, digits, `_ . -`, but never `.` or `..`.
+OWNER_RX = r"[A-Za-z0-9][A-Za-z0-9-]*"
+NAME_RX = r"(?!\.{1,2}(?:[/#]|$))[A-Za-z0-9_.-]+"
+REPO_ENTRY = re.compile(rf"^(?:(?P<owner>{OWNER_RX})/)?(?P<name>{NAME_RX})$")
+
+
+class RepoEntryError(ValueError):
+    """A malformed repo entry or item reference; the CLI exits 2 on it."""
 
 
 def repo_ref(entry: str, home: str | None) -> str:
     """Normalise a repo entry to `owner/name`. A bare name belongs to the lab's org (`[org] name`).
 
-    With no home org (bare test configs) a bare name stays bare.
+    With no home org (bare test configs) a bare name stays bare. Case is kept, for API paths.
     """
     m = REPO_ENTRY.match(str(entry).strip())
     if not m:
-        raise ValueError(f"bad repo entry {entry!r}: use <name> or <owner>/<name>")
+        raise RepoEntryError(f"bad repo entry {entry!r}: use <name> or <owner>/<name>")
     owner = m["owner"] or home
     return f"{owner}/{m['name']}" if owner else m["name"]
 
 
 def repo_key(entry: str, home: str | None) -> str:
-    """The key a repo goes by in membership maps, bus cursors and envelope ids: the bare name for the
-    lab's own org (as before, so existing state stays valid), `owner/name` for any other org."""
-    full = repo_ref(entry, home)
+    """The key a repo goes by in membership maps, tier maps, bus cursors and envelope ids, lower-cased
+    (GitHub names are case-insensitive): the bare name for the lab's own org, `owner/name` for any other."""
+    full = repo_ref(entry, home).lower()
     owner, _, name = full.rpartition("/")
-    return name if not owner or (home and owner.lower() == home.lower()) else full
+    return name if not owner or (home and owner == home.lower()) else full
 
 
 def is_external(key: str) -> bool:
@@ -333,6 +340,7 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
     meta = config["org"]["meta_repo"]
     actions: list[dict] = []
     repos = {r["name"]: r for r in snapshot.get("repos", [])}
+    actual = {n.lower(): n for n in repos}  # repo keys are lower-case; snapshot names keep GitHub's case
 
     # Phase 0: foundation, reaching every space with low-risk parts only.
     if not snapshot.get("meta_repo_exists"):
@@ -437,7 +445,7 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
     # No labels up front: tier comes from repo visibility and the space tier setting,
     # and space membership from the repo lists. Labels appear only on first use.
     for repo in sorted(r for r in repo_spaces(config) if not is_external(r)):
-        if repo not in repos:
+        if repo not in actual:
             actions.append(_action("manual", 0, f"Space repo {repo} not found in {org}; fix [spaces]"))
     # Repos in other orgs: report only. The plan never writes org metadata (issue types, Projects,
     # fields, labels, forms) outside [org] name, whoever owns that org.
@@ -466,8 +474,8 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
         if missing:
             actions.append(_action("local", 0, f"Open a PR adding {len(missing)} org-wide issue forms to {forms_repo}",
                                    ["python", "colab.py", "render-forms", "--dest", f"<clone of {org}/{forms_repo}>/.github/ISSUE_TEMPLATE"]))
-    own = sorted(r for r in repo_spaces(config)
-                 if not is_external(r) and r != forms_repo and snapshot.get("forms", {}).get(r))
+    own = sorted(actual[r] for r in repo_spaces(config)
+                 if not is_external(r) and r in actual and actual[r] != forms_repo and snapshot.get("forms", {}).get(actual[r]))
     if own:
         actions.append(_action("manual", 0,
                                "These space repos have their own issue templates, so the org-wide forms do not show there: "
@@ -1055,7 +1063,7 @@ def _gh_missing(proc) -> bool:
 
 
 def cmd_tag(config: dict, item: str, labels: list[str], remove: bool = False, dry_run: bool = False,
-            runner=None, sleep=None, out=None, err=None) -> int:
+            runner=None, sleep=None, out=None, err=None, confirm_steward: bool = False) -> int:
     """Add (or remove) allow-listed labels on one issue with the member's own gh login.
 
     A label is created in the repo on first use, from the config's colour and description.
@@ -1084,7 +1092,11 @@ def cmd_tag(config: dict, item: str, labels: list[str], remove: bool = False, dr
         print(f"tag acts only in {home}; external repos are tracked read-only", file=err)
         return 2
     if remove and any(lab.startswith("tier:") for lab in labels):
-        print("warning: removing a tier label loosens the item's tier; a steward of its space must confirm this", file=err)
+        if not confirm_steward:
+            print("refused: removing a tier label loosens the item's tier; a steward of its space must confirm it. "
+                  "Re-run with --confirm-steward once they have", file=err)
+            return 2
+        print("note: tier label removal confirmed by a steward (--confirm-steward)", file=err)
 
     issue = f"repos/{repo}/issues/{m['number']}"
     interval = max(1.0, float((config.get("bus") or {}).get("write_interval_seconds", 1.0) or 1.0))
@@ -1162,8 +1174,8 @@ def live_lease(comments: list[str], now: datetime | None = None) -> dict | None:
 # Slurm job names it with --job; its lease then runs to the job's scheduled end.
 
 SESSION = re.compile(r"<!-- colab-session id=(?P<id>[A-Za-z0-9._-]+) user=(?P<user>[A-Za-z0-9-]+) "
-                     r"beat=(?P<beat>[0-9T:+-]+Z)(?: job=(?P<job>\d+))?(?: item=(?P<item>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#\d+))? -->")
-ITEM = re.compile(r"^(?P<repo>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)#(?P<number>\d+)$")
+                     rf"beat=(?P<beat>[0-9T:+-]+Z)(?: job=(?P<job>\d+))?(?: item=(?P<item>{OWNER_RX}/{NAME_RX}#\d+))? -->")
+ITEM = re.compile(rf"^(?P<repo>{OWNER_RX}/{NAME_RX})#(?P<number>\d+)$")
 
 
 def _iso(t: datetime) -> str:
@@ -1408,6 +1420,14 @@ def record_gate(rollout: dict, config: dict, space: str, phase: int, evidence: s
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        return _main(argv)
+    except RepoEntryError as err:  # a malformed repo entry in the config or on the command line
+        print(f"colab: {err}", file=sys.stderr)
+        return 2
+
+
+def _main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", type=Path, help="config TOML (default: meta-repo copy if given, else bundled)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1429,6 +1449,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("tag", help="add or remove allow-listed labels (space:<name>, [[labels]]) on one issue")
     p.add_argument("item", help="<owner>/<repo>#<n>"); p.add_argument("labels", nargs="+")
     p.add_argument("--remove", action="store_true"); p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--confirm-steward", action="store_true", help="needed to remove a tier:* label: a steward confirmed it")
     p = sub.add_parser("lease"); p.add_argument("--user", required=True); p.add_argument("--hours", type=float)
     p = sub.add_parser("beat"); p.add_argument("--session"); p.add_argument("--item", help="owner/repo#n")
     p.add_argument("--job", help="Slurm job the session is waiting on"); p.add_argument("--from-hook", action="store_true")
@@ -1483,7 +1504,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "next":
         return cmd_next(config, args.items, args.limit)
     if args.cmd == "tag":
-        return cmd_tag(config, args.item, args.labels, args.remove, args.dry_run)
+        return cmd_tag(config, args.item, args.labels, args.remove, args.dry_run, confirm_steward=args.confirm_steward)
     if args.cmd == "lease":
         hours = args.hours if args.hours is not None else float(config.get("sessions", {}).get("lease_minutes", 45)) / 60
         print(compose_lease(args.user, hours))
