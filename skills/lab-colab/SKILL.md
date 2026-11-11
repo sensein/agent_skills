@@ -6,7 +6,7 @@ description: >-
   public and private repos. Re-entrant: each run observes the org, diffs it against
   the config and the rollout phase, and proposes the next steps as a dry run.
   Also runs the day-to-day /colab commands (distill, next, claim, handoff, capture,
-  brief, run, link, credit, ingest, subscribe, publish, scan, improve). Use when the user
+  brief, run, link, tag, credit, ingest, subscribe, publish, scan, improve). Use when the user
   wants to set up or advance the lab's GitHub-based coordination; turn discussions,
   meetings, or threads into typed work items; pick up, hand off, or run agent-ready work (a claimed Experiment issue in an isolated workspace under explicit budgets, with a metric/verify loop and immutable Observation records);
   capture session knowledge for the lab graph or BrainKB; check what is happening
@@ -47,7 +47,7 @@ The scripts need Python 3.11+ (for `tomllib`) and an authenticated `gh` (`gh aut
 
 Run this loop whenever the user asks to set up, continue, or check the rollout. It is safe to re-run: every step observes first.
 
-1. **Find the config.** If a clone of the meta repo exists (default `sensein/lab-colab`), pass `--config <clone>/.colab/config.toml`; that copy is the source of truth. Otherwise use the bundled [`assets/lab-colab.toml`](./assets/lab-colab.toml) and tell the user that bootstrap starts from defaults.
+1. **Find the config.** If a clone of the meta repo exists (`<[org] name>/<meta_repo>`; the bundled config says `sensein/lab-colab`, and each org's setup sets its own), pass `--config <clone>/.colab/config.toml`; that copy is the source of truth. Otherwise use the bundled [`assets/lab-colab.toml`](./assets/lab-colab.toml) and tell the user that bootstrap starts from defaults.
 2. **Observe.** `python3 "$COLAB/colab.py" --config <cfg> status > /tmp/colab-status.json` (read-only).
 3. **Plan.** `python3 "$COLAB/colab.py" --config <cfg> plan --snapshot /tmp/colab-status.json`. Show the user the actions grouped by kind:
    - `gh`: org metadata, run by `apply`;
@@ -80,12 +80,13 @@ Seeding puts `bus/colab-bus.sbatch.template` in the meta repo. To run it:
 The job requeues itself near its time limit and after an unexpected exit. A space stays in dry-run until its phase-0 gate is recorded. The `colab-watchdog` workflow in the meta repo alerts the lab when the heartbeat goes stale. A one-shot check is `python3 colab_bus.py --meta <clone> --state-dir <dir> --token-file <file> --once`.
 
 Give the bus its own fine-grained token (or a GitHub App installation token) in a `chmod 600` file. Grant only:
-- Metadata, Issues, and Contents: read on the space and subscriber repos;
+- Metadata, Issues, and Contents: read on the space and subscriber repos, including external space repos (without it those repos are skipped and count as restricted);
+- Members: read on the organization, to pick the external items that involve the group;
 - Projects: read and write on the organization (Project sync);
 - Issues: write on subscriber repos and the meta repo;
 - Variables: write on the meta repo, for the heartbeat.
 
-**Drift check.** With `[bus] drift_check_hours` above 0 (default 24), the bus runs `observe` and `build_plan` read-only with the config it loaded, drops the actions expected to recur (gates, "Start the bus", the own-templates note), and keeps one `Drift report` issue in the meta repo: edited in place while the plan is not clean, closed with a short comment when it is. It never applies anything; the issue lists the `plan` and `apply --yes` commands to review. `drift_actions` is in the heartbeat.
+**Drift check.** With `[bus] drift_check_hours` above 0 (default 24), the bus runs `observe` and `build_plan` read-only with the config it loaded, drops the actions expected to recur (gates, "Start the bus", the own-templates and tracked read-only notes), and keeps one `Drift report` issue in the meta repo: edited in place while the plan is not clean, closed with a short comment when it is. It never applies anything; the issue lists the `plan` and `apply --yes` commands to review. `drift_actions` is in the heartbeat.
 
 Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login. That includes the Project's Spaces field and Iteration field and its views (`Space: <name>`, Agent queue, Proposals inbox, My work); the plan reads the views and their filters and fixes any that differ.
 
@@ -127,6 +128,7 @@ Each command is specified in [`references/commands.md`](./references/commands.md
 - **`brief`**: summarise what happened, challenges, and next steps for a space or the lab.
 - **`run`**: `colab.py run start|confirm|step|loop|check|finish|stage|cleanup|status` (engine: `scripts/colab_run.py`) runs a claimed Experiment issue in an isolated workspace under budgets read from the issue. `start` prints the verify and iterate commands with their sha256, and who last edited the issue; nothing runs until you confirm that hash (`--confirm-verify`), and a later change to the command refuses again. Each iteration writes an immutable Observation, staged in the meta repo by PR. `scripts/monitor_slice.py` is the loop breaker. Runs that touch restricted data (tier computed as the bus does, failing closed) never execute in a session: they go to the batch job that `job.sbatch` describes.
 - **`link`**: write a typed edge into the fenced `links` block. Validate it with `colab.py links --type <Type>`.
+- **`tag`**: `colab.py tag <owner>/<repo>#<n> <label>... [--remove [--confirm-steward]] [--dry-run]` adds or removes allow-listed labels only: `space:<name>` for a space in `[spaces]`, and the `[[labels]]` entries (today `tier:restricted`). It creates a label on first use, with your own `gh` login, and acts only on repos in `[org] name`: external repos are tracked read-only. Removing a `tier:*` label needs `--confirm-steward`, after a steward has confirmed it.
 - **`credit`**: propose or export CRediT roles.
 - **`ingest`**: take a paste, upload, or connector pull, set its tier, and propose items.
 - **`subscribe`**: edit `.colab/subscriptions.toml`.

@@ -373,15 +373,19 @@ def load_colab(config_path: str | None):
 
 def compute_tier(config: dict, ref: dict, labels: list[str], visibility: str | None, sensitivity: str | None = None) -> str:
     """The bus's rule: the strictest of repo visibility, the declared tier of the repo's spaces (membership plus
-    space:* labels), a tier:* label, and the Project's Sensitivity. Unknown visibility fails closed."""
+    space:* labels), a tier:* label, and the Project's Sensitivity. Unknown visibility fails closed. A repo
+    outside [org] name: its space:* labels are ignored, and if it is not public it is restricted unless a
+    space declares its tier."""
     import colab_bus as bus  # noqa: PLC0415
     if visibility not in ("public", "private", "internal"):
         return "restricted"
-    own = ref["owner"] == config.get("org", {}).get("name")
-    declared = [bus.repo_tiers(config).get(ref["repo"])] if own else []
-    for name in {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")}:
-        declared.append(((config.get("spaces") or {}).get(name) or {}).get("tier"))
-    return bus._strictest(bus.tier_of(visibility, labels, None), sensitivity, *declared)
+    key = bus.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name"))
+    own = bus.repo_tiers(config).get(key)
+    declared = [own]
+    if not bus.is_external(key):
+        for name in {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")}:
+            declared.append(((config.get("spaces") or {}).get(name) or {}).get("tier"))
+    return bus._strictest(bus.tier_of(visibility, labels, own, bus.is_external(key)), sensitivity, *declared)
 
 
 def scan_ok(colab_mod, config: dict, paths: list[Path]) -> bool:

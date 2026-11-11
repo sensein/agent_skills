@@ -123,7 +123,8 @@ kg_only = ["supersedes", "contradicts", "supports", "refines"]
 addresses = ["Experiment", "Review"]
 
 # ---------------------------------------------------------------------------
-# Labels. None are created up front. Tier comes from repo visibility plus the
+# Labels. `colab.py tag` may set only these and space:<name> labels; add one here by PR to allow it.
+# None are created up front. Tier comes from repo visibility plus the
 # space `tier` setting below; space membership comes from the repo lists. A
 # label is created only on first use, for an exception: one restricted item in
 # a lab repo, or an item joining a space its repo is not in.
@@ -193,6 +194,13 @@ type = "ITERATION"
 # and name a Lead per item. Set tier = "restricted" for spaces whose repos may
 # hold restricted items; a repo shared by several spaces takes the strictest.
 # example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"], tier = "restricted" }
+#
+# External repos the group contributes to may be listed as "owner/name" (bare names stay in [org] name).
+# They are tracked read-only: the bus adds their items to the Project (see [bus] external_track) and
+# never writes there. A non-public external repo counts as restricted unless the space declares a tier;
+# one you or the bus cannot read is skipped. Their labels never drive routing or Spaces. Keep the
+# Project private: adding an external issue shows an "added to project" event on that issue.
+# example-upstream = { stewards = ["handle-a"], repos = ["repo-a", "upstream-org/library"] }
 
 # ---------------------------------------------------------------------------
 # Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
@@ -255,6 +263,7 @@ heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
 project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
+external_track = "involved"     # external space repos: "involved" = only items whose author is an org member; "all" = every item
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 
 # ---------------------------------------------------------------------------
