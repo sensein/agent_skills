@@ -161,9 +161,25 @@ def _pages(gh, path: str, pages: int = 5) -> list:
     return out
 
 
+CLOSING = r"(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+"
+
+
+def closes(pr: dict, repo_full: str, number) -> bool:
+    """True when a PR's title or body uses a closing keyword on this issue: `Fixes #n` (same repo),
+    `Fixes owner/repo#n`, or `Fixes https://github.com/owner/repo/issues/n`."""
+    text = f"{pr.get('title') or ''}\n{pr.get('body') or ''}"
+    full = re.escape(repo_full)
+    same = str(pr.get("repository_url") or "").lower().endswith("/repos/" + repo_full.lower())
+    targets = [rf"{full}#{number}\b", rf"https?://github\.com/{full}/issues/{number}\b"]
+    if same:
+        targets.append(rf"#{number}\b")
+    return any(re.search(CLOSING + t, text, re.I) for t in targets)
+
+
 def fetch_contributions(gh, base: str, item: dict, members: set[str]) -> dict[str, list[str]]:
     """{member login: [kinds]} for one item: report (opened a bug), request (opened any other issue), fix (authored
-    the PR, or a PR that cross-references the issue, e.g. `Fixes #n`), review (reviewed the PR), comment.
+    the PR, or a PR whose closing keyword names the issue, e.g. `Fixes #n`), review (reviewed the PR), comment,
+    and mention (a PR that only cross-references the issue; recorded, but a mention alone is not involvement).
     Assignment never counts: another org's maintainers set it. Only logins in `members` are kept.
     Costs one call for comments (skipped when the item has none), plus reviews (PRs) or the timeline (issues)."""
     by: dict[str, set[str]] = {}
@@ -175,6 +191,7 @@ def fetch_contributions(gh, base: str, item: dict, members: set[str]) -> dict[st
 
     author = str((item.get("user") or {}).get("login") or "")
     number, is_pr = item.get("number"), "pull_request" in item
+    repo_full = base.split("/repos/", 1)[-1]
     add(author, "fix" if is_pr else ("report" if is_bug(item) else "request"))
     if item.get("comments", 1):
         for c in _pages(gh, f"{base}/issues/{number}/comments"):
@@ -188,7 +205,7 @@ def fetch_contributions(gh, base: str, item: dict, members: set[str]) -> dict[st
         for ev in _pages(gh, f"{base}/issues/{number}/timeline"):
             src = ((ev.get("source") or {}).get("issue") or {}) if ev.get("event") == "cross-referenced" else {}
             if "pull_request" in src:
-                add((src.get("user") or {}).get("login"), "fix")
+                add((src.get("user") or {}).get("login"), "fix" if closes(src, repo_full, number) else "mention")
     return {k: [x for x in CONTRIB_KINDS if x in v] for k, v in sorted(by.items())}
 
 
@@ -310,7 +327,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CONTRIB_KINDS, combined_tier, declared_tiers, format_contributions,  # noqa: E402
+from colab import (CONTRIB_KINDS, combined_tier, involved_by, declared_tiers, format_contributions,  # noqa: E402
                    injection_scan, is_external, lab_opt_in, repo_key, repo_ref, repo_spaces)
 
 try:  # shared grammar
@@ -952,7 +969,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     del contrib[next(iter(contrib))]
             last = item.get("updated_at")
             item["_contributions"] = by
-            if by or track_all:
+            if involved_by(by) or track_all:
                 kept.append(item)
         return kept, None, False
 
@@ -1030,7 +1047,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             if external and on_board:
                 # Board bookkeeping for tracked external items: add once involved, keep Contributions current.
                 entry = contrib.setdefault(f"{repo}#{item.get('number')}", {"by": item.get("_contributions") or {}})
-                project.track_external(envs[0], item.get("_contributions") or {}, entry, bool(item.get("_contributions")),
+                project.track_external(envs[0], item.get("_contributions") or {}, entry, involved_by(item.get("_contributions")),
                                        bool(base) and (item.get("created_at") or "") >= base)
             scan_text_for(repo, item.get("number"), "body", f"{item.get('title') or ''}\n{item.get('body') or ''}", item, on_board)
         for c in comments:

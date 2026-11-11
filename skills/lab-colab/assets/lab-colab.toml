@@ -297,7 +297,7 @@ project_sync = true              # keep the org Project's Spaces field current (
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
 project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
 external_track = "involved"     # external space repos: "involved" = items an org member opened, commented on, reviewed, or fixed
-                                 # (assignment does not count); "all" = every item
+                                 # (a closing PR; assignment or a bare mention does not count); "all" = every item
 external_detail_per_poll = 50    # external items whose comments/reviews/timeline are read per poll (only items updated since
                                  # the cursor); the rest carry over to the next poll
 injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged

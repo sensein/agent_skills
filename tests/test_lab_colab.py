@@ -1757,7 +1757,9 @@ class ContributionTests(unittest.TestCase):
     def test_kinds_are_recorded_per_member_and_assignment_does_not_count(self) -> None:
         details = {"issues/9/comments": [{"user": {"login": "B"}}, {"user": {"login": "left-the-lab"}}],
                    "issues/9/timeline": [{"event": "cross-referenced", "source": {"issue": {
-                       "pull_request": {}, "user": {"login": "a"}}}}, {"event": "assigned", "assignee": {"login": "b"}}]}
+                       "pull_request": {}, "user": {"login": "a"}, "body": "Fixes #9",
+                       "repository_url": "https://api.github.com/repos/pi-lab/tool"}}},
+                       {"event": "assigned", "assignee": {"login": "b"}}]}
         fake, stats, state, _ = self._poll([self.STRANGER], details)
         # opened before the baseline by a non-member, but members commented and fixed it: tracked now
         self.assertEqual(state["contributions"]["pi-lab/tool#9"]["by"], {"a": ["fix"], "b": ["comment"]})
@@ -1769,6 +1771,26 @@ class ContributionTests(unittest.TestCase):
         fake, _, state, _ = self._poll([lone], {})
         self.assertEqual(state["contributions"]["pi-lab/tool#10"]["by"], {})
         self.assertEqual([v for n, v in fake.mutations if n == "addProjectV2ItemById"], [])
+
+    def test_bare_cross_reference_is_a_mention_and_not_involvement(self) -> None:
+        details = {"issues/9/timeline": [{"event": "cross-referenced", "source": {"issue": {
+            "pull_request": {}, "user": {"login": "a"}, "body": "Related to #9, see also #90.",
+            "repository_url": "https://api.github.com/repos/pi-lab/tool"}}}]}
+        lone = {**self.STRANGER, "comments": 0}
+        fake, _, state, events = self._poll([lone], details)
+        self.assertEqual(state["contributions"]["pi-lab/tool#9"]["by"], {"a": ["mention"]})
+        self.assertEqual([e for e in events if e["repo"] == "pi-lab/tool"], [])  # a mention alone does not track it
+        self.assertEqual([v for n, v in fake.mutations if n == "addProjectV2ItemById"], [])
+        self.assertEqual(colab.format_contributions({"a": ["mention", "comment"]}), "a: comment, mention")
+
+    def test_closing_keywords(self) -> None:
+        pr = {"body": "This fixes pi-lab/tool#9.", "repository_url": "https://api.github.com/repos/other/fork"}
+        self.assertTrue(bus.closes(pr, "pi-lab/tool", 9))
+        self.assertTrue(bus.closes({"body": "Resolves https://github.com/pi-lab/tool/issues/9"}, "pi-lab/tool", 9))
+        self.assertTrue(bus.closes({"title": "Closes #9", "repository_url": "https://api.github.com/repos/pi-lab/tool"}, "pi-lab/tool", 9))
+        self.assertFalse(bus.closes({"body": "Closes #9", "repository_url": "https://api.github.com/repos/other/x"}, "pi-lab/tool", 9))
+        self.assertFalse(bus.closes({"body": "Fixes #90", "repository_url": "https://api.github.com/repos/pi-lab/tool"}, "pi-lab/tool", 9))
+        self.assertFalse(bus.closes({"body": "see #9", "repository_url": "https://api.github.com/repos/pi-lab/tool"}, "pi-lab/tool", 9))
 
     def test_report_request_fix_review(self) -> None:
         members = {"a", "b"}

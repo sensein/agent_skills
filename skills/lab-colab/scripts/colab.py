@@ -1610,7 +1610,13 @@ def cmd_beat(config: dict, session: str | None, item: str | None, job: str | Non
 
 # --------------------------------------------------------------------------- contributions
 
-CONTRIB_KINDS = ("report", "request", "fix", "review", "comment")
+CONTRIB_KINDS = ("report", "request", "fix", "review", "comment", "mention")
+INVOLVING_KINDS = frozenset(CONTRIB_KINDS) - {"mention"}  # a bare mention is recorded but does not make an item involve the group
+
+
+def involved_by(by: dict) -> bool:
+    """True when some member made a contribution other than a bare mention."""
+    return any(set(kinds) & INVOLVING_KINDS for kinds in (by or {}).values())
 
 
 def format_contributions(by: dict) -> str:
