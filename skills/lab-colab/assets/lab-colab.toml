@@ -244,3 +244,15 @@ fanout_digest_threshold = 20     # above this many subscribers, write one digest
 heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
+drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
+
+# ---------------------------------------------------------------------------
+# Optional private plugin marketplace: one plugin per skill folder of source_repo, synced into
+# claude.ai as an org marketplace. `colab.py plan` creates the repo, sets its Actions permissions,
+# and proposes `seed-marketplace`. repo = "" (the default) leaves it off.
+# ---------------------------------------------------------------------------
+[marketplace]
+repo = ""                        # e.g. "claude-plugins" (private); "" = off
+source_repo = "agent_skills"     # public repo whose skills/ folders become plugins
+exclude = []                     # skill folder names to leave out
+name = "sensein"                 # marketplace name (what `plugin install <skill>@<name>` uses)

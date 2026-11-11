@@ -18,6 +18,10 @@ Safety rules enforced here:
   - it adds no labels anywhere: tier and space membership come from the config
   - it validates each issue's fenced links block once per body version
 
+Drift check (`[bus] drift_check_hours`, 0 = off): at most that often the bus runs colab.py observe + build_plan read-only
+with the config it loaded, drops the actions expected to recur, and keeps one `Drift report` issue in the meta repo
+in sync (edited in place, closed when clean). It never applies anything.
+
 Project sync (`[bus] project_sync`, with `[org] project_number` set) is board bookkeeping on the
 private org Project, not a delivery, so it runs in dry-run spaces too: newly opened items from
 space repos are added to the Project, and every `project_sync_every` polls the multi-select
@@ -160,9 +164,11 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 try:  # shared grammar; colab.py sits next to this file in the skill and in the meta repo
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from colab import parse_links, validate_links, parse_sessions, session_state  # noqa: E402
+    from colab import (build_plan, is_recurring, observe, parse_links, parse_sessions,  # noqa: E402
+                       session_state, validate_links)
 except ImportError:  # pragma: no cover
     parse_links = validate_links = parse_sessions = session_state = None
+    build_plan = is_recurring = observe = None
 
 
 def running_jobs(ids: set[str]) -> set[str]:
@@ -411,6 +417,93 @@ def session_stats(gh, config: dict, state: dict, state_dir: Path, jobs=running_j
     return counts
 
 
+DRIFT_TITLE = "Drift report"
+DRIFT_MARKER = "<!-- colab-drift -->"
+DRIFT_RETRY_SECONDS = 3600
+
+
+def drift_due(config: dict, state: dict, now_t: datetime) -> bool:
+    """True when `[bus] drift_check_hours` have passed since the last good check (and an hour since a failed one)."""
+    hours = float(config.get("bus", {}).get("drift_check_hours", 0) or 0)
+    if hours <= 0:
+        return False
+    def age(key: str) -> float | None:
+        raw = state.get(key)
+        return (now_t - datetime.fromisoformat(raw)).total_seconds() if raw else None
+    since_ok, since_fail = age("drift_checked_at"), age("drift_failed_at")
+    if since_ok is not None and since_ok < hours * 3600:
+        return False
+    return since_fail is None or since_fail >= DRIFT_RETRY_SECONDS
+
+
+def drift_body(actions: list[dict]) -> str:
+    cfg = "<meta clone>/.colab/config.toml"
+    lines = [DELIVERY_MARKER, DRIFT_MARKER,
+             "The bus compared the org with `.colab/config.toml` (read-only) and these actions are proposed. "
+             "Nothing was applied. This issue is edited in place at each check and closed when the plan is clean.", ""]
+    lines += [f"- `{a['kind']}`: {a['desc']}" for a in actions]
+    lines += ["", "Review, then apply the `gh` actions yourself (`local` and `manual` actions are printed for you to do):", "",
+              "```bash", f"python3 colab.py --config {cfg} plan", f"python3 colab.py --config {cfg} apply --yes", "```", "",
+              "If a change was intentional, update the config by PR instead. Expected recurring steps "
+              "(gates, starting the bus, own-template notes) are left out of this list."]
+    return "\n".join(lines)
+
+
+def find_drift_issue(gh, org: str, meta: str, state: dict) -> dict | None:
+    """The existing Drift report issue (open or closed): the remembered number, else a scan of recent issues."""
+    if state.get("drift_issue"):
+        item = gh.get(f"/repos/{org}/{meta}/issues/{state['drift_issue']}", cache=True)
+        if isinstance(item, dict) and item.get("title") == DRIFT_TITLE:
+            return item
+    for page in range(1, 6):
+        batch = gh.get(f"/repos/{org}/{meta}/issues?state=all&per_page=100&page={page}", cache=True) or []
+        for item in batch:
+            if item.get("title") == DRIFT_TITLE and "pull_request" not in item and DRIFT_MARKER in (item.get("body") or ""):
+                state["drift_issue"] = item["number"]
+                return item
+        if len(batch) < 100:
+            break
+    return None
+
+
+def drift_check(gh, config: dict, state: dict, state_dir: Path, stats: dict, now_t: datetime | None = None,
+                observe_fn=None, plan_fn=None) -> None:
+    """Read-only drift check: observe and plan with the loaded config, then report in one issue.
+
+    Never applies anything and never raises. Sets stats["drift_actions"] when a check ran.
+    """
+    now_t = now_t or datetime.now(timezone.utc)
+    observe_fn, plan_fn = observe_fn or observe, plan_fn or build_plan
+    if observe_fn is None or plan_fn is None or not drift_due(config, state, now_t):
+        return
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    try:
+        snapshot = observe_fn(config)
+        if not snapshot.get("repos") or not snapshot.get("meta_repo_exists"):
+            raise RuntimeError("observe saw no repos or no meta repo (gh unavailable or unauthenticated?); not reporting drift")
+        remaining = [a for a in plan_fn(config, snapshot) if not is_recurring(a)]
+        issue = find_drift_issue(gh, org, meta, state)
+        if remaining:
+            body = drift_body(remaining)
+            if issue is None:
+                made = gh.send("POST", f"/repos/{org}/{meta}/issues", {"title": DRIFT_TITLE, "body": body})
+                state["drift_issue"] = made.get("number")
+            elif issue.get("body") != body or issue.get("state") != "open":
+                gh.send("PATCH", f"/repos/{org}/{meta}/issues/{issue['number']}", {"title": DRIFT_TITLE, "body": body, "state": "open"})
+        elif issue is not None and issue.get("state") == "open":
+            gh.send("POST", f"/repos/{org}/{meta}/issues/{issue['number']}/comments",
+                    {"body": f"The org matches the config again as of {now_t.isoformat(timespec='minutes')}. Closing.\n\n{DELIVERY_MARKER}"})
+            gh.send("PATCH", f"/repos/{org}/{meta}/issues/{issue['number']}", {"state": "closed", "state_reason": "completed"})
+    except Exception as err:  # a drift check must never take the bus down
+        stats["errors"] = stats.get("errors", 0) + 1
+        state["drift_failed_at"] = now_t.isoformat()
+        _append(state_dir / "audit.jsonl", {"drift_check_failed": repr(err)[:500], "at": now()})
+        return
+    state["drift_checked_at"] = now_t.isoformat()
+    state.pop("drift_failed_at", None)
+    state["drift_actions"] = stats["drift_actions"] = len(remaining)
+
+
 def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path,
               bot: str, save=lambda: None) -> dict:
     org = config["org"]["name"]
@@ -616,6 +709,7 @@ def main(argv: list[str] | None = None) -> int:
 
             stats = poll_once(gh, config, rollout, subs, state, args.state_dir, bot, save)
             stats.update(session_stats(gh, config, state, args.state_dir))
+            drift_check(gh, config, state, args.state_dir, stats)
             save()
             heartbeat(gh, config["org"]["name"], config["org"]["meta_repo"], stats)
             print(json.dumps({"at": now(), **stats}), flush=True)

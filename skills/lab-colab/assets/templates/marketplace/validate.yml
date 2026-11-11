@@ -1,0 +1,23 @@
+# Checks marketplace.json against the rules claude.ai org sync enforces, and the Claude Code validator.
+name: validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: claude.ai org rules (https sources, source types, 200 MB limit, private repo)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/check_marketplace.py --fetch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: claude plugin validate
+        run: |
+          npm install -g @anthropic-ai/claude-code >/dev/null 2>&1
+          claude plugin validate --strict .

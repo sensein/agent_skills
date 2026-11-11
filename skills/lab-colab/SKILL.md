@@ -17,7 +17,7 @@ description: >-
 
 Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped into spaces: named areas of work declared in the config, each with stewards and a list of existing repos. A space is not a repo or a folder, and nothing is created in member repos up front. A polling bus on ORCD moves events between repos, only ever toward stricter tiers.
 
-Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command.
+Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command. [`references/runbook.md`](./references/runbook.md) has the operating steps: a new org from scratch, recovering from an accidental change, when re-applying loses data, and running the bus.
 
 ## Constitution
 
@@ -57,6 +57,7 @@ Run this loop whenever the user asks to set up, continue, or check the rollout. 
 4. **Confirm.** Ask the user to approve the `gh` actions. Then `apply --snapshot ... --yes`. Re-observe and re-plan, because new objects (e.g. the Project number) unlock later actions.
 5. **Do the local steps**, each as a reviewed PR:
    - seed the meta repo: `colab.py seed --dest <meta clone>`;
+   - the marketplace repo, when `[marketplace] repo` is set: `colab.py seed-marketplace --dest <clone of the marketplace repo>` (never overwrites; scan, PR; an owner then installs the Claude GitHub App and syncs it in claude.ai);
    - issue forms once, org-wide: `colab.py render-forms --dest <clone of the org's .github repo>/.github/ISSUE_TEMPLATE`. Repos with their own templates keep them; the plan lists those;
    - scan every changed file before pushing.
 6. **Gates.** For a `gate` action, check the gate's criterion against real evidence (links to runs, PRs, scan output). Only then record it: `colab.py gate --rollout <meta clone>/.colab/rollout.json --space <s> --phase <n> --evidence <link>`. Commit the change by PR. Recording phase *n* switches on phase *n+1*'s features for that space only.
@@ -84,6 +85,8 @@ Give the bus its own fine-grained token (or a GitHub App installation token) in 
 - Issues: write on subscriber repos and the meta repo;
 - Variables: write on the meta repo, for the heartbeat.
 
+**Drift check.** With `[bus] drift_check_hours` above 0 (default 24), the bus runs `observe` and `build_plan` read-only with the config it loaded, drops the actions expected to recur (gates, "Start the bus", the own-templates note), and keeps one `Drift report` issue in the meta repo: edited in place while the plan is not clean, closed with a short comment when it is. It never applies anything; the issue lists the `plan` and `apply --yes` commands to review. `drift_actions` is in the heartbeat.
+
 Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login. That includes the Project's Spaces field and Iteration field and its views (`Space: <name>`, Agent queue, Proposals inbox, My work); the plan reads the views and their filters and fixes any that differ.
 
 Once `[org] project_number` is set, the bus also keeps the Project's multi-select **Spaces** field current (`[bus] project_sync`): it adds newly opened items from space repos and re-syncs every item's Spaces every `project_sync_every` polls. This is bookkeeping on the private org Project, not a delivery, so it runs in dry-run spaces too. It needs the token to have Projects read and write on the organization.
@@ -94,14 +97,13 @@ A session that runs out of tokens just stops, with no handoff. So the heartbeat 
 
 Each beat refreshes the session's comment in the meta repo's Session activity issue, and renews the session's lease on its claimed item. Leases default to 45 minutes, so a silent session's claim lapses within the hour and `next` offers the item again. The bus reports active, waiting, and stale sessions in its heartbeat.
 
-Install the hooks once per member, in `~/.claude/settings.json`. Use a Python 3.11+ interpreter, and point `COLAB_CONFIG` at the meta clone's config:
+Install the hooks once per member with `colab.py setup --install-hooks`. It first reports `gh` auth and scopes (`repo`, `read:org`, `project`; `admin:org` is for org owners only), a Python 3.11+ interpreter, whether `COLAB_CONFIG` resolves, and where the skill is installed, each with an exact fix. Then it backs up `~/.claude/settings.json`, merges the `PostToolUse` and `Stop` hooks, keeps every other key and hook, and adds nothing on a re-run. To do it by hand, use a Python 3.11+ interpreter and point `COLAB_CONFIG` at the meta clone's config:
 
 ```json
 {
-  "env": { "COLAB_CONFIG": "<meta clone>/.colab/config.toml" },
   "hooks": {
     "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command",
-      "command": "<python3.11+> <this-skill-dir>/scripts/colab.py beat --from-hook --background" }] }],
+      "command": "COLAB_CONFIG=<cfg> <python3.11+> <this-skill-dir>/scripts/colab.py beat --from-hook --background 2>/dev/null || true", "timeout": 30 }] }],
     "Stop": [{ "matcher": "*", "hooks": [{ "type": "command",
       "command": "<python3.11+> <this-skill-dir>/scripts/colab.py beat --from-hook --background" }] }]
   }
