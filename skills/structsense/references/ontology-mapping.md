@@ -22,7 +22,10 @@ files, in what priority). Nothing about a particular ontology is in code.
 order; an item goes to the next source only if every earlier one left it unmapped,
 and an unavailable source is skipped, not fatal:
 
-1. **Trusted ontologies** — the files in `trusted_ontologes/`, in
+1. **Trusted ontologies** — the files listed in `ontologies.json`, downloaded on first use into the
+   local cache (`${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`;
+   `python -m scripts.ontology_cache prefetch --all` / `import-local <dir>`; they are not bundled because
+   claude.ai caps a plugin at 200 MB), in
    [priority.md](../trusted_ontologes/priority.md) order (1 = first; `off` disables
    a row). `python -m scripts.concept_mapping index` streams each file once into a
    flat lexicon (`lexicon/<name>.tsv.gz`) and one indexed `lexicon.sqlite`; a

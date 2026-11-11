@@ -4,9 +4,34 @@ These are the ontologies, which we call the "trusted ontologies", that are loade
 in our graph database for connecting assertion-evidence and materialization, and
 that structsense uses **first** for concept mapping.
 
-The directory holds **115 ontology files** in two formats: `.owl` (RDF/XML) and
-`.ttl` (Turtle). `sources.json` is the acquisition log (source, submission,
-release, outcome) for each of them.
+The ontology files (`.owl` RDF/XML and `.ttl` Turtle) are **not stored in git**. They
+total ~400 MB, and claude.ai caps a plugin at 200 MB, so they are downloaded on demand
+into a local cache; this directory keeps only `priority.md`, `sources.json` (the
+acquisition log: source, submission, release, outcome) and this README.
+
+## Getting the files (cache)
+
+[`../ontologies.json`](../ontologies.json) lists every file: name, asset URL
+(`https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/<file>`),
+sha256, size and, where known, the upstream IRI. Several files are subsets upstream does not
+publish (e.g. `adar-sub1.owl`, `doid-sub675.owl`), so the release assets are the source of truth.
+
+- Cache directory: `${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`,
+  shared by all runs and projects.
+- **Lazy**: `concept_mapping index` / `map` download only the enabled ontologies
+  (priority.md) that are not cached yet. Each download goes to a temp file, is
+  checked against the sha256, then atomically moved into place; concurrent runs are
+  serialised per file, so one downloads and the rest reuse it.
+- **Prefetch** (offline nodes, clusters, CI): `python -m scripts.ontology_cache prefetch --all`
+  or `prefetch cl.owl hp-base.owl`.
+- **Seed from files you already have**: `python -m scripts.ontology_cache import-local <dir>`
+  copies the files of an old checkout's `trusted_ontologes/` into the cache after verifying each sha256
+  (mismatching files are reported and skipped). This is how a cache is filled before the release assets exist.
+- `python -m scripts.ontology_cache list | verify | dir | path <file>` show state, re-hash the cache, print its location or one file's path.
+- A file placed in this directory (or in the `directory` set in `concept_mapping.json`) takes precedence over the cache.
+- Offline with a cold cache, the ontology is skipped with a warning, as a missing file always was, and the message names `import-local`.
+- Maintainers: `python -m scripts.ontology_cache build-manifest <dir>` regenerates `ontologies.json`;
+  `scripts/publish_ontologies.sh` (owner-run) creates the release and uploads the assets.
 
 ## How structsense uses them
 

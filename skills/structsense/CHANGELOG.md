@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — Trusted ontologies are downloaded into a local cache, not bundled
+
+`trusted_ontologes/` held ~398 MB of `.owl`/`.ttl` files, over claude.ai's 200 MB plugin
+limit. They are removed from git and fetched on demand (sensein/agent_skills#62).
+
+- **`ontologies.json`** (new): file, asset URL on the `structsense-ontologies-v1` release,
+  sha256, size, optional upstream IRI, for the 111 bundled files.
+- **`scripts/ontology_cache.py`** (new, stdlib only): lazy download to
+  `${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`, temp file +
+  sha256 check + atomic replace, per-file lock; `prefetch [names|--all]`, `import-local <dir>`,
+  `verify`, `list`, `path`, `build-manifest`.
+- **`scripts/publish_ontologies.sh`** (new, owner-run): creates the release and uploads the files.
+- `concept_mapping` reads each ontology from the trusted directory if present, else from the
+  cache (downloading when first needed). Names, priority.md and results are unchanged once warm.
+
 ## Unreleased — One review loop for every mode: the judge and the human both correct
 
 Every mode — NER, ABCD/HBCD, AIT — now runs extract → concept map → judge → human
@@ -765,7 +780,7 @@ copy has.
 - **`connecting/claude-desktop.md`** added. Explains Claude Desktop's
   **split execution model** (chat UI on your machine, code interpreter in
   Anthropic's cloud sandbox), why your `localhost:8000` is unreachable
-  from a sandboxed code-interpreter call (`/home/claude/work/...` paths
+  from a sandboxed code-interpreter call (sandbox working-directory paths
   are the giveaway), and how to bridge via an MCP server configured in
   `claude_desktop_config.json`.
 
