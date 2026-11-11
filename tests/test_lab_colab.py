@@ -507,8 +507,9 @@ class BaselineTests(unittest.TestCase):
 class FakeProjectGH(FakeGH):
     """FakeGH plus a GraphQL endpoint serving a Project with a Spaces field; records mutations."""
 
-    def __init__(self, items=None, fail_writes=False, **kw):
+    def __init__(self, items=None, fail_writes=False, add_replies=True, **kw):
         super().__init__(**kw)
+        self.add_replies = add_replies
         self.items = items or []
         self.fail_writes = fail_writes
         self.mutations = []
@@ -517,7 +518,10 @@ class FakeProjectGH(FakeGH):
         if query.lstrip().startswith("mutation"):
             if self.fail_writes:
                 raise bus.GraphQLError("boom")
-            self.mutations.append((query.split("{", 2)[1].split("(")[0].strip(), variables))
+            name = query.split("{", 2)[1].split("(")[0].strip()
+            self.mutations.append((name, variables))
+            if name == "addProjectV2ItemById" and self.add_replies:
+                return {"addProjectV2ItemById": {"item": {"id": "ITEM-" + variables["content"]}}}
             return {}
         if "projectV2(number" in query:
             return {"organization": {"projectV2": {"id": "PVT", "field": {"id": "FLD", "options": [
@@ -555,8 +559,81 @@ class ProjectSyncTests(unittest.TestCase):
             stats = bus.poll_once(fake, project_config(), {"spaces": {}}, [], watched(), Path(tmp), "me")  # dry-run space
             adds = [v for name, v in fake.mutations if name == "addProjectV2ItemById"]
             self.assertEqual(adds, [{"project": "PVT", "content": "I_new"}])
-            self.assertEqual(stats["project_writes"], 1)
+            self.assertEqual(stats["project_writes"], 2)  # the add, and its Spaces in the same pass
             self.assertEqual(fake.sent, [])  # nothing delivered or written over REST
+
+    @staticmethod
+    def _opened(number, node, kind="issue", labels=()):
+        item = {"number": number, "id": number, "node_id": node, "title": "t", "labels": [{"name": n} for n in labels],
+                "state": "open", "created_at": "2026-11-09T01:00:00Z", "updated_at": "2026-11-09T01:00:00Z",
+                "html_url": "u", "user": {"login": "a"}}
+        if kind == "pull_request":
+            item["pull_request"] = {"url": "u"}
+        return item
+
+    def _poll(self, issues, cfg=None, **kw):
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeProjectGH(issues=issues, **kw)
+            stats = bus.poll_once(fake, cfg or project_config(), {"spaces": {}}, [], watched(), Path(tmp), "me")
+            audit = Path(tmp) / "audit.jsonl"
+            return fake, stats, [json.loads(x) for x in audit.read_text().splitlines()] if audit.exists() else []
+
+    def test_default_adds_issues_only_and_leaves_pull_requests_off_the_board(self) -> None:
+        fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")])
+        adds = [v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"]
+        self.assertEqual(adds, ["I_issue"])
+        self.assertEqual(bus.ProjectSync(fake, project_config(), {}, Path("."), {"errors": 0}, {}).add_kinds, {"issue"})
+
+    def test_project_add_can_include_pull_requests_or_nothing(self) -> None:
+        both = project_config(project_add=["issue", "pull_request"])
+        fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")], both)
+        self.assertEqual(sorted(v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"), ["I_issue", "PR_pr"])
+        fake, _, _ = self._poll([self._opened(5, "I_issue")], project_config(project_add=[]))
+        self.assertEqual([n for n, _ in fake.mutations if n == "addProjectV2ItemById"], [])
+        prs_only = project_config(project_add=["pull_request"])
+        fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")], prs_only)
+        self.assertEqual([v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"], ["PR_pr"])
+
+    def test_add_sets_spaces_in_the_same_pass_from_membership_and_labels(self) -> None:
+        fake, stats, _ = self._poll([self._opened(5, "I_new", labels=["space:dest"])])
+        names = [n for n, _ in fake.mutations]
+        self.assertEqual(names[:2], ["addProjectV2ItemById", "updateProjectV2ItemFieldValue"])
+        _, value = fake.mutations[1]
+        self.assertEqual(value, {"project": "PVT", "item": "ITEM-I_new", "field": "FLD", "options": ["o-dest", "o-proj"]})
+        self.assertEqual(stats["project_writes"], 2)
+
+    def test_spaces_not_set_when_the_add_returns_no_item_and_unknown_spaces_are_audited(self) -> None:
+        fake, _, _ = self._poll([self._opened(5, "I_new")], add_replies=False)
+        self.assertEqual([n for n, _ in fake.mutations], ["addProjectV2ItemById"])  # the sweep covers it later
+        fake, _, audit = self._poll([self._opened(5, "I_new", labels=["space:ghost"])])
+        _, value = fake.mutations[1]
+        self.assertEqual(value["options"], ["o-proj"])
+        self.assertTrue(any(a.get("project_unknown_space") == "ghost" for a in audit))
+
+    def test_failed_add_skips_spaces_and_the_poll_goes_on(self) -> None:
+        fake, stats, _ = self._poll([self._opened(5, "I_new")], fail_writes=True)
+        self.assertEqual(fake.mutations, [])
+        self.assertGreaterEqual(stats["errors"], 1)
+
+    def test_project_add_as_a_string_is_one_kind_and_unknown_kinds_are_warned(self) -> None:
+        fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")],
+                                project_config(project_add="pull_request"))
+        self.assertEqual([v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"], ["PR_pr"])
+        fake, _, _ = self._poll([self._opened(5, "I_issue")], project_config(project_add="issue"))
+        self.assertEqual([v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"], ["I_issue"])  # not split into letters
+        import contextlib
+        import io
+        err = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stderr(err):
+            sync = bus.ProjectSync(FakeProjectGH(), project_config(project_add=["issue", "discussion"]), {}, Path(tmp), {"errors": 0}, {})
+            audit = [json.loads(x) for x in (Path(tmp) / "audit.jsonl").read_text().splitlines()]
+        self.assertEqual(sync.add_kinds, {"issue"})
+        self.assertIn("discussion", err.getvalue())
+        self.assertTrue(any(a.get("project_add_unknown_kind") == "discussion" for a in audit))
+
+    def test_bundled_config_defaults_to_issues_only(self) -> None:
+        self.assertEqual(CONFIG["bus"]["project_add"], ["issue"])
+        self.assertEqual(CONFIG["run"]["comment_every"], 5)
 
     def test_pre_baseline_poll_adds_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

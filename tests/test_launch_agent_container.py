@@ -229,7 +229,7 @@ class LaunchAgentContainerTests(unittest.TestCase):
             self.assertEqual(image, MODULE.DEFAULT_IMAGE)
             self.assertTrue(
                 any(
-                    mount.container_path == "/home/agent/.codex/skills/labnb"
+                    mount.container_path == "/home/agent/.codex/skills/lab-colab"
                     for mount in mounts
                 )
             )

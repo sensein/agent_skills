@@ -43,6 +43,8 @@ fields = [
   { id = "data", label = "Data (pointers only, never restricted content)", kind = "textarea", required = true },
   { id = "metrics", label = "Metrics, including imbalance-aware ones", kind = "textarea", required = true },
   { id = "compute", label = "Compute plan (partition, GPUs, budget)", kind = "input", required = false },
+  { id = "budget", label = "Run budget (iterations=N, wall=2h, loop=30m, compute=GPU-hours, metric=name, direction=higher|lower)", kind = "input", required = false },
+  { id = "verify", label = "Verify command (its last stdout line is the metric)", kind = "input", required = false },
 ]
 
 [[types]]
@@ -237,6 +239,14 @@ lease_minutes = 45               # a claim lapses this long after the session's 
 beat_min_seconds = 600           # at most one GitHub write per session per this many seconds
 stale_minutes = 60               # no beat this long, and no running Slurm job: the session is stale
 
+[run]
+# `/colab run`: where runs live and how often progress is posted on the Experiment issue.
+root = ""                        # runs root; empty = ${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs
+python = ""                      # interpreter job.sbatch calls for restricted runs (3.11+); empty = the one that ran `start`
+mode = "auto"                    # workspace: auto (git worktree when the source is a repo, else a copy), worktree, or dir
+comment_every = 5                # compact progress comment every N iterations; 0 = off
+comment_every_seconds = 0        # or every N seconds (0 = off)
+
 [bus]
 poll_seconds = 300
 write_interval_seconds = 1.0     # stay under GitHub's content-creation limits
@@ -244,6 +254,7 @@ fanout_digest_threshold = 20     # above this many subscribers, write one digest
 heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
+project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 
 # ---------------------------------------------------------------------------

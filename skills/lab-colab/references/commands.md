@@ -10,6 +10,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | handoff | Checkpoint comment, lease comment | Renews | None |
 | capture | Staging PR in the meta repo | No | Lead reviews the PR |
 | brief | Nothing by default | No | Read the output |
+| run | Local run directory; progress comments; staging PR | Renewed by beats | Lead reviews the staging PR |
 | link | Issue body | No | None |
 | credit | Proposed roles | No | Person confirms roles |
 | ingest | Private storage, proposed items | No | Member gives consent |
@@ -150,6 +151,37 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 - No restricted content in the brief.
 - A lab-tier brief is not posted to a public repo.
+
+## run
+
+**Purpose.** Run a claimed Experiment issue: an isolated workspace, explicit budgets, a metric and verify loop, a loop breaker, and one immutable Observation per iteration.
+
+**Reads.** The Experiment issue (body, labels, repo visibility, who last edited the body, the Project's Sensitivity) through `gh`. The workspace source repo. Never restricted inputs.
+
+**Writes.** A local run directory, default `${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs/<owner>-<repo>-<n>-<timestamp>` (override with `--root`, `COLAB_RUN_ROOT`, or `[run] root`). A compact progress comment on the issue at the `[run] comment_every` / `comment_every_seconds` cadence. Staged Observations in the meta repo, by PR.
+
+**Steps.**
+
+1. `claim` the issue first. Then `python3 "$COLAB/colab.py" run start <owner>/<repo>#<n> --source <repo dir>`. It prints the `run_dir`, the `workspace`, the tier, and the **verify and iterate commands with their sha256**. Nothing has run.
+2. **Confirm the commands.** They come from issue text, which anyone with write access can edit. Read them. `start` also reports who last edited the issue body (the `userContentEdits` editor, or the author if never edited) and warns loudly when that is not the claimant (`gh api user`). Then confirm: `colab.py run confirm --run-dir <dir> --sha256 <hash>`, or pass `--confirm-verify <hash>` to `step`/`loop`. The confirmed hash is stored in `run.json`. `step` and `loop` refuse until it matches the current commands, and refuse again if the commands in `run.json` change or the issue's Verify command changes later (the issue is re-read each step; if it cannot be read, the step refuses). Confirmation is always required, including when the editor is the claimant.
+3. Budgets come from the issue's **Run budget** field (`iterations=20, wall=2h, loop=30m, compute=4 GPU-hours, metric=bacc, direction=higher`), falling back to the Compute plan and Metrics fields, and the **Verify command** field. `--iterations`, `--wall`, `--loop`, `--compute`, `--metric`, `--direction`, `--verify` override them. Iterations and wall time must be explicit, or `start` refuses. The run works even when the meta config's Experiment form lacks these fields, using the flags instead.
+4. The workspace is a git worktree on its own `colab-run/<id>` branch when `--source` is a git repo, otherwise a copy without `.git` (`--mode worktree|dir|auto`). Two runs never share a workspace, a branch, or a run directory.
+5. Work the loop. Either call `colab.py run step --run-dir <dir>` after each change you make, or let `colab.py run loop --run-dir <dir>` repeat `--iterate-cmd` then the verify command. Each step runs the loop breaker (`monitor_slice.py check`) first. Exit 4 means stop: do not iterate again.
+6. Commands run in the workspace, without a shell, in their own process group. At the budget (or `--step-timeout`) the group gets TERM, then KILL after a short grace; no command gets time beyond the budget. The verify command's last stdout line is the metric: a finite number, or JSON such as `{"metric": 0.8, "compute": 0.5, "notes": "..."}`. NaN, Infinity, booleans, a missing metric, or an invalid `compute` (not a finite number >= 0, or text starting with one) is recorded as a crash. The engine writes no NaN or Infinity anywhere.
+7. Each step appends a row to `results.tsv` and a line to `log.md`, keeps stdout and stderr under `logs/`, appends a PROV-style line to `provenance.jsonl` (the engine also logs `start`, `confirm-verify`, `prepare-workspace`, `finish`, `stage`, `cleanup`), and writes `observations/<run-id>-<iteration>.json`. An Observation holds the parameters, git commit, container digest (`--container-digest` or `COLAB_CONTAINER_DIGEST`; null if unknown), Slurm job id (`--slurm-job` or `SLURM_JOB_ID`; null if none), metric value, compute, wall seconds, run-relative paths to the logs, and the provenance: `agent`, `acting_for` (the GitHub login), `verify_sha256`, `measured_by` (`verify`, or `manual` for `--metric-value`), and `prov:wasGeneratedBy` (this step's activity, informed by the monitored slice's start activity). It is created once, read-only, with a content hash. It is never rewritten.
+8. Thresholds for the loop breaker (`--patience`, `--max-failures`, `--stall-seconds`, `--reserve-seconds`, `--usage-file`, `--governance-file`, `--min-trust-score`, `--break-on-drift`, `--metric-guardrail`) are given to `start` and stored in `run.json`. A `duct` `info.json` and a `kya` verdict plug in there.
+9. `colab.py run finish --run-dir <dir>` closes the slice. `colab.py run stage --run-dir <dir> --meta <meta clone>` scans the Observations (the same logic as `colab.py scan`, including `[scan] command`), then copies them into `.colab/staging/observations/<run-id>/`. A scan finding stages nothing new and never touches files from an earlier clean stage. `--open-pr` branches from `origin/main`, commits, pushes, and opens the PR. Then `handoff` and `capture`, which cite the Observations as grounding.
+10. `colab.py run cleanup <run-id> --yes` removes the run's workspace: `git worktree remove` and `prune`, and deletes the `colab-run/<id>` branch (a copied workspace is deleted). It keeps the run directory (logs, Observations) unless `--delete-run-dir`, and refuses while the run is active unless `--force`.
+
+**Guardrails.**
+
+- **Restricted data.** The tier is computed as the bus does: the strictest of the repo's visibility, the declared `tier` of its spaces (repo membership and `space:*` labels, strictest across spaces), a `tier:*` label, and the Project's Sensitivity field when readable. Labels are read from the issue even when `--body-file` is given, and if they cannot be read the run is treated as restricted. A restricted run (or `--restricted`, or a Data field that says restricted) never executes in a session, and `start` does not copy or read the source tree: it writes `job.sbatch` only, and the batch job prepares the workspace. After the owner agrees, submit it; the script embeds the confirmed hash, so submitting is the confirmation. `step`, `loop` and the workspace step refuse unless they run inside that batch job: `SLURM_JOB_NAME` is `colab-run-<id>` and `scontrol show job $SLURM_JOB_ID` reports `BatchFlag=1`, so an interactive allocation or `srun` shell never qualifies. No progress comments are posted for such runs.
+- **Restricted staging.** A restricted run stages numbers and ids only: no `notes`, no log pointers, only numeric or boolean parameters. `--allow-restricted-aggregates` stages the full record, and only after the owner agrees.
+- **Job interpreter.** `job.sbatch` calls the interpreter recorded at start (`--python`, `[run] python`, else the one that ran `start`), and checks it is Python 3.11 or newer before anything else. It never calls a bare `python3`.
+- Local logs are append-only (one `O_APPEND` write per line). The directory lock carries an owner token: a stale lock (dead owner on this host, or older than the stale window by the filesystem's own clock) is broken by renaming it away, and put back if it turns out not to be the stale one; release removes only a lock with our token. Iteration numbers are allocated under that lock, so parallel steps never collide or exceed the iteration budget, and a duplicate observation id is a clean refusal.
+- A progress comment and every staged file is scanned first. A finding withholds the comment or stages nothing.
+- Observations record the member the agent acts for. They are proposals: the item's Lead reviews the staging PR.
+- Never merge the staging PR from the run.
 
 ## link
 

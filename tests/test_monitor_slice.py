@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MONITOR_PATH = REPO_ROOT / "skills" / "labnb" / "scripts" / "monitor_slice.py"
-REGISTER_SCRIPT = REPO_ROOT / "skills" / "labnb" / "scripts" / "register_experiment.py"
+MONITOR_PATH = REPO_ROOT / "skills" / "lab-colab" / "scripts" / "monitor_slice.py"
+RUN_SCRIPT = REPO_ROOT / "skills" / "lab-colab" / "scripts" / "colab_run.py"
 
 _spec = importlib.util.spec_from_file_location("monitor_slice", MONITOR_PATH)
 monitor = importlib.util.module_from_spec(_spec)
@@ -302,19 +302,22 @@ class UsageParsingTests(unittest.TestCase):
 
 class ExitCodeIntegrationTests(unittest.TestCase):
     def _register(self, lab_root: Path, project_root: Path) -> Path:
+        """A real run directory made by `colab_run.py start`: the shape monitor_slice.py reads in production."""
+        body = Path(lab_root) / "issue.md"
+        lab_root.mkdir(parents=True, exist_ok=True)
+        project_root.mkdir(parents=True, exist_ok=True)
+        body.write_text("### Hypothesis\n\nh\n\n### Data (pointers only, never restricted content)\n\nd\n")
         result = subprocess.run(
             [
-                sys.executable, str(REGISTER_SCRIPT),
-                "--lab-root", str(lab_root),
-                "--project-root", str(project_root),
-                "--project-slug", "demo", "--experiment-slug", "exp",
-                "--objective", "obj", "--entry-kind", "experiment",
-                "--direction", "higher",
-                "--overall-budget", "2 hours", "--loop-budget", "10 minutes",
+                sys.executable, str(RUN_SCRIPT), "start", "sensein/demo#1", "--offline",
+                "--body-file", str(body), "--root", str(lab_root / "runs"),
+                "--source", str(project_root), "--mode", "dir", "--verify", "true",
+                "--direction", "higher", "--iterations", "50", "--wall", "2 hours", "--loop", "10 minutes",
+                "--now", "2026-04-14T10:00:00Z",
             ],
             check=True, capture_output=True, text=True,
         )
-        return Path(result.stdout.strip())
+        return Path(json.loads(result.stdout)["run_dir"])
 
     def _monitor(self, *extra, check=False):
         return subprocess.run(
@@ -326,8 +329,7 @@ class ExitCodeIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             exp_dir = self._register(temp_path / "lab", temp_path / "project")
-            self._monitor("start", "--experiment-dir", str(exp_dir),
-                          "--now", "2026-04-14T10:00:00Z", check=True)
+            # `colab_run.py start` already started the monitored slice at 10:00:00Z
             # Log a stale baseline row, then check well after the stall window.
             results = exp_dir / "results.tsv"
             results.write_text(
@@ -355,8 +357,7 @@ class ExitCodeIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             exp_dir = self._register(temp_path / "lab", temp_path / "project")
-            self._monitor("start", "--experiment-dir", str(exp_dir),
-                          "--now", "2026-04-14T10:00:00Z", check=True)
+            # `colab_run.py start` already started the monitored slice at 10:00:00Z
             self._monitor("finish", "--experiment-dir", str(exp_dir),
                           "--final-status", "completed", "--now", "2026-04-14T10:03:00Z", check=True)
             # A check on a finished slice must not flip status back to running.

@@ -60,7 +60,7 @@ class Signal:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Start, check, or finish a monitored labnb loop slice. The check "
+            "Start, check, or finish a monitored `/colab run` loop slice. The check "
             "action can break a slice on budget, engineering (pace/stall/"
             "resource), correctness (repeated failures), or validity (no "
             "improvement / guardrail) signals, and exits non-zero on break so "
@@ -135,7 +135,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     # Governance signals (read from a verdict file written by a governance tool
-    # such as the `kya` skill; labnb stays dependency-free and just consumes it).
+    # such as the `kya` skill; this script stays dependency-free and just consumes it).
     parser.add_argument(
         "--governance-file",
         default="",
@@ -533,7 +533,7 @@ def read_governance_verdict(path: Path) -> dict[str, object]:
 
     Expected (all keys optional): ``decision`` (allow|warn|block), ``trust_score``
     (0..1), ``drift`` (bool), ``reasons`` (list). Any other governance tool can
-    emit this shape; labnb does not import the tool.
+    emit this shape; this script does not import the tool.
 
     This is only called when ``--governance-file`` was requested, so a missing,
     unreadable, or malformed file is treated as a ``block`` rather than silently

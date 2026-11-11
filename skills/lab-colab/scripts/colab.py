@@ -21,6 +21,8 @@ Subcommands
   seed-marketplace  Write the private plugin-marketplace repo's starter files (one plugin per skill).
   setup         Member onboarding check (gh scopes, Python, COLAB_CONFIG, hooks); --install-hooks
                 merges the heartbeat hooks into ~/.claude/settings.json.
+  run           Run a claimed Experiment issue in an isolated workspace under budgets (start, step, loop,
+                check, finish, stage, status). Delegates to colab_run.py; see `colab.py run --help`.
   gate          Record a passed gate for a space in a local rollout.json and
                 switch on that phase's features for it.
 """
@@ -1261,11 +1263,16 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("beat"); p.add_argument("--session"); p.add_argument("--item", help="owner/repo#n")
     p.add_argument("--job", help="Slurm job the session is waiting on"); p.add_argument("--from-hook", action="store_true")
     p.add_argument("--background", action="store_true", help="return at once; write in a forked child")
+    p = sub.add_parser("run", add_help=False, help="see colab_run.py"); p.add_argument("rest", nargs=argparse.REMAINDER)
     p = sub.add_parser("gate")
     p.add_argument("--rollout", type=Path, required=True); p.add_argument("--space", required=True)
     p.add_argument("--phase", type=int, required=True); p.add_argument("--evidence", required=True)
     args = ap.parse_args(argv)
     env_cfg = os.environ.get("COLAB_CONFIG")
+    if args.cmd == "run":  # delegated whole: colab_run.py has its own parser and config handling
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import colab_run
+        return colab_run.main(([*(["--config", str(args.config)] if args.config else [])] + args.rest))
     if args.cmd == "setup":  # must work before a config resolves: that is one of the things it checks
         checks, rc = cmd_setup(args.config, args.install_hooks)
         print_setup(checks)
