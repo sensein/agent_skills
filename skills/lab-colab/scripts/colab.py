@@ -15,7 +15,7 @@ Subcommands
   scan          Leak-scan files or stdin; exit 1 on any finding. --selftest checks
                 that every seeded case is caught.
   links         Parse and validate the fenced ```links block of an issue body.
-  tag           Add or remove allow-listed labels (space:<name>, [[labels]]) on one issue; creates
+  tag           Add or remove allow-listed labels (space:<name>, [[labels]]) on one issue in [org] name; creates
                 a label on first use. Uses your own gh login; --dry-run prints the calls.
   lease         Compose a claim lease marker for an issue comment (default 45 minutes).
   beat          Session heartbeat: refresh this session's Session activity comment and renew
@@ -121,21 +121,20 @@ def observe_marketplace(config: dict, repo_names: set[str]) -> dict:
 def observe_external(config: dict) -> tuple[dict, list[str]]:
     """Space repos in other GitHub orgs, read from their own owner with the caller's gh login. Read-only.
 
-    The caller may have no access there even when the lab owns that org: a 404/403 (or any failed read)
-    records visibility None and a note, and never stops the observation. None is never taken as public.
+    The caller may have no access there: a 404/403 (or any failed read) records visibility None and a
+    note, and never stops the observation. None is never taken as public.
     """
     out: dict[str, dict] = {}
     notes: list[str] = []
     for key in sorted(k for k in repo_spaces(config) if is_external(k)):
         meta = _gh_json(["api", f"repos/{key}"])
         if not isinstance(meta, dict) or not meta.get("visibility"):
-            out[key] = {"visibility": None, "forms": [], "control": org_control(config, key.split("/")[0])}
+            out[key] = {"visibility": None, "forms": []}
             notes.append(f"{key}: not readable with this gh login (404/403 or no access); skipped, tier treated as restricted")
             continue
         forms = _gh_json(["api", f"repos/{key}/contents/.github/ISSUE_TEMPLATE"]) or []
         out[key] = {"visibility": str(meta["visibility"]).lower(),
-                    "forms": [f["name"] for f in forms if isinstance(f, dict)],
-                    "control": org_control(config, key.split("/")[0])}
+                    "forms": [f["name"] for f in forms if isinstance(f, dict)]}
     return out, notes
 
 
@@ -220,21 +219,6 @@ def repo_key(entry: str, home: str | None) -> str:
 def is_external(key: str) -> bool:
     """True for a repo key outside the lab's org (keys from repo_key carry an owner only then)."""
     return "/" in key
-
-
-def org_control(config: dict, owner: str) -> str:
-    """`owner` when the lab controls this GitHub org, else `contributor`.
-
-    The lab's own org is always `owner`. Another org is `owner` only when every space that names it
-    with `org = ...` says so (`control` defaults to owner when `org` is set); an org no space names
-    (e.g. an upstream repo listed as owner/name) is `contributor`. Conflicts fail closed.
-    """
-    home = (config.get("org") or {}).get("name") or ""
-    if owner.lower() == home.lower():
-        return "owner"
-    controls = [str(spec.get("control") or "owner") for spec in (config.get("spaces") or {}).values()
-                if str(spec.get("org") or "").lower() == owner.lower()]
-    return "owner" if controls and all(c == "owner" for c in controls) else "contributor"
 
 
 def space_repos(config: dict) -> dict[str, list[str]]:
@@ -456,7 +440,7 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
         if repo not in repos:
             actions.append(_action("manual", 0, f"Space repo {repo} not found in {org}; fix [spaces]"))
     # Repos in other orgs: report only. The plan never writes org metadata (issue types, Projects,
-    # fields, labels, forms) outside [org] name, whoever controls that org.
+    # fields, labels, forms) outside [org] name, whoever owns that org.
     external = snapshot.get("external_repos") or {}
     for repo in sorted(r for r in repo_spaces(config) if is_external(r)):
         seen = external.get(repo)
@@ -467,8 +451,9 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
                                                 "its items are skipped and its tier counts as restricted. Ask its owner "
                                                 "for read access, or fix [spaces]"))
         else:
-            actions.append(_action("manual", 0, f"Tracked read-only: {repo} ({seen['visibility']}, control "
-                                                f"{seen.get('control', 'contributor')}). The bus reads its items and adds them "
+            track = (config.get("bus") or {}).get("external_track", "involved")
+            actions.append(_action("manual", 0, f"Tracked read-only: {repo} ({seen['visibility']}). The bus adds "
+                                                f"{'its' if track == 'all' else f'its items that involve {org} members'} "
                                                 f"to the org Project; nothing is created or delivered in {repo.split('/')[0]}"))
 
     # Issue forms once, org-wide, in the forms repo (GitHub's default templates).
@@ -628,7 +613,7 @@ def render_form(type_spec: dict) -> str:
         "body:",
         "  - type: markdown",
         "    attributes:",
-        "      value: " + q("Never paste restricted content; link to it. Add typed links in a fenced links block, one per line, e.g. uses: sensein/senselab#12."),
+        "      value: " + q("Never paste restricted content; link to it. Add typed links in a fenced links block, one per line, e.g. uses: example-org/example-repo#12."),
     ]
     for field in type_spec.get("fields", []):
         lines += [
@@ -1074,7 +1059,8 @@ def cmd_tag(config: dict, item: str, labels: list[str], remove: bool = False, dr
     """Add (or remove) allow-listed labels on one issue with the member's own gh login.
 
     A label is created in the repo on first use, from the config's colour and description.
-    Writes are spaced at least one second apart. Exit 2 on a refused label or repo, 1 on a failed write.
+    Only repos in `[org] name`. Writes are spaced at least one second apart. Exit 2 on a refused label
+    or repo, 1 on a failed write.
     """
     import time
     import urllib.parse
@@ -1093,15 +1079,10 @@ def cmd_tag(config: dict, item: str, labels: list[str], remove: bool = False, dr
               "Extend the set by PR to [spaces] or [[labels]] in the config.", file=err)
         return 2
     home = config["org"]["name"]
-    repo = repo_ref(m["repo"], home)
-    owner = repo.split("/")[0]
-    if owner.lower() != home.lower():
-        if org_control(config, owner) != "owner":
-            print(f"refused: {owner} is not an org the lab controls (no space has org = \"{owner}\" with control = "
-                  "\"owner\"); items there are tracked read-only", file=err)
-            return 2
-        print(f"note: {repo} is in another org; this acts with your own gh access there, which may be lower than "
-              "the space owner's (a 403/404 means ask them)", file=err)
+    repo = m["repo"]
+    if is_external(repo_key(repo, home)):  # never create labels in other orgs' repos
+        print(f"tag acts only in {home}; external repos are tracked read-only", file=err)
+        return 2
     if remove and any(lab.startswith("tier:") for lab in labels):
         print("warning: removing a tier label loosens the item's tier; a steward of its space must confirm this", file=err)
 

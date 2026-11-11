@@ -222,8 +222,8 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 **Guardrails.**
 
 - Allowed labels only: `space:<name>` for a name in `[spaces]`, and each `[[labels]]` entry. Anything else exits 2 and lists the allowed set. To allow a new label, change the config by PR.
+- Repos in `[org] name` only. Labels are never created in other orgs' repos: any other repo exits 2, because external repos are tracked read-only.
 - Removing a `tier:*` label loosens the item's tier. It is allowed, with a warning: a steward of the item's space must confirm it.
-- In another org, `tag` runs only when the lab controls that org (a space with `org = "<org>"` and `control = "owner"`, the default). It acts with your own access there, which may be lower than the space owner's; a 403 or 404 means ask them. Upstream orgs (`control = "contributor"`, or not named by any space) are read-only and refused with exit 2.
 
 ## credit
 

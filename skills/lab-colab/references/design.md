@@ -63,7 +63,7 @@ derived-from: kg:example-node-1
 - An item joins a space its repo is not in through a `space:<name>` label, created on first use.
 - An item belongs to its repo's spaces plus any space named by a `space:<name>` label on the item.
 - Labels are set with `colab.py tag`, which allows only `space:<name>` for a declared space and the `[[labels]]` entries.
-- A space's repos may live in other GitHub orgs (section 1.5).
+- A space's `repos` are bare names in `[org] name`, or `<owner>/<name>` for external repos the group contributes to (section 1.5).
 - Project view filters cannot OR "repo is X" with "label is Y", so membership is stored in the multi-select **Spaces** field (options = the names in `[spaces]`). Each space gets a view `Space: <name>` filtered on `spaces:<name>`.
 - `colab.py plan` also creates the standing views, and fixes any existing view whose filter differs from the one below. A view's layout is set at creation and not changed afterwards.
 
@@ -74,16 +74,22 @@ derived-from: kg:example-node-1
 | Proposals inbox | `status:Proposed` | table |
 | My work | `assignee:@me` | board |
 
-### 1.5 Spaces across orgs
+### 1.5 External repos in spaces
 
-A space can connect to repos outside `[org] name`, for example a partner org the PI owns, or upstream projects the lab develops for.
+A space may list repos from other orgs that the group contributes to, as `<owner>/<name>`, mixed with its own repos. Spaces still belong to `[org] name`; an external repo is always tracked read-only, whoever owns its org.
 
-- `repos` entries are `<name>` (in `[org] name`) or `<owner>/<name>` (any org). One space may mix both.
-- `org = "<github org>"` names the other org the space connects to. `control = "owner"` (the default when `org` is set) means the lab controls that org; `control = "contributor"` means it does not. An org no space names is treated as contributor. When spaces disagree about an org, contributor wins.
-- **Read-only tracking.** The bus reads items from repos in other orgs and adds their issues to the org Project with their Spaces. It never writes into those repos: no deliveries, no comments, no labels. Subscriptions deliver only to repos in `[org] name`; any other subscriber is dropped and audited.
-- **No org metadata elsewhere.** `colab.py plan` never proposes issue types, Projects, fields, labels, or forms outside `[org] name`. For each external repo it reports one `manual` note: tracked read-only, or not readable.
-- **Owner versus member access.** The PI may own the other org while a member, or the bus token, has no access there. Every read tolerates 404 and 403 per repo: the repo is skipped and noted (`status` notes, the bus's `unreadable` stat). Its tier is then unknown and counts as **restricted**, never public. `colab.py tag` works in an owned org with the member's own access, which may be lower than the owner's.
-- Bus keys stay bare for repos in `[org] name`, and are `<owner>/<name>` for others, in cursors, envelope ids, and membership.
+- **What is tracked.** By default the bus takes only external items that involve the group: the author of the issue, PR, or release, or an assignee, is a member of `[org] name`. `[bus] external_track = "all"` takes every item. Tracked items get envelopes, and their issues are added to this org's Project with their Spaces.
+- **Member list.** Read once per poll (ETag-cached). If it cannot be read, nothing from external repos is taken that poll, the failure is audited (`org_members_unreadable`), and those repos' cursors stay put so the items are retried.
+- **No writes there.** No deliveries, comments, or labels in external repos. Subscriptions deliver only to repos in `[org] name`; any other subscriber is dropped and audited. `colab.py tag` refuses external repos. `colab.py plan` proposes no org metadata (issue types, Projects, fields, labels, forms) outside `[org] name`, and reports each external repo in one `manual` note: tracked read-only, or not readable.
+- **Access.** Members, and the bus token, may have no access to an external repo. Every read tolerates 404 and 403 per repo: the repo is skipped and noted (`status` notes, the bus's `unreadable` stat). Its tier is then unknown and counts as **restricted**, never public.
+- Bus keys stay bare for repos in `[org] name` and are `<owner>/<name>` for external ones, in cursors, envelope ids, and membership.
+
+### 1.6 One setup per org; linked spaces later
+
+- Each GitHub org runs its own Lab Colab setup: its own meta repo, Project, spaces, and bus, from its own config. `[org] name` is that org, and nothing in the scripts assumes a particular one.
+- Stewards and owners of a space are members of that org.
+- Every write stays in `[org] name`: external repos are only read (section 1.5), `colab.py tag` refuses them, and the bus delivers only to repos in `[org] name`.
+- Linking spaces across orgs is future work: cross-org status in checks and briefs, and contributions wherever a person has permissions. It will go through public-tier event exchange between setups, as in the federation phase.
 
 ## 2. Fields, and why there are almost no labels
 
@@ -178,7 +184,7 @@ The mode is set per destination space in `.colab/rollout.json`. A dry-run space 
 ### 4.5 Heartbeat and failures
 
 - After each poll, the bus writes repo variable `COLAB_BUS_HEARTBEAT` on the meta repo.
-- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, `errors`, and `project_writes`, plus `drift_actions` on polls that ran a drift check.
+- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, `errors`, and `project_writes`, plus `drift_actions` on polls that ran a drift check and `unreadable` (external repos the token cannot read) when there are any.
 - A failed read or write is logged to `audit.jsonl` and the poll goes on. A failed poll backs off, from 1 minute up to 1 hour.
 - The Slurm job requeues itself near its time limit and after an unexpected exit.
 - The `colab-watchdog` workflow in the meta repo alerts the lab when the heartbeat is stale: 30 minutes by default, or the `COLAB_STALE_MINUTES` variable.
@@ -226,7 +232,7 @@ File: `.colab/subscriptions.toml` in the meta repo.
 |---|---|
 | `topic` | `repo:<name>`, `label:<label>`, or `space:<space>` |
 | `events` | Optional list: `issue`, `pull_request`, `release` |
-| `subscriber` | Repo that receives the delivery; must be in `[org] name` |
+| `subscriber` | Repo that receives the delivery; must be in `[org] name` (`<org>/<name>` is read as `<name>`) |
 | `deliver` | `issue` (default). The bus delivers only issues. |
 | `tier` | Optional override of the subscriber's tier |
 

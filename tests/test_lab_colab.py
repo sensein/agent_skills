@@ -1225,20 +1225,21 @@ class FakeRunner:
         return mock.Mock(returncode=0, stdout="{}", stderr="")
 
 
-def tag_config() -> dict:
+def tag_config(org: str = "sensein") -> dict:
     cfg = json.loads(json.dumps(CONFIG))
+    cfg["org"]["name"] = org
     cfg["spaces"] = {"sails": {"stewards": ["a"], "repos": ["proj"], "tier": "restricted"},
-                     "partner": {"stewards": ["a"], "org": "pi-lab", "repos": ["pi-lab/tool", "proj"]},
-                     "upstream": {"stewards": ["a"], "org": "big-org", "control": "contributor", "repos": ["big-org/lib"]}}
+                     "partner": {"stewards": ["a"], "repos": ["pi-lab/tool", "proj"]},
+                     "upstream": {"stewards": ["a"], "repos": ["big-org/lib"]}}
     return cfg
 
 
 class TagTests(unittest.TestCase):
-    def _tag(self, item, labels, runner=None, **kw):
+    def _tag(self, item, labels, runner=None, cfg=None, **kw):
         import io
         out, err, sleeps = io.StringIO(), io.StringIO(), []
         runner = runner if runner is not None else FakeRunner()
-        rc = colab.cmd_tag(tag_config(), item, labels, runner=runner, sleep=sleeps.append, out=out, err=err, **kw)
+        rc = colab.cmd_tag(cfg or tag_config(), item, labels, runner=runner, sleep=sleeps.append, out=out, err=err, **kw)
         return rc, runner, out.getvalue(), err.getvalue(), sleeps
 
     def test_allow_list_comes_from_config(self) -> None:
@@ -1290,16 +1291,16 @@ class TagTests(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("FAILED", out)
 
-    def test_external_repos_need_owner_control(self) -> None:
-        rc, runner, _, err, _ = self._tag("pi-lab/tool#4", ["space:partner"])
+    def test_acts_only_in_the_configured_org(self) -> None:
+        for item in ("pi-lab/tool#4", "big-org/lib#1", "dandi/proj#2"):
+            rc, runner, _, err, _ = self._tag(item, ["space:partner"])
+            self.assertEqual((rc, runner.calls), (2, []), item)
+            self.assertIn("tag acts only in sensein; external repos are tracked read-only", err)
+        # another org's own setup: its [org] name is the one allowed, and nothing names sensein
+        rc, runner, _, _, _ = self._tag("dandi/proj#2", ["space:sails"], cfg=tag_config("dandi"))
         self.assertEqual(rc, 0)
-        self.assertIn("your own gh access", err)
-        self.assertTrue(all("repos/pi-lab/tool" in " ".join(c) for c in runner.calls))
-        for item in ("big-org/lib#1", "someone/else#2"):
-            rc, runner, _, err, _ = self._tag(item, ["space:upstream"])
-            self.assertEqual(rc, 2, item)
-            self.assertEqual(runner.calls, [])
-            self.assertIn("read-only", err)
+        self.assertTrue(all("repos/dandi/proj" in " ".join(c) for c in runner.calls))
+        self.assertEqual(self._tag("sensein/proj#2", ["space:sails"], cfg=tag_config("dandi"))[0], 2)
 
     def test_cli_parses_tag(self) -> None:
         from unittest import mock
@@ -1313,10 +1314,10 @@ class TagTests(unittest.TestCase):
 
 
 def org_config() -> dict:
-    """A sensein config with a space mixing a lab repo, a repo in a PI-owned org, and an upstream repo."""
+    """A sensein config with a space mixing a lab repo and repos in other orgs."""
     cfg = json.loads(json.dumps(CONFIG))
     cfg["spaces"] = {"proj": {"stewards": ["a"], "repos": ["proj"]},
-                     "partner": {"stewards": ["a"], "org": "pi-lab", "repos": ["proj", "pi-lab/tool", "pi-lab/hidden",
+                     "partner": {"stewards": ["a"], "repos": ["proj", "pi-lab/tool", "pi-lab/hidden",
                                                                               "upstream-org/lib"], "tier": "restricted"}}
     return cfg
 
@@ -1340,11 +1341,6 @@ class RepoNamingTests(unittest.TestCase):
         member = colab.repo_spaces(cfg)
         self.assertEqual(member["proj"], ["proj", "partner"])
         self.assertEqual(member["pi-lab/tool"], ["partner"])
-        self.assertEqual(colab.org_control(cfg, "sensein"), "owner")
-        self.assertEqual(colab.org_control(cfg, "pi-lab"), "owner")  # default when org is set
-        self.assertEqual(colab.org_control(cfg, "upstream-org"), "contributor")
-        cfg["spaces"]["other"] = {"org": "pi-lab", "control": "contributor", "repos": []}
-        self.assertEqual(colab.org_control(cfg, "pi-lab"), "contributor")  # conflicting declarations fail closed
 
     def test_bare_configs_are_unchanged(self) -> None:
         self.assertEqual(colab.repo_spaces(config_with_spaces()), {"proj": ["proj"]})
@@ -1375,9 +1371,8 @@ class ExternalObserveAndPlanTests(unittest.TestCase):
             return None  # 404/403 and everything else
         with mock.patch.object(colab, "_gh_json", side_effect=fake):
             ext, notes = colab.observe_external(org_config())
-        self.assertEqual(ext["pi-lab/tool"], {"visibility": "public", "forms": ["bug.yml"], "control": "owner"})
+        self.assertEqual(ext["pi-lab/tool"], {"visibility": "public", "forms": ["bug.yml"]})
         self.assertIsNone(ext["pi-lab/hidden"]["visibility"])
-        self.assertEqual(ext["upstream-org/lib"]["control"], "contributor")
         self.assertTrue(any(n.startswith("pi-lab/hidden:") for n in notes))
         self.assertNotIn(["api", "repos/sensein/tool"], calls)
         self.assertFalse(any("hidden/contents" in " ".join(a) for a in calls))  # unreadable: no further reads
@@ -1385,9 +1380,9 @@ class ExternalObserveAndPlanTests(unittest.TestCase):
     def test_plan_never_writes_into_other_orgs(self) -> None:
         cfg = org_config()
         snap = snapshot(external_repos={
-            "pi-lab/tool": {"visibility": "public", "forms": [], "control": "owner"},
-            "pi-lab/hidden": {"visibility": None, "forms": [], "control": "owner"},
-            "upstream-org/lib": {"visibility": "public", "forms": ["x.yml"], "control": "contributor"}})
+            "pi-lab/tool": {"visibility": "public", "forms": []},
+            "pi-lab/hidden": {"visibility": None, "forms": []},
+            "upstream-org/lib": {"visibility": "public", "forms": ["x.yml"]}})
         actions = colab.build_plan(cfg, snap, today=date(2026, 11, 11))
         for a in actions:
             text = " ".join(a.get("cmd") or [])
@@ -1396,7 +1391,7 @@ class ExternalObserveAndPlanTests(unittest.TestCase):
             if any(o in a["desc"] for o in ("pi-lab", "upstream-org")):
                 self.assertEqual(a["kind"], "manual", a)
         descs = [a["desc"] for a in actions]
-        self.assertTrue(any(d.startswith("Tracked read-only: pi-lab/tool") for d in descs))
+        self.assertTrue(any(d.startswith("Tracked read-only: pi-lab/tool") and "involve sensein members" in d for d in descs))
         self.assertTrue(any(d.startswith("pi-lab/hidden") and "restricted" in d for d in descs))
         self.assertFalse(any("not found in sensein" in d and "/" in d.split()[2] for d in descs))
         tracked = next(a for a in actions if a["desc"].startswith("Tracked read-only"))
@@ -1407,14 +1402,20 @@ class ExternalObserveAndPlanTests(unittest.TestCase):
 
 
 class ExtGH(FakeProjectGH):
-    """A lab repo `proj` plus repos in other orgs: pi-lab/tool (public), pi-lab/hidden (403)."""
+    """A lab repo `proj` plus repos in other orgs: pi-lab/tool (public), pi-lab/hidden (403).
+    sensein's members are `a` and `b`; members=None makes the member list unreadable."""
 
-    def __init__(self, ext_issues=None, **kw):
+    def __init__(self, ext_issues=None, members=("a", "b"), **kw):
         super().__init__(**kw)
         self.ext_issues = ext_issues or []
+        self.members = members
 
     def get(self, path, cache=False):
         import urllib.error
+        if path.startswith("/orgs/sensein/members"):
+            if self.members is None:
+                raise urllib.error.HTTPError(path, 403, "Forbidden", {}, None)
+            return [{"login": m} for m in self.members]
         if path.startswith("/repos/pi-lab/hidden"):
             raise urllib.error.HTTPError(path, 403, "Forbidden", {}, None)
         if path == "/repos/pi-lab/tool":
@@ -1434,7 +1435,7 @@ class ExtGH(FakeProjectGH):
 
 def ext_bus_config(**bus_opts) -> dict:
     cfg = project_config(**bus_opts)
-    cfg["spaces"]["partner"] = {"org": "pi-lab", "repos": ["pi-lab/tool", "pi-lab/hidden"]}
+    cfg["spaces"]["partner"] = {"repos": ["pi-lab/tool", "pi-lab/hidden"]}
     return cfg
 
 
@@ -1449,10 +1450,11 @@ class ExternalBusTests(unittest.TestCase):
     ISSUE = {"number": 4, "id": 4, "node_id": "I_ext", "title": "upstream bug", "labels": [], "state": "open",
              "created_at": "2026-11-09T01:00:00Z", "updated_at": "2026-11-09T01:00:00Z", "html_url": "u", "user": {"login": "a"}}
 
-    def _poll(self, subs=(), rollout=None, cfg=None, **kw):
+    def _poll(self, subs=(), rollout=None, cfg=None, state=None, **kw):
         with tempfile.TemporaryDirectory() as tmp:
             fake = ExtGH(**kw)
-            stats = bus.poll_once(fake, cfg or ext_bus_config(), rollout or {"spaces": {}}, list(subs), ext_watched(), Path(tmp), "me")
+            stats = bus.poll_once(fake, cfg or ext_bus_config(), rollout or {"spaces": {}}, list(subs),
+                                  ext_watched() if state is None else state, Path(tmp), "me")
             audit = Path(tmp) / "audit.jsonl"
             events = Path(tmp) / "events.jsonl"
             return (fake, stats, [json.loads(x) for x in audit.read_text().splitlines()] if audit.exists() else [],
@@ -1467,6 +1469,30 @@ class ExternalBusTests(unittest.TestCase):
         self.assertEqual(stats["unreadable"], ["pi-lab/hidden"])
         self.assertEqual(stats["errors"], 0)  # a 403 in another org is expected, not an error
         self.assertEqual(fake.sent, [])
+
+    def test_external_items_default_to_those_involving_members(self) -> None:
+        stranger = {**self.ISSUE, "number": 6, "node_id": "I_x", "user": {"login": "someone"}}
+        assigned = {**self.ISSUE, "number": 7, "node_id": "I_y", "user": {"login": "someone"}, "assignees": [{"login": "B"}]}
+        fake, _, _, events = self._poll(ext_issues=[self.ISSUE, stranger, assigned])
+        self.assertEqual(sorted(e["id"] for e in events if e["repo"] == "pi-lab/tool"),
+                         ["pi-lab/tool:issue:4:opened", "pi-lab/tool:issue:7:opened"])
+        adds = [v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"]
+        self.assertNotIn("I_x", adds)
+        fake, _, _, events = self._poll(ext_issues=[stranger], cfg=ext_bus_config(external_track="all"))
+        self.assertIn("I_x", [v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"])
+        self.assertTrue(bus.involves({"author": {"login": "A"}}, {"a"}))  # releases carry `author`
+
+    def test_unreadable_member_list_adds_nothing_external_and_retries(self) -> None:
+        state = ext_watched()
+        fake, stats, audit, events = self._poll(ext_issues=[self.ISSUE], members=None, state=state)
+        self.assertEqual([e for e in events if e["repo"] == "pi-lab/tool"], [])
+        self.assertTrue(any(a.get("org_members_unreadable") == "sensein" for a in audit))
+        self.assertEqual(state["cursors"]["pi-lab/tool"], "2026-11-08T00:00:00Z")  # not advanced: retried next poll
+        self.assertTrue(any(e["repo"] == "proj" for e in events))  # the lab's own repos are unaffected
+        # an uninvolved item still moves the cursor on
+        state = ext_watched()
+        self._poll(ext_issues=[{**self.ISSUE, "user": {"login": "someone"}}], state=state)
+        self.assertEqual(state["cursors"]["pi-lab/tool"], "2026-11-09T01:00:00Z")
 
     def test_project_sync_accepts_external_items(self) -> None:
         fake, _, _, _ = self._poll(ext_issues=[self.ISSUE])
@@ -1494,6 +1520,27 @@ class ExternalBusTests(unittest.TestCase):
         cfg["edges"] = CONFIG["edges"]
         fake, _, audit, _ = self._poll(rollout={"spaces": {"partner": {"bus": "live"}}}, cfg=cfg, ext_issues=[bad])
         self.assertTrue(any(a.get("links_errors") == "pi-lab/tool#4" for a in audit))
+        self.assertEqual(fake.sent, [])
+
+
+class AnyOrgTests(unittest.TestCase):
+    """Each org runs its own setup: with [org] name set to another org, nothing names sensein."""
+
+    def test_plan_forms_and_bus_follow_org_name(self) -> None:
+        cfg = json.loads(json.dumps(CONFIG))
+        cfg["org"]["name"] = "dandi"
+        cfg["spaces"] = {"archive": {"stewards": ["a"], "repos": ["dandi-archive", "upstream/lib"]}}
+        snap = snapshot(org="dandi", repos=[{"name": "lab-colab", "visibility": "private"},
+                                            {"name": "dandi-archive", "visibility": "public"}],
+                        external_repos={"upstream/lib": {"visibility": "public", "forms": []}})
+        plan = json.dumps(colab.build_plan(cfg, snap, today=date(2026, 11, 11)))
+        self.assertNotIn("sensein", plan)
+        self.assertIn("dandi/lab-colab", plan)
+        self.assertTrue(all("sensein" not in colab.render_form(t) for t in cfg["types"]))
+        fake = FakeGH(visibility={"dandi-archive": "public", "lab-colab": "private"})
+        with tempfile.TemporaryDirectory() as tmp:
+            bus.poll_once(fake, {"org": {"name": "dandi", "meta_repo": "lab-colab"}, "spaces": cfg["spaces"],
+                                 "bus": {"write_interval_seconds": 0}}, {"spaces": {}}, [], {}, Path(tmp), "me")
         self.assertEqual(fake.sent, [])
 
 

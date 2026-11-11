@@ -195,12 +195,10 @@ type = "ITERATION"
 # hold restricted items; a repo shared by several spaces takes the strictest.
 # example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"], tier = "restricted" }
 #
-# A space may also take repos from other GitHub orgs: write them as "owner/name" (bare names stay in
-# [org] name). org = "<github org>" names the org it connects to; control = "owner" (the default when
-# org is set) if the lab controls that org, "contributor" if not. Repos in other orgs are tracked
-# read-only: the bus adds their issues to the Project but delivers nothing there, and the plan writes
-# no org metadata there. A repo you or the bus cannot read is skipped and counts as restricted.
-# partner-space = { stewards = ["handle-a"], org = "partner-org", control = "owner", repos = ["repo-a", "partner-org/tool", "upstream-org/library"] }
+# External repos the group contributes to may be listed as "owner/name" (bare names stay in [org] name).
+# They are tracked read-only: the bus adds their items to the Project (see [bus] external_track) and
+# never writes there. A repo you or the bus cannot read is skipped and counts as restricted.
+# example-upstream = { stewards = ["handle-a"], repos = ["repo-a", "upstream-org/library"] }
 
 # ---------------------------------------------------------------------------
 # Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
@@ -263,6 +261,7 @@ heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
 project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
+external_track = "involved"     # external space repos: "involved" = only items whose author or an assignee is an org member; "all" = every item
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 
 # ---------------------------------------------------------------------------

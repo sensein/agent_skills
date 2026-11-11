@@ -16,8 +16,9 @@ Safety rules enforced here:
   - restricted events carry no summary, and move only for spaces with the `restricted` switch
   - the bus never routes its own deliveries (body marker), so it cannot loop
   - it adds no labels anywhere: tier and space membership come from the config
-  - space repos may live in other orgs (`owner/name` in [spaces]): they are read only, an unreadable one
-    is skipped (stats["unreadable"]) and counts as restricted, and nothing is ever written there;
+  - space repos may live in other orgs (`owner/name` in [spaces]): they are tracked read-only, by default
+    only items whose author or an assignee is an org member ([bus] external_track); an unreadable one is
+    skipped (stats["unreadable"]) and counts as restricted; nothing is ever written there, and
     subscriptions deliver only to repos in [org] name (others are dropped and audited)
   - it validates each issue's fenced links block once per body version
 
@@ -97,6 +98,29 @@ def repo_tiers(config: dict) -> dict[str, str]:
 def desired_spaces(repo: str, labels: list[str], member_of: dict[str, list[str]]) -> list[str]:
     """Spaces an item belongs to: its repo's spaces plus any space:<name> label."""
     return sorted(set(member_of.get(repo, [])) | {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")})
+
+
+def involves(item: dict, members: set[str]) -> bool:
+    """True when the item's author (issue/PR user, release author) or an assignee is in `members`."""
+    logins = {(item.get("user") or item.get("author") or {}).get("login", "")}
+    logins |= {a.get("login", "") for a in item.get("assignees") or [] if isinstance(a, dict)}
+    return bool({x.lower() for x in logins if x} & members)
+
+
+def org_members(gh, org: str) -> set[str] | None:
+    """Lower-cased logins of the org's members (ETag-cached across polls); None when the list cannot be read."""
+    out: set[str] = set()
+    try:
+        for page in range(1, 51):
+            batch = gh.get(f"/orgs/{org}/members?per_page=100&page={page}", cache=True)
+            if not isinstance(batch, list):
+                return None if page == 1 else out
+            out |= {str(m.get("login", "")).lower() for m in batch if isinstance(m, dict)}
+            if len(batch) < 100:
+                break
+    except urllib.error.URLError:
+        return None
+    return out
 
 
 def may_deliver(event_tier: str, to_tier: str) -> bool:
@@ -301,9 +325,8 @@ class ProjectSync:
         bus = config.get("bus", {})
         self.gh, self.state, self.state_dir, self.stats, self.member_of = gh, state, state_dir, stats, member_of
         self.org = config["org"]["name"]
-        # orgs whose items the sweep manages: the lab's own, plus any named by a space (org = or owner/name)
-        self.owners = {self.org.lower()} | {str(spec.get("org")).lower() for spec in (config.get("spaces") or {}).values()
-                                            if spec.get("org")} | {k.split("/")[0].lower() for k in member_of if is_external(k)}
+        # orgs whose items the sweep manages: the lab's own, plus the owners of external space repos
+        self.owners = {self.org.lower()} | {k.split("/")[0].lower() for k in member_of if is_external(k)}
         self.number = int(config["org"].get("project_number") or 0)
         self.enabled = bool(bus.get("project_sync", False)) and self.number > 0
         self.every = max(1, int(bus.get("project_sync_every", 6)))
@@ -548,6 +571,20 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     interval = config.get("bus", {}).get("write_interval_seconds", 1.0)
     threshold = config.get("bus", {}).get("fanout_digest_threshold", 20)
     stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
+    # External repos: by default only items that involve org members ([bus] external_track = "involved");
+    # "all" takes every item. Any other value counts as "involved". The member list is read once per poll.
+    track_all = config.get("bus", {}).get("external_track", "involved") == "all"
+    members: dict = {}
+
+    def keep_external(item: dict) -> bool:
+        if track_all:
+            return True
+        if "set" not in members:
+            members["set"] = org_members(gh, org)
+            if members["set"] is None:
+                stats["errors"] += 1
+                _append(state_dir / "audit.jsonl", {"org_members_unreadable": org, "skipped": "external items", "at": now()})
+        return members["set"] is not None and involves(item, members["set"])
     project = ProjectSync(gh, config, state, state_dir, stats, member_of)
 
     # Repo names in subscriptions are normalised like [spaces] entries: bare = [org] name. A subscriber in
@@ -647,6 +684,10 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             _append(state_dir / "audit.jsonl", {"read_failed": repo, "error": str(err), "at": now()})
             continue
         events = []
+        fetched = items
+        if is_external(repo):
+            items = [i for i in items if keep_external(i)]
+            releases = [r for r in releases if keep_external(r)]
         for item in items:
             if is_delivery(item):
                 continue
@@ -697,8 +738,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     stats["dry_run"] += 1
                     _append(state_dir / "would-deliver.jsonl", {**d, "at": now()})
             save()  # persist seen ids after every envelope, so a crash never re-delivers
-        if items:
-            cursors[repo] = max(i["updated_at"] for i in items)
+        if fetched and not (is_external(repo) and not track_all and members.get("set") is None):
+            cursors[repo] = max(i["updated_at"] for i in fetched)  # unreadable members: retry these next poll
             save()
     try:
         if project.sweep_due():
