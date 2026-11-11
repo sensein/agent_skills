@@ -718,6 +718,399 @@ class SessionHeartbeatTests(unittest.TestCase):
             self.assertIn("sensein/p#2", audit[0])
 
 
+class DriftCheckTests(unittest.TestCase):
+    T0 = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+
+    class GH:
+        def __init__(self, issues=None):
+            self.issues = issues or []
+            self.sent = []
+
+        def get(self, path, cache=False):
+            if "/issues?" in path:
+                return self.issues
+            return None
+
+        def send(self, method, path, body):
+            self.sent.append((method, path, body))
+            return {"number": 77}
+
+    SNAP = {"repos": [{"name": "lab-colab", "visibility": "private"}], "meta_repo_exists": True}
+    CFG = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "bus": {"drift_check_hours": 24}}
+
+    def run_check(self, plan, gh=None, state=None, cfg=None, now_t=None, observe=None):
+        gh = gh or self.GH()
+        state = {} if state is None else state
+        stats = {"errors": 0}
+        with tempfile.TemporaryDirectory() as tmp:
+            bus.drift_check(gh, cfg or self.CFG, state, Path(tmp), stats, now_t or self.T0,
+                            observe_fn=observe or (lambda c: self.SNAP), plan_fn=lambda c, s: plan)
+            audit = (Path(tmp) / "audit.jsonl").read_text() if (Path(tmp) / "audit.jsonl").exists() else ""
+        return gh, state, stats, audit
+
+    def test_recurring_actions_are_filtered(self) -> None:
+        plan = [{"kind": "gate", "desc": "Space x: phase 1 gate"},
+                {"kind": "local", "desc": "Start the bus in dry-run on ORCD"},
+                {"kind": "manual", "desc": "These space repos have their own issue templates, so ..."}]
+        gh, state, stats, _ = self.run_check(plan)
+        self.assertEqual(gh.sent, [])
+        self.assertEqual(stats["drift_actions"], 0)
+        # a different manual note is not recurring
+        self.assertFalse(colab.is_recurring({"kind": "manual", "desc": "Define spaces"}))
+
+    def test_real_plan_of_converged_org_is_clean_and_drift_shows(self) -> None:
+        cfg = config_with_spaces()
+        cfg["marketplace"]["repo"] = ""
+        done = dict(cfg["sessions"], issue=3); cfg["sessions"] = done
+        cfg["org"]["project_number"] = 4
+        snap = snapshot(rollout={"schema": 1, "gates": [], "spaces": {"proj": {"phase": 0, "bus": "dry-run"}}},
+                        projects=[{"number": 4, "title": cfg["org"]["project_title"]}],
+                        issue_types=[t["name"] for t in cfg["types"]],
+                        forms={".github": [colab.form_filename(t["name"]) for t in cfg["types"]]},
+                        repos=snapshot()["repos"] + [{"name": ".github", "visibility": "public"}])
+        spaces = list(cfg["spaces"])
+        fields = {f["name"]: (spaces if f["type"] == "MULTI_SELECT" else f.get("options", [])) for f in cfg["fields"]}
+        snap["project_fields"] = {"4": [{"name": n, "options": o} for n, o in fields.items()]}
+        snap["project_views"] = {"4": [{"name": v["name"], "layout": v["layout"], "filter": v["filter"]} for v in colab.desired_views(cfg)]}
+        remaining = [a for a in colab.build_plan(cfg, snap) if not colab.is_recurring(a)]
+        self.assertEqual(remaining, [], [a["desc"] for a in remaining])
+        snap["issue_types"] = snap["issue_types"][1:]
+        remaining = [a for a in colab.build_plan(cfg, snap) if not colab.is_recurring(a)]
+        self.assertEqual(len(remaining), 1)
+
+    def test_creates_then_edits_in_place_then_closes(self) -> None:
+        plan = [{"kind": "gh", "desc": "Create org issue type Idea", "cmd": ["gh"]}]
+        gh, state, stats, _ = self.run_check(plan)
+        [(method, path, body)] = gh.sent
+        self.assertEqual((method, path, body["title"]), ("POST", "/repos/sensein/lab-colab/issues", "Drift report"))
+        self.assertIn("Create org issue type Idea", body["body"])
+        self.assertIn("colab.py --config <meta clone>/.colab/config.toml plan", body["body"])
+        self.assertIn("apply --yes", body["body"])
+        self.assertIn(bus.DELIVERY_MARKER, body["body"])  # the bus never routes its own report
+        self.assertEqual((state["drift_issue"], stats["drift_actions"]), (77, 1))
+        # next check, plan changed: PATCH, no comment
+        existing = {"number": 77, "title": "Drift report", "state": "open", "body": body["body"]}
+        plan2 = plan + [{"kind": "gh", "desc": "Create org issue type Question"}]
+        gh2, _, _, _ = self.run_check(plan2, gh=self.GH([existing]), now_t=self.T0 + timedelta(hours=25), state={})
+        [(method, path, b2)] = gh2.sent
+        self.assertEqual((method, path), ("PATCH", "/repos/sensein/lab-colab/issues/77"))
+        self.assertIn("Question", b2["body"])
+        # unchanged plan: no write at all
+        gh3, _, _, _ = self.run_check(plan, gh=self.GH([existing]), state={})
+        self.assertEqual(gh3.sent, [])
+        # clean: comment, then close
+        gh4, _, stats4, _ = self.run_check([], gh=self.GH([existing]), state={})
+        self.assertEqual([(m, p.rsplit("/", 1)[-1]) for m, p, _ in gh4.sent], [("POST", "comments"), ("PATCH", "77")])
+        self.assertEqual(gh4.sent[1][2]["state"], "closed")
+        self.assertEqual(stats4["drift_actions"], 0)
+        # clean and already closed: nothing
+        gh5, _, _, _ = self.run_check([], gh=self.GH([{**existing, "state": "closed"}]), state={})
+        self.assertEqual(gh5.sent, [])
+
+    def test_schedule_and_off_switch(self) -> None:
+        state = {"drift_checked_at": self.T0.isoformat()}
+        self.assertFalse(bus.drift_due(self.CFG, state, self.T0 + timedelta(hours=23)))
+        self.assertTrue(bus.drift_due(self.CFG, state, self.T0 + timedelta(hours=24)))
+        self.assertTrue(bus.drift_due(self.CFG, {}, self.T0))
+        off = {**self.CFG, "bus": {"drift_check_hours": 0}}
+        self.assertFalse(bus.drift_due(off, {}, self.T0))
+        gh, state, stats, _ = self.run_check([{"kind": "gh", "desc": "x"}], cfg=off)
+        self.assertEqual((gh.sent, state, "drift_actions" in stats), ([], {}, False))
+
+    def test_failures_are_audited_and_retried_after_an_hour(self) -> None:
+        def boom(cfg):
+            raise OSError("gh missing")
+        gh, state, stats, audit = self.run_check([], observe=boom)
+        self.assertEqual((stats["errors"], gh.sent), (1, []))
+        self.assertIn("drift_check_failed", audit)
+        self.assertNotIn("drift_checked_at", state)
+        self.assertFalse(bus.drift_due(self.CFG, state, self.T0 + timedelta(minutes=30)))
+        self.assertTrue(bus.drift_due(self.CFG, state, self.T0 + timedelta(hours=1)))
+        # an empty observation (gh failing quietly) is a failure, never a mass of false drift
+        gh, state, stats, audit = self.run_check([{"kind": "gh", "desc": "x"}], observe=lambda c: {"repos": []})
+        self.assertEqual((stats["errors"], gh.sent), (1, []))
+
+    def test_write_failure_does_not_raise(self) -> None:
+        class Bad(self.GH):
+            def send(self, *a):
+                raise OSError("down")
+        _, _, stats, audit = self.run_check([{"kind": "gh", "desc": "x"}], gh=Bad())
+        self.assertEqual(stats["errors"], 1)
+        self.assertIn("drift_check_failed", audit)
+
+
+class MarketplaceTests(unittest.TestCase):
+    SHA = "a" * 40
+
+    class Src:
+        def __init__(self, mds):
+            self.mds = mds
+
+        def sha(self):
+            return "a" * 40
+
+        def skills(self):
+            return sorted(self.mds)
+
+        def skill_md(self, name):
+            return self.mds[name]
+
+    def cfg(self, **mp):
+        cfg = json.loads(json.dumps(CONFIG))
+        cfg["marketplace"] = {"repo": "claude-plugins", "source_repo": "agent_skills", "exclude": [], "name": "sensein", **mp}
+        return cfg
+
+    def test_description_parsing_and_truncation(self) -> None:
+        self.assertEqual(colab.skill_description("---\nname: a\ndescription: >-\n  One two\n  three.\nlicense: x\n---\nbody"), "One two three.")
+        self.assertEqual(colab.skill_description('---\ndescription: "Quoted"\n---\n'), "Quoted")
+        long = colab.skill_description("---\ndescription: " + "word " * 100 + "\n---\n")
+        self.assertLessEqual(len(long), 300)
+        self.assertTrue(long.endswith("..."))
+        self.assertEqual(colab.skill_description("no frontmatter"), "")
+
+    def test_marketplace_json_shape(self) -> None:
+        src = self.Src({"alpha": "---\ndescription: Alpha skill\n---\n", "beta": "---\ndescription: Beta\n---\n",
+                        "junk": None, "gamma": "---\ndescription: G\n---\n"})
+        m = colab.marketplace_json(self.cfg(exclude=["gamma"]), src, date(2026, 11, 10))
+        self.assertEqual(m["name"], "sensein")
+        self.assertEqual([p["name"] for p in m["plugins"]], ["alpha", "beta"])  # junk has no SKILL.md, gamma is excluded
+        self.assertEqual(m["plugins"][0], {
+            "name": "alpha", "description": "Alpha skill", "version": "2026.11.10+aaaaaaa", "strict": False,
+            "source": {"source": "git-subdir", "url": "https://github.com/sensein/agent_skills.git",
+                       "path": "skills/alpha", "sha": self.SHA}})
+
+    def test_seed_writes_all_files_parameterised_and_never_overwrites(self) -> None:
+        src = self.Src({"alpha": "---\ndescription: A\n---\n"})
+        cfg = self.cfg(name="acme", source_repo="skills")
+        cfg["org"] = {**cfg["org"], "name": "acme"}
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp)
+            (dest / "README.md").write_text("mine")
+            written = colab.cmd_seed_marketplace(cfg, dest, source=src, today=date(2026, 11, 10))
+            self.assertEqual(sorted(p.relative_to(dest).as_posix() for p in written),
+                             sorted(set(colab.MARKETPLACE_FILES) - {"README.md"}))
+            self.assertEqual((dest / "README.md").read_text(), "mine")
+            self.assertEqual(colab.cmd_seed_marketplace(cfg, dest, source=src), [])
+            for rel in colab.MARKETPLACE_FILES:
+                text = (dest / rel).read_text()
+                self.assertNotIn("__ORG__", text); self.assertNotIn("__SOURCE_REPO__", text)
+                self.assertNotIn("__NAME__", text); self.assertNotIn("sensein", text)
+            json.loads((dest / ".claude-plugin" / "marketplace.json").read_text())
+            self.assertIn("acme/skills", (dest / ".github" / "workflows" / "track-agent-skills.yml").read_text())
+            self.assertIn('"acme"', (dest / "scripts" / "check_marketplace.py").read_text())
+            compile((dest / "scripts" / "check_marketplace.py").read_text(), "check", "exec")
+
+    def test_off_when_repo_empty(self) -> None:
+        cfg = self.cfg(repo="")
+        self.assertEqual(colab.marketplace_actions(cfg, snapshot(), {}), [])
+        with self.assertRaises(SystemExit):
+            colab.cmd_seed_marketplace(cfg, Path("/nonexistent"), source=self.Src({}))
+
+    def test_plan_bootstraps_a_new_marketplace(self) -> None:
+        actions = colab.build_plan(self.cfg(), snapshot())
+        mp = [a for a in actions if "claude-plugins" in a["desc"] or "claude.ai" in a["desc"] or "marketplace" in a["desc"]]
+        kinds = [a["kind"] for a in mp]
+        self.assertEqual(kinds, ["gh", "gh", "local", "manual", "manual"])
+        self.assertEqual(mp[0]["cmd"][:4], ["gh", "repo", "create", "sensein/claude-plugins"])
+        self.assertIn("--private", mp[0]["cmd"])
+        self.assertEqual(mp[1]["cmd"], ["gh", "api", "-X", "PUT", "repos/sensein/claude-plugins/actions/permissions/workflow",
+                                        "-f", "default_workflow_permissions=write", "-F", "can_approve_pull_request_reviews=true"])
+        self.assertEqual(mp[2]["cmd"], ["python", "colab.py", "seed-marketplace", "--dest", "<clone of sensein/claude-plugins>"])
+        self.assertIn("Claude GitHub App", mp[3]["desc"])
+        self.assertIn("Organization settings > Plugins & skills > Marketplaces > Add plugins > Sync from GitHub", mp[4]["desc"])
+
+    def test_plan_is_empty_once_marketplace_is_converged(self) -> None:
+        converged = {"workflow_permissions": "write", "can_approve_pull_request_reviews": True,
+                     "files": sorted(colab.MARKETPLACE_FILES)}
+        snap = snapshot(repos=snapshot()["repos"] + [{"name": "claude-plugins", "visibility": "private"}], marketplace=converged)
+        self.assertEqual(colab.marketplace_actions(self.cfg(), snap, {r["name"]: r for r in snap["repos"]}), [])
+        # drifted: permissions reset, a file deleted, repo made public
+        snap["marketplace"] = {**converged, "workflow_permissions": "read", "files": converged["files"][1:]}
+        snap["repos"][-1]["visibility"] = "public"
+        got = colab.marketplace_actions(self.cfg(), snap, {r["name"]: r for r in snap["repos"]})
+        self.assertEqual([a["kind"] for a in got], ["manual", "gh", "local", "manual", "manual"])
+        self.assertIn("must be private", got[0]["desc"])
+
+    def test_observe_marketplace_reads_permissions_and_tree(self) -> None:
+        from unittest import mock
+        def fake(args):
+            if args[1].endswith("actions/permissions/workflow"):
+                return {"default_workflow_permissions": "write", "can_approve_pull_request_reviews": True}
+            return {"tree": [{"path": "README.md"}, {"path": "other"}, {"path": ".claude-plugin/marketplace.json"}]}
+        with mock.patch.object(colab, "_gh_json", side_effect=fake):
+            got = colab.observe_marketplace(self.cfg(), {"claude-plugins"})
+            self.assertEqual(got["files"], [".claude-plugin/marketplace.json", "README.md"])
+            self.assertEqual(got["workflow_permissions"], "write")
+        self.assertEqual(colab.observe_marketplace(self.cfg(), set()), {})
+
+    def test_checker_template_encodes_the_claude_ai_rules(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_marketplace.py"
+            path.write_text(colab.render_marketplace_template(
+                (colab.MARKETPLACE_TEMPLATES / "check_marketplace.py").read_text(), self.cfg()))
+            checker = _load("check_marketplace", str(path))
+        def plugin(**src):
+            return {"name": "p", "source": {"source": "git-subdir", "url": "https://github.com/sensein/agent_skills.git",
+                                            "path": "skills/p", "sha": self.SHA, **src}, "strict": False}
+        def errors(*plugins):
+            return checker.check({"name": "sensein", "owner": {"name": "sensein"}, "plugins": list(plugins)}, False, "sensein")
+        self.assertEqual(errors(plugin()), [])
+        self.assertTrue(any("https" in e for e in errors(plugin(url="sensein/agent_skills"))))
+        self.assertTrue(any("not supported" in e for e in errors({"name": "p", "source": {"source": "npm", "package": "x"}})))
+        self.assertTrue(any("relative source" in e for e in errors({"name": "p", "source": "bare"})))
+        self.assertEqual(errors({"name": "p", "source": "./p"}), [])
+        self.assertTrue(any("40-character" in e for e in errors(plugin(sha="abc"))))
+        self.assertEqual(checker.LIMIT, 200 * 1024 * 1024)
+        text = path.read_text() if path.exists() else ""
+        self.assertIn('"strict": false', (colab.MARKETPLACE_TEMPLATES / "check_marketplace.py").read_text())
+        self.assertIn("bin/", (colab.MARKETPLACE_TEMPLATES / "check_marketplace.py").read_text())
+        # the marketplace repo itself must be private
+        import io, urllib.request
+        from unittest import mock
+        def reply(private):
+            resp = mock.MagicMock(); resp.__enter__.return_value = io.BytesIO(json.dumps({"private": private}).encode())
+            return resp
+        with mock.patch.object(urllib.request, "urlopen", return_value=reply(True)):
+            self.assertEqual(checker.check_private("sensein/claude-plugins", "t"), [])
+        with mock.patch.object(urllib.request, "urlopen", return_value=reply(False)):
+            self.assertTrue(any("must be private" in e for e in checker.check_private("sensein/claude-plugins")))
+
+    def test_templates_have_no_cluster_paths(self) -> None:
+        for path in colab.MARKETPLACE_TEMPLATES.iterdir():
+            text = path.read_text()
+            self.assertNotIn("/orcd/", text, path.name)
+            self.assertNotIn("satra", text, path.name)
+
+
+class SetupTests(unittest.TestCase):
+    GH_OK = "github.com\n  - Logged in\n  - Token scopes: 'gist', 'project', 'read:org', 'repo'\n"
+
+    def run_setup(self, home, auth=(0, GH_OK), cfg=None, install=False, env=None, which=None):
+        from unittest import mock
+        def runner(cmd, **kw):
+            if cmd[:3] == ["gh", "auth", "status"]:
+                return mock.Mock(returncode=auth[0], stdout=auth[1], stderr="")
+            return mock.Mock(returncode=0, stdout="1\n", stderr="")
+        return colab.cmd_setup(cfg, install, home=home, env=env or {}, runner=runner,
+                               which=which or (lambda n: f"/usr/bin/{n}"), skill_dir=Path("/opt/skills/lab-colab"))
+
+    def by_name(self, checks):
+        return {c["name"]: c for c in checks}
+
+    def cfg_file(self, tmp):
+        path = Path(tmp) / "meta" / ".colab" / "config.toml"
+        path.parent.mkdir(parents=True)
+        path.write_text('[org]\nname = "x"\nmeta_repo = "m"\n')
+        return path
+
+    def test_reports_each_problem_with_a_fix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            checks, rc = self.run_setup(Path(tmp), auth=(0, "  - Token scopes: 'gist'\n"), which=lambda n: "/usr/bin/gh" if n == "gh" else None)
+            got = self.by_name(checks)
+            self.assertEqual(rc, 1)
+            self.assertIn("gh auth refresh -s repo -s read:org -s project", got["gh scopes"]["fix"])
+            self.assertEqual(got["gh admin:org"]["status"], "info")  # never a failure
+            self.assertEqual(got["COLAB_CONFIG"]["status"], "fail")
+            self.assertIn("COLAB_CONFIG=", got["COLAB_CONFIG"]["fix"])
+            self.assertEqual(got["hooks"]["status"], "fail")
+            self.assertIn("--install-hooks", got["hooks"]["fix"])
+            self.assertEqual(got["skill location"]["status"], "info")
+
+    def test_not_logged_in_and_no_gh(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            got = self.by_name(self.run_setup(Path(tmp), auth=(1, "not logged in"))[0])
+            self.assertIn("gh auth login", got["gh auth"]["fix"])
+            got = self.by_name(self.run_setup(Path(tmp), which=lambda n: None)[0])
+            self.assertEqual(got["gh"]["status"], "fail")
+
+    def test_all_green_when_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            _, rc = self.run_setup(home, cfg=cfg, install=True)
+            self.assertEqual(rc, 0)
+            checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
+            self.assertEqual(rc, 0, [c for c in checks if c["status"] == "fail"])
+            self.assertEqual(self.by_name(checks)["hooks"]["status"], "ok")
+
+    def test_install_hooks_exact_command_backup_preserve_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            settings = home / ".claude" / "settings.json"
+            original = {"model": "opus", "env": {"A": "1"},
+                        "hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}],
+                                  "PreToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": "true"}]}]},
+                        "permissions": {"allow": ["Bash(ls)"]}}
+            settings.write_text(json.dumps(original))
+            before = settings.read_text()
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            self.assertEqual(rc, 0)
+            [backup] = list((home / ".claude").glob("settings.json.colab-bak-*"))
+            self.assertEqual(backup.read_text(), before)
+            data = json.loads(settings.read_text())
+            for key in ("model", "env", "permissions"):
+                self.assertEqual(data[key], original[key])
+            self.assertEqual(data["hooks"]["PreToolUse"], original["hooks"]["PreToolUse"])
+            self.assertEqual(data["hooks"]["PostToolUse"][0], original["hooks"]["PostToolUse"][0])
+            expected = (f"COLAB_CONFIG={cfg.resolve()} {sys.executable} /opt/skills/lab-colab/scripts/colab.py "
+                        "beat --from-hook --background 2>/dev/null || true")
+            for event in ("PostToolUse", "Stop"):
+                added = data["hooks"][event][-1]
+                self.assertEqual(added["hooks"], [{"type": "command", "command": expected, "timeout": 30}])
+            self.assertEqual(len(data["hooks"]["PostToolUse"]), 2)
+            # re-run: nothing added, no new backup, file untouched
+            after = settings.read_text()
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            self.assertEqual(settings.read_text(), after)
+            self.assertEqual(len(list((home / ".claude").glob("settings.json.colab-bak-*"))), 1)
+            self.assertIn("nothing changed", self.by_name(checks)["hooks"]["detail"])
+
+    def test_install_creates_missing_settings_without_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            self.run_setup(home, cfg=cfg, install=True)
+            data = json.loads((home / ".claude" / "settings.json").read_text())
+            self.assertEqual(sorted(data["hooks"]), ["PostToolUse", "Stop"])
+            self.assertEqual(list((home / ".claude").glob("*bak*")), [])
+
+    def test_invalid_settings_and_unresolved_config_are_never_overwritten(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            settings = home / ".claude" / "settings.json"
+            settings.write_text("{not json")
+            checks, rc = self.run_setup(home, cfg=self.cfg_file(tmp), install=True)
+            self.assertEqual(rc, 1)
+            self.assertEqual(settings.read_text(), "{not json")
+            settings.unlink()
+            checks, rc = self.run_setup(home, install=True)  # no COLAB_CONFIG
+            self.assertEqual(rc, 1)
+            self.assertFalse(settings.exists())
+
+    def test_existing_beat_hook_is_left_alone(self) -> None:
+        settings = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 /x/colab.py beat --from-hook"}]}]}}
+        self.assertEqual(colab.merge_hooks(settings, "cmd"), ["PostToolUse"])
+        self.assertEqual(len(settings["hooks"]["Stop"]), 1)
+
+    def test_cli_uses_temp_home_only(self) -> None:
+        import io, os
+        from contextlib import redirect_stdout
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            proc = mock.Mock(returncode=0, stdout=self.GH_OK, stderr="")
+            with mock.patch.dict(os.environ, {"HOME": str(home)}), mock.patch.object(colab.subprocess, "run", return_value=proc), \
+                    redirect_stdout(io.StringIO()) as out:
+                rc = colab.main(["--config", str(cfg), "setup", "--install-hooks"])
+            self.assertEqual(rc, 0, out.getvalue())
+            self.assertTrue((home / ".claude" / "settings.json").exists())
+            self.assertIn("[ok  ] hooks", out.getvalue())
+
+
 class NextTests(unittest.TestCase):
     def test_candidates_and_pick_next(self) -> None:
         def item(n, status="Ready", ready="yes", kind="Issue"):

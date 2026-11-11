@@ -15,10 +15,14 @@ The config's `[[phases]]` table is authoritative; this page explains it.
 
 | Kind | Who acts | How |
 |---|---|---|
-| `gh` | `colab.py apply --yes` | Org metadata: repo creation, issue types, the Project, its fields (Spaces, Iteration included) and views. No labels are created up front. Throttled to 1 write per second |
+| `gh` | `colab.py apply --yes` | Org metadata: repo creation (the meta repo, and the marketplace repo with its Actions workflow permissions), issue types, the Project, its fields (Spaces, Iteration included) and views. No labels are created up front. Throttled to 1 write per second |
 | `local` | The agent, in a clone | A file change sent as a reviewed PR, scanned before push |
 | `manual` | A person | Steps the API cannot do, or choices that belong to people (defining spaces, setting `[org] project_number` after the Project exists) |
 | `gate` | The agent with a person | Check the criterion against evidence, then `colab.py gate ... --evidence <link>`, committed by PR |
+
+The marketplace steps appear only when `[marketplace] repo` is set. Once the repo exists with its permissions and starter files, the plan drops them, including the claude.ai `manual` steps (which the API cannot observe).
+
+The bus checks the plan for drift on a schedule (`[bus] drift_check_hours`) and reports it in one `Drift report` issue; see [`runbook.md`](./runbook.md) for what to do with it, and for the cases where re-applying loses data.
 
 ## Recording evidence
 

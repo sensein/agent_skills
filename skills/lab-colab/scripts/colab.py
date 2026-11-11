@@ -18,12 +18,16 @@ Subcommands
   lease         Compose a claim lease marker for an issue comment (default 45 minutes).
   beat          Session heartbeat: refresh this session's Session activity comment and renew
                 its lease. Called by Claude Code hooks; throttled; costs no model tokens.
+  seed-marketplace  Write the private plugin-marketplace repo's starter files (one plugin per skill).
+  setup         Member onboarding check (gh scopes, Python, COLAB_CONFIG, hooks); --install-hooks
+                merges the heartbeat hooks into ~/.claude/settings.json.
   gate          Record a passed gate for a space in a local rollout.json and
                 switch on that phase's features for it.
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -38,6 +42,15 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = SKILL_DIR / "assets" / "lab-colab.toml"
 TEMPLATES = SKILL_DIR / "assets" / "templates"
 TIERS = ("public", "lab", "restricted")
+MARKETPLACE_TEMPLATES = TEMPLATES / "marketplace"
+# Files `seed-marketplace` writes into the marketplace repo (published path -> template, None = generated).
+MARKETPLACE_FILES = {
+    ".claude-plugin/marketplace.json": None,
+    "scripts/check_marketplace.py": "check_marketplace.py",
+    ".github/workflows/validate.yml": "validate.yml",
+    ".github/workflows/track-agent-skills.yml": "track-agent-skills.yml",
+    "README.md": "README.md",
+}
 
 
 # --------------------------------------------------------------------------- config
@@ -84,6 +97,23 @@ def _project_info(org: str, number: int | str) -> dict | None:
         return None
 
 
+def observe_marketplace(config: dict, repo_names: set[str]) -> dict:
+    """Marketplace repo state: Actions workflow permissions and which starter files exist. Read-only."""
+    mp = config.get("marketplace") or {}
+    repo = mp.get("repo") or ""
+    if not repo or repo not in repo_names:
+        return {}
+    org = config["org"]["name"]
+    perms = _gh_json(["api", f"repos/{org}/{repo}/actions/permissions/workflow"])
+    tree = _gh_json(["api", f"repos/{org}/{repo}/git/trees/HEAD?recursive=1"])
+    paths = [t["path"] for t in (tree or {}).get("tree", []) if isinstance(t, dict) and "path" in t]
+    return {
+        "workflow_permissions": (perms or {}).get("default_workflow_permissions"),
+        "can_approve_pull_request_reviews": (perms or {}).get("can_approve_pull_request_reviews"),
+        "files": sorted(p for p in paths if p in MARKETPLACE_FILES),
+    }
+
+
 def observe(config: dict) -> dict:
     """Collect what exists in the org. Read-only.
 
@@ -107,6 +137,7 @@ def observe(config: dict) -> dict:
         "forms": {},
         "rollout": None,
     }
+    snapshot["marketplace"] = observe_marketplace(config, {r["name"] for r in active})
     snapshot["project_views"] = {}
     for p in snapshot["projects"]:
         number = str(p["number"])
@@ -224,6 +255,14 @@ def _field_options(fields: list) -> dict[str, list[str]]:
         else:
             out[f["name"]] = list(f.get("options", []))
     return out
+
+
+def is_recurring(action: dict) -> bool:
+    """Plan actions that are expected to stay in every plan; the bus's drift check ignores them."""
+    desc = action.get("desc", "")
+    return (action["kind"] == "gate"
+            or desc.startswith("Start the bus")
+            or (action["kind"] == "manual" and desc.startswith("These space repos have their own issue templates")))
 
 
 def _action(kind: str, phase: int, desc: str, cmd: list[str] | None = None, **extra) -> dict:
@@ -373,6 +412,8 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
         actions.append(_action("local", 0, "Start the bus in dry-run on ORCD (self-requeuing Slurm job; it logs and never writes)",
                                ["sbatch", "<rendered colab-bus.sbatch>"]))
 
+    actions += marketplace_actions(config, snapshot, repos)
+
     # Phases 1+: per-space switches, opened only after that space passes the previous gate.
     phases = {p["id"]: p for p in config.get("phases", [])}
     for space in spaces:
@@ -386,6 +427,38 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
                                    ["python", "colab.py", "gate", "--rollout", "<meta clone>/.colab/rollout.json",
                                     "--space", space, "--phase", str(target), "--evidence", "<link to the evidence>"]))
     return actions
+
+
+def marketplace_actions(config: dict, snapshot: dict, repos: dict) -> list[dict]:
+    """Plan steps for the optional private plugin marketplace repo ([marketplace] repo = "" turns it off)."""
+    mp = config.get("marketplace") or {}
+    repo = mp.get("repo") or ""
+    if not repo:
+        return []
+    org = config["org"]["name"]
+    have = snapshot.get("marketplace") or {}
+    out: list[dict] = []
+    exists = repo in repos
+    if not exists:
+        out.append(_action("gh", 0, f"Create the private marketplace repo {org}/{repo}",
+                           ["gh", "repo", "create", f"{org}/{repo}", "--private",
+                            "--description", "Private Claude plugin marketplace: one plugin per skill"]))
+    elif repos[repo].get("visibility") != "private":
+        out.append(_action("manual", 0, f"{org}/{repo} is {repos[repo].get('visibility')}; the marketplace repo must be private "
+                                        "(claude.ai org sync reads it with the Claude GitHub App). Make it private in the repo settings"))
+    if not exists or have.get("workflow_permissions") != "write" or have.get("can_approve_pull_request_reviews") is not True:
+        out.append(_action("gh", 0, f"Set Actions workflow permissions on {org}/{repo}: read and write, and allow Actions to approve PRs "
+                                    "(the tracking workflow opens and merges version-bump PRs)",
+                           ["gh", "api", "-X", "PUT", f"repos/{org}/{repo}/actions/permissions/workflow",
+                            "-f", "default_workflow_permissions=write", "-F", "can_approve_pull_request_reviews=true"]))
+    missing = [p for p in MARKETPLACE_FILES if p not in set(have.get("files", []))]
+    if missing:
+        out.append(_action("local", 0, f"Seed the marketplace repo ({len(missing)} of {len(MARKETPLACE_FILES)} starter files missing), then open a PR",
+                           ["python", "colab.py", "seed-marketplace", "--dest", f"<clone of {org}/{repo}>"]))
+        out.append(_action("manual", 0, f"claude.ai step 1 (an org owner): install the Claude GitHub App on {org}/{repo}"))
+        out.append(_action("manual", 0, "claude.ai step 2 (an org owner): Organization settings > Plugins & skills > Marketplaces > "
+                                        f"Add plugins > Sync from GitHub, then pick {org}/{repo}"))
+    return out
 
 
 # --------------------------------------------------------------------------- apply
@@ -530,6 +603,284 @@ def cmd_seed(dest: Path, config_path: Path | None) -> list[Path]:
             shutil.copy2(Path(__file__).with_name(name), target)
             written.append(target)
     return written
+
+
+# --------------------------------------------------------------------------- marketplace
+
+DESC_LIMIT = 300
+
+
+def skill_description(skill_md: str) -> str:
+    """The `description` from a SKILL.md frontmatter, folded to one line and cut to 300 characters."""
+    m = re.match(r"---\s*\n(.*?)\n---", skill_md, re.S)
+    lines = m.group(1).splitlines() if m else []
+    text = ""
+    for i, line in enumerate(lines):
+        if not line.startswith("description:"):
+            continue
+        value = line.split(":", 1)[1].strip()
+        if value[:1] in (">", "|"):  # block scalar: the indented lines that follow
+            block = []
+            for nxt in lines[i + 1:]:
+                if nxt and not nxt[0].isspace():
+                    break
+                block.append(nxt.strip())
+            text = " ".join(b for b in block if b)
+        else:
+            text = value.strip("\"'")
+        break
+    text = " ".join(text.split())
+    return text if len(text) <= DESC_LIMIT else text[: DESC_LIMIT - 3].rstrip() + "..."
+
+
+class GhSource:
+    """Reads the source repo's skills and main commit through `gh` (read-only)."""
+
+    def __init__(self, org: str, repo: str):
+        self.org, self.repo = org, repo
+
+    def sha(self) -> str:
+        out = _gh_json(["api", f"repos/{self.org}/{self.repo}/commits/main"])
+        if not isinstance(out, dict) or not out.get("sha"):
+            raise SystemExit(f"could not read main of {self.org}/{self.repo} with gh")
+        return out["sha"]
+
+    def skills(self) -> list[str]:
+        items = _gh_json(["api", f"repos/{self.org}/{self.repo}/contents/skills"]) or []
+        return sorted(i["name"] for i in items if isinstance(i, dict) and i.get("type") == "dir")
+
+    def skill_md(self, name: str) -> str | None:
+        blob = _gh_json(["api", f"repos/{self.org}/{self.repo}/contents/skills/{name}/SKILL.md"])
+        if isinstance(blob, dict) and blob.get("content"):
+            return base64.b64decode(blob["content"]).decode()
+        return None
+
+
+def marketplace_json(config: dict, source, today: date | None = None) -> dict:
+    """One git-subdir plugin per skill folder in the source repo, pinned to its current main commit."""
+    org, mp = config["org"]["name"], config.get("marketplace") or {}
+    src_repo = mp.get("source_repo") or "agent_skills"
+    sha = source.sha()
+    version = f"{(today or datetime.now(timezone.utc).date()).strftime('%Y.%m.%d')}+{sha[:7]}"
+    skip = set(mp.get("exclude") or [])
+    plugins = []
+    for name in source.skills():
+        md = source.skill_md(name)
+        if name in skip or md is None:
+            continue
+        plugins.append({
+            "name": name,
+            "description": skill_description(md),
+            "version": version,
+            "source": {"source": "git-subdir", "url": f"https://github.com/{org}/{src_repo}.git",
+                       "path": f"skills/{name}", "sha": sha},
+            "strict": False,  # no plugin.json: the entry is the manifest
+        })
+    return {"name": mp.get("name") or org,
+            "description": f"Skills from {org}/{src_repo}, one plugin per skill, tracked hourly.",
+            "owner": {"name": org, "url": f"https://github.com/{org}"},
+            "plugins": plugins}
+
+
+def render_marketplace_template(text: str, config: dict) -> str:
+    mp = config.get("marketplace") or {}
+    org = config["org"]["name"]
+    for key, value in (("__ORG__", org), ("__SOURCE_REPO__", mp.get("source_repo") or "agent_skills"),
+                       ("__NAME__", mp.get("name") or org), ("__REPO__", mp.get("repo") or "claude-plugins")):
+        text = text.replace(key, value)
+    return text
+
+
+def cmd_seed_marketplace(config: dict, dest: Path, source=None, today: date | None = None) -> list[Path]:
+    """Starter files for the marketplace repo checkout. Never overwrites existing files."""
+    mp = config.get("marketplace") or {}
+    if not mp.get("repo"):
+        raise SystemExit("[marketplace] repo is empty in the config; nothing to seed")
+    org = config["org"]["name"]
+    plan: dict[str, str] = {}
+    for rel, template in MARKETPLACE_FILES.items():
+        if not (dest / rel).exists():
+            if template is None:
+                src = source or GhSource(org, mp.get("source_repo") or "agent_skills")
+                plan[rel] = json.dumps(marketplace_json(config, src, today), indent=2) + "\n"
+            else:
+                plan[rel] = render_marketplace_template((MARKETPLACE_TEMPLATES / template).read_text(), config)
+    written = []
+    for rel, text in plan.items():
+        path = dest / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        if rel.endswith(".py"):
+            path.chmod(0o755)
+        written.append(path)
+    return written
+
+
+# --------------------------------------------------------------------------- member setup
+
+HOOK_EVENTS = ("PostToolUse", "Stop")
+NEEDED_SCOPES = ("repo", "read:org", "project")
+BEAT = "colab.py beat"
+
+
+def _find_python(runner=None, which=shutil.which) -> str | None:
+    """A Python 3.11+ interpreter: this one if it qualifies, else the first on PATH that does."""
+    runner = runner or subprocess.run
+    if sys.version_info >= (3, 11) and sys.executable:
+        return sys.executable
+    for name in ("python3.14", "python3.13", "python3.12", "python3.11", "python3"):
+        exe = which(name)
+        if not exe:
+            continue
+        try:
+            out = runner([exe, "-c", "import sys; print(int(sys.version_info >= (3, 11)))"],
+                         capture_output=True, text=True, timeout=20).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if out == "1":
+            return exe
+    return None
+
+
+def hook_command(config_path: Path | str, python: str, skill_dir: Path = SKILL_DIR) -> str:
+    return f"COLAB_CONFIG={config_path} {python} {skill_dir}/scripts/colab.py beat --from-hook --background 2>/dev/null || true"
+
+
+def _hook_commands(settings: dict, event: str) -> list[str]:
+    return [h.get("command", "") for entry in (settings.get("hooks") or {}).get(event, []) if isinstance(entry, dict)
+            for h in entry.get("hooks", []) if isinstance(h, dict)]
+
+
+def merge_hooks(settings: dict, command: str) -> list[str]:
+    """Add the beat hook to PostToolUse and Stop in place; returns the events changed. Idempotent.
+
+    Any existing colab beat hook is left alone, so a re-run adds nothing and hand edits survive.
+    """
+    changed = []
+    hooks = settings.setdefault("hooks", {})
+    for event in HOOK_EVENTS:
+        if any(BEAT in c for c in _hook_commands(settings, event)):
+            continue
+        hooks.setdefault(event, []).append({"matcher": "*", "hooks": [{"type": "command", "command": command, "timeout": 30}]})
+        changed.append(event)
+    return changed
+
+
+def _scopes(auth_text: str) -> list[str] | None:
+    m = re.search(r"Token scopes:\s*(.+)", auth_text)
+    return re.findall(r"[\w:.-]+", m.group(1).replace("'", " ")) if m else None
+
+
+def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None = None, env=None,
+              runner=None, which=shutil.which, skill_dir: Path = SKILL_DIR) -> tuple[list[dict], int]:
+    """Member onboarding check. Returns (checks, exit code); each check has name, status, detail, fix."""
+    env = os.environ if env is None else env
+    runner = runner or subprocess.run
+    home = home or Path.home()
+    settings_path = home / ".claude" / "settings.json"
+    checks: list[dict] = []
+
+    def add(name: str, status: str, detail: str, fix: str = "") -> None:
+        checks.append({"name": name, "status": status, "detail": detail, "fix": fix})
+
+    # gh auth and scopes
+    if not which("gh"):
+        add("gh", "fail", "gh is not on PATH", "install the GitHub CLI: https://cli.github.com, then `gh auth login`")
+    else:
+        proc = runner(["gh", "auth", "status"], capture_output=True, text=True)
+        text = (proc.stdout or "") + (proc.stderr or "")
+        scopes = _scopes(text)
+        if proc.returncode != 0:
+            add("gh auth", "fail", "gh is not logged in", "gh auth login --scopes repo,read:org,project")
+        elif scopes is None:
+            add("gh auth", "ok", "logged in; token scopes are not shown (fine-grained or app token), so they are not checked")
+        else:
+            missing = [x for x in NEEDED_SCOPES if x not in scopes]
+            if missing:
+                add("gh scopes", "fail", f"missing scopes: {', '.join(missing)}",
+                    "gh auth refresh " + " ".join(f"-s {x}" for x in missing))
+            else:
+                add("gh scopes", "ok", "repo, read:org and project are present")
+            add("gh admin:org", "info" if "admin:org" not in scopes else "ok",
+                "present" if "admin:org" in scopes else "not present; only org owners need it (to create issue types)",
+                "" if "admin:org" in scopes else "org owners only: gh auth refresh -s admin:org")
+
+    # Python 3.11+
+    python = _find_python(runner, which)
+    if python:
+        add("python", "ok", f"Python 3.11+ at {python}")
+    else:
+        add("python", "fail", "no Python 3.11+ found on PATH", "install one, e.g. `uv python install 3.12`, and put it on PATH")
+
+    # settings.json (read once; an unreadable file blocks hook changes, never anything else)
+    settings, settings_err = {}, None
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text() or "{}")
+            if not isinstance(settings, dict):
+                raise ValueError("top level is not an object")
+        except (OSError, ValueError) as err:
+            settings, settings_err = {}, str(err)
+            add("settings.json", "fail", f"{settings_path} is not valid JSON ({err}); hooks left untouched",
+                "fix the file by hand, then re-run setup")
+
+    # COLAB_CONFIG
+    cfg_value = str(config_path) if config_path else env.get("COLAB_CONFIG") or (settings.get("env") or {}).get("COLAB_CONFIG")
+    cfg_source = "--config" if config_path else "environment" if env.get("COLAB_CONFIG") else "settings.json env"
+    cfg_fix = "gh repo clone <org>/<meta repo>, then `export COLAB_CONFIG=<meta clone>/.colab/config.toml` (or pass --config)"
+    cfg_abs = None
+    if not cfg_value:
+        add("COLAB_CONFIG", "fail", "not set", cfg_fix)
+    else:
+        path = Path(cfg_value).expanduser()
+        try:
+            load_config(path)
+            cfg_abs = path.resolve()
+            add("COLAB_CONFIG", "ok", f"{cfg_abs} (from {cfg_source})")
+        except (OSError, tomllib.TOMLDecodeError) as err:
+            add("COLAB_CONFIG", "fail", f"{cfg_value} does not load ({err.__class__.__name__})", cfg_fix)
+
+    # where the skill is installed
+    sd = str(skill_dir)
+    kind = ("a user skills directory" if "/.claude/skills/" in sd or "/.agents/skills/" in sd
+            else "a plugin install" if "/.claude/plugins/" in sd else "a repository checkout")
+    add("skill location", "info", f"{sd} ({kind})")
+
+    # heartbeat hooks
+    present = {e: any(BEAT in c for c in _hook_commands(settings, e)) for e in HOOK_EVENTS}
+    if install_hooks:
+        if settings_err or cfg_abs is None or python is None:
+            add("hooks", "fail", "not installed: " + ("settings.json is unreadable" if settings_err else
+                "COLAB_CONFIG does not resolve" if cfg_abs is None else "no Python 3.11+"),
+                "fix the item above, then re-run `colab.py setup --install-hooks`")
+        else:
+            changed = merge_hooks(settings, hook_command(cfg_abs, python, skill_dir))
+            if changed:
+                settings_path.parent.mkdir(parents=True, exist_ok=True)
+                backup = None
+                if settings_path.exists():
+                    backup = settings_path.with_name(f"settings.json.colab-bak-{datetime.now().strftime('%Y%m%d%H%M%S')}")
+                    shutil.copy2(settings_path, backup)
+                tmp = settings_path.with_name("settings.json.colab-tmp")
+                tmp.write_text(json.dumps(settings, indent=2) + "\n")
+                tmp.replace(settings_path)
+                add("hooks", "ok", f"added heartbeat hooks for {', '.join(changed)}" + (f"; backup at {backup}" if backup else ""))
+            else:
+                add("hooks", "ok", "heartbeat hooks already present; nothing changed")
+    elif all(present.values()):
+        add("hooks", "ok", f"heartbeat hooks present in {settings_path}")
+    else:
+        add("hooks", "fail", f"no heartbeat hook for {', '.join(e for e, v in present.items() if not v)} in {settings_path}",
+            "python3.11 <skill>/scripts/colab.py setup --install-hooks")
+    return checks, 1 if any(c["status"] == "fail" for c in checks) else 0
+
+
+def print_setup(checks: list[dict]) -> None:
+    tag = {"ok": "ok  ", "fail": "FAIL", "info": "info"}
+    for c in checks:
+        print(f"[{tag[c['status']]}] {c['name']}: {c['detail']}")
+        if c["fix"] and c["status"] != "ok":
+            print(f"        fix: {c['fix']}")
 
 
 # --------------------------------------------------------------------------- scan
@@ -899,6 +1250,8 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--yes", action="store_true")
     p = sub.add_parser("seed"); p.add_argument("--dest", type=Path, required=True)
     p = sub.add_parser("render-forms"); p.add_argument("--dest", type=Path, required=True)
+    p = sub.add_parser("seed-marketplace"); p.add_argument("--dest", type=Path, required=True)
+    p = sub.add_parser("setup"); p.add_argument("--install-hooks", action="store_true")
     p = sub.add_parser("next"); p.add_argument("--items", type=Path, help="saved `gh project item-list` JSON")
     p.add_argument("--limit", type=int, default=10)
     p = sub.add_parser("scan"); p.add_argument("paths", nargs="*"); p.add_argument("--selftest", action="store_true")
@@ -913,6 +1266,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--phase", type=int, required=True); p.add_argument("--evidence", required=True)
     args = ap.parse_args(argv)
     env_cfg = os.environ.get("COLAB_CONFIG")
+    if args.cmd == "setup":  # must work before a config resolves: that is one of the things it checks
+        checks, rc = cmd_setup(args.config, args.install_hooks)
+        print_setup(checks)
+        return rc
     config = load_config(args.config or (Path(env_cfg) if env_cfg else None))
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
 
@@ -928,6 +1285,10 @@ def main(argv: list[str] | None = None) -> int:
         return apply(actions, args.yes, config.get("bus", {}).get("write_interval_seconds", 1.0), org)
     if args.cmd == "seed":
         for path in cmd_seed(args.dest, args.config):
+            print(path)
+        return 0
+    if args.cmd == "seed-marketplace":
+        for path in cmd_seed_marketplace(config, args.dest):
             print(path)
         return 0
     if args.cmd == "render-forms":

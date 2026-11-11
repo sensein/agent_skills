@@ -165,7 +165,7 @@ The mode is set per destination space in `.colab/rollout.json`. A dry-run space 
 ### 4.5 Heartbeat and failures
 
 - After each poll, the bus writes repo variable `COLAB_BUS_HEARTBEAT` on the meta repo.
-- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, `errors`, and `project_writes`.
+- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, `errors`, and `project_writes`, plus `drift_actions` on polls that ran a drift check.
 - A failed read or write is logged to `audit.jsonl` and the poll goes on. A failed poll backs off, from 1 minute up to 1 hour.
 - The Slurm job requeues itself near its time limit and after an unexpected exit.
 - The `colab-watchdog` workflow in the meta repo alerts the lab when the heartbeat is stale: 30 minutes by default, or the `COLAB_STALE_MINUTES` variable.
@@ -186,6 +186,16 @@ Enabled by `[bus] project_sync = true` once `[org] project_number` is set. It is
 - **Periodic sweep.** On the first poll and then every `project_sync_every` polls (default 6), the bus pages through all Project items with GraphQL, computes each item's desired Spaces (repo membership plus `space:*` labels), and updates only items whose value differs. An empty desired set clears the field. A space named by a label but absent from the field's options is skipped and logged.
 - **Throttle and failures.** Writes are spaced by `write_interval_seconds` and counted in the stats as `project_writes`. A failed read or write is logged to `audit.jsonl` (`project_write_failed`), counted in `errors`, and the poll goes on.
 - **Token.** The bus token needs Projects read and write on the organization, in addition to the grants in SKILL.md.
+
+### 4.5c Drift check
+
+Enabled by `[bus] drift_check_hours` (default 24; 0 turns it off). It is read-only: the bus never applies a plan.
+
+- At most that often, the bus runs `observe(config)` and `build_plan` with the config it already loads. `observe` shells out to `gh`, so `gh` must be on the job's PATH and authenticated.
+- It drops the actions that always recur in a plan: `gate`, "Start the bus", and the informational own-templates `manual` note.
+- If anything remains, it creates or updates one issue titled `Drift report` in the meta repo. The body lists each proposed action and the `colab.py plan` and `apply --yes` commands to review it. The issue is edited in place, never commented on again. The body carries the delivery marker, so the bus does not route it.
+- When the plan is clean it closes the issue with a short comment.
+- It records `drift_actions` in the heartbeat stats, and the last check time (`drift_checked_at`) in state. A failed check, including an observation with no repos (gh unavailable), is audited as `drift_check_failed`, counted in `errors`, and retried after an hour. It never stops the poll.
 
 ### 4.6 Throttle and digest
 
