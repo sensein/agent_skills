@@ -138,6 +138,12 @@ def org_members(gh, org: str) -> set[str] | None:
 
 
 BUG = re.compile(r"(?i)\bbug\b")
+COMMENT_PAGES = 30  # pages of 100 comments read per repo per poll before the cursor is held back
+
+
+def _number(url) -> int | None:
+    tail = str(url or "").rsplit("/", 1)[-1]
+    return int(tail) if tail.isdigit() else None
 CONTRIB_STATE_CAP = 5000
 
 
@@ -998,11 +1004,36 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
                                             "spans": found["spans"][:5], "project": wrote, "at": now()})
 
+    def read_since(endpoint: str, since: str) -> tuple[list, str | None]:
+        """Every comment updated since the cursor, page by page; (comments, hold). When more remain than
+        COMMENT_PAGES pages, hold is the last one's updated_at, and the repo cursor stops there."""
+        out: list = []
+        for page in range(1, COMMENT_PAGES + 1):
+            batch = gh.get(f"{endpoint}?sort=updated&direction=asc&per_page=100&since={since}&page={page}", conditional=False)
+            batch = batch if isinstance(batch, list) else []
+            out += batch
+            if len(batch) < 100:
+                return out, None
+        return out, (out[-1].get("updated_at") if out else None)
+
+    def eligible(item: dict | None) -> bool:
+        """May the item carry a Security value on the board (its kind is added, and the restricted rule)."""
+        if item is None:
+            return False
+        kind = "pull_request" if "pull_request" in item else "issue"
+        labels = [lab["name"] if isinstance(lab, dict) else lab for lab in item.get("labels", [])]
+        tier = tier_of(visibility.get(current["repo"]), labels,
+                       _strictest(declared.get(current["repo"]), *label_space_tiers(config, current["repo"], labels)),
+                       is_external(current["repo"]), current["repo"] in opt_in)
+        return kind in project.add_kinds and (tier != "restricted" or restricted_ok(current["repo"]))
+
+    current: dict = {}
     cursors = state.setdefault("cursors", {})
     baseline_at = state.setdefault("baseline_at", {})
     checked = state.setdefault("links_checked", {})
     for repo in sorted(member_of):
         vis = visibility.get(repo)
+        current["repo"] = repo
         if vis is None:
             continue
         try:
@@ -1020,8 +1051,11 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                 continue
             items = gh.get(f"{path(repo)}/issues?state=all&sort=updated&direction=asc&per_page=100&since={cursors[repo]}") or []
             releases = gh.get(f"{path(repo)}/releases?per_page=10") or []
-            comments = (gh.get(f"{path(repo)}/issues/comments?sort=updated&direction=asc&per_page=100&since={cursors[repo]}",
-                               conditional=False) or []) if scan_on and items else []
+            comments, review_comments, comment_hold = [], [], None
+            if scan_on and items:
+                comments, hold_a = read_since(f"{path(repo)}/issues/comments", cursors[repo])
+                review_comments, hold_b = read_since(f"{path(repo)}/pulls/comments", cursors[repo])
+                comment_hold = min([h for h in (hold_a, hold_b) if h] or [None], key=lambda h: h or "")
         except urllib.error.URLError as err:
             stats["errors"] += 1
             _append(state_dir / "audit.jsonl", {"read_failed": repo, "error": str(err), "at": now()})
@@ -1051,17 +1085,34 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                 project.track_external(envs[0], item.get("_contributions") or {}, entry, involved_by(item.get("_contributions")),
                                        bool(base) and (item.get("created_at") or "") >= base)
             scan_text_for(repo, item.get("number"), "body", f"{item.get('title') or ''}\n{item.get('body') or ''}", item, on_board)
+        # Comments, PR review bodies, and inline review comments: each one, and per item their concatenation
+        # (so text split across several comments is scanned whole too).
+        texts: list[tuple[int | None, str, str]] = []
         for c in comments:
-            number = str(c.get("issue_url", "")).rsplit("/", 1)[-1]
-            number = int(number) if number.isdigit() else None
+            texts.append((_number(c.get("issue_url")), f"comment:{c.get('id')}", c.get("body") or ""))
+        for c in review_comments:
+            texts.append((_number(c.get("pull_request_url")), f"review_comment:{c.get('id')}", c.get("body") or ""))
+        if scan_on:
+            for item in items:
+                if "pull_request" in item:
+                    try:
+                        reviews = _pages(gh, f"{path(repo)}/pulls/{item.get('number')}/reviews")
+                    except urllib.error.URLError as err:
+                        stats["errors"] += 1
+                        _append(state_dir / "audit.jsonl", {"read_failed": f"{repo}#{item.get('number')} reviews",
+                                                            "error": str(err)[:300], "at": now()})
+                        reviews = []
+                    texts += [(item.get("number"), f"review:{r.get('id')}", r.get("body") or "") for r in reviews if r.get("body")]
+        joined: dict = {}
+        for number, where, body in texts:
             item = by_number.get(number)
-            if (external and item is None) or DELIVERY_MARKER in (c.get("body") or ""):
+            if (external and item is None) or DELIVERY_MARKER in body:
                 continue  # untracked external items are not scanned; the bus's own comments are skipped
-            kind = "pull_request" if item is not None and "pull_request" in item else "issue"
-            labels = [lab["name"] if isinstance(lab, dict) else lab for lab in (item or {}).get("labels", [])]
-            tier = tier_of(vis, labels, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)), external, repo in opt_in)
-            scan_text_for(repo, number, f"comment:{c.get('id')}", c.get("body") or "", item,
-                          kind in project.add_kinds and (tier != "restricted" or restricted_ok(repo)))
+            scan_text_for(repo, number, where, body, item, eligible(item))
+            joined.setdefault(number, []).append(body)
+        for number, bodies in joined.items():
+            if len(bodies) > 1:
+                scan_text_for(repo, number, "joined", "\n".join(bodies), by_number.get(number), eligible(by_number.get(number)))
         for rel in releases:
             events += envelopes_for("release", repo, vis, rel, declared.get(repo), member_of.get(repo), repo in opt_in)
         for env in sorted(events, key=lambda e: e["at"]):
@@ -1109,12 +1160,16 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     stats["dry_run"] += 1
                     _append(state_dir / "would-deliver.jsonl", {**d, "at": now()})
             save()  # persist seen ids after every envelope, so a crash never re-delivers
+        new_cursor = None
         if carried:
-            if carry_cursor:
-                cursors[repo] = carry_cursor  # details carried over: resume from the last item handled
-                save()
+            new_cursor = carry_cursor  # details carried over: resume from the last item handled
         elif fetched and not (external and not track_all and members.get("set") is None):
-            cursors[repo] = max(i["updated_at"] for i in fetched)  # unreadable members: retry these next poll
+            new_cursor = max(i["updated_at"] for i in fetched)  # unreadable members: retry these next poll
+        if new_cursor and comment_hold and comment_hold < new_cursor:
+            new_cursor = comment_hold  # more comments than one poll reads: resume from the last one scanned
+            stats["comments_held"] = stats.get("comments_held", 0) + 1
+        if new_cursor:
+            cursors[repo] = new_cursor
             save()
     try:
         if project.sweep_due():

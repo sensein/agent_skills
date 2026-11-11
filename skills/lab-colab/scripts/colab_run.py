@@ -28,7 +28,7 @@ Commands come from issue text, so they never run unconfirmed: step and loop refu
 iterate commands has been confirmed, and refuse again if the issue's command changes.
 
 Restricted data: the tier is the bus's rule (the repo's tier from [tiers] or its visibility, tier:* labels, the Project's
-Sensitivity; space:* labels never change it), failing closed when the issue cannot be read. An item the injection scan
+Sensitivity; a space:* label only tightens, via its space's legacy tier), failing closed when the issue cannot be read. An item the injection scan
 flagged (Project field Security = flagged) is refused until a steward or its Lead clears it. A restricted run never executes in a session, and its
 source tree is not copied or read there. `start` writes job.sbatch; only the batch job it creates (job name
 colab-run-<id>, BatchFlag=1) can step or loop it.
