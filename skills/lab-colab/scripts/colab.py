@@ -174,7 +174,8 @@ def observe(config: dict) -> dict:
             snapshot["project_fields"][number] = [
                 {"name": f["name"], "options": [o["name"] for o in f.get("options") or []]} for f in info["fields"]]
             snapshot["project_views"][number] = [
-                {"name": v["name"], "layout": v.get("layout"), "filter": v.get("filter") or ""} for v in info["views"]]
+                {"name": v["name"], "id": v.get("id"), "layout": v.get("layout"), "filter": v.get("filter") or ""}
+                for v in info["views"]]
             continue
         # GraphQL read failed: fall back to gh's field list; views stay unknown (the plan leaves them alone).
         fields = (_gh_json(["project", "field-list", number, "--owner", org, "--format", "json"]) or {}).get("fields", [])
@@ -368,6 +369,24 @@ def space_filter(name: str) -> str:
     return f'spaces:"{name}"' if re.search(r"\s", name) else f"spaces:{name}"
 
 
+STALE_VIEW = re.compile(r"(?i)^space:\s*(?P<x>\S(?:.*\S)?)\Z")
+
+
+def stale_space_views(views, spaces) -> list[dict]:
+    """Views named `Space: <x>` (trimmed, case-insensitive) whose filter is exactly the plan's `spaces:<x>` and
+    whose <x> is not a space any more. A person's own view, or one whose filter was changed, never matches."""
+    names = {str(n).lower() for n in spaces}
+    out = []
+    for v in views:
+        m = STALE_VIEW.match(str(v.get("name") or "").strip())
+        if not m or m["x"].lower() in names:
+            continue
+        if " ".join(str(v.get("filter") or "").split()) != space_filter(m["x"]):
+            continue
+        out.append({**v, "space": m["x"]})
+    return sorted(out, key=lambda v: v["name"])
+
+
 def desired_views(config: dict) -> list[dict]:
     """The views the Project should have: one per space, plus the standing queues."""
     views = [{"name": f"{SPACE_VIEW_PREFIX}{n}", "layout": "TABLE_LAYOUT", "filter": space_filter(n)} for n in space_repos(config)]
@@ -505,16 +524,16 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
             actions.append(_action("gh", 0, f"Set the filter of view '{v['name']}' to: {v['filter']}", set_filter))
         elif " ".join(have.get("filter", "").split()) != v["filter"]:
             actions.append(_action("gh", 0, f"Fix the filter of view '{v['name']}': '{have.get('filter', '')}' -> '{v['filter']}'", set_filter))
-    # Stale space views: only `Space: <name>` views (the pattern the plan creates) whose name is no longer in
-    # [spaces]. Every other view (All items, Agent queue, anything a person made) is never touched.
-    for name in sorted(have_views) if views_known and project is not None else []:
-        if name.startswith(SPACE_VIEW_PREFIX) and name[len(SPACE_VIEW_PREFIX):] not in spaces:
-            actions.append(_action("gh", 0, f"Delete Project view '{name}': space '{name[len(SPACE_VIEW_PREFIX):]}' "
-                                            "is no longer in [spaces]",
-                                   ["gh", "api", "graphql", "-f",
-                                    "query=mutation($view: ID!) { deleteProjectV2View(input: {viewId: $view}) "
-                                    "{ deletedViewId } }",
-                                    "-f", f"view=<view id of {name} on project {number}>"]))
+    # Stale space views: only views the plan itself made, i.e. named `Space: <x>` (trimmed, case-insensitive)
+    # AND filtered exactly `spaces:<x>`, whose <x> is no longer in [spaces]. Every other view is never touched.
+    for view in stale_space_views(have_views.values(), spaces) if views_known and project is not None else []:
+        if not view.get("id"):
+            actions.append(_action("manual", 0, f"View '{view['name']}' looks stale but its id was not observed; re-run status"))
+            continue
+        actions.append(_action("gh", 0, f"Delete Project view '{view['name']}': space '{view['space']}' is no longer in [spaces]",
+                               ["gh", "api", "graphql", "-f",
+                                "query=mutation($view: ID!) { deleteProjectV2View(input: {viewId: $view}) { deletedViewId } }",
+                                "-f", f"view={view['id']}"]))
 
     if not spaces:
         candidates = sorted(n for n in repos if n != meta)

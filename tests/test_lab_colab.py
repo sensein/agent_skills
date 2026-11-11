@@ -2268,17 +2268,33 @@ class ReviewLeftoverTests(unittest.TestCase):
 class StaleViewTests(unittest.TestCase):
     def snap(self, views) -> dict:
         return snapshot(projects=[{"number": 7, "title": "Lab portfolio"}],
-                        project_views={"7": [{"name": n, "layout": "TABLE_LAYOUT", "filter": f} for n, f in views]})
+                        project_views={"7": [{"name": n, "id": f"PVTV_{i}", "layout": "TABLE_LAYOUT", "filter": f}
+                                             for i, (n, f) in enumerate(views)]})
 
-    def test_only_stale_space_views_are_deleted(self) -> None:
-        views = [("Space: proj", "spaces:proj"), ("Space: gone", "spaces:gone"), ("All items", ""), ("Agent queue", "status:Ready agent-ready:yes"),
-                 ("Proposals inbox", "status:Proposed"), ("My work", "assignee:@me"), ("Spaces overview", ""), ("Space:gone2", "")]
+    def deletes(self, actions):
+        return [a for a in actions if "deleteProjectV2View" in " ".join(a["cmd"] or [])]
+
+    def test_only_plan_made_stale_space_views_are_deleted(self) -> None:
+        views = [("Space: proj", "spaces:proj"), ("Space: gone", "spaces:gone"), ("All items", ""),
+                 ("Agent queue", "status:Ready agent-ready:yes"), ("Proposals inbox", "status:Proposed"),
+                 ("My work", "assignee:@me"), ("Spaces overview", ""),
+                 ("  space:  OLD  ", "spaces:OLD"),           # trimmed, case-insensitive name: plan-made
+                 ("Space: mine", "spaces:mine status:Ready"),  # a person changed the filter: never touched
+                 ("Space: other", ""),                         # no filter: never touched
+                 ("Space: PROJ", "spaces:PROJ")]               # same space, other case: still a space
         actions = colab.build_plan(config_with_spaces(), self.snap(views), today=date(2026, 11, 11))
-        deletes = [a for a in actions if "deleteProjectV2View" in " ".join(a["cmd"] or [])]
-        self.assertEqual([a["desc"] for a in deletes], ["Delete Project view 'Space: gone': space 'gone' is no longer in [spaces]"])
-        self.assertEqual(deletes[0]["kind"], "gh")
-        self.assertIn("view=<view id of Space: gone on project 7>", deletes[0]["cmd"])
-        self.assertFalse(colab.is_recurring(deletes[0]))
+        got = self.deletes(actions)
+        self.assertEqual([a["desc"] for a in got], ["Delete Project view '  space:  OLD  ': space 'OLD' is no longer in [spaces]",
+                                                    "Delete Project view 'Space: gone': space 'gone' is no longer in [spaces]"])
+        self.assertEqual([a["cmd"][-1] for a in got], ["view=PVTV_7", "view=PVTV_1"])  # real ids, no placeholder
+        self.assertTrue(all(a["kind"] == "gh" and not colab.is_recurring(a) for a in got))
+
+    def test_missing_view_id_asks_for_a_fresh_status(self) -> None:
+        snap = self.snap([("Space: gone", "spaces:gone")])
+        del snap["project_views"]["7"][0]["id"]
+        actions = colab.build_plan(config_with_spaces(), snap, today=date(2026, 11, 11))
+        self.assertEqual(self.deletes(actions), [])
+        self.assertTrue(any("id was not observed" in a["desc"] for a in actions))
 
     def test_renamed_space_creates_new_and_deletes_old(self) -> None:
         cfg = config_with_spaces()
@@ -2292,20 +2308,31 @@ class StaleViewTests(unittest.TestCase):
         import contextlib
         import io
         from unittest import mock
-        actions = colab.build_plan(config_with_spaces(), self.snap([("Space: proj", "spaces:proj"), ("Space: gone", "")]),
+        actions = colab.build_plan(config_with_spaces(), self.snap([("Space: proj", "spaces:proj"), ("Space: gone", "spaces:gone")]),
                                    today=date(2026, 11, 11))
-        deletes = [a for a in actions if "deleteProjectV2View" in " ".join(a["cmd"] or [])]
-        info = {"id": "PVT", "fields": [], "views": [{"id": "PVTV_gone", "name": "Space: gone"}, {"id": "PVTV_p", "name": "Space: proj"}]}
         ran, sleeps = [], []
-        with mock.patch.object(colab, "_project_info", return_value=info), \
+        with mock.patch.object(colab, "_project_info", side_effect=AssertionError("no lookup needed")), \
                 mock.patch.object(colab.subprocess, "run", side_effect=lambda cmd, **kw: ran.append(cmd) or mock.Mock(returncode=0, stderr="")), \
                 mock.patch("time.sleep", side_effect=sleeps.append), contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(colab.apply(deletes, yes=True, throttle=1.0, org="sensein"), 0)
+            self.assertEqual(colab.apply(self.deletes(actions), yes=True, throttle=1.0, org="sensein"), 0)
         self.assertEqual(len(ran), 1)
-        self.assertIn("view=PVTV_gone", ran[0])
+        self.assertIn("view=PVTV_1", ran[0])
         self.assertTrue(any("deleteProjectV2View" in part for part in ran[0]))
         self.assertEqual(sleeps, [1.0])
 
+    def test_observe_keeps_view_ids(self) -> None:
+        from unittest import mock
+        info = {"id": "PVT", "fields": [], "views": [{"id": "PVTV_x", "name": "Space: a", "layout": "TABLE_LAYOUT", "filter": "spaces:a"}]}
+
+        def fake(args):
+            if args[:2] == ["repo", "list"]:
+                return []
+            if args[:2] == ["project", "list"]:
+                return {"projects": [{"number": 7, "title": "Lab portfolio"}]}
+            return None
+        with mock.patch.object(colab, "_gh_json", side_effect=fake), mock.patch.object(colab, "_project_info", return_value=info):
+            snap = colab.observe(config_with_spaces())
+        self.assertEqual(snap["project_views"]["7"][0]["id"], "PVTV_x")
 
 
 if __name__ == "__main__":

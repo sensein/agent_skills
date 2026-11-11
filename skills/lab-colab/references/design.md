@@ -66,7 +66,7 @@ derived-from: kg:example-node-1
 - A space's `repos` are bare names in `[org] name`, or `<owner>/<name>` for external repos the group contributes to (section 1.5).
 - Project view filters cannot OR "repo is X" with "label is Y", so membership is stored in the multi-select **Spaces** field (options = the names in `[spaces]`). Each space gets a view `Space: <name>` filtered on `spaces:<name>`.
 - `colab.py plan` also creates the standing views, and fixes any existing view whose filter differs from the one below. A view's layout is set at creation and not changed afterwards.
-- A view named `Space: <name>` whose name is no longer in `[spaces]` is proposed for deletion (`deleteProjectV2View`, run by `apply --yes`, throttled). A renamed space therefore shows a create and a delete. Only that exact prefix is matched; every other view (All items, Agent queue, Proposals inbox, My work, or anything a person made) is never touched.
+- A view the plan made for a space that is no longer in `[spaces]` is proposed for deletion (`deleteProjectV2View` with the view's observed id, run by `apply --yes`, throttled). It must match both its name, `Space: <x>` after trimming and ignoring case, and its filter, exactly `spaces:<x>`. A renamed space therefore shows a create and a delete. Every other view (All items, Agent queue, Proposals inbox, My work, a `Space:` view whose filter a person changed, or anything a person made) is never touched.
 
 | View | Filter | Layout |
 |---|---|---|
