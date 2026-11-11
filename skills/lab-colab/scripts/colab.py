@@ -70,7 +70,7 @@ GQL_INFO = (
     "views(first: 100) { nodes { id name layout filter } } "
     "fields(first: 100) { nodes { ... on ProjectV2FieldCommon { id name dataType } "
     "... on ProjectV2SingleSelectField { options { name } } "
-    "... on ProjectV2MultiSelectField { options { name } } } } } } }")
+    "... on ProjectV2MultiSelectField { options: multiSelectOptions { name } } } } } } }")
 
 
 def _project_info(org: str, number: int | str) -> dict | None:

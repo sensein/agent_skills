@@ -528,7 +528,7 @@ class FakeProjectGH(FakeGH):
 def project_item(item_id, repo, labels=(), spaces=(), typename="Issue", owner="sensein"):
     return {"id": item_id, "content": {"__typename": typename, "repository": {"name": repo, "owner": {"login": owner}},
                                        "labels": {"nodes": [{"name": n} for n in labels]}},
-            "fieldValueByName": {"names": list(spaces)} if spaces else None}
+            "fieldValueByName": {"options": [{"name": n} for n in spaces]} if spaces else None}
 
 
 def project_config(**bus_opts) -> dict:

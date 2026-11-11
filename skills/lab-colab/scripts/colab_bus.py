@@ -263,13 +263,13 @@ def read_token(token_file: Path | None) -> str:
 
 Q_PROJECT = ("query($org: String!, $n: Int!) { organization(login: $org) { projectV2(number: $n) { id "
              "field(name: \"Spaces\") { ... on ProjectV2FieldCommon { id } "
-             "... on ProjectV2MultiSelectField { options { id name } } } } } }")
+             "... on ProjectV2MultiSelectField { options: multiSelectOptions { id name } } } } } }")
 Q_ITEMS = ("query($project: ID!, $after: String) { node(id: $project) { ... on ProjectV2 { "
            "items(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { id "
            "content { __typename "
            "... on Issue { repository { name owner { login } } labels(first: 50) { nodes { name } } } "
            "... on PullRequest { repository { name owner { login } } labels(first: 50) { nodes { name } } } } "
-           "fieldValueByName(name: \"Spaces\") { ... on ProjectV2ItemFieldMultiSelectValue { names } } } } } } }")
+           "fieldValueByName(name: \"Spaces\") { ... on ProjectV2ItemFieldMultiSelectValue { options { name } } } } } } } }")
 M_ADD = ("mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: {projectId: $project, contentId: $content}) "
          "{ item { id } } }")
 M_SET = ("mutation($project: ID!, $item: ID!, $field: ID!, $options: [String!]!) { updateProjectV2ItemFieldValue("
@@ -356,7 +356,7 @@ class ProjectSync:
                     continue
                 labels = [x["name"] for x in (content.get("labels") or {}).get("nodes", [])]
                 want = desired_spaces(repo["name"], labels, self.member_of)
-                have = sorted((item.get("fieldValueByName") or {}).get("names") or [])
+                have = sorted(o["name"] for o in ((item.get("fieldValueByName") or {}).get("options") or []))
                 if want == have:
                     continue
                 known = [n for n in want if n in ids["options"]]
