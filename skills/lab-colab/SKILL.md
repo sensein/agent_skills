@@ -6,9 +6,9 @@ description: >-
   public and private repos. Re-entrant: each run observes the org, diffs it against
   the config and the rollout phase, and proposes the next steps as a dry run.
   Also runs the day-to-day /colab commands (distill, next, claim, handoff, capture,
-  brief, link, credit, ingest, subscribe, publish, scan, improve). Use when the user
+  brief, run, link, credit, ingest, subscribe, publish, scan, improve). Use when the user
   wants to set up or advance the lab's GitHub-based coordination; turn discussions,
-  meetings, or threads into typed work items; pick up or hand off agent-ready work;
+  meetings, or threads into typed work items; pick up, hand off, or run agent-ready work (a claimed Experiment issue in an isolated workspace under explicit budgets, with a metric/verify loop and immutable Observation records);
   capture session knowledge for the lab graph or BrainKB; check what is happening
   across projects; or scan before pushing to a public repo.
 ---
@@ -89,7 +89,7 @@ Give the bus its own fine-grained token (or a GitHub App installation token) in 
 
 Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login. That includes the Project's Spaces field and Iteration field and its views (`Space: <name>`, Agent queue, Proposals inbox, My work); the plan reads the views and their filters and fixes any that differ.
 
-Once `[org] project_number` is set, the bus also keeps the Project's multi-select **Spaces** field current (`[bus] project_sync`): it adds newly opened items from space repos and re-syncs every item's Spaces every `project_sync_every` polls. This is bookkeeping on the private org Project, not a delivery, so it runs in dry-run spaces too. It needs the token to have Projects read and write on the organization.
+Once `[org] project_number` is set, the bus also keeps the Project's multi-select **Spaces** field current (`[bus] project_sync`): it adds newly opened items from space repos and sets their Spaces in the same pass, then re-syncs every item's Spaces every `project_sync_every` polls. `[bus] project_add` (default `["issue"]`) lists the kinds that are added, so pull requests stay off the board unless you add `"pull_request"`. This is bookkeeping on the private org Project, not a delivery, so it runs in dry-run spaces too. It needs the token to have Projects read and write on the organization.
 
 ## Session Heartbeats
 
@@ -125,6 +125,7 @@ Each command is specified in [`references/commands.md`](./references/commands.md
 - **`handoff`**: post a ledger checkpoint. Hand off often: a session that runs out of tokens cannot write one.
 - **`capture`**: turn session results into knowledge items, staged in the meta repo.
 - **`brief`**: summarise what happened, challenges, and next steps for a space or the lab.
+- **`run`**: `colab.py run start|step|loop|check|finish|stage|status` (engine: `scripts/colab_run.py`) runs a claimed Experiment issue in an isolated workspace under budgets read from the issue. Each iteration writes an immutable Observation, staged in the meta repo by PR. `scripts/monitor_slice.py` is the loop breaker.
 - **`link`**: write a typed edge into the fenced `links` block. Validate it with `colab.py links --type <Type>`.
 - **`credit`**: propose or export CRediT roles.
 - **`ingest`**: take a paste, upload, or connector pull, set its tier, and propose items.
@@ -134,3 +135,19 @@ Each command is specified in [`references/commands.md`](./references/commands.md
 - **`improve`**: a PR to the skill, the config, or the infra.
 
 Every session starts by reading the claimed issue and its ledger, and ends with `handoff` then `capture`.
+
+## Migrating from labnb
+
+The `labnb*` skills (a local, file-based lab notebook) are folded into this skill and removed. Notebook entries are now typed issues in the work graph; only the run engine was kept, as `/colab run`.
+
+| labnb | lab-colab |
+|---|---|
+| `labnb-idea` and the idea index | An **Idea** issue (`distill` or the Idea form), found with `next` and `brief` |
+| `labnb-promote` | A new **Experiment** issue with `derived-from: <owner>/<repo>#<n>` pointing at the Idea (`link`) |
+| `labnb-resume` and the lab index | `brief` for the space (what happened, challenges, next steps) and `next` for what to pick up |
+| `labnb-run`, `register_experiment.py` | `claim` the Experiment, then `colab.py run start`; budgets come from its form fields |
+| `monitor_slice.py` (labnb) | `scripts/monitor_slice.py` here, same CLI; `colab.py run` calls it for you |
+| `results.tsv`, `log.md`, `provenance.jsonl`, `metadata.json` | Same files in the run directory; plus `observations/*.json` and a staging PR |
+| the global notebook under a lab root | The run directory under `${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs/` for local state; the issue ledger and `.colab/staging/` for what the lab keeps |
+
+Existing notebook directories are not read by the new code. Copy anything worth keeping into an Idea or Experiment issue, and delete the old directory yourself; nothing here deletes it.

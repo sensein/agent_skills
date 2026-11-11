@@ -90,21 +90,21 @@ It reads `info.json`, prints exit code, wall-clock time, peak/average memory, an
 5. Do not capture secrets: streams written to `stdout`/`stderr` files may contain credentials or tokens; use `-c none` or scrub before sharing when output is sensitive.
 6. Report the wrapped command's real exit code; do not let the wrapper mask a failure as success.
 
-## With labnb
+## With `/colab run`
 
-When running an experiment under the [`labnb`](../labnb/SKILL.md) skill, wrap the verify or benchmark command with `duct` and store the logs inside the experiment's `artifacts/` directory:
+When running an Experiment issue under [`/colab run`](../lab-colab/SKILL.md), wrap the verify or benchmark command with `duct` and store the logs inside the run directory's `logs/` folder (`$RUN_DIR` is the `run_dir` that `colab.py run start` prints):
 
 ```bash
-duct -p "$EXPERIMENT_DIR/artifacts/verify-{datetime}-{pid}_" -- $VERIFY_COMMAND
+duct -p "$RUN_DIR/logs/verify-{datetime}-{pid}_" -- $VERIFY_COMMAND
 ```
 
-This satisfies the labnb requirement to instrument runs well enough to inspect logs, progress, and resource consumption from outside the process, and it gives a later resume or review step real numbers to compare against the recorded metric.
+This satisfies the `/colab run` requirement to instrument runs well enough to inspect logs, progress, and resource consumption from outside the process, and it gives a later handoff or review step real numbers to compare against the recorded metric.
 
-The captured `info.json` can also be fed straight into labnb's loop breaker so a slice is cut short on runaway memory:
+The captured `info.json` can also be fed straight into the `/colab run` loop breaker so a slice is cut short on runaway memory:
 
 ```bash
-python skills/labnb/scripts/monitor_slice.py check \
-  --experiment-dir "$EXPERIMENT_DIR" \
-  --usage-file "$EXPERIMENT_DIR/artifacts/verify-<prefix>_info.json" \
+python skills/lab-colab/scripts/monitor_slice.py check \
+  --experiment-dir "$RUN_DIR" \
+  --usage-file "$RUN_DIR/logs/verify-<prefix>_info.json" \
   --max-rss-bytes 8000000000 --max-pmem 90
 ```

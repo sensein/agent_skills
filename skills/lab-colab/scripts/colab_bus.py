@@ -24,8 +24,10 @@ in sync (edited in place, closed when clean). It never applies anything.
 
 Project sync (`[bus] project_sync`, with `[org] project_number` set) is board bookkeeping on the
 private org Project, not a delivery, so it runs in dry-run spaces too: newly opened items from
-space repos are added to the Project, and every `project_sync_every` polls the multi-select
-Spaces field is recomputed (repo membership plus space:<name> labels) for items that differ.
+space repos are added to the Project (only the kinds in `[bus] project_add`, default ["issue"], so PRs
+do not clutter the board) and their Spaces field is set in the same pass; every `project_sync_every`
+polls the multi-select Spaces field is recomputed (repo membership plus space:<name> labels) for
+items that differ.
   - one envelope per item transition (opened, closed, published), not per edit
 
 State lives in --state-dir (private group storage, not scratch).
@@ -295,6 +297,8 @@ class ProjectSync:
         self.number = int(config["org"].get("project_number") or 0)
         self.enabled = bool(bus.get("project_sync", False)) and self.number > 0
         self.every = max(1, int(bus.get("project_sync_every", 6)))
+        # envelope kinds that are added to the Project; PRs are off by default
+        self.add_kinds = set(bus.get("project_add", ["issue"])) & {"issue", "pull_request"}
         self.interval = bus.get("write_interval_seconds", 1.0)
         self._ids: dict | None = None
         stats.setdefault("project_writes", 0)
@@ -303,15 +307,17 @@ class ProjectSync:
         self.stats["errors"] += 1
         _append(self.state_dir / "audit.jsonl", {"project_write_failed": what, "error": str(err)[:500], "at": now()})
 
-    def _write(self, what: str, query: str, variables: dict) -> bool:
+    def _write(self, what: str, query: str, variables: dict):
+        """True on success; for an add, the new item's id (or True when the reply carries none)."""
         try:
-            self.gh.graphql(query, variables)
+            reply = self.gh.graphql(query, variables)
         except (urllib.error.URLError, OSError, GraphQLError) as err:
             self._fail(what, err)
             return False
         self.stats["project_writes"] += 1
         time.sleep(self.interval)
-        return True
+        item = ((reply or {}).get("addProjectV2ItemById") or {}).get("item") or {}
+        return item.get("id") or True
 
     def ids(self) -> dict | None:
         """Project node id, Spaces field id, and option name -> id; cached per sync, refreshed each sweep."""
@@ -327,12 +333,23 @@ class ProjectSync:
         return self._ids
 
     def add(self, env: dict) -> None:
-        """Add a newly opened issue or PR to the Project (idempotent on GitHub's side)."""
-        if not self.enabled or not env.get("node_id") or env["kind"] not in ("issue", "pull_request"):
+        """Add a newly opened item to the Project (idempotent on GitHub's side), when its kind is in
+        `project_add`, and set its Spaces field in the same pass instead of waiting for the sweep."""
+        if not self.enabled or not env.get("node_id") or env["kind"] not in self.add_kinds:
             return
         ids = self.ids()
-        if ids:
-            self._write(f"add {env['id']}", M_ADD, {"project": ids["project"], "content": env["node_id"]})
+        if not ids:
+            return
+        item_id = self._write(f"add {env['id']}", M_ADD, {"project": ids["project"], "content": env["node_id"]})
+        if not isinstance(item_id, str) or not ids["field"]:
+            return  # the sweep will set Spaces later
+        want = sorted(env.get("spaces") or [])
+        known = [n for n in want if n in ids["options"]]
+        for n in set(want) - set(known):
+            _append(self.state_dir / "audit.jsonl", {"project_unknown_space": n, "item": item_id, "at": now()})
+        if known:
+            self._write(f"set Spaces {item_id}", M_SET, {"project": ids["project"], "item": item_id, "field": ids["field"],
+                                                         "options": [ids["options"][n] for n in known]})
 
     def sweep_due(self) -> bool:
         """True on the first poll and then every project_sync_every polls."""

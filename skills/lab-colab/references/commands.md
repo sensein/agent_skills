@@ -10,6 +10,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | handoff | Checkpoint comment, lease comment | Renews | None |
 | capture | Staging PR in the meta repo | No | Lead reviews the PR |
 | brief | Nothing by default | No | Read the output |
+| run | Local run directory; progress comments; staging PR | Renewed by beats | Lead reviews the staging PR |
 | link | Issue body | No | None |
 | credit | Proposed roles | No | Person confirms roles |
 | ingest | Private storage, proposed items | No | Member gives consent |
@@ -150,6 +151,33 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 - No restricted content in the brief.
 - A lab-tier brief is not posted to a public repo.
+
+## run
+
+**Purpose.** Run a claimed Experiment issue: an isolated workspace, explicit budgets, a metric and verify loop, a loop breaker, and one immutable Observation per iteration.
+
+**Reads.** The Experiment issue body (its form fields) and labels, through `gh`. The workspace source repo. Never restricted inputs.
+
+**Writes.** A local run directory, default `${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs/<owner>-<repo>-<n>-<timestamp>` (override with `--root`, `COLAB_RUN_ROOT`, or `[run] root`). A compact progress comment on the issue at the `[run] comment_every` / `comment_every_seconds` cadence. Staged Observations in the meta repo, by PR.
+
+**Steps.**
+
+1. `claim` the issue first. Then `python3 "$COLAB/colab.py" run start <owner>/<repo>#<n> --source <repo dir>`. It prints the `run_dir` and `workspace`.
+2. Budgets come from the issue's **Run budget** field (`iterations=20, wall=2h, loop=30m, compute=4 GPU-hours, metric=bacc, direction=higher`), falling back to the Compute plan and Metrics fields, and the **Verify command** field. `--iterations`, `--wall`, `--loop`, `--compute`, `--metric`, `--direction`, `--verify` override them. Iterations and wall time must be explicit, or `start` refuses.
+3. The workspace is a git worktree on its own `colab-run/<id>` branch when `--source` is a git repo, otherwise a copy without `.git` (`--mode worktree|dir|auto`). Two runs never share a workspace, a branch, or a run directory.
+4. Work the loop. Either call `colab.py run step --run-dir <dir>` after each change you make, or let `colab.py run loop --run-dir <dir>` repeat `--iterate-cmd` then the verify command. Each step runs the loop breaker (`monitor_slice.py check`) first. Exit 4 means stop: do not iterate again.
+5. The verify command runs in the workspace without a shell. Its last stdout line is the metric: a number, or JSON such as `{"metric": 0.8, "compute": 0.5, "notes": "..."}`. No metric on the last line is recorded as a crash.
+6. Each step appends a row to `results.tsv` and a line to `log.md`, keeps stdout and stderr under `logs/`, and writes `observations/<run-id>-<iteration>.json`. An Observation holds the parameters, git commit, container digest (`--container-digest` or `COLAB_CONTAINER_DIGEST`; null if unknown), Slurm job id (`--slurm-job` or `SLURM_JOB_ID`; null if none), metric value, wall seconds, and run-relative paths to the logs. It is created once, read-only, with a content hash. It is never rewritten.
+7. Thresholds for the loop breaker (`--patience`, `--max-failures`, `--stall-seconds`, `--reserve-seconds`, `--usage-file`, `--governance-file`, `--min-trust-score`, `--break-on-drift`, `--metric-guardrail`) are given to `start` and stored in `run.json`. A `duct` `info.json` and a `kya` verdict plug in there.
+8. `colab.py run finish --run-dir <dir>` closes the slice. `colab.py run stage --run-dir <dir> --meta <meta clone>` copies the Observations into `.colab/staging/observations/<run-id>/`, scans them, and with `--open-pr` makes the branch, commit, push and PR. Then `handoff` and `capture`, which cite the Observations as grounding.
+
+**Guardrails.**
+
+- Restricted data. A run whose issue has the `tier:restricted` label, or whose Data field says restricted, or `--restricted`, never executes in a session. `start` only writes `job.sbatch`; after the owner agrees, submit it. The job runs `loop --in-job` on ORCD. `step` and `loop` refuse in a session, and only the job's metrics and run-relative pointers leave the run directory. No progress comments are posted for such runs.
+- Local logs are append-only (one `O_APPEND` write per line, under a directory lock that recovers from a dead owner). Iteration numbers are allocated under that lock, so parallel steps never collide or exceed the iteration budget.
+- A progress comment and every staged file is scanned first. A finding withholds the comment or stages nothing.
+- Observations record the member the agent acts for. They are proposals: the item's Lead reviews the staging PR.
+- Never merge the staging PR from the run.
 
 ## link
 

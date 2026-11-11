@@ -1,20 +1,20 @@
 ---
 name: kya
-description: Govern and review autonomous agents with veldt-kya (Know Your Agents) — risk-score an agent, run multi-judge consensus, detect configuration drift, and emit compliance evidence — then turn the result into a verdict that labnb's loop can act on. Use when a run needs a trust/authorization/policy check, not just a resource or metric check.
+description: Govern and review autonomous agents with veldt-kya (Know Your Agents) — risk-score an agent, run multi-judge consensus, detect configuration drift, and emit compliance evidence — then turn the result into a verdict that the `/colab run` loop breaker can act on. Use when a run needs a trust/authorization/policy check, not just a resource or metric check.
 ---
 
 # Know Your Agents (KYA) Governance Review
 
-Use this skill to answer a different question from "is the run fast?" (see [`duct`](../duct/SKILL.md)) or "is the metric improving within budget?" (see [`labnb`](../labnb/SKILL.md)): **is the agent authorized, policy-compliant, and uncompromised?**
+Use this skill to answer a different question from "is the run fast?" (see [`duct`](../duct/SKILL.md)) or "is the metric improving within budget?" (see [`lab-colab`](../lab-colab/SKILL.md), `/colab run`): **is the agent authorized, policy-compliant, and uncompromised?**
 
 It wraps [`veldt-kya`](https://github.com/veldtlabs/veldt-kya) ("Know Your Agents", Apache-2.0), a governance SDK that risk-scores agents, runs consensus judges over their behavior, detects drift from an approved definition, and produces regulator-grade compliance evidence.
 
-This is the third review axis in this repo: `duct` = resource accounting, `labnb` = budget / experimental-validity accounting, `kya` = trust / authorization / compliance accounting.
+This is the third review axis in this repo: `duct` = resource accounting, `/colab run` (lab-colab) = budget / experimental-validity accounting, `kya` = trust / authorization / compliance accounting.
 
 ## When To Use
 
 - Before granting an agent a privileged action (writing outside scope, executing SQL, calling external services), score or consensus-check it first.
-- When a long-running labnb experiment should stop if the agent drifts from its approved configuration or trips a policy judge — not only when the metric stalls.
+- When a long-running `/colab run` experiment should stop if the agent drifts from its approved configuration or trips a policy judge — not only when the metric stalls.
 - When a run touches regulated or PII-bearing data and needs auditable authorization evidence (GDPR, HIPAA, EU AI Act, and similar).
 
 Skip it for ordinary, low-stakes local iteration; governance has real cost (see Guardrails).
@@ -25,7 +25,7 @@ Skip it for ordinary, low-stakes local iteration; governance has real cost (see 
 pip install veldt-kya   # Apache-2.0
 ```
 
-`veldt-kya` is a heavier, pre-1.0 dependency (database, identity bindings, optional external judges). Keep it **optional** — it is never required by the `labnb` core. Install it only in environments that need governance.
+`veldt-kya` is a heavier, pre-1.0 dependency (database, identity bindings, optional external judges). Keep it **optional** — it is never required by the `/colab run` engine. Install it only in environments that need governance.
 
 ## Core Capabilities
 
@@ -41,9 +41,9 @@ from kya import compliance_summary
 - **Drift detection** — `canonical_hash(definition)` plus `detect_drift(...)` flag unauthorized configuration changes against an approved baseline.
 - **Compliance evidence** — `compliance_summary(...)` emits model cards / breach-notification artifacts across many regimes.
 
-## Producing A labnb Governance Verdict
+## Producing A Governance Verdict
 
-`labnb`'s `monitor_slice.py check` can break a slice on a **governance** signal, but it stays dependency-free: it reads a small JSON **verdict file** rather than importing KYA. This skill's job is to run a governance check and write that verdict.
+lab-colab's `monitor_slice.py check` (the `/colab run` loop breaker) can break a slice on a **governance** signal, but it stays dependency-free: it reads a small JSON **verdict file** rather than importing KYA. This skill's job is to run a governance check and write that verdict.
 
 Canonical verdict schema (all keys optional):
 
@@ -67,7 +67,7 @@ decision = "block" if verdict.consensus == "BREACH" else (
 
 ```bash
 python skills/kya/scripts/write_verdict.py \
-  --output "$EXPERIMENT_DIR/artifacts/governance.json" \
+  --output "$RUN_DIR/governance.json" \
   --decision "$decision" \
   --trust-score 0.41 \
   --reason "consensus=BREACH on faithfulness judge"
@@ -77,24 +77,24 @@ python skills/kya/scripts/write_verdict.py \
 
 ## Feeding It Into The Loop
 
-Point `labnb`'s monitor at the verdict so a compromised or unauthorized slice breaks (with the highest break priority — governance outranks budget, engineering, and validity):
+Point the loop breaker at the verdict so a compromised or unauthorized slice breaks (with the highest break priority — governance outranks budget, engineering, and validity):
 
 ```bash
-python skills/labnb/scripts/monitor_slice.py check \
-  --experiment-dir "$EXPERIMENT_DIR" \
-  --governance-file "$EXPERIMENT_DIR/artifacts/governance.json" \
+python skills/lab-colab/scripts/monitor_slice.py check \
+  --experiment-dir "$RUN_DIR" \
+  --governance-file "$RUN_DIR/governance.json" \
   --min-trust-score 0.6 --break-on-drift
 ```
 
-A `block` decision, a `trust_score` below `--min-trust-score`, or `drift: true` (with `--break-on-drift`) breaks the slice and moves the entry to `blocked`; a `warn` decision is advisory. This also fits `labnb`'s Action Gate: run the check before any write-bearing or privileged step.
+A `block` decision, a `trust_score` below `--min-trust-score`, or `drift: true` (with `--break-on-drift`) breaks the slice and moves the run to `blocked`; a `warn` decision is advisory. This also fits a pre-action gate: run the check before any write-bearing or privileged step.
 
 The gate fails closed: once `--governance-file` is set, if the verdict file is missing, unreadable, or malformed the monitor treats it as a `block`. So always write a verdict before the check — including a conservative one (e.g. `decision: "warn"` or `"block"`) when KYA or its judges are unavailable — rather than leaving the file absent.
 
 ## Guardrails
 
 1. Respect any parent constitution, project policy, or task-level write constraint already in scope.
-2. Keep `veldt-kya` optional. Never make it a hard dependency of the `labnb` core or of offline CI; the verdict-file seam exists precisely so labnb stays dependency-free.
-3. Governance has cost. Consensus judging may call LLMs or external services (e.g. Fiddler, Presidio); count that time and spend against the same labnb budget, per labnb's budget policy.
+2. Keep `veldt-kya` optional. Never make it a hard dependency of the `/colab run` engine or of offline CI; the verdict-file seam exists precisely so lab-colab stays dependency-free.
+3. Governance has cost. Consensus judging may call LLMs or external services (e.g. Fiddler, Presidio); count that time and spend against the same run budget, per the `/colab run` budget policy.
 4. Handle a degraded/offline path: if KYA or its judges are unavailable, emit a conservative verdict (for example `decision: "warn"`) rather than silently treating the run as authorized.
 5. Treat the project as pre-1.0 and verify its behavior before relying on it for real compliance decisions; do not present its output as legal/regulatory advice.
 6. Do not send secrets or unminimized PII to external judges; use KYA's PII scanning and scrub before sharing.

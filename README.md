@@ -4,7 +4,7 @@ This repository is a home for many named agent skills.
 
 Each skill lives in its own flat directory under `skills/` and should include a `SKILL.md` file plus any optional `agents/`, `scripts/`, `references/`, or `assets/` needed to make the skill reliable and reusable.
 
-Skills are kept **flat**: a skill never contains another skill's `SKILL.md` nested inside it. Agents such as Claude Code load skills from a flat skills directory and do not support nested skills, so a related set of actions (for example the `labnb-*` family) ships as several top-level skill directories rather than one skill with sub-skill folders. This keeps the whole `skills/` tree installable into Claude Code, Codex, and other agents.
+Skills are kept **flat**: a skill never contains another skill's `SKILL.md` nested inside it. Agents such as Claude Code load skills from a flat skills directory and do not support nested skills, so a related set of actions ships as several top-level skill directories rather than one skill with sub-skill folders. This keeps the whole `skills/` tree installable into Claude Code, Codex, and other agents.
 
 ## Skills
 
@@ -13,13 +13,8 @@ The list below is kept in alphabetical order by skill name.
 | Skill                                                        | Description |
 |--------------------------------------------------------------| --- |
 | [`duct`](./skills/duct/SKILL.md)                             | Wrap any command with [con/duct](https://github.com/con/duct) to capture wall-clock time, CPU, and memory usage as structured logs, so agents and reviewers can inspect what a run actually consumed. |
-| [`kya`](./skills/kya/SKILL.md)                               | Govern and review agents with [veldt-kya](https://github.com/veldtlabs/veldt-kya) (Know Your Agents) — risk-score, consensus-judge, and drift-check an agent, emit compliance evidence, and write a governance verdict that the `labnb` loop can break on. |
-| [`lab-colab`](./skills/lab-colab/SKILL.md)                   | Bootstrap, roll out, and operate a Lab Colab Space: GitHub issues, Projects, and repos as a typed work graph and a tier-checked pub/sub bus across public and private repos, with a re-entrant dry-run-first rollout, a polling bus for Slurm, leak scanning, and the day-to-day `/colab` commands. |
-| [`labnb`](./skills/labnb/SKILL.md)                           | Create and maintain a concurrency-safe global lab notebook outside project roots, with startup summaries of related prior work, first-class idea capture and promotion, isolated experiment workspaces, focused companion skills, and append-only indexing across projects, investigations, and tasks. |
-| [`labnb-idea`](./skills/labnb-idea/SKILL.md)                 | Record a promising but not-yet-implemented experiment idea in the shared lab notebook index. |
-| [`labnb-promote`](./skills/labnb-promote/SKILL.md)           | Promote a lab notebook idea into a concrete experiment with explicit budgets, source links, and provenance. |
-| [`labnb-resume`](./skills/labnb-resume/SKILL.md)             | Summarize prior ideas and experiments for a project slug, then choose whether to resume, promote, branch, or start new work. |
-| [`labnb-run`](./skills/labnb-run/SKILL.md)                   | Create and run a concrete lab notebook experiment with isolated workspace, explicit budgets, and iterative logging. |
+| [`kya`](./skills/kya/SKILL.md)                               | Govern and review agents with [veldt-kya](https://github.com/veldtlabs/veldt-kya) (Know Your Agents) — risk-score, consensus-judge, and drift-check an agent, emit compliance evidence, and write a governance verdict that the `/colab run` loop breaker can act on. |
+| [`lab-colab`](./skills/lab-colab/SKILL.md)                   | Bootstrap, roll out, and operate a Lab Colab Space: GitHub issues, Projects, and repos as a typed work graph and a tier-checked pub/sub bus across public and private repos, with a re-entrant dry-run-first rollout, a polling bus for Slurm, leak scanning, the day-to-day `/colab` commands, and `/colab run`, which runs a claimed Experiment issue in an isolated workspace under explicit budgets with a metric/verify loop, a loop breaker, and immutable Observation records. |
 | [`orcd-remote`](./skills/orcd-remote/SKILL.md)               | Use MIT ORCD (Engaging) as a remote execution environment, driven over SSH from your own machine: set up key-based SSH through the OnDemand portal, discover the Slurm partitions, GPU models, and storage tiers the current user is actually entitled to, place job IO on flash scratch, and submit and track work. |
 | [`structsense`](./skills/structsense/SKILL.md)               | StructSense Skills transforms unstructured text and PDFs into validated, ontology-grounded structured JSON using a model-agnostic extraction pipeline. |
 | [`synthscholar`](./skills/synthscholar/SKILL.md)             | Set up, run, and query SynthScholar / PRISMA systematic reviews: guided protocol intake, provenance queries over a finished review (full-text vs abstract-only inclusions, retrieval routes, screening audit trail), and bring-your-own-corpus reviews over PDFs the user supplies — with missing papers retrieved from a DOI open access first (Unpaywall/OpenAlex/Semantic Scholar) and through the user's own institutional EZproxy session for what stays paywalled — exported as Markdown and SLR-ontology Turtle. |
@@ -33,7 +28,7 @@ python scripts/install_skills.py --list                  # show available skills
 python scripts/install_skills.py --agent claude           # -> ~/.claude/skills
 python scripts/install_skills.py --agent codex            # -> ~/.agents/skills
 python scripts/install_skills.py --agent codex --scope project   # -> ./.agents/skills
-python scripts/install_skills.py --agent codex --skills labnb duct
+python scripts/install_skills.py --agent codex --skills lab-colab duct
 python scripts/install_skills.py --dest /path/to/skills   # any other agent
 ```
 

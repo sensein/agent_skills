@@ -60,7 +60,7 @@ class Signal:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Start, check, or finish a monitored labnb loop slice. The check "
+            "Start, check, or finish a monitored `/colab run` loop slice. The check "
             "action can break a slice on budget, engineering (pace/stall/"
             "resource), correctness (repeated failures), or validity (no "
             "improvement / guardrail) signals, and exits non-zero on break so "
@@ -135,7 +135,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     # Governance signals (read from a verdict file written by a governance tool
-    # such as the `kya` skill; labnb stays dependency-free and just consumes it).
+    # such as the `kya` skill; this script stays dependency-free and just consumes it).
     parser.add_argument(
         "--governance-file",
         default="",
