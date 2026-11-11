@@ -377,8 +377,7 @@ def compute_tier(config: dict, ref: dict, labels: list[str], visibility: str | N
     import colab_bus as bus  # noqa: PLC0415
     if visibility not in ("public", "private", "internal"):
         return "restricted"
-    own = ref["owner"] == config.get("org", {}).get("name")
-    declared = [bus.repo_tiers(config).get(ref["repo"])] if own else []
+    declared = [bus.repo_tiers(config).get(bus.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name")))]
     for name in {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")}:
         declared.append(((config.get("spaces") or {}).get(name) or {}).get("tier"))
     return bus._strictest(bus.tier_of(visibility, labels, None), sensitivity, *declared)

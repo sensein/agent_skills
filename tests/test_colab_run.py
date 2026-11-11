@@ -741,6 +741,13 @@ class TierDetectionTests(unittest.TestCase):
         cfg = self.cfg(a={"repos": ["other"]}, hot={"repos": [], "tier": "restricted"})
         self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "restricted")
 
+    def test_repos_in_other_orgs_use_their_qualified_entry(self) -> None:
+        cfg = self.cfg(p={"org": "pi-lab", "repos": ["pi-lab/proj"], "tier": "restricted"}, a={"repos": ["proj"]})
+        ext = {"owner": "pi-lab", "repo": "proj", "n": 1}
+        self.assertEqual(run.compute_tier(cfg, ext, [], "public"), "restricted")
+        self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "public")  # same name in the lab's org: not that space
+        self.assertEqual(run.compute_tier(cfg, ext, [], None), "restricted")  # unreadable: fail closed
+
     def test_sensitivity_field_tightens(self) -> None:
         self.assertEqual(run.compute_tier(self.cfg(), self.REF, [], "public", "restricted"), "restricted")
         self.assertEqual(run.compute_tier(self.cfg(), self.REF, [], "public", "lab"), "lab")

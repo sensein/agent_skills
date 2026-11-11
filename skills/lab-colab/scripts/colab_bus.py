@@ -16,6 +16,9 @@ Safety rules enforced here:
   - restricted events carry no summary, and move only for spaces with the `restricted` switch
   - the bus never routes its own deliveries (body marker), so it cannot loop
   - it adds no labels anywhere: tier and space membership come from the config
+  - space repos may live in other orgs (`owner/name` in [spaces]): they are read only, an unreadable one
+    is skipped (stats["unreadable"]) and counts as restricted, and nothing is ever written there;
+    subscriptions deliver only to repos in [org] name (others are dropped and audited)
   - it validates each issue's fenced links block once per body version
 
 Drift check (`[bus] drift_check_hours`, 0 = off): at most that often the bus runs colab.py observe + build_plan read-only
@@ -62,8 +65,12 @@ def _strictest(*tiers: str | None) -> str:
     return max([t for t in tiers if t in RANK] or ["public"], key=RANK.__getitem__)
 
 
-def tier_of(repo_visibility: str, labels: list[str], declared: str | None = None) -> str:
-    """Stricter of the repo's visibility, its declared space tier, and an item tier:* label."""
+def tier_of(repo_visibility: str | None, labels: list[str], declared: str | None = None) -> str:
+    """Stricter of the repo's visibility, its declared space tier, and an item tier:* label.
+
+    Unknown visibility (an unreadable repo, e.g. in another org) fails closed to restricted."""
+    if repo_visibility not in ("public", "private", "internal"):
+        return "restricted"
     base = "public" if repo_visibility == "public" else "lab"
     tiers = [lab.split(":", 1)[1] for lab in labels if lab.startswith("tier:")]
     return _strictest(base, declared, *tiers)
@@ -75,21 +82,15 @@ def dest_tier(visibility: str | None, override: str | None = None, declared: str
     return _strictest(actual, override, declared)
 
 
-def repo_spaces(config: dict) -> dict[str, list[str]]:
-    out: dict[str, list[str]] = {}
-    for name, spec in (config.get("spaces") or {}).items():
-        for repo in spec.get("repos", []):
-            out.setdefault(repo, []).append(name)
-    return out
-
-
 def repo_tiers(config: dict) -> dict[str, str]:
-    """repo -> strictest `tier` declared by any space it belongs to."""
+    """repo key (bare for the lab's org, owner/name otherwise) -> strictest `tier` declared by any space it belongs to."""
+    home = (config.get("org") or {}).get("name")
     out: dict[str, str] = {}
     for spec in (config.get("spaces") or {}).values():
         if spec.get("tier") in RANK:
             for repo in spec.get("repos", []):
-                out[repo] = _strictest(out.get(repo), spec["tier"])
+                key = repo_key(repo, home)
+                out[key] = _strictest(out.get(key), spec["tier"])
     return out
 
 
@@ -154,6 +155,9 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
     for sub in subscriptions:
         if not matches(sub, env) or sub["subscriber"] == env["repo"]:
             continue
+        if is_external(sub["subscriber"]):  # deliveries go only to repos in [org] name
+            drops.append({"to": sub["subscriber"], "reason": "subscriber is outside the lab's org", "envelope": env["id"]})
+            continue
         to = to_tiers.get(sub["subscriber"], "public")  # unknown repo: fail closed
         if env["tier"] == "restricted" and not restricted_ok:
             drops.append({"to": sub["subscriber"], "reason": "restricted switch is off", "envelope": env["id"]})
@@ -164,8 +168,11 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
     return deliveries, drops
 
 
-try:  # shared grammar; colab.py sits next to this file in the skill and in the meta repo
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+# colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from colab import is_external, repo_key, repo_ref, repo_spaces  # noqa: E402
+
+try:  # shared grammar
     from colab import (build_plan, is_recurring, observe, parse_links, parse_sessions,  # noqa: E402
                        session_state, validate_links)
 except ImportError:  # pragma: no cover
@@ -294,6 +301,9 @@ class ProjectSync:
         bus = config.get("bus", {})
         self.gh, self.state, self.state_dir, self.stats, self.member_of = gh, state, state_dir, stats, member_of
         self.org = config["org"]["name"]
+        # orgs whose items the sweep manages: the lab's own, plus any named by a space (org = or owner/name)
+        self.owners = {self.org.lower()} | {str(spec.get("org")).lower() for spec in (config.get("spaces") or {}).values()
+                                            if spec.get("org")} | {k.split("/")[0].lower() for k in member_of if is_external(k)}
         self.number = int(config["org"].get("project_number") or 0)
         self.enabled = bool(bus.get("project_sync", False)) and self.number > 0
         self.every = max(1, int(bus.get("project_sync_every", 6)))
@@ -380,10 +390,11 @@ class ProjectSync:
             for item in page["nodes"]:
                 content = item.get("content") or {}
                 repo = content.get("repository") or {}
-                if content.get("__typename") not in ("Issue", "PullRequest") or repo.get("owner", {}).get("login") != self.org:
+                owner = (repo.get("owner") or {}).get("login") or ""
+                if content.get("__typename") not in ("Issue", "PullRequest") or owner.lower() not in self.owners:
                     continue
                 labels = [x["name"] for x in (content.get("labels") or {}).get("nodes", [])]
-                want = desired_spaces(repo["name"], labels, self.member_of)
+                want = desired_spaces(repo_key(f"{owner}/{repo['name']}", self.org), labels, self.member_of)
                 have = sorted(o["name"] for o in ((item.get("fieldValueByName") or {}).get("options") or []))
                 if want == have:
                     continue
@@ -539,16 +550,34 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
     project = ProjectSync(gh, config, state, state_dir, stats, member_of)
 
+    # Repo names in subscriptions are normalised like [spaces] entries: bare = [org] name. A subscriber in
+    # another org stays qualified, and route() drops (and the loop below audits) every delivery to it.
+    def norm_topic(topic: str) -> str:
+        scheme, _, value = topic.partition(":")
+        return f"repo:{repo_key(value, org)}" if scheme == "repo" and value else topic
+    subs = [{**s, "subscriber": repo_key(s["subscriber"], org), "topic": norm_topic(s.get("topic", ""))} for s in subs]
+
+    def path(repo: str) -> str:
+        return "/repos/" + repo_ref(repo, org)
+
     # Visibility of every repo we read from or deliver to, fetched fresh each poll (ETag-cheap).
-    repos = sorted(set(member_of) | {s["subscriber"] for s in subs} | {meta_repo})
+    # Repos in other orgs are read with the bus token, which may have no access there: a 404/403 is
+    # skipped and listed in stats["unreadable"], never counted as public.
+    repos = sorted(set(member_of) | {s["subscriber"] for s in subs if not is_external(s["subscriber"])} | {meta_repo})
     visibility: dict[str, str | None] = {}
     for repo in repos:
         try:
-            meta = gh.get(f"/repos/{org}/{repo}", cache=True)
+            meta = gh.get(path(repo), cache=True)
             visibility[repo] = meta.get("visibility") if isinstance(meta, dict) else None
+        except urllib.error.HTTPError as err:
+            visibility[repo] = None
+            if not (is_external(repo) and err.code in (403, 404)):
+                stats["errors"] += 1
         except urllib.error.URLError:
             visibility[repo] = None
             stats["errors"] += 1
+        if visibility[repo] is None and is_external(repo):
+            stats.setdefault("unreadable", []).append(repo)
     overrides = {s["subscriber"]: s.get("tier") for s in subs if s.get("tier")}
     to_tiers = {r: dest_tier(visibility.get(r), overrides.get(r), declared.get(r)) for r in repos}
 
@@ -586,10 +615,10 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         if not errors:
             return
         _append(state_dir / "audit.jsonl", {"links_errors": key, "errors": errors, "at": now()})
-        if live(repo):
+        if live(repo) and not is_external(repo):  # never write into another org's repos
             gh_comment = "\n".join(["The links block has problems:", "", *[f"- {e}" for e in errors], "",
                                      "Format: `<edge>: <owner>/<repo>#<n>` or `<edge>: kg:<id>`, one per line.", DELIVERY_MARKER])
-            write(f"/repos/{org}/{repo}/issues/{item.get('number')}/comments", {"body": gh_comment})
+            write(f"{path(repo)}/issues/{item.get('number')}/comments", {"body": gh_comment})
 
     cursors = state.setdefault("cursors", {})
     baseline_at = state.setdefault("baseline_at", {})
@@ -602,8 +631,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             if repo not in cursors:
                 # Baseline: the bus starts from now. Record the newest update and the
                 # current releases as seen, and route nothing, so history never floods.
-                newest = gh.get(f"/repos/{org}/{repo}/issues?state=all&sort=updated&direction=desc&per_page=1") or []
-                for rel in gh.get(f"/repos/{org}/{repo}/releases?per_page=10") or []:
+                newest = gh.get(f"{path(repo)}/issues?state=all&sort=updated&direction=desc&per_page=1") or []
+                for rel in gh.get(f"{path(repo)}/releases?per_page=10") or []:
                     for env in envelopes_for("release", repo, vis, rel):
                         remember(state, env["id"])
                 cursors[repo] = newest[0]["updated_at"] if newest else now().replace("+00:00", "Z")
@@ -611,8 +640,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                 stats["baselined"] = stats.get("baselined", 0) + 1
                 save()
                 continue
-            items = gh.get(f"/repos/{org}/{repo}/issues?state=all&sort=updated&direction=asc&per_page=100&since={cursors[repo]}") or []
-            releases = gh.get(f"/repos/{org}/{repo}/releases?per_page=10") or []
+            items = gh.get(f"{path(repo)}/issues?state=all&sort=updated&direction=asc&per_page=100&since={cursors[repo]}") or []
+            releases = gh.get(f"{path(repo)}/releases?per_page=10") or []
         except urllib.error.URLError as err:
             stats["errors"] += 1
             _append(state_dir / "audit.jsonl", {"read_failed": repo, "error": str(err), "at": now()})
@@ -658,8 +687,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     _append(state_dir / "would-deliver.jsonl", {"digest": [d["to"] for d in deliveries], "envelope": env["id"], "at": now()})
                 deliveries = []
             for d in deliveries:
-                if live(d["to"]) and d["via"] == "issue":
-                    if write(f"/repos/{org}/{d['to']}/issues", {
+                if live(d["to"]) and d["via"] == "issue" and not is_external(d["to"]):
+                    if write(f"{path(d['to'])}/issues", {
                         "title": f"[colab] {env['kind']} {env['transition']} in {env['repo']}: {env['summary'] or 'restricted item'}"[:250],
                         "body": f"{DELIVERY_MARKER}\nDelivered by colab-bus.\n\nSource: {env['source']}\nTier: {env['tier']}\nEnvelope: `{env['id']}`",
                     }):

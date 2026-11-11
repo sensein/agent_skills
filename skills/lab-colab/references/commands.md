@@ -12,6 +12,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | brief | Nothing by default | No | Read the output |
 | run | Local run directory; progress comments; staging PR | Renewed by beats | Lead reviews the staging PR |
 | link | Issue body | No | None |
+| tag | Labels on one issue; the label itself on first use | No | A steward confirms a removed tier label |
 | credit | Proposed roles | No | Person confirms roles |
 | ingest | Private storage, proposed items | No | Member gives consent |
 | subscribe | Subscriptions PR | No | Review the PR |
@@ -204,6 +205,26 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 - Knowledge-only edges (`supersedes`, `contradicts`, `supports`, `refines`) are not written here. They go in the knowledge merge step.
 - The domain rule applies. `addresses` is valid only on an Experiment or Review.
 
+## tag
+
+**Purpose.** Put an item into a space its repo is not in, or mark one restricted item, with a label.
+
+**Reads.** `[spaces]`, `[[labels]]`, and `[labels_space]` in the config. Whether the label exists in the repo.
+
+**Writes.** The label in the repo, on first use only (colour and description from the config). The label on the issue.
+
+**Steps.**
+
+1. Run `colab.py tag <owner>/<repo>#<n> <label> [<label>...]`. Add `--remove` to take labels off, and `--dry-run` to print the `gh` calls without running them.
+2. For each label it checks the repo, creates the label if it is missing, then adds it to the issue. `--remove` deletes it from the issue and never touches the repo's label.
+3. Writes run under your own `gh` login, at least one second apart. A failed write prints `FAILED` and exits 1.
+
+**Guardrails.**
+
+- Allowed labels only: `space:<name>` for a name in `[spaces]`, and each `[[labels]]` entry. Anything else exits 2 and lists the allowed set. To allow a new label, change the config by PR.
+- Removing a `tier:*` label loosens the item's tier. It is allowed, with a warning: a steward of the item's space must confirm it.
+- In another org, `tag` runs only when the lab controls that org (a space with `org = "<org>"` and `control = "owner"`, the default). It acts with your own access there, which may be lower than the space owner's; a 403 or 404 means ask them. Upstream orgs (`control = "contributor"`, or not named by any space) are read-only and refused with exit 2.
+
 ## credit
 
 **Purpose.** Propose CRediT roles for an Output, or export confirmed roles.
@@ -257,7 +278,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 **Steps.**
 
 1. Choose a topic: `repo:<name>`, `label:<label>`, or `space:<space>`.
-2. Choose the subscriber repo and, optionally, an `events` list.
+2. Choose the subscriber repo and, optionally, an `events` list. The subscriber must be in `[org] name`; the bus drops and audits deliveries to any other org.
 3. Check the subscriber's tier against the source tier. Events above the subscriber's tier are dropped and audited.
 4. Add a `[[subscribe]]` block. Leave `deliver` at its default, `issue`.
 5. Run `colab.py scan` on the file, and open a PR.

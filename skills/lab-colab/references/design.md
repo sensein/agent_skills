@@ -62,6 +62,8 @@ derived-from: kg:example-node-1
 - Items in a listed repo belong to that space. Spaces may share repos.
 - An item joins a space its repo is not in through a `space:<name>` label, created on first use.
 - An item belongs to its repo's spaces plus any space named by a `space:<name>` label on the item.
+- Labels are set with `colab.py tag`, which allows only `space:<name>` for a declared space and the `[[labels]]` entries.
+- A space's repos may live in other GitHub orgs (section 1.5).
 - Project view filters cannot OR "repo is X" with "label is Y", so membership is stored in the multi-select **Spaces** field (options = the names in `[spaces]`). Each space gets a view `Space: <name>` filtered on `spaces:<name>`.
 - `colab.py plan` also creates the standing views, and fixes any existing view whose filter differs from the one below. A view's layout is set at creation and not changed afterwards.
 
@@ -71,6 +73,17 @@ derived-from: kg:example-node-1
 | Agent queue | `status:Ready agent-ready:yes` | table |
 | Proposals inbox | `status:Proposed` | table |
 | My work | `assignee:@me` | board |
+
+### 1.5 Spaces across orgs
+
+A space can connect to repos outside `[org] name`, for example a partner org the PI owns, or upstream projects the lab develops for.
+
+- `repos` entries are `<name>` (in `[org] name`) or `<owner>/<name>` (any org). One space may mix both.
+- `org = "<github org>"` names the other org the space connects to. `control = "owner"` (the default when `org` is set) means the lab controls that org; `control = "contributor"` means it does not. An org no space names is treated as contributor. When spaces disagree about an org, contributor wins.
+- **Read-only tracking.** The bus reads items from repos in other orgs and adds their issues to the org Project with their Spaces. It never writes into those repos: no deliveries, no comments, no labels. Subscriptions deliver only to repos in `[org] name`; any other subscriber is dropped and audited.
+- **No org metadata elsewhere.** `colab.py plan` never proposes issue types, Projects, fields, labels, or forms outside `[org] name`. For each external repo it reports one `manual` note: tracked read-only, or not readable.
+- **Owner versus member access.** The PI may own the other org while a member, or the bus token, has no access there. Every read tolerates 404 and 403 per repo: the repo is skipped and noted (`status` notes, the bus's `unreadable` stat). Its tier is then unknown and counts as **restricted**, never public. `colab.py tag` works in an owned org with the member's own access, which may be lower than the owner's.
+- Bus keys stay bare for repos in `[org] name`, and are `<owner>/<name>` for others, in cursors, envelope ids, and membership.
 
 ## 2. Fields, and why there are almost no labels
 
@@ -140,7 +153,7 @@ One envelope per item transition (opened, closed, published), not per edit.
 | `sender` | Author login. |
 | `at` | When the transition happened. |
 
-A public repo sets the base tier to public. Any other repo sets it to lab.
+A public repo sets the base tier to public. A private or internal repo sets it to lab. A repo whose visibility cannot be read counts as restricted.
 
 ### 4.3 Dedupe, self-filter, routing
 
@@ -195,7 +208,7 @@ Enabled by `[bus] project_sync = true` once `[org] project_number` is set. It is
 Enabled by `[bus] drift_check_hours` (default 24; 0 turns it off). It is read-only: the bus never applies a plan.
 
 - At most that often, the bus runs `observe(config)` and `build_plan` with the config it already loads. `observe` shells out to `gh`, so `gh` must be on the job's PATH and authenticated.
-- It drops the actions that always recur in a plan: `gate`, "Start the bus", and the informational own-templates `manual` note.
+- It drops the actions that always recur in a plan: `gate`, "Start the bus", and the informational own-templates and "Tracked read-only" `manual` notes.
 - If anything remains, it creates or updates one issue titled `Drift report` in the meta repo. The body lists each proposed action and the `colab.py plan` and `apply --yes` commands to review it. The issue is edited in place, never commented on again. The body carries the delivery marker, so the bus does not route it.
 - When the plan is clean it closes the issue with a short comment.
 - It records `drift_actions` in the heartbeat stats, and the last check time (`drift_checked_at`) in state. A failed check, including an observation with no repos (gh unavailable), is audited as `drift_check_failed`, counted in `errors`, and retried after an hour. It never stops the poll.
@@ -213,7 +226,7 @@ File: `.colab/subscriptions.toml` in the meta repo.
 |---|---|
 | `topic` | `repo:<name>`, `label:<label>`, or `space:<space>` |
 | `events` | Optional list: `issue`, `pull_request`, `release` |
-| `subscriber` | Repo that receives the delivery |
+| `subscriber` | Repo that receives the delivery; must be in `[org] name` |
 | `deliver` | `issue` (default). The bus delivers only issues. |
 | `tier` | Optional override of the subscriber's tier |
 

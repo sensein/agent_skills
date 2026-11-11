@@ -123,7 +123,8 @@ kg_only = ["supersedes", "contradicts", "supports", "refines"]
 addresses = ["Experiment", "Review"]
 
 # ---------------------------------------------------------------------------
-# Labels. None are created up front. Tier comes from repo visibility plus the
+# Labels. `colab.py tag` may set only these and space:<name> labels; add one here by PR to allow it.
+# None are created up front. Tier comes from repo visibility plus the
 # space `tier` setting below; space membership comes from the repo lists. A
 # label is created only on first use, for an exception: one restricted item in
 # a lab repo, or an item joining a space its repo is not in.
@@ -193,6 +194,13 @@ type = "ITERATION"
 # and name a Lead per item. Set tier = "restricted" for spaces whose repos may
 # hold restricted items; a repo shared by several spaces takes the strictest.
 # example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"], tier = "restricted" }
+#
+# A space may also take repos from other GitHub orgs: write them as "owner/name" (bare names stay in
+# [org] name). org = "<github org>" names the org it connects to; control = "owner" (the default when
+# org is set) if the lab controls that org, "contributor" if not. Repos in other orgs are tracked
+# read-only: the bus adds their issues to the Project but delivers nothing there, and the plan writes
+# no org metadata there. A repo you or the bus cannot read is skipped and counts as restricted.
+# partner-space = { stewards = ["handle-a"], org = "partner-org", control = "owner", repos = ["repo-a", "partner-org/tool", "upstream-org/library"] }
 
 # ---------------------------------------------------------------------------
 # Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
