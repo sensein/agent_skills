@@ -298,7 +298,12 @@ class ProjectSync:
         self.enabled = bool(bus.get("project_sync", False)) and self.number > 0
         self.every = max(1, int(bus.get("project_sync_every", 6)))
         # envelope kinds that are added to the Project; PRs are off by default
-        self.add_kinds = set(bus.get("project_add", ["issue"])) & {"issue", "pull_request"}
+        wanted = bus.get("project_add", ["issue"])
+        wanted = [wanted] if isinstance(wanted, str) else list(wanted or [])
+        self.add_kinds = {k for k in wanted if k in ("issue", "pull_request")}
+        for k in sorted(set(wanted) - self.add_kinds):
+            print(f"colab-bus: ignoring unknown [bus] project_add kind {k!r} (use \"issue\" or \"pull_request\")", file=sys.stderr)
+            _append(state_dir / "audit.jsonl", {"project_add_unknown_kind": str(k), "at": now()})
         self.interval = bus.get("write_interval_seconds", 1.0)
         self._ids: dict | None = None
         stats.setdefault("project_writes", 0)

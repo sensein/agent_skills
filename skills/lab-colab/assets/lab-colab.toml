@@ -242,6 +242,7 @@ stale_minutes = 60               # no beat this long, and no running Slurm job: 
 [run]
 # `/colab run`: where runs live and how often progress is posted on the Experiment issue.
 root = ""                        # runs root; empty = ${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs
+python = ""                      # interpreter job.sbatch calls for restricted runs (3.11+); empty = the one that ran `start`
 mode = "auto"                    # workspace: auto (git worktree when the source is a repo, else a copy), worktree, or dir
 comment_every = 5                # compact progress comment every N iterations; 0 = off
 comment_every_seconds = 0        # or every N seconds (0 = off)

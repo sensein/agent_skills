@@ -125,7 +125,7 @@ Each command is specified in [`references/commands.md`](./references/commands.md
 - **`handoff`**: post a ledger checkpoint. Hand off often: a session that runs out of tokens cannot write one.
 - **`capture`**: turn session results into knowledge items, staged in the meta repo.
 - **`brief`**: summarise what happened, challenges, and next steps for a space or the lab.
-- **`run`**: `colab.py run start|step|loop|check|finish|stage|status` (engine: `scripts/colab_run.py`) runs a claimed Experiment issue in an isolated workspace under budgets read from the issue. Each iteration writes an immutable Observation, staged in the meta repo by PR. `scripts/monitor_slice.py` is the loop breaker.
+- **`run`**: `colab.py run start|confirm|step|loop|check|finish|stage|cleanup|status` (engine: `scripts/colab_run.py`) runs a claimed Experiment issue in an isolated workspace under budgets read from the issue. `start` prints the verify and iterate commands with their sha256, and who last edited the issue; nothing runs until you confirm that hash (`--confirm-verify`), and a later change to the command refuses again. Each iteration writes an immutable Observation, staged in the meta repo by PR. `scripts/monitor_slice.py` is the loop breaker. Runs that touch restricted data (tier computed as the bus does, failing closed) never execute in a session: they go to the batch job that `job.sbatch` describes.
 - **`link`**: write a typed edge into the fenced `links` block. Validate it with `colab.py links --type <Type>`.
 - **`credit`**: propose or export CRediT roles.
 - **`ingest`**: take a paste, upload, or connector pull, set its tier, and propose items.
@@ -145,7 +145,7 @@ The `labnb*` skills (a local, file-based lab notebook) are folded into this skil
 | `labnb-idea` and the idea index | An **Idea** issue (`distill` or the Idea form), found with `next` and `brief` |
 | `labnb-promote` | A new **Experiment** issue with `derived-from: <owner>/<repo>#<n>` pointing at the Idea (`link`) |
 | `labnb-resume` and the lab index | `brief` for the space (what happened, challenges, next steps) and `next` for what to pick up |
-| `labnb-run`, `register_experiment.py` | `claim` the Experiment, then `colab.py run start`; budgets come from its form fields |
+| `labnb-run`, `register_experiment.py` | `claim` the Experiment, then `colab.py run start`; budgets come from its form fields; confirm the printed command hash before the first step |
 | `monitor_slice.py` (labnb) | `scripts/monitor_slice.py` here, same CLI; `colab.py run` calls it for you |
 | `results.tsv`, `log.md`, `provenance.jsonl`, `metadata.json` | Same files in the run directory; plus `observations/*.json` and a staging PR |
 | the global notebook under a lab root | The run directory under `${XDG_STATE_HOME:-~/.local/state}/lab-colab/runs/` for local state; the issue ledger and `.colab/staging/` for what the lab keeps |

@@ -533,7 +533,7 @@ def read_governance_verdict(path: Path) -> dict[str, object]:
 
     Expected (all keys optional): ``decision`` (allow|warn|block), ``trust_score``
     (0..1), ``drift`` (bool), ``reasons`` (list). Any other governance tool can
-    emit this shape; labnb does not import the tool.
+    emit this shape; this script does not import the tool.
 
     This is only called when ``--governance-file`` was requested, so a missing,
     unreadable, or malformed file is treated as a ``block`` rather than silently

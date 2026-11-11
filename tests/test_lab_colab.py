@@ -615,6 +615,22 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertEqual(fake.mutations, [])
         self.assertGreaterEqual(stats["errors"], 1)
 
+    def test_project_add_as_a_string_is_one_kind_and_unknown_kinds_are_warned(self) -> None:
+        fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")],
+                                project_config(project_add="pull_request"))
+        self.assertEqual([v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"], ["PR_pr"])
+        fake, _, _ = self._poll([self._opened(5, "I_issue")], project_config(project_add="issue"))
+        self.assertEqual([v["content"] for n, v in fake.mutations if n == "addProjectV2ItemById"], ["I_issue"])  # not split into letters
+        import contextlib
+        import io
+        err = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stderr(err):
+            sync = bus.ProjectSync(FakeProjectGH(), project_config(project_add=["issue", "discussion"]), {}, Path(tmp), {"errors": 0}, {})
+            audit = [json.loads(x) for x in (Path(tmp) / "audit.jsonl").read_text().splitlines()]
+        self.assertEqual(sync.add_kinds, {"issue"})
+        self.assertIn("discussion", err.getvalue())
+        self.assertTrue(any(a.get("project_add_unknown_kind") == "discussion" for a in audit))
+
     def test_bundled_config_defaults_to_issues_only(self) -> None:
         self.assertEqual(CONFIG["bus"]["project_add"], ["issue"])
         self.assertEqual(CONFIG["run"]["comment_every"], 5)

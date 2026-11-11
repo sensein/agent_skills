@@ -92,10 +92,10 @@ It reads `info.json`, prints exit code, wall-clock time, peak/average memory, an
 
 ## With `/colab run`
 
-When running an Experiment issue under [`/colab run`](../lab-colab/SKILL.md), wrap the verify or benchmark command with `duct` and store the logs inside the run directory's `logs/` folder (`$RUN_DIR` is the `run_dir` that `colab.py run start` prints):
+When running an Experiment issue under [`/colab run`](../lab-colab/SKILL.md), wrap the verify or benchmark command with `duct` and store the logs inside the run directory's `logs/` folder (`$RUN_DIR` is the `run_dir` that `colab.py run start` prints; `/colab run` exports `COLAB_ITERATION`, so each iteration has its own prefix and `info.json` and parallel runs never overwrite each other):
 
 ```bash
-duct -p "$RUN_DIR/logs/verify-{datetime}-{pid}_" -- $VERIFY_COMMAND
+duct -p "$RUN_DIR/logs/verify-${COLAB_ITERATION}_" -- $VERIFY_COMMAND
 ```
 
 This satisfies the `/colab run` requirement to instrument runs well enough to inspect logs, progress, and resource consumption from outside the process, and it gives a later handoff or review step real numbers to compare against the recorded metric.
@@ -105,6 +105,6 @@ The captured `info.json` can also be fed straight into the `/colab run` loop bre
 ```bash
 python skills/lab-colab/scripts/monitor_slice.py check \
   --experiment-dir "$RUN_DIR" \
-  --usage-file "$RUN_DIR/logs/verify-<prefix>_info.json" \
+  --usage-file "$RUN_DIR/logs/verify-${COLAB_ITERATION}_info.json" \
   --max-rss-bytes 8000000000 --max-pmem 90
 ```
