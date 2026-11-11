@@ -7,7 +7,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -71,13 +71,104 @@ class PlanTests(unittest.TestCase):
         self.assertTrue(any("Create the private meta repo" in d for d in descs))
         self.assertTrue(any(a["kind"] == "manual" and "Define spaces" in a["desc"] for a in actions))
         self.assertEqual(sum("Create org issue type" in d for d in descs), 10)
+        self.assertEqual(CONFIG["org"]["project_number"], 0)
+        self.assertTrue(CONFIG["bus"]["project_sync"])
+        self.assertEqual(CONFIG["bus"]["project_sync_every"], 6)
 
-    def test_iteration_field_is_manual(self) -> None:
-        actions = colab.build_plan(CONFIG, snapshot(projects=[{"number": 7, "title": "Lab portfolio"}]))
-        manual = [a for a in actions if a["kind"] == "manual" and "Iteration" in a["desc"]]
-        self.assertEqual(len(manual), 1)
+    def test_iteration_field_is_created_through_graphql(self) -> None:
+        actions = colab.build_plan(CONFIG, snapshot(projects=[{"number": 7, "title": "Lab portfolio"}]),
+                                   today=date(2026, 11, 10))  # a Tuesday
+        self.assertFalse(any(a["kind"] == "manual" and "Iteration" in a["desc"] for a in actions))
+        it = [a for a in actions if a["kind"] == "gh" and "iteration field" in a["desc"]]
+        self.assertEqual(len(it), 1)
+        query = next(p for p in it[0]["cmd"] if p.startswith("query="))
+        self.assertIn("dataType: ITERATION", query)
+        self.assertIn('startDate: "2026-11-16"', query)  # next Monday
+        self.assertIn("duration: 14", query)
+        self.assertEqual(query.count('title: "Cycle'), 4)
+        self.assertIn('startDate: "2026-12-28"', query)  # fourth cycle
+        self.assertIn("project=<project id of 7>", it[0]["cmd"])
         creates = [a for a in actions if a["kind"] == "gh" and "field-create" in a["cmd"]]
         self.assertTrue(all("7" in a["cmd"] for a in creates))
+
+    def test_next_monday_is_strictly_after_today(self) -> None:
+        self.assertEqual(colab.next_monday(date(2026, 11, 9)), date(2026, 11, 16))  # Monday -> a week on
+        self.assertEqual(colab.next_monday(date(2026, 11, 15)), date(2026, 11, 16))  # Sunday
+
+    def test_plan_creates_spaces_field_views_when_missing(self) -> None:
+        cfg = config_with_spaces()
+        cfg["spaces"]["other"] = {"repos": ["senselab"]}
+        snap = snapshot(projects=[{"number": 7, "title": "Lab portfolio"}], project_views={"7": []})
+        actions = colab.build_plan(cfg, snap)
+        spaces = [a for a in actions if "Spaces" in a["desc"] and a["kind"] == "gh" and "Create Project field" in a["desc"]]
+        self.assertEqual(len(spaces), 1)
+        query = next(p for p in spaces[0]["cmd"] if p.startswith("query="))
+        self.assertIn("dataType: MULTI_SELECT", query)
+        self.assertIn('name: "proj"', query)
+        self.assertIn('name: "other"', query)
+        created = [a["desc"] for a in actions if a["desc"].startswith("Create Project view")]
+        self.assertEqual(created, ["Create Project view 'Space: proj' (TABLE_LAYOUT)",
+                                   "Create Project view 'Space: other' (TABLE_LAYOUT)",
+                                   "Create Project view 'Agent queue' (TABLE_LAYOUT)",
+                                   "Create Project view 'Proposals inbox' (TABLE_LAYOUT)",
+                                   "Create Project view 'My work' (BOARD_LAYOUT)"])
+        filters = {a["desc"].split("'")[1]: a["desc"].split("to: ", 1)[1] for a in actions if a["desc"].startswith("Set the filter")}
+        self.assertEqual(filters["Space: proj"], "spaces:proj")
+        self.assertEqual(filters["Agent queue"], "status:Ready agent-ready:yes")
+        self.assertEqual(filters["Proposals inbox"], "status:Proposed")
+        self.assertEqual(filters["My work"], "assignee:@me")
+        # the filter step addresses the view by a placeholder resolved at apply time
+        step = next(a for a in actions if a["desc"].startswith("Set the filter of view 'My work'"))
+        self.assertIn("view=<view id of My work on project 7>", step["cmd"])
+        self.assertTrue(any(a["desc"].startswith("Create the 'Iteration' iteration field") for a in actions))
+
+    def test_plan_without_spaces_does_not_create_empty_spaces_field(self) -> None:
+        actions = colab.build_plan(CONFIG, snapshot(projects=[{"number": 7, "title": "Lab portfolio"}], project_views={"7": []}))
+        self.assertFalse(any("Spaces" in a["desc"] for a in actions if a["kind"] == "gh"))
+
+    def test_plan_fixes_wrong_view_filter_and_adds_missing_spaces_options(self) -> None:
+        cfg = config_with_spaces()
+        cfg["spaces"]["other"] = {"repos": ["senselab"]}
+        views = [{"name": v["name"], "layout": v["layout"], "filter": v["filter"]} for v in colab.desired_views(cfg)]
+        views[0]["filter"] = 'repo:sensein/proj label:"space:proj"'
+        fields = [{"name": f["name"], "options": f.get("options", [])} for f in cfg["fields"] if f["name"] != "Spaces"]
+        fields.append({"name": "Spaces", "options": ["proj"]})
+        snap = snapshot(projects=[{"number": 7, "title": "Lab portfolio"}], project_fields={"7": fields},
+                        project_views={"7": views})
+        actions = colab.build_plan(cfg, snap)
+        fixes = [a for a in actions if a["desc"].startswith("Fix the filter")]
+        self.assertEqual(len(fixes), 1)
+        self.assertIn("'Space: proj'", fixes[0]["desc"])
+        self.assertIn("view=<view id of Space: proj on project 7>", fixes[0]["cmd"])
+        self.assertFalse(any(a["desc"].startswith("Create Project view") for a in actions))
+        opts = [a for a in actions if a["desc"].startswith("Set the options of Project field Spaces")]
+        self.assertEqual(len(opts), 1)
+        self.assertIn("recomputes", opts[0]["desc"])
+        self.assertIn("reset existing values", opts[0]["desc"])
+        self.assertIn("multiSelectOptions", next(p for p in opts[0]["cmd"] if p.startswith("query=")))
+
+    def test_unreadable_views_are_left_alone(self) -> None:
+        actions = colab.build_plan(config_with_spaces(), snapshot(projects=[{"number": 7, "title": "Lab portfolio"}]))
+        self.assertFalse(any(("Project view" in a["desc"] or "of view" in a["desc"]) and a["kind"] == "gh" for a in actions))
+        self.assertTrue(any(a["kind"] == "manual" and "views of Project 7" in a["desc"] for a in actions))
+
+    def test_space_filter_quotes_names_with_spaces(self) -> None:
+        self.assertEqual(colab.space_filter("a-b"), "spaces:a-b")
+        self.assertEqual(colab.space_filter("a b"), 'spaces:"a b"')
+
+    def test_placeholders_resolve_at_apply_time(self) -> None:
+        info = {"id": "PVT_1", "views": [{"id": "V1", "name": "My work"}], "fields": [{"id": "F1", "name": "Spaces"}]}
+        orig_info, orig_json = colab._project_info, colab._gh_json
+        colab._project_info = lambda org, n: info
+        colab._gh_json = lambda args: {"id": "PVT_1"}
+        try:
+            self.assertEqual(colab._resolve_field_id("view=<view id of My work on project 7>", "o"), "view=V1")
+            self.assertEqual(colab._resolve_field_id("id=<field id of Spaces on project 7>", "o"), "id=F1")
+            self.assertEqual(colab._resolve_field_id("project=<project id of 7>", "o"), "project=PVT_1")
+            with self.assertRaises(SystemExit):
+                colab._resolve_field_id("view=<view id of Nope on project 7>", "o")
+        finally:
+            colab._project_info, colab._gh_json = orig_info, orig_json
 
     def test_converged_org_only_asks_for_gate(self) -> None:
         cfg = config_with_spaces()
@@ -85,7 +176,9 @@ class PlanTests(unittest.TestCase):
         snap = snapshot(
             issue_types=[t["name"] for t in cfg["types"]],
             projects=[{"number": 7, "title": "Lab portfolio"}],
-            project_fields={"7": [{"name": f["name"], "options": f.get("options", [])} for f in cfg["fields"]]},
+            project_fields={"7": [{"name": f["name"], "options": list(cfg["spaces"]) if f["type"] == "MULTI_SELECT" else f.get("options", [])}
+                                  for f in cfg["fields"]]},
+            project_views={"7": colab.desired_views(cfg)},
             repos=[{"name": "lab-colab", "visibility": "private"}, {"name": "proj", "visibility": "private"},
                    {"name": ".github", "visibility": "public"}],
             forms={".github": [colab.form_filename(t["name"]) for t in cfg["types"]]},
@@ -409,6 +502,147 @@ class BaselineTests(unittest.TestCase):
                                   [{"topic": "repo:proj", "subscriber": "dest"}], watched(), Path(tmp), "me")
             self.assertEqual(fake.sent, [])
             self.assertEqual(stats["envelopes"], 0)  # remembered, never routed
+
+
+class FakeProjectGH(FakeGH):
+    """FakeGH plus a GraphQL endpoint serving a Project with a Spaces field; records mutations."""
+
+    def __init__(self, items=None, fail_writes=False, **kw):
+        super().__init__(**kw)
+        self.items = items or []
+        self.fail_writes = fail_writes
+        self.mutations = []
+
+    def graphql(self, query, variables=None):
+        if query.lstrip().startswith("mutation"):
+            if self.fail_writes:
+                raise bus.GraphQLError("boom")
+            self.mutations.append((query.split("{", 2)[1].split("(")[0].strip(), variables))
+            return {}
+        if "projectV2(number" in query:
+            return {"organization": {"projectV2": {"id": "PVT", "field": {"id": "FLD", "options": [
+                {"id": "o-proj", "name": "proj"}, {"id": "o-dest", "name": "dest"}]}}}}
+        return {"node": {"items": {"pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": self.items}}}
+
+
+def project_item(item_id, repo, labels=(), spaces=(), typename="Issue", owner="sensein"):
+    return {"id": item_id, "content": {"__typename": typename, "repository": {"name": repo, "owner": {"login": owner}},
+                                       "labels": {"nodes": [{"name": n} for n in labels]}},
+            "fieldValueByName": {"options": [{"name": n} for n in spaces]} if spaces else None}
+
+
+def project_config(**bus_opts) -> dict:
+    cfg = bus_config(project_sync=True, project_sync_every=6, **bus_opts)
+    cfg["org"]["project_number"] = 67
+    return cfg
+
+
+class ProjectSyncTests(unittest.TestCase):
+    def test_desired_spaces_are_repo_membership_plus_labels(self) -> None:
+        member = {"proj": ["proj", "dest"], "other": ["dest"]}
+        self.assertEqual(bus.desired_spaces("proj", [], member), ["dest", "proj"])
+        self.assertEqual(bus.desired_spaces("other", ["bug", "space:proj", "space:extra"], member), ["dest", "extra", "proj"])
+        self.assertEqual(bus.desired_spaces("unlisted", ["bug"], member), [])
+
+    def test_bus_adds_opened_item_and_skips_pre_baseline(self) -> None:
+        issues = [
+            {"number": 5, "id": 5, "node_id": "I_new", "title": "t", "labels": [], "state": "open",
+             "created_at": "2026-11-09T01:00:00Z", "updated_at": "2026-11-09T01:00:00Z", "html_url": "u", "user": {"login": "a"}},
+            {"number": 2, "id": 2, "node_id": "I_old", "title": "old", "labels": [], "state": "open",
+             "created_at": "2025-01-01T00:00:00Z", "updated_at": "2026-11-09T05:00:00Z", "html_url": "u", "user": {"login": "a"}}]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeProjectGH(issues=issues)
+            stats = bus.poll_once(fake, project_config(), {"spaces": {}}, [], watched(), Path(tmp), "me")  # dry-run space
+            adds = [v for name, v in fake.mutations if name == "addProjectV2ItemById"]
+            self.assertEqual(adds, [{"project": "PVT", "content": "I_new"}])
+            self.assertEqual(stats["project_writes"], 1)
+            self.assertEqual(fake.sent, [])  # nothing delivered or written over REST
+
+    def test_pre_baseline_poll_adds_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeProjectGH()
+            bus.poll_once(fake, project_config(), {"spaces": {}}, [], {}, Path(tmp), "me")
+            self.assertEqual([n for n, _ in fake.mutations if n == "addProjectV2ItemById"], [])
+
+    def test_restricted_item_is_not_added_unless_switch_on(self) -> None:
+        issues = [{"number": 5, "id": 5, "node_id": "I_r", "title": "t", "labels": [{"name": "tier:restricted"}], "state": "open",
+                   "created_at": "2026-11-09T01:00:00Z", "updated_at": "2026-11-09T01:00:00Z", "html_url": "u", "user": {"login": "a"}}]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeProjectGH(issues=issues)
+            bus.poll_once(fake, project_config(), {"spaces": {}}, [], watched(), Path(tmp), "me")
+            self.assertEqual([n for n, _ in fake.mutations if n == "addProjectV2ItemById"], [])
+
+    def test_disabled_or_unnumbered_does_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            for cfg in (bus_config(project_sync=True), {**project_config(), "bus": {"write_interval_seconds": 0}}):
+                fake = FakeProjectGH()
+                stats = bus.poll_once(fake, cfg, {"spaces": {}}, [], watched(), Path(tmp), "me")
+                self.assertEqual(fake.mutations, [])
+                self.assertEqual(stats["project_writes"], 0)
+
+    def test_periodic_sync_updates_only_items_that_differ(self) -> None:
+        items = [
+            project_item("same", "proj", spaces=["proj"]),
+            project_item("stale", "proj", spaces=["dest"]),
+            project_item("new", "dest"),
+            project_item("labelled", "elsewhere", labels=["space:proj"]),
+            project_item("cleared", "elsewhere", spaces=["proj"]),
+            project_item("foreign", "proj", owner="someone-else"),
+            {"id": "draft", "content": {"__typename": "DraftIssue"}, "fieldValueByName": None},
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            fake, state = FakeProjectGH(items=items), watched()
+            stats = bus.poll_once(fake, project_config(), {"spaces": {}}, [], state, Path(tmp), "me")
+            done = {v["item"]: (n, v.get("options")) for n, v in fake.mutations}
+            self.assertEqual(done, {
+                "stale": ("updateProjectV2ItemFieldValue", ["o-proj"]),
+                "new": ("updateProjectV2ItemFieldValue", ["o-dest"]),
+                "labelled": ("updateProjectV2ItemFieldValue", ["o-proj"]),
+                "cleared": ("clearProjectV2ItemFieldValue", None),
+            })
+            self.assertEqual(stats["project_writes"], 4)
+            # the next polls skip the sweep until project_sync_every polls have passed
+            fake.mutations.clear()
+            for _ in range(5):
+                bus.poll_once(fake, project_config(), {"spaces": {}}, [], state, Path(tmp), "me")
+            self.assertEqual(fake.mutations, [])
+            bus.poll_once(fake, project_config(), {"spaces": {}}, [], state, Path(tmp), "me")
+            self.assertEqual(len(fake.mutations), 4)  # the fake does not apply writes, so the same four differ
+
+    def test_write_failure_is_audited_not_raised(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = FakeProjectGH(items=[project_item("stale", "proj")], fail_writes=True)
+            stats = bus.poll_once(fake, project_config(), {"spaces": {}}, [], watched(), Path(tmp), "me")
+            self.assertEqual(stats["project_writes"], 0)
+            self.assertGreaterEqual(stats["errors"], 1)
+            audit = [json.loads(line) for line in (Path(tmp) / "audit.jsonl").read_text().splitlines()]
+            self.assertTrue(any("project_write_failed" in a for a in audit))
+
+    def test_graphql_method_posts_with_auth_and_raises_on_errors(self) -> None:
+        import io
+        import urllib.request
+
+        seen = {}
+
+        def fake_urlopen(req, timeout=0):
+            seen["url"], seen["auth"] = req.full_url, req.get_header("Authorization")
+            seen["body"] = json.loads(req.data)
+            return io.BytesIO(json.dumps(seen.get("reply")).encode())
+
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = fake_urlopen
+        try:
+            gh = bus.GitHub("tok", {})
+            seen["reply"] = {"data": {"x": 1}}
+            self.assertEqual(gh.graphql("query { x }", {"a": 1}), {"x": 1})
+            self.assertEqual(seen["url"], "https://api.github.com/graphql")
+            self.assertEqual(seen["auth"], "Bearer tok")
+            self.assertEqual(seen["body"], {"query": "query { x }", "variables": {"a": 1}})
+            seen["reply"] = {"errors": [{"message": "no"}]}
+            with self.assertRaises(bus.GraphQLError):
+                gh.graphql("query { x }")
+        finally:
+            urllib.request.urlopen = orig
 
 
 class SessionHeartbeatTests(unittest.TestCase):

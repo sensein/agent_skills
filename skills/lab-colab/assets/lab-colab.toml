@@ -10,6 +10,7 @@ meta_repo = "lab-colab"          # private: config, ledgers, event snapshots, KG
 discuss_repo = "lab-colab"       # Discussions live in the meta repo unless split later
 forms_repo = ".github"           # org-wide default issue forms; repos with their own templates keep theirs
 project_title = "Lab portfolio"
+project_number = 0              # 0 = not created yet; the meta repo copy sets the real number
 
 # ---------------------------------------------------------------------------
 # Work item types. Each becomes an org-level GitHub issue type plus an issue form.
@@ -134,8 +135,11 @@ on_demand = true
 [labels_space]
 color = "5319e7"                 # for space:<name> labels, created on first use
 
-# Project v2 fields. gh can create TEXT, SINGLE_SELECT, DATE, NUMBER; an
-# ITERATION field must be added once in the web UI (plan says so).
+# Project v2 fields. gh creates TEXT, SINGLE_SELECT, DATE, NUMBER; the plan creates
+# MULTI_SELECT and ITERATION through GraphQL (2-week cycles from next Monday, 4 of them).
+# Spaces is multi-select and its options come from [spaces] at plan time: the bus keeps
+# each item's value (repo membership plus space:<name> labels) and every `Space: <name>`
+# view filters on it, because a view filter cannot OR "repo is X" with "label is Y".
 [[fields]]
 name = "Status"
 type = "SINGLE_SELECT"
@@ -167,6 +171,10 @@ type = "DATE"
 [[fields]]
 name = "KG link"
 type = "TEXT"
+
+[[fields]]
+name = "Spaces"
+type = "MULTI_SELECT"            # options = the names in [spaces]; never listed here
 
 [[fields]]
 name = "Iteration"
@@ -234,3 +242,5 @@ poll_seconds = 300
 write_interval_seconds = 1.0     # stay under GitHub's content-creation limits
 fanout_digest_threshold = 20     # above this many subscribers, write one digest issue
 heartbeat_stale_minutes = 30
+project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
+project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
