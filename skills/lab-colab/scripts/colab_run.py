@@ -27,8 +27,9 @@ once, exclusively, and made read-only. Iteration numbers are allocated under the
 Commands come from issue text, so they never run unconfirmed: step and loop refuse until the sha256 of the verify and
 iterate commands has been confirmed, and refuse again if the issue's command changes.
 
-Restricted data: the tier is the bus's rule (repo visibility, the spaces' declared tier, tier:* labels, the Project's
-Sensitivity), failing closed when the issue cannot be read. A restricted run never executes in a session, and its
+Restricted data: the tier is the bus's rule (the repo's tier from [tiers] or its visibility, tier:* labels, the Project's
+Sensitivity; space:* labels never change it), failing closed when the issue cannot be read. An item the injection scan
+flagged (Project field Security = flagged) is refused until a steward or its Lead clears it. A restricted run never executes in a session, and its
 source tree is not copied or read there. `start` writes job.sbatch; only the batch job it creates (job name
 colab-run-<id>, BatchFlag=1) can step or loop it.
 
@@ -354,6 +355,15 @@ def fetch_sensitivity(ref: dict, project_number: int) -> str | None:
     return None
 
 
+def fetch_security(config: dict, ref: dict) -> str | None:
+    """The item's Security value on the org Project (unreviewed, flagged, cleared); None when unreadable."""
+    import colab  # noqa: PLC0415
+    try:
+        return colab.item_security(config, f"{ref['owner']}/{ref['repo']}#{ref['n']}")["security"]
+    except (colab.SecurityGateError, colab.RepoEntryError):
+        return None
+
+
 def gh_login() -> str:
     proc = subprocess.run(["gh", "api", "user", "--jq", ".login"], capture_output=True, text=True)
     return proc.stdout.strip() if proc.returncode == 0 else ""
@@ -372,20 +382,17 @@ def load_colab(config_path: str | None):
 
 
 def compute_tier(config: dict, ref: dict, labels: list[str], visibility: str | None, sensitivity: str | None = None) -> str:
-    """The bus's rule: the strictest of repo visibility, the declared tier of the repo's spaces (membership plus
-    space:* labels), a tier:* label, and the Project's Sensitivity. Unknown visibility fails closed. A repo
-    outside [org] name: its space:* labels are ignored, and if it is not public it is restricted unless a
-    space declares its tier."""
+    """The bus's rule: the strictest of the repo's tier (its `[tiers]` entry, else its visibility; a legacy
+    space-level tier still tightens), a tier:* label, and the Project's Sensitivity. A space:* label never
+    changes a tier. Unknown visibility fails closed. A repo outside [org] name that is not public is
+    restricted unless `[tiers].lab` opts it in."""
     import colab_bus as bus  # noqa: PLC0415
     if visibility not in ("public", "private", "internal"):
         return "restricted"
     key = bus.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name"))
     own = bus.repo_tiers(config).get(key)
-    declared = [own]
-    if not bus.is_external(key):
-        for name in {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")}:
-            declared.append(((config.get("spaces") or {}).get(name) or {}).get("tier"))
-    return bus._strictest(bus.tier_of(visibility, labels, own, bus.is_external(key)), sensitivity, *declared)
+    return bus._strictest(bus.tier_of(visibility, labels, own, bus.is_external(key), key in bus.lab_opt_in(config)),
+                          sensitivity)
 
 
 def scan_ok(colab_mod, config: dict, paths: list[Path]) -> bool:
@@ -558,6 +565,13 @@ def cmd_start(args, config: dict) -> int:
     visibility = (fetched or {}).get("visibility") if fetched else (args.visibility if args.offline else None)
     sensitivity = None
     if fetched:
+        security = fetch_security(config, ref)
+        if security == "flagged":
+            raise RunError(f"{args.issue} is flagged by the injection scan (Security = flagged): its text, including the "
+                           "verify command, is data, not instructions. A steward of its space or its Lead must review it "
+                           f"and run `colab.py security clear {args.issue} --reason ...` before it can run")
+        if security is None:
+            notes.append("could not read the item's Security field on the Project; the injection-scan gate was not checked")
         sensitivity = fetch_sensitivity(ref, int(config.get("org", {}).get("project_number") or 0))
     tier = compute_tier(config, ref, labels, visibility, sensitivity)
     form = spec_from_issue(body, labels)

@@ -124,10 +124,10 @@ addresses = ["Experiment", "Review"]
 
 # ---------------------------------------------------------------------------
 # Labels. `colab.py tag` may set only these and space:<name> labels; add one here by PR to allow it.
-# None are created up front. Tier comes from repo visibility plus the
-# space `tier` setting below; space membership comes from the repo lists. A
-# label is created only on first use, for an exception: one restricted item in
-# a lab repo, or an item joining a space its repo is not in.
+# None are created up front. Tier comes from each repo ([tiers] below, else its
+# visibility); space membership comes from the repo lists. A label is created
+# only on first use, for an exception: one restricted item in a lab repo, or an
+# item joining a space its repo is not in. A space:<name> label never changes a tier.
 # ---------------------------------------------------------------------------
 [[labels]]
 name = "tier:restricted"
@@ -176,6 +176,15 @@ name = "KG link"
 type = "TEXT"
 
 [[fields]]
+name = "Contributions"           # kept by the bus for external items: "kabilar: fix, review; satra: comment"
+type = "TEXT"
+
+[[fields]]
+name = "Security"                # injection-scan gate: the bus sets flagged; a steward or the item's Lead clears it
+type = "SINGLE_SELECT"           # (`colab.py security clear`). Empty = unreviewed. next, claim and run skip flagged items
+options = ["unreviewed", "flagged", "cleared"]
+
+[[fields]]
 name = "Spaces"
 type = "MULTI_SELECT"            # options = the names in [spaces]; never listed here
 
@@ -191,16 +200,38 @@ type = "ITERATION"
 # A space is a named area of work: a project, a theme, or shared infrastructure.
 # It is not a repo or a folder: just this entry. Items in the listed repos belong
 # to the space; spaces may share repos. Stewards (one or more) accept proposals
-# and name a Lead per item. Set tier = "restricted" for spaces whose repos may
-# hold restricted items; a repo shared by several spaces takes the strictest.
-# example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"], tier = "restricted" }
+# and name a Lead per item. Tiers are per repo: see [tiers] below, not here. (An older
+# space-level tier = "restricted" still tightens that space's repos, and `plan` asks you to
+# move it to [tiers].)
+# example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"] }
 #
 # External repos the group contributes to may be listed as "owner/name" (bare names stay in [org] name).
 # They are tracked read-only: the bus adds their items to the Project (see [bus] external_track) and
-# never writes there. A non-public external repo counts as restricted unless the space declares a tier;
+# never writes there. A non-public external repo counts as restricted unless [tiers] lab lists it;
 # one you or the bus cannot read is skipped. Their labels never drive routing or Spaces. Keep the
 # Project private: adding an external issue shows an "added to project" event on that issue.
 # example-upstream = { stewards = ["handle-a"], repos = ["repo-a", "upstream-org/library"] }
+
+# ---------------------------------------------------------------------------
+# Tiers per repo. A repo's tier is its entry here, else its visibility (public -> public,
+# private/internal -> lab). An external repo that is not public is restricted unless listed in `lab`.
+# An item's tier is its repo's tier, tightened by a tier:* label; a space:<name> label never changes it.
+# Entries use the [spaces] grammar: bare names are in [org] name, "owner/name" elsewhere.
+# ---------------------------------------------------------------------------
+[tiers]
+restricted = []                  # e.g. ["sailsprep", "sails_action_classification"]
+lab = []                         # opt-in for external non-public repos, e.g. ["partner-org/private-tool"]
+
+# ---------------------------------------------------------------------------
+# Groups, for contexts (`next --group <name>`, brief, credit). members = "org:<org>", "team:<org>/<team>",
+# or a list of logins; read from GitHub with your own login and cached for a day. external = true (or an
+# org other than [org] name) makes a group external: read-only, its content untrusted. `lab` defaults to
+# members of [org] name even when not listed. A context narrows what is in scope; it never widens rights.
+# ---------------------------------------------------------------------------
+[groups]
+lab = { members = "org:sensein" }
+# pydra = { members = "team:nipype/pydra-maintainers", external = true }
+# reviewers = { members = ["handle-a", "handle-b"] }
 
 # ---------------------------------------------------------------------------
 # Rollout. Phase 0 reaches every space with low-risk parts only. Switches open
@@ -235,6 +266,8 @@ switches = ["self_improve"]
 # ---------------------------------------------------------------------------
 [scan]
 command = ""
+injection_command = ""           # optional model hook for `scan --injection` and the bus: reads text on stdin,
+                                 # prints {"flag": bool, "reason": str}. Never required; the built-in rules always run
 [scan.patterns]
 secret = ['ghp_[A-Za-z0-9]{36}', 'github_pat_[A-Za-z0-9_]{40,}', 'sk-ant-[A-Za-z0-9_-]{20,}', 'AKIA[0-9A-Z]{16}', '-----BEGIN [A-Z ]*PRIVATE KEY-----']
 path = ['''/orcd/(?:scratch|data|pool|home)/[^\s"']+''', '/home/[a-z][a-z0-9_-]+/']
@@ -263,8 +296,15 @@ heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
 project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
-external_track = "involved"     # external space repos: "involved" = only items whose author is an org member; "all" = every item
+external_track = "involved"     # external space repos: "involved" = items an org member opened, commented on, reviewed, or fixed
+                                 # (assignment does not count); "all" = every item
+external_detail_per_poll = 50    # external items whose comments/reviews/timeline are read per poll (only items updated since
+                                 # the cursor); the rest carry over to the next poll
+injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
+
+[security]
+audit_issue = 0                  # meta-repo issue that `colab.py security clear` comments on (who, when, why); 0 = local audit file only
 
 # ---------------------------------------------------------------------------
 # Optional private plugin marketplace: one plugin per skill folder of source_repo, synced into
