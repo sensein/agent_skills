@@ -138,6 +138,8 @@ def org_members(gh, org: str) -> set[str] | None:
 
 
 BUG = re.compile(r"(?i)\bbug\b")
+HOOK_PENDING_CAP = 200  # texts carried over for the injection hook
+HOOK_TEXT_CAP = 20000
 COMMENT_PAGES = 30  # pages of 100 comments read per repo per poll before the cursor is held back
 
 
@@ -154,10 +156,19 @@ def is_bug(item: dict) -> bool:
     return any(BUG.search(n) for n in names) or (isinstance(typ, dict) and bool(BUG.search(str(typ.get("name") or ""))))
 
 
-def _pages(gh, path: str, pages: int = 5) -> list:
-    """Up to `pages` pages of a list endpoint, read without ETags (the item changed, so its details must be read)."""
+class DetailBudget(RuntimeError):
+    """The per-poll API-call budget for external item details ran out ([bus] external_calls_per_poll)."""
+
+
+def _pages(gh, path: str, pages: int = 5, calls: dict | None = None) -> list:
+    """Up to `pages` pages of a list endpoint, read without ETags (the item changed, so its details must be read).
+    With `calls` ({"left": n}) each request spends one; DetailBudget is raised when none is left."""
     out: list = []
     for page in range(1, pages + 1):
+        if calls is not None:
+            if calls["left"] <= 0:
+                raise DetailBudget(path)
+            calls["left"] -= 1
         batch = gh.get(f"{path}{'&' if '?' in path else '?'}per_page=100&page={page}", conditional=False)
         if not isinstance(batch, list):
             break
@@ -182,7 +193,7 @@ def closes(pr: dict, repo_full: str, number) -> bool:
     return any(re.search(CLOSING + t, text, re.I) for t in targets)
 
 
-def fetch_contributions(gh, base: str, item: dict, members: set[str]) -> dict[str, list[str]]:
+def fetch_contributions(gh, base: str, item: dict, members: set[str], calls: dict | None = None) -> dict[str, list[str]]:
     """{member login: [kinds]} for one item: report (opened a bug), request (opened any other issue), fix (authored
     the PR, or a PR whose closing keyword names the issue, e.g. `Fixes #n`), review (reviewed the PR), comment,
     and mention (a PR that only cross-references the issue; recorded, but a mention alone is not involvement).
@@ -200,15 +211,15 @@ def fetch_contributions(gh, base: str, item: dict, members: set[str]) -> dict[st
     repo_full = base.split("/repos/", 1)[-1]
     add(author, "fix" if is_pr else ("report" if is_bug(item) else "request"))
     if item.get("comments", 1):
-        for c in _pages(gh, f"{base}/issues/{number}/comments"):
+        for c in _pages(gh, f"{base}/issues/{number}/comments", calls=calls):
             add((c.get("user") or {}).get("login"), "comment")
     if is_pr:
-        for r in _pages(gh, f"{base}/pulls/{number}/reviews"):
+        for r in _pages(gh, f"{base}/pulls/{number}/reviews", calls=calls):
             login = (r.get("user") or {}).get("login")
             if str(login or "").lower() != author.lower():  # replying in your own PR's review threads is not a review
                 add(login, "review")
     else:
-        for ev in _pages(gh, f"{base}/issues/{number}/timeline"):
+        for ev in _pages(gh, f"{base}/issues/{number}/timeline", calls=calls):
             src = ((ev.get("source") or {}).get("issue") or {}) if ev.get("event") == "cross-referenced" else {}
             if "pull_request" in src:
                 add((src.get("user") or {}).get("login"), "fix" if closes(src, repo_full, number) else "mention")
@@ -333,7 +344,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CONTRIB_KINDS, combined_tier, involved_by, declared_tiers, format_contributions,  # noqa: E402
+from colab import (CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, combined_tier, involved_by, declared_tiers, format_contributions,  # noqa: E402
                    injection_scan, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces)
 
 try:  # shared grammar
@@ -927,6 +938,9 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             write(f"{path(repo)}/issues/{item.get('number')}/comments", {"body": gh_comment})
 
     detail = {"left": max(0, int(config.get("bus", {}).get("external_detail_per_poll", 50)))}
+    calls = {"left": max(0, int(config.get("bus", {}).get("external_calls_per_poll", 300)))}
+    hook_budget = {"left": float((config.get("scan") or {}).get("injection_seconds_per_poll", HOOK_SECONDS_PER_POLL))}
+    hook_pending = state.setdefault("hook_pending", [])
     contrib = state.setdefault("contributions", {})
     scanned = state.setdefault("scanned", {})
     flagged = state.setdefault("security", {})
@@ -962,7 +976,11 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     return kept, last, True
                 detail["left"] -= 1
                 try:
-                    found = fetch_contributions(gh, path(repo), item, mem)
+                    found = fetch_contributions(gh, path(repo), item, mem, calls)
+                except DetailBudget:
+                    stats["detail_carried"] = stats.get("detail_carried", 0) + 1
+                    _append(state_dir / "audit.jsonl", {"external_budget": "calls", "deferred": key, "at": now()})
+                    return kept, last, True
                 except urllib.error.URLError as err:
                     stats["errors"] += 1
                     _append(state_dir / "audit.jsonl", {"read_failed": f"{key} details", "error": str(err)[:300], "at": now()})
@@ -992,15 +1010,26 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         scanned[skey] = digest
         while len(scanned) > SEEN_CAP:
             del scanned[next(iter(scanned))]
-        found = injection_scan(text, config)
+        found = injection_scan(text, config, budget=hook_budget)
+        if found["deferred"] and not found["flag"]:
+            # The hook's time ran out this poll: the rules found nothing; the hook sees the text on a later poll.
+            hook_pending[:] = [x for x in hook_pending if x["key"] != skey][-(HOOK_PENDING_CAP - 1):]
+            hook_pending.append({"key": skey, "repo": repo, "number": number, "where": where, "text": text[:HOOK_TEXT_CAP],
+                                 "node_id": (item or {}).get("node_id", ""), "eligible": eligible})
+            stats["hook_deferred"] = stats.get("hook_deferred", 0) + 1
+            _append(state_dir / "audit.jsonl", {"injection_hook_deferred": skey, "at": now()})
+            return
         if not found["flag"]:
             return
+        on_hit(repo, number, where, found, item.get("node_id", "") if item else "", eligible)
+
+    def on_hit(repo: str, number, where: str, found: dict, node_id: str, eligible: bool) -> None:
         stats["flagged"] = stats.get("flagged", 0) + 1
         key = f"{repo}#{number}"
         flagged[key] = {"flagged_at": now(), "where": where, "reason": found["reason"]}
         wrote = False
-        if eligible and item is not None:
-            wrote = project.flag(item.get("node_id", ""), (contrib.get(key) or {}).get("project_item"))
+        if eligible and node_id:
+            wrote = project.flag(node_id, (contrib.get(key) or {}).get("project_item"))
         _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
                                             "spans": found["spans"][:5], "project": wrote, "at": now()})
 
@@ -1026,6 +1055,17 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                        _strictest(declared.get(current["repo"]), *label_space_tiers(config, current["repo"], labels)),
                        is_external(current["repo"]), current["repo"] in opt_in)
         return kind in project.add_kinds and (tier != "restricted" or restricted_ok(current["repo"]))
+
+    # Texts the hook could not see on an earlier poll (out of time): they go first, within this poll's budget.
+    for job in list(hook_pending):
+        if hook_budget["left"] <= 0:
+            break
+        found = injection_scan(job["text"], config, budget=hook_budget)
+        if found["deferred"]:
+            break
+        hook_pending.remove(job)
+        if found["flag"]:
+            on_hit(job["repo"], job["number"], job["where"], found, job.get("node_id", ""), bool(job.get("eligible")))
 
     current: dict = {}
     cursors = state.setdefault("cursors", {})

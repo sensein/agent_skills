@@ -268,6 +268,8 @@ switches = ["self_improve"]
 command = ""
 injection_command = ""           # optional model hook for `scan --injection` and the bus: reads text on stdin,
                                  # prints {"flag": bool, "reason": str}. Never required; the built-in rules always run
+injection_seconds_per_call = 10  # the hook's time limit per text
+injection_seconds_per_poll = 60  # the bus's total hook time per poll; texts past it wait for a later poll (rules still run at once)
 [scan.patterns]
 secret = ['ghp_[A-Za-z0-9]{36}', 'github_pat_[A-Za-z0-9_]{40,}', 'sk-ant-[A-Za-z0-9_-]{20,}', 'AKIA[0-9A-Z]{16}', '-----BEGIN [A-Z ]*PRIVATE KEY-----']
 path = ['''/orcd/(?:scratch|data|pool|home)/[^\s"']+''', '/home/[a-z][a-z0-9_-]+/']
@@ -300,6 +302,7 @@ external_track = "involved"     # external space repos: "involved" = items an or
                                  # (a closing PR; assignment or a bare mention does not count); "all" = every item
 external_detail_per_poll = 50    # external items whose comments/reviews/timeline are read per poll (only items updated since
                                  # the cursor); the rest carry over to the next poll
+external_calls_per_poll = 300    # and at most this many API calls for those details per poll; over budget, the rest carry over
 injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 

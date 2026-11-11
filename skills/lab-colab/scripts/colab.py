@@ -1224,25 +1224,43 @@ def _span(text: str, start: int, end: int) -> str:
     return s if len(s) <= SPAN_CHARS else s[: SPAN_CHARS - 3] + "..."
 
 
-def injection_model(text: str, config: dict | None, runner=None) -> dict | None:
+HOOK_SECONDS_PER_CALL = 10
+HOOK_SECONDS_PER_POLL = 60
+
+
+def injection_model(text: str, config: dict | None, runner=None, budget: dict | None = None) -> dict | None:
     """The optional model hook, `[scan] injection_command`: gets the text on stdin and prints JSON
-    {"flag": bool, "reason": str}. Never required: unset, failing, or unparsable means no verdict."""
-    cmd = ((config or {}).get("scan") or {}).get("injection_command") or ""
+    {"flag": bool, "reason": str}. Never required: unset, failing, or unparsable means no verdict.
+    Each call gets `[scan] injection_seconds_per_call` (default 10). With a `budget` ({"left": seconds},
+    the bus's per-poll `[scan] injection_seconds_per_poll`), a call that no longer fits is not made:
+    the verdict is {"flag": False, "deferred": True} and the caller carries the text over."""
+    scan_cfg = (config or {}).get("scan") or {}
+    cmd = scan_cfg.get("injection_command") or ""
     if not cmd:
         return None
     import shlex
+    import time
     runner = runner or subprocess.run
+    per_call = float(scan_cfg.get("injection_seconds_per_call", HOOK_SECONDS_PER_CALL) or HOOK_SECONDS_PER_CALL)
+    if budget is not None:
+        if budget["left"] <= 0:
+            return {"flag": False, "deferred": True}
+        per_call = min(per_call, budget["left"])
+    started = time.monotonic()
     try:
-        proc = runner(shlex.split(cmd), input=text, capture_output=True, text=True, timeout=120)
+        proc = runner(shlex.split(cmd), input=text, capture_output=True, text=True, timeout=per_call)
         out = json.loads((proc.stdout or "").strip() or "{}")
         if not isinstance(out, dict) or not isinstance(out.get("flag"), bool):
             raise ValueError("expected {\"flag\": bool, \"reason\": str}")
         return {"flag": out["flag"], "reason": str(out.get("reason") or "")[:300]}
     except (OSError, ValueError, subprocess.SubprocessError) as err:
         return {"flag": False, "error": str(err)[:200]}
+    finally:
+        if budget is not None:
+            budget["left"] -= time.monotonic() - started
 
 
-def injection_scan(text: str, config: dict | None = None, model: bool = True, runner=None) -> dict:
+def injection_scan(text: str, config: dict | None = None, model: bool = True, runner=None, budget: dict | None = None) -> dict:
     """Rule-based prompt-injection scan, plus the optional model hook.
 
     Returns {"counts": {category: n}, "spans": [{"category", "span"}], "model": verdict or None,
@@ -1259,12 +1277,13 @@ def injection_scan(text: str, config: dict | None = None, model: bool = True, ru
             for m in rx.finditer(source):
                 counts[cat] += 1
                 spans.append({"category": cat, "span": _span(source, m.start(), m.end())})
-    verdict = injection_model(text, config, runner) if model else None
+    verdict = injection_model(text, config, runner, budget) if model else None
     hits = [c for c, n in counts.items() if n]
     reasons = [f"rules: {', '.join(hits)}"] if hits else []
     if verdict and verdict.get("flag"):
         reasons.append(f"model: {verdict.get('reason') or 'flagged'}")
-    return {"counts": counts, "spans": spans, "model": verdict, "flag": bool(reasons), "reason": "; ".join(reasons)}
+    return {"counts": counts, "spans": spans, "model": verdict, "flag": bool(reasons), "reason": "; ".join(reasons),
+            "deferred": bool(verdict and verdict.get("deferred"))}
 
 
 def scan_selftest(config: dict) -> dict:

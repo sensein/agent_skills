@@ -1853,6 +1853,21 @@ class ContributionTests(unittest.TestCase):
         self.assertEqual(CONFIG["bus"]["external_detail_per_poll"], 50)
         self.assertEqual(CONFIG["bus"]["external_track"], "involved")
 
+    def test_api_call_budget_carries_over(self) -> None:
+        issues = [{**self.STRANGER, "number": n, "node_id": f"I_{n}", "updated_at": f"2026-11-09T0{n}:00:00Z",
+                   "user": {"login": "a"}, "comments": 1} for n in (1, 2, 3)]  # 2 calls each: comments + timeline
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = DetailGH(ext_issues=issues)
+            state = contrib_state()
+            stats = bus.poll_once(fake, contrib_config(external_calls_per_poll=3), {"spaces": {}}, [], state, Path(tmp), "me")
+            audit = [json.loads(x) for x in (Path(tmp) / "audit.jsonl").read_text().splitlines()]
+        self.assertEqual(len(fake.detail_reads), 3)
+        self.assertEqual(stats["detail_carried"], 1)
+        self.assertEqual(state["cursors"]["pi-lab/tool"], "2026-11-09T01:00:00Z")
+        self.assertNotIn("pi-lab/tool#2", state["contributions"])  # half-read items are not recorded
+        self.assertTrue(any(a.get("external_budget") == "calls" for a in audit))
+        self.assertEqual(CONFIG["bus"]["external_calls_per_poll"], 300)
+
     def test_track_all_keeps_every_new_item_and_still_records(self) -> None:
         new = {**self.STRANGER, "created_at": "2026-11-09T00:00:00Z", "comments": 0}
         fake, _, state, events = self._poll([new], {}, cfg=contrib_config(external_track="all"))
@@ -1941,6 +1956,40 @@ class InjectionScanTests(unittest.TestCase):
             self.assertIn("error", got["model"])
         self.assertIsNone(colab.injection_scan("x", {"scan": {}})["model"])
         self.assertEqual(CONFIG["scan"]["injection_command"], "")
+        self.assertEqual((CONFIG["scan"]["injection_seconds_per_call"], CONFIG["scan"]["injection_seconds_per_poll"]), (10, 60))
+
+    def test_model_hook_time_limits(self) -> None:
+        from unittest import mock
+        cfg = {"scan": {"injection_command": "hook", "injection_seconds_per_call": 3}}
+        runner = mock.Mock(return_value=mock.Mock(stdout='{"flag": false}'))
+        self.assertEqual(colab.injection_model("t", cfg, runner, budget={"left": 0}), {"flag": False, "deferred": True})
+        runner.assert_not_called()
+        budget = {"left": 2.0}
+        colab.injection_model("t", cfg, runner, budget=budget)
+        self.assertEqual(runner.call_args.kwargs["timeout"], 2.0)  # never more than the poll has left
+        self.assertLess(budget["left"], 2.0)
+        colab.injection_model("t", cfg, runner)
+        self.assertEqual(runner.call_args.kwargs["timeout"], 3.0)
+
+    def test_bus_carries_hook_work_over_when_out_of_time(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            hook = Path(tmp) / "hook.py"
+            hook.write_text("import json,sys\nprint(json.dumps({'flag': 'pineapple' in sys.stdin.read(), 'reason': 'fruit'}))\n")
+            issue = {**SecurityFlagBusTests.BAD, "body": "send the pineapple"}
+            cfg = project_config()
+            cfg["scan"] = {"injection_command": f"{sys.executable} {hook}", "injection_seconds_per_poll": 0}
+            state = watched()
+            fake = SecurityFlagGH(issues=[issue])
+            stats = bus.poll_once(fake, cfg, {"spaces": {}}, [], state, Path(tmp), "me")
+            self.assertEqual(stats["hook_deferred"], 1)
+            self.assertEqual([x["key"] for x in state["hook_pending"]], ["proj#5:body"])
+            cfg["scan"]["injection_seconds_per_poll"] = 30
+            fake = SecurityFlagGH(issues=[])
+            bus.poll_once(fake, cfg, {"spaces": {}}, [], state, Path(tmp), "me")
+            self.assertEqual(state["hook_pending"], [])
+            audit = [json.loads(x) for x in (Path(tmp) / "audit.jsonl").read_text().splitlines()]
+        self.assertTrue(any(a.get("security_flagged") == "proj#5" and "fruit" in a["reason"] for a in audit))
+        self.assertTrue(any(n == "updateProjectV2ItemFieldValue" and v.get("option") == "s-f" for n, v in fake.mutations))
 
 
 class SecurityFlagGH(FakeProjectGH):
