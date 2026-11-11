@@ -42,7 +42,8 @@ jobs:
           PY
       - name: Notify Slack
         if: steps.age.outputs.stale == 'true' && env.SLACK != ''
-        run: curl -fsS -X POST -H 'Content-Type: application/json' --data @alert.json "$SLACK"
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' --data @alert.json "$SLACK"
       - name: Open an issue instead
         if: steps.age.outputs.stale == 'true' && env.SLACK == ''
         env:
