@@ -31,7 +31,7 @@ import shutil
 import subprocess
 import sys
 import tomllib
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -65,6 +65,25 @@ def _gh_json(args: list[str]) -> object | None:
     return json.loads(out) if out else None
 
 
+GQL_INFO = (
+    "query($org: String!, $n: Int!) { organization(login: $org) { projectV2(number: $n) { id "
+    "views(first: 100) { nodes { id name layout filter } } "
+    "fields(first: 100) { nodes { ... on ProjectV2FieldCommon { id name dataType } "
+    "... on ProjectV2SingleSelectField { options { name } } "
+    "... on ProjectV2MultiSelectField { options { name } } } } } } }")
+
+
+def _project_info(org: str, number: int | str) -> dict | None:
+    """One Project's id, views (with filters), and fields (with option names) through GraphQL; None on failure."""
+    data = _gh_json(["api", "graphql", "-f", f"query={GQL_INFO}", "-f", f"org={org}", "-F", f"n={number}"])
+    try:
+        node = data["data"]["organization"]["projectV2"]
+        return {"id": node["id"], "views": node["views"]["nodes"],
+                "fields": [f for f in node["fields"]["nodes"] if f.get("name")]}
+    except (TypeError, KeyError):
+        return None
+
+
 def observe(config: dict) -> dict:
     """Collect what exists in the org. Read-only.
 
@@ -88,9 +107,19 @@ def observe(config: dict) -> dict:
         "forms": {},
         "rollout": None,
     }
+    snapshot["project_views"] = {}
     for p in snapshot["projects"]:
-        fields = (_gh_json(["project", "field-list", str(p["number"]), "--owner", org, "--format", "json"]) or {}).get("fields", [])
-        snapshot["project_fields"][str(p["number"])] = [
+        number = str(p["number"])
+        info = _project_info(org, p["number"])
+        if info is not None:
+            snapshot["project_fields"][number] = [
+                {"name": f["name"], "options": [o["name"] for o in f.get("options") or []]} for f in info["fields"]]
+            snapshot["project_views"][number] = [
+                {"name": v["name"], "layout": v.get("layout"), "filter": v.get("filter") or ""} for v in info["views"]]
+            continue
+        # GraphQL read failed: fall back to gh's field list; views stay unknown (the plan leaves them alone).
+        fields = (_gh_json(["project", "field-list", number, "--owner", org, "--format", "json"]) or {}).get("fields", [])
+        snapshot["project_fields"][number] = [
             {"name": f["name"], "options": [o["name"] for o in f.get("options", [])]} for f in fields]
     names = {r["name"] for r in snapshot["repos"]}
     for name in sorted(({forms_repo} | set(repo_spaces(config))) & names):
@@ -128,12 +157,62 @@ def form_filename(type_name: str) -> str:
 GQL_COLORS = ["GRAY", "BLUE", "GREEN", "YELLOW", "ORANGE", "RED", "PINK", "PURPLE"]
 
 
-def _options_mutation(options: list[str]) -> str:
-    """GraphQL mutation that replaces a single-select field's options."""
-    opts = ", ".join(f'{{name: {json.dumps(o)}, color: {GQL_COLORS[i % len(GQL_COLORS)]}, description: ""}}'
-                     for i, o in enumerate(options))
-    return ("mutation($id: ID!) { updateProjectV2Field(input: {fieldId: $id, singleSelectOptions: [" + opts + "]}) "
+def _options_literal(options: list[str], described: bool = False) -> str:
+    return ", ".join(
+        f'{{name: {json.dumps(o)}, color: {GQL_COLORS[i % len(GQL_COLORS)]}, '
+        f'description: {json.dumps(f"Space {o}" if described else "")}}}' for i, o in enumerate(options))
+
+
+def _options_mutation(options: list[str], multi: bool = False) -> str:
+    """GraphQL mutation that replaces a select field's options (single or multi)."""
+    if multi:
+        return ("mutation($id: ID!) { updateProjectV2Field(input: {fieldId: $id, multiSelectOptions: ["
+                + _options_literal(options, True) + "]}) { projectV2Field { ... on ProjectV2FieldCommon { name } } } }")
+    return ("mutation($id: ID!) { updateProjectV2Field(input: {fieldId: $id, singleSelectOptions: ["
+            + _options_literal(options) + "]}) "
             "{ projectV2Field { ... on ProjectV2SingleSelectField { name } } } }")
+
+
+def _create_multi_mutation(name: str, options: list[str]) -> str:
+    return ("mutation($project: ID!) { createProjectV2Field(input: {projectId: $project, dataType: MULTI_SELECT, "
+            f"name: {json.dumps(name)}, multiSelectOptions: [" + _options_literal(options, True) + "]}) "
+            "{ projectV2Field { ... on ProjectV2FieldCommon { id name } } } }")
+
+
+ITERATION_WEEKS = 2
+ITERATION_COUNT = 4
+
+
+def next_monday(today: date) -> date:
+    """The first Monday strictly after today."""
+    return today + timedelta(days=7 - today.weekday())
+
+
+def _create_iteration_mutation(name: str, today: date) -> str:
+    start = next_monday(today)
+    days = 7 * ITERATION_WEEKS
+    items = ", ".join(
+        f'{{title: "Cycle {i + 1}", startDate: "{(start + timedelta(days=days * i)).isoformat()}", duration: {days}}}'
+        for i in range(ITERATION_COUNT))
+    return ("mutation($project: ID!) { createProjectV2Field(input: {projectId: $project, dataType: ITERATION, "
+            f"name: {json.dumps(name)}, iterationConfiguration: {{startDate: \"{start.isoformat()}\", duration: {days}, "
+            f"iterations: [{items}]}}}}) {{ projectV2Field {{ ... on ProjectV2FieldCommon {{ id name }} }} }} }}")
+
+
+def space_filter(name: str) -> str:
+    """Project view filter that shows one space (matches the multi-select Spaces field)."""
+    return f'spaces:"{name}"' if re.search(r"\s", name) else f"spaces:{name}"
+
+
+def desired_views(config: dict) -> list[dict]:
+    """The views the Project should have: one per space, plus the standing queues."""
+    views = [{"name": f"Space: {n}", "layout": "TABLE_LAYOUT", "filter": space_filter(n)} for n in space_repos(config)]
+    views += [
+        {"name": "Agent queue", "layout": "TABLE_LAYOUT", "filter": "status:Ready agent-ready:yes"},
+        {"name": "Proposals inbox", "layout": "TABLE_LAYOUT", "filter": "status:Proposed"},
+        {"name": "My work", "layout": "BOARD_LAYOUT", "filter": "assignee:@me"},
+    ]
+    return views
 
 
 def _field_options(fields: list) -> dict[str, list[str]]:
@@ -151,8 +230,9 @@ def _action(kind: str, phase: int, desc: str, cmd: list[str] | None = None, **ex
     return {"kind": kind, "phase": phase, "desc": desc, "cmd": cmd, **extra}
 
 
-def build_plan(config: dict, snapshot: dict) -> list[dict]:
-    """Ordered actions that move the org toward the config. Pure: no I/O."""
+def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[dict]:
+    """Ordered actions that move the org toward the config. Pure: no I/O (today only seeds the Iteration dates)."""
+    today = today or date.today()
     org = config["org"]["name"]
     meta = config["org"]["meta_repo"]
     actions: list[dict] = []
@@ -178,7 +258,9 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
                                     "-f", f"color={t['color']}", "-F", "is_enabled=true"]))
 
     title = config["org"]["project_title"]
-    project = next((p for p in snapshot.get("projects", []) if p["title"] == title), None)
+    wanted_number = config["org"].get("project_number", 0)
+    project = next((p for p in snapshot.get("projects", []) if wanted_number and p["number"] == wanted_number), None) \
+        or next((p for p in snapshot.get("projects", []) if p["title"] == title), None)
     if project is None:
         actions.append(_action("gh", 0, f"Create the org Project '{title}'",
                                ["gh", "project", "create", "--owner", org, "--title", title]))
@@ -187,10 +269,21 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
     else:
         number = str(project["number"])
         have_fields = _field_options(snapshot.get("project_fields", {}).get(number, []))
+    spaces = space_repos(config)
+    pid = f"<project id of {number}>"
     for f in config.get("fields", []):
+        multi = f["type"] == "MULTI_SELECT"
+        want = list(spaces) if multi else list(f.get("options", []))  # Spaces options come from [spaces]
         if f["name"] in have_fields:
-            missing = [o for o in f.get("options", []) if o not in have_fields[f["name"]]]
-            if missing:
+            missing = [o for o in want if o not in have_fields[f["name"]]]
+            if missing and multi:
+                actions.append(_action("gh", 0,
+                                       f"Set the options of Project field {f['name']} to: {', '.join(want)}. "
+                                       "GitHub may reset existing values on items; that is fine, "
+                                       "because the bus recomputes them on every sync",
+                                       ["gh", "api", "graphql", "-f", f"query={_options_mutation(want, multi=True)}",
+                                        "-f", f"id=<field id of {f['name']} on project {number}>"]))
+            elif missing:
                 # e.g. every Project has a built-in Status. GraphQL can replace its options;
                 # this resets values on existing items, so it is safe only on a new board.
                 actions.append(_action("gh", 0,
@@ -200,14 +293,45 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
                                         "-f", f"id=<field id of {f['name']} on project {number}>"]))
             continue
         if f["type"] == "ITERATION":
-            actions.append(_action("manual", 0, f"Add the '{f['name']}' iteration field in the Project web UI (gh cannot create it)"))
+            days = 7 * ITERATION_WEEKS
+            actions.append(_action("gh", 0,
+                                   f"Create the '{f['name']}' iteration field: {ITERATION_WEEKS}-week cycles from "
+                                   f"{next_monday(today).isoformat()}, {ITERATION_COUNT} iterations ({days} days each)",
+                                   ["gh", "api", "graphql", "-f", f"query={_create_iteration_mutation(f['name'], today)}",
+                                    "-f", f"project={pid}"]))
             continue
+        if multi:
+            if want:
+                actions.append(_action("gh", 0, f"Create Project field {f['name']} (multi-select) with options: {', '.join(want)}",
+                                       ["gh", "api", "graphql", "-f", f"query={_create_multi_mutation(f['name'], want)}",
+                                        "-f", f"project={pid}"]))
+            continue  # no spaces yet: the 'Define spaces' step below comes first
         cmd = ["gh", "project", "field-create", number, "--owner", org, "--name", f["name"], "--data-type", f["type"]]
         if f.get("options"):
             cmd += ["--single-select-options", ",".join(f["options"])]
         actions.append(_action("gh", 0, f"Create Project field {f['name']}", cmd))
 
-    spaces = space_repos(config)
+    # Views: created empty, then given their filter (GitHub has no filter on create).
+    views_known = number in snapshot.get("project_views", {}) or project is None
+    have_views = {v["name"]: v for v in snapshot.get("project_views", {}).get(number, [])}
+    if not views_known:
+        actions.append(_action("manual", 0, f"Could not read the views of Project {number}; re-run status before planning views"))
+    for v in desired_views(config) if views_known else []:
+        have = have_views.get(v["name"])
+        set_filter = ["gh", "api", "graphql", "-f",
+                      "query=mutation($view: ID!) { updateProjectV2View(input: {viewId: $view, filter: "
+                      + json.dumps(v["filter"]) + "}) { projectV2View { id filter } } }",
+                      "-f", f"view=<view id of {v['name']} on project {number}>"]
+        if have is None:
+            actions.append(_action("gh", 0, f"Create Project view '{v['name']}' ({v['layout']})",
+                                   ["gh", "api", "graphql", "-f",
+                                    "query=mutation($project: ID!) { createProjectV2View(input: {projectId: $project, name: "
+                                    + json.dumps(v["name"]) + f", layout: {v['layout']}" + "}) { projectV2View { id } } }",
+                                    "-f", f"project={pid}"]))
+            actions.append(_action("gh", 0, f"Set the filter of view '{v['name']}' to: {v['filter']}", set_filter))
+        elif " ".join(have.get("filter", "").split()) != v["filter"]:
+            actions.append(_action("gh", 0, f"Fix the filter of view '{v['name']}': '{have.get('filter', '')}' -> '{v['filter']}'", set_filter))
+
     if not spaces:
         candidates = sorted(n for n in repos if n != meta)
         actions.append(_action("manual", 0,
@@ -268,19 +392,34 @@ def build_plan(config: dict, snapshot: dict) -> list[dict]:
 
 
 FIELD_ID = re.compile(r"<field id of (?P<name>.+?) on project (?P<number>\d+)>")
+VIEW_ID = re.compile(r"<view id of (?P<name>.+?) on project (?P<number>\d+)>")
+PROJECT_ID = re.compile(r"<project id of (?P<number>\d+)>")
 
 
 def _resolve_field_id(part: str, org: str | None = None) -> str:
-    """Replace a `<field id of NAME on project N>` placeholder with the real node id."""
-    m = FIELD_ID.search(part)
-    if not m:
-        return part
-    owner = org or load_config()["org"]["name"]
-    fields = (_gh_json(["project", "field-list", m["number"], "--owner", owner, "--format", "json"]) or {}).get("fields", [])
-    fid = next((f["id"] for f in fields if f["name"] == m["name"]), None)
-    if fid is None:
-        raise SystemExit(f"field {m['name']!r} not found on project {m['number']}")
-    return part[: m.start()] + fid + part[m.end():]
+    """Replace a `<field|view|project id of ...>` placeholder with the real node id, looked up now."""
+    for pattern, kind in ((FIELD_ID, "field"), (VIEW_ID, "view"), (PROJECT_ID, "project")):
+        m = pattern.search(part)
+        if not m:
+            continue
+        owner = org or load_config()["org"]["name"]
+        if kind == "project":
+            data = _gh_json(["project", "view", m["number"], "--owner", owner, "--format", "json"]) or {}
+            found = data.get("id")
+            label = f"project {m['number']}"
+        else:
+            info = _project_info(owner, m["number"])
+            if info is not None:
+                items = info["fields" if kind == "field" else "views"]
+            else:  # fields can still come from gh; views cannot
+                items = (_gh_json(["project", "field-list", m["number"], "--owner", owner, "--format", "json"]) or {}).get("fields", []) \
+                    if kind == "field" else []
+            found = next((i["id"] for i in items if i["name"] == m["name"]), None)
+            label = f"{kind} {m['name']!r} on project {m['number']}"
+        if found is None:
+            raise SystemExit(f"{label} not found")
+        return part[: m.start()] + found + part[m.end():]
+    return part
 
 
 def apply(actions: list[dict], yes: bool, throttle: float = 1.0, org: str | None = None) -> int:

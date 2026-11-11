@@ -1,6 +1,6 @@
 # Rollout
 
-Every space joins in phase 0 with the low-risk parts. Risky parts switch on per space, and only after that space passes the previous phase's gate. `colab.py gate` records a pass in `.colab/rollout.json` and turns on the next phase's switches for that one space.
+Every space joins in phase 0 with the low-risk parts. The bus's Project sync (Spaces field, new items on the board) is board bookkeeping and also runs in phase 0, in dry-run. Risky parts switch on per space, and only after that space passes the previous phase's gate. `colab.py gate` records a pass in `.colab/rollout.json` and turns on the next phase's switches for that one space.
 
 | Phase | Reaches | Switches it opens for the space | Gate to pass before the next phase |
 |---|---|---|---|
@@ -15,9 +15,9 @@ The config's `[[phases]]` table is authoritative; this page explains it.
 
 | Kind | Who acts | How |
 |---|---|---|
-| `gh` | `colab.py apply --yes` | Org metadata: repo creation, issue types, Project and fields. No labels are created up front. Throttled to 1 write per second |
+| `gh` | `colab.py apply --yes` | Org metadata: repo creation, issue types, the Project, its fields (Spaces, Iteration included) and views. No labels are created up front. Throttled to 1 write per second |
 | `local` | The agent, in a clone | A file change sent as a reviewed PR, scanned before push |
-| `manual` | A person | Steps the API cannot do, or choices that belong to people (defining spaces, the Iteration field) |
+| `manual` | A person | Steps the API cannot do, or choices that belong to people (defining spaces, setting `[org] project_number` after the Project exists) |
 | `gate` | The agent with a person | Check the criterion against evidence, then `colab.py gate ... --evidence <link>`, committed by PR |
 
 ## Recording evidence

@@ -61,7 +61,16 @@ derived-from: kg:example-node-1
 - A space is a named area of work declared in `[spaces]` in the meta-repo config: one or more stewards, a list of existing repos, and an optional `tier = "restricted"`. It is not a repo or a folder.
 - Items in a listed repo belong to that space. Spaces may share repos.
 - An item joins a space its repo is not in through a `space:<name>` label, created on first use.
-- Each space gets a saved view on the org Project, filtered by repo or that label.
+- An item belongs to its repo's spaces plus any space named by a `space:<name>` label on the item.
+- Project view filters cannot OR "repo is X" with "label is Y", so membership is stored in the multi-select **Spaces** field (options = the names in `[spaces]`). Each space gets a view `Space: <name>` filtered on `spaces:<name>`.
+- `colab.py plan` also creates the standing views, and fixes any existing view whose filter differs from the one below. A view's layout is set at creation and not changed afterwards.
+
+| View | Filter | Layout |
+|---|---|---|
+| `Space: <name>` | `spaces:<name>` | table |
+| Agent queue | `status:Ready agent-ready:yes` | table |
+| Proposals inbox | `status:Proposed` | table |
+| My work | `assignee:@me` | board |
 
 ## 2. Fields, and why there are almost no labels
 
@@ -74,7 +83,10 @@ derived-from: kg:example-node-1
 | Risk | Project field, single select | high, medium, low | Risk level. |
 | Target date | Project field, date | none | Target date. |
 | KG link | Project field, text | none | Knowledge node for the item. |
-| Iteration | Project field, iteration | none | Added once in the Project web UI. |
+| Spaces | Project field, multi-select | one option per space in `[spaces]` | Space membership, kept by the bus; drives the `Space: <name>` views. Options are set by `colab.py plan`; values by the bus. |
+| Iteration | Project field, iteration | 2-week cycles | Created by `colab.py plan` through GraphQL: 2-week cycles starting the next Monday, 4 iterations. |
+
+The field list is the config's `[[fields]]`; Spaces has no options there, because they come from `[spaces]` at plan time. When options are missing, the plan proposes an update that sets the full list. GitHub may reset existing values when it does, which is fine: the bus recomputes every item's value on its next sync. The Project is found by `[org] project_number` (0 = not created yet; the meta repo sets it), or by title.
 
 - Routing tier = the strictest of repo visibility, the space `tier` setting, and a `tier:restricted` label. That label exists only for an exception, a restricted item in a lab repo, and is created on first use.
 - Agent-made items are marked by Status = Proposed alone.
@@ -121,6 +133,7 @@ One envelope per item transition (opened, closed, published), not per edit.
 | `repo` | Source repo. |
 | `tier` | Strictest of repo visibility, space `tier`, and a `tier:restricted` label. |
 | `source` | HTML URL of the item. |
+| `node_id` | GraphQL node id of the item (empty for releases); used by Project sync. |
 | `summary` | Title or name. Empty when the tier is restricted. |
 | `labels` | Label names. |
 | `spaces` | Spaces from the repo's config membership, plus any `space:*` labels. |
@@ -146,13 +159,13 @@ The mode is set per destination space in `.colab/rollout.json`. A dry-run space 
 
 | Mode | Behaviour |
 |---|---|
-| dry-run | Appends would-be deliveries to `would-deliver.jsonl`. Writes nothing to GitHub except the heartbeat. |
+| dry-run | Appends would-be deliveries to `would-deliver.jsonl`. Writes nothing to GitHub except the heartbeat and the Project sync (section 4.5b), which is board bookkeeping, not a delivery. |
 | live | Opens an issue in the subscriber repo for each delivery. |
 
 ### 4.5 Heartbeat and failures
 
 - After each poll, the bus writes repo variable `COLAB_BUS_HEARTBEAT` on the meta repo.
-- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, and `errors`.
+- The value is JSON with `at`, `envelopes`, `deliveries`, `drops`, `dry_run`, `errors`, and `project_writes`.
 - A failed read or write is logged to `audit.jsonl` and the poll goes on. A failed poll backs off, from 1 minute up to 1 hour.
 - The Slurm job requeues itself near its time limit and after an unexpected exit.
 - The `colab-watchdog` workflow in the meta repo alerts the lab when the heartbeat is stale: 30 minutes by default, or the `COLAB_STALE_MINUTES` variable.
@@ -165,9 +178,18 @@ The mode is set per destination space in `.colab/rollout.json`. A dry-run space 
 - A beat renews the member's lease on the claimed item. Leases default to 45 minutes; with `--job` they run to the Slurm job's scheduled end plus 15 minutes.
 - Each poll, the bus classifies sessions as active (a beat within `stale_minutes`), waiting (its Slurm job is still queued or running), or stale. It adds `sessions_active`, `sessions_waiting`, and `sessions_stale` to its heartbeat, and logs each stale session that held an item once to `audit.jsonl`.
 
+### 4.5b Project sync
+
+Enabled by `[bus] project_sync = true` once `[org] project_number` is set. It is board bookkeeping on the private org Project, not a delivery: it runs in **dry-run spaces too** and does not wait for `bus_live`. It writes only to the Project, never to a repo.
+
+- **Add on open.** Each newly *opened* issue or PR envelope from a space repo is added to the Project (`addProjectV2ItemById`, using the content `node_id` that the envelope carries). Items from before the baseline never produce an envelope, so they are never added. A restricted-tier item is added only for spaces with the `restricted` switch on, as for routing.
+- **Periodic sweep.** On the first poll and then every `project_sync_every` polls (default 6), the bus pages through all Project items with GraphQL, computes each item's desired Spaces (repo membership plus `space:*` labels), and updates only items whose value differs. An empty desired set clears the field. A space named by a label but absent from the field's options is skipped and logged.
+- **Throttle and failures.** Writes are spaced by `write_interval_seconds` and counted in the stats as `project_writes`. A failed read or write is logged to `audit.jsonl` (`project_write_failed`), counted in `errors`, and the poll goes on.
+- **Token.** The bus token needs Projects read and write on the organization, in addition to the grants in SKILL.md.
+
 ### 4.6 Throttle and digest
 
-- Live writes are throttled to one per second (`write_interval_seconds = 1.0`).
+- Live writes and Project writes are throttled to one per second (`write_interval_seconds = 1.0`).
 - Above 20 matching subscribers (`fanout_digest_threshold`), one digest issue in the meta repo replaces the fan-out. The tier rule still applies to it.
 
 ### 4.7 Subscriptions

@@ -52,7 +52,7 @@ Run this loop whenever the user asks to set up, continue, or check the rollout. 
 3. **Plan.** `python3 "$COLAB/colab.py" --config <cfg> plan --snapshot /tmp/colab-status.json`. Show the user the actions grouped by kind:
    - `gh`: org metadata, run by `apply`;
    - `local`: file changes you make in a clone and send as a PR;
-   - `manual`: steps only a person can do (e.g. the Iteration field, defining spaces);
+   - `manual`: steps only a person can do (e.g. defining spaces, recording the Project number);
    - `gate`: a phase gate to verify before switching features on for a space.
 4. **Confirm.** Ask the user to approve the `gh` actions. Then `apply --snapshot ... --yes`. Re-observe and re-plan, because new objects (e.g. the Project number) unlock later actions.
 5. **Do the local steps**, each as a reviewed PR:
@@ -80,10 +80,13 @@ The job requeues itself near its time limit and after an unexpected exit. A spac
 
 Give the bus its own fine-grained token (or a GitHub App installation token) in a `chmod 600` file. Grant only:
 - Metadata, Issues, and Contents: read on the space and subscriber repos;
+- Projects: read and write on the organization (Project sync);
 - Issues: write on subscriber repos and the meta repo;
 - Variables: write on the meta repo, for the heartbeat.
 
-Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login.
+Org metadata (issue types, Projects) is changed only by `colab.py apply`, under the member's own `gh` login. That includes the Project's Spaces field and Iteration field and its views (`Space: <name>`, Agent queue, Proposals inbox, My work); the plan reads the views and their filters and fixes any that differ.
+
+Once `[org] project_number` is set, the bus also keeps the Project's multi-select **Spaces** field current (`[bus] project_sync`): it adds newly opened items from space repos and re-syncs every item's Spaces every `project_sync_every` polls. This is bookkeeping on the private org Project, not a delivery, so it runs in dry-run spaces too. It needs the token to have Projects read and write on the organization.
 
 ## Session Heartbeats
 

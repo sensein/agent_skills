@@ -17,6 +17,11 @@ Safety rules enforced here:
   - the bus never routes its own deliveries (body marker), so it cannot loop
   - it adds no labels anywhere: tier and space membership come from the config
   - it validates each issue's fenced links block once per body version
+
+Project sync (`[bus] project_sync`, with `[org] project_number` set) is board bookkeeping on the
+private org Project, not a delivery, so it runs in dry-run spaces too: newly opened items from
+space repos are added to the Project, and every `project_sync_every` polls the multi-select
+Spaces field is recomputed (repo membership plus space:<name> labels) for items that differ.
   - one envelope per item transition (opened, closed, published), not per edit
 
 State lives in --state-dir (private group storage, not scratch).
@@ -38,6 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 API = "https://api.github.com"
+GRAPHQL_URL = "https://api.github.com/graphql"
 RANK = {"public": 0, "lab": 1, "restricted": 2}
 DELIVERY_MARKER = "<!-- colab-delivery -->"
 SEEN_CAP = 20000
@@ -81,6 +87,11 @@ def repo_tiers(config: dict) -> dict[str, str]:
     return out
 
 
+def desired_spaces(repo: str, labels: list[str], member_of: dict[str, list[str]]) -> list[str]:
+    """Spaces an item belongs to: its repo's spaces plus any space:<name> label."""
+    return sorted(set(member_of.get(repo, [])) | {lab.split(":", 1)[1] for lab in labels if lab.startswith("space:")})
+
+
 def may_deliver(event_tier: str, to_tier: str) -> bool:
     """Events move only toward stricter (or equal) tiers."""
     return RANK[to_tier] >= RANK[event_tier]
@@ -107,7 +118,7 @@ def envelopes_for(kind: str, repo: str, visibility: str, item: dict,
     return [{
         "id": f"{repo}:{kind}:{key}:{transition}",
         "kind": kind, "transition": transition, "repo": repo, "tier": tier,
-        "source": item.get("html_url", ""), "summary": summary, "labels": labels, "spaces": member,
+        "source": item.get("html_url", ""), "node_id": item.get("node_id", ""), "summary": summary, "labels": labels, "spaces": member,
         "sender": (item.get("user") or item.get("author") or {}).get("login", ""),
         "at": at,
     } for transition, at in transitions]
@@ -221,6 +232,22 @@ class GitHub:
             return json.loads(resp.read() or b"{}")
 
 
+    def graphql(self, query: str, variables: dict | None = None) -> dict:
+        """POST a GraphQL query with the same auth; raises GraphQLError when the response carries errors."""
+        req = urllib.request.Request(GRAPHQL_URL, method="POST",
+                                     data=json.dumps({"query": query, "variables": variables or {}}).encode(),
+                                     headers={**self._headers(), "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read() or b"{}")
+        if body.get("errors"):
+            raise GraphQLError(json.dumps(body["errors"])[:500])
+        return body.get("data") or {}
+
+
+class GraphQLError(RuntimeError):
+    pass
+
+
 def read_token(token_file: Path | None) -> str:
     """Prefer a 0600 token file (fine-grained PAT or App token), then GITHUB_TOKEN, then gh."""
     if token_file:
@@ -230,6 +257,119 @@ def read_token(token_file: Path | None) -> str:
     if os.environ.get("GITHUB_TOKEN"):
         return os.environ["GITHUB_TOKEN"]
     return subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True).stdout.strip()
+
+
+# --------------------------------------------------------------------------- Project sync
+
+Q_PROJECT = ("query($org: String!, $n: Int!) { organization(login: $org) { projectV2(number: $n) { id "
+             "field(name: \"Spaces\") { ... on ProjectV2FieldCommon { id } "
+             "... on ProjectV2MultiSelectField { options { id name } } } } } }")
+Q_ITEMS = ("query($project: ID!, $after: String) { node(id: $project) { ... on ProjectV2 { "
+           "items(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { id "
+           "content { __typename "
+           "... on Issue { repository { name owner { login } } labels(first: 50) { nodes { name } } } "
+           "... on PullRequest { repository { name owner { login } } labels(first: 50) { nodes { name } } } } "
+           "fieldValueByName(name: \"Spaces\") { ... on ProjectV2ItemFieldMultiSelectValue { names } } } } } } }")
+M_ADD = ("mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: {projectId: $project, contentId: $content}) "
+         "{ item { id } } }")
+M_SET = ("mutation($project: ID!, $item: ID!, $field: ID!, $options: [String!]!) { updateProjectV2ItemFieldValue("
+         "input: {projectId: $project, itemId: $item, fieldId: $field, value: {multiSelectOptionIds: $options}}) "
+         "{ projectV2Item { id } } }")
+M_CLEAR = ("mutation($project: ID!, $item: ID!, $field: ID!) { clearProjectV2ItemFieldValue("
+           "input: {projectId: $project, itemId: $item, fieldId: $field}) { projectV2Item { id } } }")
+
+
+class ProjectSync:
+    """Keeps the org Project's items and multi-select Spaces field current. Never raises."""
+
+    def __init__(self, gh, config: dict, state: dict, state_dir: Path, stats: dict, member_of: dict[str, list[str]]):
+        bus = config.get("bus", {})
+        self.gh, self.state, self.state_dir, self.stats, self.member_of = gh, state, state_dir, stats, member_of
+        self.org = config["org"]["name"]
+        self.number = int(config["org"].get("project_number") or 0)
+        self.enabled = bool(bus.get("project_sync", False)) and self.number > 0
+        self.every = max(1, int(bus.get("project_sync_every", 6)))
+        self.interval = bus.get("write_interval_seconds", 1.0)
+        self._ids: dict | None = None
+        stats.setdefault("project_writes", 0)
+
+    def _fail(self, what: str, err: Exception) -> None:
+        self.stats["errors"] += 1
+        _append(self.state_dir / "audit.jsonl", {"project_write_failed": what, "error": str(err)[:500], "at": now()})
+
+    def _write(self, what: str, query: str, variables: dict) -> bool:
+        try:
+            self.gh.graphql(query, variables)
+        except (urllib.error.URLError, OSError, GraphQLError) as err:
+            self._fail(what, err)
+            return False
+        self.stats["project_writes"] += 1
+        time.sleep(self.interval)
+        return True
+
+    def ids(self) -> dict | None:
+        """Project node id, Spaces field id, and option name -> id; cached per sync, refreshed each sweep."""
+        if self._ids is None:
+            try:
+                node = self.gh.graphql(Q_PROJECT, {"org": self.org, "n": self.number})["organization"]["projectV2"]
+                field = node.get("field") or {}
+                self._ids = {"project": node["id"], "field": field.get("id"),
+                             "options": {o["name"]: o["id"] for o in field.get("options") or []}}
+            except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
+                self._fail("project lookup", err)
+                return None
+        return self._ids
+
+    def add(self, env: dict) -> None:
+        """Add a newly opened issue or PR to the Project (idempotent on GitHub's side)."""
+        if not self.enabled or not env.get("node_id") or env["kind"] not in ("issue", "pull_request"):
+            return
+        ids = self.ids()
+        if ids:
+            self._write(f"add {env['id']}", M_ADD, {"project": ids["project"], "content": env["node_id"]})
+
+    def sweep_due(self) -> bool:
+        """True on the first poll and then every project_sync_every polls."""
+        n = self.state.get("project_polls", 0)
+        self.state["project_polls"] = n + 1
+        return self.enabled and n % self.every == 0
+
+    def sweep(self) -> None:
+        """Page through every Project item and fix the Spaces value where it differs from the desired one."""
+        self._ids = None
+        ids = self.ids()
+        if not ids or not ids["field"]:
+            if ids:
+                self._fail("sweep", RuntimeError("Spaces field not found on the Project"))
+            return
+        after = None
+        for _ in range(500):
+            try:
+                page = self.gh.graphql(Q_ITEMS, {"project": ids["project"], "after": after})["node"]["items"]
+            except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
+                self._fail("sweep read", err)
+                return
+            for item in page["nodes"]:
+                content = item.get("content") or {}
+                repo = content.get("repository") or {}
+                if content.get("__typename") not in ("Issue", "PullRequest") or repo.get("owner", {}).get("login") != self.org:
+                    continue
+                labels = [x["name"] for x in (content.get("labels") or {}).get("nodes", [])]
+                want = desired_spaces(repo["name"], labels, self.member_of)
+                have = sorted((item.get("fieldValueByName") or {}).get("names") or [])
+                if want == have:
+                    continue
+                known = [n for n in want if n in ids["options"]]
+                for n in set(want) - set(known):
+                    _append(self.state_dir / "audit.jsonl", {"project_unknown_space": n, "item": item["id"], "at": now()})
+                base = {"project": ids["project"], "item": item["id"], "field": ids["field"]}
+                if known:
+                    self._write(f"set Spaces {item['id']}", M_SET, {**base, "options": [ids["options"][n] for n in known]})
+                elif have:
+                    self._write(f"clear Spaces {item['id']}", M_CLEAR, base)
+            if not page["pageInfo"]["hasNextPage"]:
+                return
+            after = page["pageInfo"]["endCursor"]
 
 
 # --------------------------------------------------------------------------- loop
@@ -282,6 +422,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     interval = config.get("bus", {}).get("write_interval_seconds", 1.0)
     threshold = config.get("bus", {}).get("fanout_digest_threshold", 20)
     stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
+    project = ProjectSync(gh, config, state, state_dir, stats, member_of)
 
     # Visibility of every repo we read from or deliver to, fetched fresh each poll (ETag-cheap).
     repos = sorted(set(member_of) | {s["subscriber"] for s in subs} | {meta_repo})
@@ -378,6 +519,10 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                 continue  # happened before the bus started watching this repo
             stats["envelopes"] += 1
             _append(state_dir / "events.jsonl", env)
+            # Board bookkeeping, not a delivery: runs in dry-run spaces too. Restricted items stay off
+            # the board unless the space has the restricted switch, as for routing.
+            if env["transition"] == "opened" and (env["tier"] != "restricted" or restricted_ok(repo)):
+                project.add(env)
             deliveries, drops = route(env, subs, to_tiers, bot, restricted_ok(repo))
             for d in drops:
                 stats["drops"] += 1
@@ -411,6 +556,12 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         if items:
             cursors[repo] = max(i["updated_at"] for i in items)
             save()
+    try:
+        if project.sweep_due():
+            project.sweep()
+    except Exception as err:  # bookkeeping must never break the poll
+        project._fail("sweep", err)
+    save()
     return stats
 
 
