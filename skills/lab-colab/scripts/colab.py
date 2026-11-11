@@ -295,6 +295,17 @@ def declared_tiers(config: dict) -> dict[str, str]:
     return out
 
 
+def label_space_tiers(config: dict, key: str, labels) -> list[str]:
+    """Legacy tiers of the spaces named by an item's `space:<name>` labels. They can only tighten an item's
+    tier (callers take the strictest), never loosen it. Labels on items in other orgs are ignored."""
+    if is_external(key):
+        return []
+    spaces = config.get("spaces") or {}
+    names = {str(lab.get("name") if isinstance(lab, dict) else lab).split(":", 1)[1]
+             for lab in labels or [] if str(lab.get("name") if isinstance(lab, dict) else lab).startswith("space:")}
+    return [spaces[n]["tier"] for n in sorted(names) if isinstance(spaces.get(n), dict) and spaces[n].get("tier") in TIER_RANK]
+
+
 def lab_opt_in(config: dict) -> set[str]:
     """External non-public repos opted in to lab by `[tiers].lab` (and not also listed as restricted)."""
     lists = tier_lists(config)

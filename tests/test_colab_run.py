@@ -760,9 +760,16 @@ class TierDetectionTests(unittest.TestCase):
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "restricted")
         cfg = self.cfg(a={"repos": ["proj"], "tier": "lab"})
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "lab")
-        # a space:* label never changes a tier (tiers are per repo now)
+        # review finding 4: a space:* label tightens with that space's legacy tier, never loosens
         cfg = self.cfg(a={"repos": ["other"]}, hot={"repos": [], "tier": "restricted"})
-        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "public")
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "restricted")
+        cfg = self.cfg(a={"repos": ["proj"]}, cool={"repos": [], "tier": "lab"})
+        cfg["tiers"] = {"restricted": ["proj"]}
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:cool"], "public"), "restricted")  # never loosens
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:nope"], "private"), "restricted")
+        ext = {"owner": "pi-lab", "repo": "x", "n": 1}
+        self.assertEqual(run.compute_tier(self.cfg(hot={"repos": [], "tier": "restricted"}), ext, ["space:hot"], "public"),
+                         "public")  # labels set in another org are ignored
 
     def test_tiers_table_overrides_per_repo(self) -> None:
         cfg = self.cfg(a={"repos": ["proj", "pi-lab/tool"]})

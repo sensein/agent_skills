@@ -96,7 +96,7 @@ Once `[org] project_number` is set, the bus also keeps the Project's multi-selec
 
 The same pass keeps two more fields. **Contributions** (text) records, for tracked external items, which members did what: report, request, fix, review, comment, mention (`kabilar: fix, review; satra: comment`). An external item is tracked once a member opened it, commented on it, reviewed it, or authored a PR that closes it; assignment alone, or a bare cross-reference (a mention), does not count. **Security** (unreviewed, flagged, cleared) is set to flagged when the injection scan hits a new or edited body or comment; the reason and the matched span go to the bus's private audit log only.
 
-Tiers are per repo: a repo's tier is its `[tiers]` entry, else its visibility (an external non-public repo is restricted unless `[tiers].lab` lists it). An item's tier is its repo's tier, tightened by a `tier:*` label; a `space:` label never changes it. Anything that combines items (a digest, a brief) takes the strictest tier of what it includes (`combined_tier`), and its destination is checked against that.
+Tiers are per repo: a repo's tier is its `[tiers]` entry, else its visibility (an external non-public repo is restricted unless `[tiers].lab` lists it). An item's tier is its repo's tier, tightened by a `tier:*` label; a `space:` label can only tighten it, through that space's legacy `tier`, never loosen it. Anything that combines items (a digest, a brief) takes the strictest tier of what it includes (`combined_tier`), and its destination is checked against that.
 
 ## Session Heartbeats
 

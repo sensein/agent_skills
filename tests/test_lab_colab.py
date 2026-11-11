@@ -2212,11 +2212,23 @@ class TierTests(unittest.TestCase):
         with self.assertRaises(colab.RepoEntryError):
             colab.tier_lists({"org": {"name": "sensein"}, "tiers": {"lab": ["x/.."]}})
 
-    def test_space_labels_never_change_a_tier_and_tier_labels_tighten(self) -> None:
+    def test_space_labels_only_tighten_and_tier_labels_tighten(self) -> None:
         item = {"number": 1, "title": "t", "labels": [{"name": "space:old"}], "state": "open", "created_at": "x", "user": {"login": "a"}}
         cfg = self.cfg()
+        self.assertEqual(colab.label_space_tiers(cfg, "other", item["labels"]), ["restricted"])
+        self.assertEqual(colab.label_space_tiers(cfg, "other", ["space:s"]), [])  # a space without a tier adds nothing
+        self.assertEqual(colab.label_space_tiers(cfg, "pi-lab/open", ["space:old"]), [])  # other orgs' labels ignored
         env = bus.envelopes_for("issue", "other", "public", item, bus.repo_tiers(cfg).get("other"), ["s"])[0]
         self.assertEqual(env["tier"], "public")
+        # in the bus, the label's legacy space tier tightens the envelope
+        bcfg = bus_config()
+        bcfg["spaces"]["hot"] = {"repos": [], "tier": "restricted"}
+        issue = {**FakeGH().issues[0], "labels": [{"name": "space:hot"}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            bus.poll_once(FakeGH(visibility={"proj": "public", "dest": "private", "lab-colab": "private"}, issues=[issue]),
+                          bcfg, {"spaces": {}}, [], watched(), Path(tmp), "me")
+            env = json.loads((Path(tmp) / "events.jsonl").read_text().splitlines()[0])
+        self.assertEqual((env["tier"], env["summary"]), ("restricted", ""))
         item["labels"].append({"name": "tier:restricted"})
         self.assertEqual(bus.envelopes_for("issue", "other", "public", item)[0]["tier"], "restricted")
 

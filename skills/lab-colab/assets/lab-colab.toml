@@ -127,7 +127,7 @@ addresses = ["Experiment", "Review"]
 # None are created up front. Tier comes from each repo ([tiers] below, else its
 # visibility); space membership comes from the repo lists. A label is created
 # only on first use, for an exception: one restricted item in a lab repo, or an
-# item joining a space its repo is not in. A space:<name> label never changes a tier.
+# item joining a space its repo is not in. A space:<name> label never loosens a tier.
 # ---------------------------------------------------------------------------
 [[labels]]
 name = "tier:restricted"
@@ -215,7 +215,7 @@ type = "ITERATION"
 # ---------------------------------------------------------------------------
 # Tiers per repo. A repo's tier is its entry here, else its visibility (public -> public,
 # private/internal -> lab). An external repo that is not public is restricted unless listed in `lab`.
-# An item's tier is its repo's tier, tightened by a tier:* label; a space:<name> label never changes it.
+# An item's tier is its repo's tier, tightened by a tier:* label (a space:<name> label tightens only via a legacy space tier).
 # Entries use the [spaces] grammar: bare names are in [org] name, "owner/name" elsewhere.
 # ---------------------------------------------------------------------------
 [tiers]

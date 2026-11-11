@@ -146,7 +146,7 @@ A space is a collection of repos, and each repo has its own tier.
 
 - A repo's tier is its entry in `[tiers]` if listed (`restricted = [...]`, `lab = [...]`), else its visibility: public is public, private and internal are lab.
 - An external repo that is not public is restricted unless `[tiers].lab` lists it. A repo whose visibility cannot be read is restricted.
-- An item's tier is its repo's tier, tightened by a `tier:*` label. A `space:` label never changes a tier.
+- An item's tier is its repo's tier, tightened by a `tier:*` label. A `space:<name>` label can only tighten it, with that space's legacy `tier` if it has one; it never loosens a tier, and labels on items in other orgs are ignored.
 - Compatibility: a space-level `tier` still tightens that space's repos, but never opts an external private repo in to lab. `colab.py plan` emits a `manual` action asking to move it to `[tiers]`; the drift check reports it too, until it is moved.
 
 ### 3.2 Prompt injection and the Security gate

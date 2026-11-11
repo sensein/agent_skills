@@ -383,14 +383,14 @@ def load_colab(config_path: str | None):
 
 def compute_tier(config: dict, ref: dict, labels: list[str], visibility: str | None, sensitivity: str | None = None) -> str:
     """The bus's rule: the strictest of the repo's tier (its `[tiers]` entry, else its visibility; a legacy
-    space-level tier still tightens), a tier:* label, and the Project's Sensitivity. A space:* label never
-    changes a tier. Unknown visibility fails closed. A repo outside [org] name that is not public is
-    restricted unless `[tiers].lab` opts it in."""
+    space-level tier still tightens), a tier:* label, the legacy tier of a space named by a space:* label
+    (it can only tighten, never loosen), and the Project's Sensitivity. Unknown visibility fails closed.
+    A repo outside [org] name that is not public is restricted unless `[tiers].lab` opts it in."""
     import colab_bus as bus  # noqa: PLC0415
     if visibility not in ("public", "private", "internal"):
         return "restricted"
     key = bus.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name"))
-    own = bus.repo_tiers(config).get(key)
+    own = bus._strictest(bus.repo_tiers(config).get(key), *bus.label_space_tiers(config, key, labels))
     return bus._strictest(bus.tier_of(visibility, labels, own, bus.is_external(key), key in bus.lab_opt_in(config)),
                           sensitivity)
 

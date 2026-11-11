@@ -16,7 +16,7 @@ Safety rules enforced here:
   - restricted events carry no summary, and move only for spaces with the `restricted` switch
   - the bus never routes its own deliveries (body marker), so it cannot loop
   - it adds no labels anywhere: tier and space membership come from the config
-  - tiers are per repo: [tiers] entry, else visibility; tier:* labels tighten, space:* labels never change a tier;
+  - tiers are per repo: [tiers] entry, else visibility; tier:* labels tighten, and a space:* label only tightens (its space's legacy tier);
     a digest's tier is the combined (strictest) tier of what it includes
   - space repos may live in other orgs (`owner/name` in [spaces]): they are tracked read-only, by default
     only items an org member contributed to ([bus] external_track; contributions by kind are recorded, with
@@ -77,7 +77,7 @@ def _strictest(*tiers: str | None) -> str:
 def tier_of(repo_visibility: str | None, labels: list[str], declared: str | None = None,
             external: bool = False, opt_in: bool = False) -> str:
     """Stricter of the repo's tier (visibility, or its declared tier from [tiers] or a legacy space tier)
-    and an item tier:* label. A space:* label never changes a tier.
+    and an item tier:* label. A space:* label can only tighten, through the caller's declared tier.
 
     Unknown visibility (an unreadable repo) fails closed to restricted. A repo outside [org] name that is
     not public is restricted too, unless `[tiers].lab` opts it in (opt_in): "lab" there would mean everyone
@@ -328,7 +328,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from colab import (CONTRIB_KINDS, combined_tier, involved_by, declared_tiers, format_contributions,  # noqa: E402
-                   injection_scan, is_external, lab_opt_in, repo_key, repo_ref, repo_spaces)
+                   injection_scan, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces)
 
 try:  # shared grammar
     from colab import (build_plan, is_recurring, observe, parse_links, parse_sessions,  # noqa: E402
@@ -1039,7 +1039,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             if is_delivery(item):
                 continue
             kind = "pull_request" if "pull_request" in item else "issue"
-            envs = envelopes_for(kind, repo, vis, item, declared.get(repo), member_of.get(repo), repo in opt_in,
+            item_declared = _strictest(declared.get(repo), *label_space_tiers(config, repo, item.get("labels")))
+            envs = envelopes_for(kind, repo, vis, item, item_declared, member_of.get(repo), repo in opt_in,
                                  item.get("_contributions") if external else None)
             events += envs
             check_links(item, repo)
@@ -1058,7 +1059,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                 continue  # untracked external items are not scanned; the bus's own comments are skipped
             kind = "pull_request" if item is not None and "pull_request" in item else "issue"
             labels = [lab["name"] if isinstance(lab, dict) else lab for lab in (item or {}).get("labels", [])]
-            tier = tier_of(vis, labels, declared.get(repo), external, repo in opt_in)
+            tier = tier_of(vis, labels, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)), external, repo in opt_in)
             scan_text_for(repo, number, f"comment:{c.get('id')}", c.get("body") or "", item,
                           kind in project.add_kinds and (tier != "restricted" or restricted_ok(repo)))
         for rel in releases:
