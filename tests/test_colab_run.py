@@ -30,7 +30,30 @@ run = importlib.util.module_from_spec(_spec)
 sys.modules["colab_run"] = run
 _spec.loader.exec_module(run)
 
-GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org",
+
+# Hermetic: never read the member's COLAB_CONFIG, ~/.claude, caches, or tokens while these tests run.
+HERMETIC_DROP = ("COLAB_CONFIG", "COLAB_RUN_ROOT", "COLAB_AGENT", "COLAB_CONTAINER_DIGEST", "COLAB_RUN_PARTITION",
+                 "CLAUDECODE", "GITHUB_TOKEN", "GH_TOKEN")
+_HERMETIC: dict = {}
+
+
+def setUpModule() -> None:
+    import os
+    import tempfile
+    from unittest import mock
+    home = tempfile.mkdtemp(prefix="colab-test-home-")
+    env = {k: v for k, v in os.environ.items() if k not in HERMETIC_DROP}
+    env.update(HOME=home, XDG_CACHE_HOME=f"{home}/cache", XDG_STATE_HOME=f"{home}/state", XDG_CONFIG_HOME=f"{home}/config")
+    _HERMETIC["home"], _HERMETIC["patch"] = home, mock.patch.dict(os.environ, env, clear=True)
+    _HERMETIC["patch"].start()
+
+
+def tearDownModule() -> None:
+    import shutil
+    _HERMETIC["patch"].stop()
+    shutil.rmtree(_HERMETIC["home"], ignore_errors=True)
+
+GIT_ENV = dict({k: v for k, v in os.environ.items() if k not in HERMETIC_DROP}, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org",
                GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.org")
 ISSUE = """### Hypothesis
 
@@ -737,9 +760,17 @@ class TierDetectionTests(unittest.TestCase):
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "restricted")
         cfg = self.cfg(a={"repos": ["proj"], "tier": "lab"})
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "lab")
-        # a space:* label pulls in that space's tier too
+        # a space:* label never changes a tier (tiers are per repo now)
         cfg = self.cfg(a={"repos": ["other"]}, hot={"repos": [], "tier": "restricted"})
-        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "restricted")
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "public")
+
+    def test_tiers_table_overrides_per_repo(self) -> None:
+        cfg = self.cfg(a={"repos": ["proj", "pi-lab/tool"]})
+        cfg["tiers"] = {"restricted": ["proj"], "lab": ["pi-lab/tool"]}
+        self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "restricted")
+        ext = {"owner": "pi-lab", "repo": "tool", "n": 1}
+        self.assertEqual(run.compute_tier(cfg, ext, [], "private"), "lab")  # opted in
+        self.assertEqual(run.compute_tier(cfg, ext, ["tier:restricted"], "private"), "restricted")  # a label still tightens
 
     def test_repos_in_other_orgs_use_their_qualified_entry(self) -> None:
         cfg = self.cfg(p={"repos": ["pi-lab/proj"], "tier": "restricted"}, a={"repos": ["proj"]})
@@ -766,10 +797,11 @@ class TierDetectionTests(unittest.TestCase):
         return run.build_parser().parse_args(["start", "sensein/proj#7", "--body-file", str(body), "--root", str(root / "runs"),
                                               "--source", str(src), "--comment-every", "0", *extra])
 
-    def _start(self, root: Path, args, fetch, sensitivity=None) -> dict:
+    def _start(self, root: Path, args, fetch, sensitivity=None, security="unreviewed") -> dict:
         import colab
         out = io.StringIO()
         with mock.patch.object(run, "fetch_issue", fetch), mock.patch.object(run, "gh_login", return_value="alice"), \
+                mock.patch.object(run, "fetch_security", return_value=security), \
                 mock.patch.object(run, "fetch_sensitivity", return_value=sensitivity), contextlib.redirect_stdout(out), \
                 contextlib.redirect_stderr(io.StringIO()):
             run.cmd_start(args, colab.load_config())
@@ -804,6 +836,22 @@ class TierDetectionTests(unittest.TestCase):
             self.assertFalse(out["restricted"])
             self.assertEqual(out["tier"], "lab")
             self.assertTrue((Path(out["run_dir"]) / "workspace" / "code.txt").exists())
+
+    def test_flagged_items_are_refused_until_cleared(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "alice", "author": "alice"}
+            with self.assertRaises(run.RunError) as ctx:
+                self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security="flagged")
+            self.assertIn("security clear", str(ctx.exception))
+            self.assertFalse((root / "runs").exists() and any((root / "runs").iterdir()))  # nothing was made
+            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security="cleared")
+            self.assertEqual(out["tier"], "lab")
+            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security=None)
+            self.assertTrue(any("Security field" in w for w in out.get("warnings", [])))
 
     def test_restricted_start_never_copies_the_source_and_the_job_does(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
