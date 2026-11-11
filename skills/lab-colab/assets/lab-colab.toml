@@ -183,7 +183,7 @@ name = "Iteration"
 type = "ITERATION"
 
 # ---------------------------------------------------------------------------
-# Spaces: labels space:<name>. Empty here on purpose; the bootstrap proposes
+# Spaces: membership by repo list (the bus writes the Spaces field). Empty here on purpose; the bootstrap proposes
 # one per active repo and the lab edits the list in the meta-repo copy.
 # ---------------------------------------------------------------------------
 [spaces]
@@ -201,7 +201,7 @@ type = "ITERATION"
 [[phases]]
 id = 0
 name = "Foundation"
-gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space has labels and forms; bus runs in dry-run with a fresh heartbeat."
+gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space's repos are covered by the Spaces field and its Space: <name> view, and show the org-wide colab forms or keep their own templates (labels are created on first use, never up front); bus runs in dry-run with a fresh heartbeat."
 
 [[phases]]
 id = 1
