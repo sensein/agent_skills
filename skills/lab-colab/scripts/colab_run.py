@@ -310,7 +310,7 @@ def resolve_budgets(tokens: dict[str, str], args: argparse.Namespace) -> dict:
 # --------------------------------------------------------------------------- issue + gh (the only network)
 
 Q_ISSUE = ("query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { visibility "
-           "issue(number: $n) { title body author { login } labels(first: 100) { nodes { name } } "
+           "issue(number: $n) { title body state author { login } labels(first: 100) { nodes { name } } "
            "userContentEdits(first: 1) { nodes { editor { login } } } } } }")
 Q_SENSITIVITY = ("query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { issue(number: $n) { "
                  "projectItems(first: 20) { nodes { project { number } fieldValueByName(name: \"Sensitivity\") { "
@@ -339,7 +339,8 @@ def fetch_issue(ref: dict) -> dict:
     editor = ((edits[0].get("editor") or {}).get("login") if edits else "") or author
     return {"body": issue.get("body") or "", "title": issue.get("title", ""),
             "labels": [x["name"] for x in (issue.get("labels") or {}).get("nodes", [])],
-            "visibility": str(repo.get("visibility", "")).lower(), "author": author, "editor": editor}
+            "visibility": str(repo.get("visibility", "")).lower(), "author": author, "editor": editor,
+            "state": str(issue.get("state") or "").lower()}
 
 
 def fetch_sensitivity(ref: dict, project_number: int) -> str | None:
@@ -586,6 +587,8 @@ def cmd_start(args, config: dict) -> int:
             notes.append(f"could not read the issue's labels ({err}); treating the run as restricted")
     elif not args.body_file:
         raise RunError("--offline needs --body-file (the issue body)")
+    if fetched and fetched.get("state") == "closed":
+        raise RunError(f"{args.issue} is closed: a closed item never runs (reopen it first)")
     body = Path(args.body_file).read_text() if args.body_file else fetched["body"]
     labels = list((fetched or {}).get("labels", [])) + list(args.label or [])
     visibility = (fetched or {}).get("visibility") if fetched else (args.visibility if args.offline else None)
@@ -790,6 +793,10 @@ def recheck_gate(spec: dict, config: dict, in_job: bool = False) -> None:
     --allow-unscanned (never for restricted). The batch job needs gh for this."""
     if not (spec.get("security_checked_online") or in_job):
         return
+    import colab  # noqa: PLC0415
+    ref = spec["issue_ref"]
+    if colab.item_state(f"{ref['owner']}/{ref['repo']}#{ref['n']}") == "closed":
+        raise RunError(f"{spec['issue']} was closed: a closed item never runs")
     gate = fetch_gate(config, spec["issue_ref"], acting_for=spec.get("acting_for") or None, require_seen=False)
     check_gate(gate["state"], gate["reason"], "restricted" if spec.get("restricted") else spec.get("tier", "restricted"),
                bool(spec.get("allow_unscanned")), spec["issue"], bool(gate.get("unavailable")))

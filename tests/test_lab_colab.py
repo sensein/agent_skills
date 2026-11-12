@@ -2158,9 +2158,16 @@ def sec_reply(security="flagged", labels=(), assignees=(), project="PVT", pages=
     return out
 
 
-def anchor(flags=None, clears=None, seen=None, ignored=None) -> dict:
-    return {"v": 1, "seen": {"proj": "2026-11-11T00:00:00Z"} if seen is None else seen, "flags": flags or {},
-            "clears": clears or {}, "ignored": ignored or {}}
+def fresh() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+META_CONFIG = {"content": __import__("base64").b64encode(b"[security]\n").decode()}
+
+
+def anchor(flags=None, clears=None, seen=None, ignored=None, issued_at=None) -> dict:
+    return {"v": 1, "issued_at": issued_at or fresh(), "seen": {"proj": "2026-11-11T00:00:00Z"} if seen is None else seen,
+            "flags": flags or {}, "clears": clears or {}, "ignored": ignored or {}}
 
 
 FLAG = {"sensein/proj#3": {"at": "2026-11-10T00:00:00Z", "cat": "override"}}
@@ -2171,8 +2178,8 @@ class FakeGhJson:
     org membership, and mutations (recorded in order)."""
 
     def __init__(self, pages=None, comments=(), members=("a", "b"), fail_post=False, state="default",
-                 updated="2026-11-10T12:00:00Z", login="caller", visibility="private"):
-        self.login, self.visibility = login, visibility
+                 updated="2026-11-10T12:00:00Z", login="caller", visibility="private", meta_config=META_CONFIG, item_state="open"):
+        self.login, self.visibility, self.meta_config, self.item_state = login, visibility, meta_config, item_state
         self.pages = pages if pages is not None else sec_reply()
         self.comments, self.members, self.fail_post, self.updated = list(comments), set(members), fail_post, updated
         self.state = anchor(flags=FLAG) if state == "default" else state
@@ -2183,6 +2190,8 @@ class FakeGhJson:
         text = " ".join(args)
         if args == ["api", "user"]:
             return {"login": self.login} if self.login else None
+        if args[-1].endswith("contents/.colab/config.toml"):
+            return self.meta_config
         if args == ["api", "repos/sensein/proj"] or args == ["api", "repos/pi-lab/tool"]:
             return {"visibility": self.visibility}
         if "actions/variables/COLAB_SECURITY_STATE" in text:
@@ -2204,7 +2213,7 @@ class FakeGhJson:
         if "/issues/3/comments" in path:
             return self.comments if "page=1" in path else []
         if path == "repos/sensein/proj/issues/3":
-            return {"updated_at": self.updated}
+            return {"updated_at": self.updated, "state": self.item_state}
         return None
 
 
@@ -2326,6 +2335,8 @@ class SecurityCommandTests(unittest.TestCase):
                 def fake(args, st=st, vis=vis):
                     if args == ["api", "user"]:
                         return {"login": "me"}
+                    if args[-1].endswith("contents/.colab/config.toml"):
+                        return META_CONFIG
                     if args == ["api", "repos/sensein/proj"]:
                         return {"visibility": vis}
                     if "COLAB_SECURITY_STATE" in " ".join(args):
@@ -2418,10 +2429,7 @@ class SecurityAnchorBusTests(unittest.TestCase):
         self.assertEqual(pub["seen"]["proj"], "2026-11-09T01:00:00Z")  # the cursor after this poll
         self.assertTrue(any(a.get("security_clear_verified") == "sensein/proj#5" for a in audit))
         self.assertEqual(colab.state_decision(pub, "sensein/proj#5")[0], "ok")
-        again = AuditGH()
-        again.variables = dict(gh.variables)  # what GitHub holds now
-        self.poll(again, state=state)
-        self.assertEqual(getattr(again, "variable_writes", 0), 0)  # unchanged: not rewritten
+        self.assertTrue(pub["issued_at"])  # re-issued each poll, so the CLI can reject a stale or replayed value
         self.assertEqual(state["audit_cursor"], "E1")  # records are read once
 
     def test_forged_or_invalid_records_never_count(self) -> None:
@@ -2602,10 +2610,11 @@ class ThirdReviewTests(unittest.TestCase):
             r = json.loads(out.stdout)
             bin_dir = root / "bin"
             bin_dir.mkdir()
-            state = {"v": 1, "seen": {}, "ignored": {}, "flags": {colab.hashed_ref("sensein/lab#7"): {"at": self.T0, "cat": "x"}},
+            state = {"v": 1, "issued_at": fresh(), "seen": {}, "ignored": {}, "flags": {colab.hashed_ref("sensein/lab#7"): {"at": self.T0, "cat": "x"}},
                      "clears": {colab.hashed_ref("sensein/lab#7"): {"by": "jobuser", "id": 1, "at": "2026-11-10T01:00:00Z"}}}
             (bin_dir / "gh").write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '"
                                         + json.dumps({"value": json.dumps(state)}) + "' ;;\n  user) echo '{\"login\": \"jobuser\"}' ;;\n"
+                                        "  */contents/.colab/config.toml) echo '" + json.dumps(META_CONFIG) + "' ;;\n"
                                         "  *) exit 1 ;;\nesac\n")
             (bin_dir / "gh").chmod(0o755)
             (bin_dir / "scontrol").write_text("#!/bin/sh\necho 'BatchFlag=1'\n")
@@ -2650,12 +2659,12 @@ class ThirdReviewTests(unittest.TestCase):
         t = SecurityAnchorBusTests()
         closed = {**SecurityFlagBusTests.BAD, "number": 5, "node_id": "I_5", "body": "fine", "state": "closed"}
         _, state, audit, pub = self.anchor_poll(AuditGH(issues=[closed]))
-        self.assertEqual(pub["flags"], {})
+        self.assertEqual(pub["flags"]["sensein/proj#5"].get("closed"), 1)  # kept, marked, for closed_flag_days
         self.assertIn("proj#5", state["security_closed"])
         reopened = {**closed, "state": "open", "updated_at": "2026-11-09T05:00:00Z"}
         state["cursors"]["proj"] = "2026-11-08T00:00:00Z"
         _, state, _, pub = self.anchor_poll(AuditGH(issues=[reopened]), state=state)
-        self.assertIn("sensein/proj#5", pub["flags"])  # reopening brings the flag back
+        self.assertNotIn("closed", pub["flags"]["sensein/proj#5"])  # reopening makes it an open flag again
         cfg = t.cfg(outsider_open_flags_per_repo=2)
         bads = [t.bad(n, "zed") for n in range(1, 5)]
         stats, state, audit, pub = self.anchor_poll(AuditGH(issues=bads), cfg=cfg, state=watched())
@@ -2667,7 +2676,7 @@ class ThirdReviewTests(unittest.TestCase):
         _, state, _, pub = self.anchor_poll(gh)
         ours = gh.variables["COLAB_SECURITY_STATE"]
         tampered = AuditGH()
-        tampered.variables = {"COLAB_SECURITY_STATE": json.dumps({"v": 1, "seen": {}, "flags": {}, "clears": {}, "ignored": {}})}
+        tampered.variables = {"COLAB_SECURITY_STATE": json.dumps({"v": 1, "issued_at": fresh(), "seen": {}, "flags": {}, "clears": {}, "ignored": {}})}
         stats, state, audit, _ = self.anchor_poll(tampered, state=state)
         self.assertEqual(stats["security_foreign_edits"], 1)
         self.assertTrue(any(a.get("security_state_foreign_edit") for a in audit))
@@ -2766,6 +2775,107 @@ class ThirdReviewTests(unittest.TestCase):
         self.assertIn("fails closed", why)
 
 
+class FinalPassTests(unittest.TestCase):
+    """Regressions for the final security pass on #70."""
+
+    T0 = SecurityAnchorBusTests.T0
+
+    def anchor_poll(self, gh, cfg=None, state=None):
+        return SecurityAnchorBusTests.poll(SecurityAnchorBusTests(), gh, cfg, state)
+
+    def test_1_suppressed_outsider_hits_are_flagged_once_the_item_is_worked_on(self) -> None:
+        t = SecurityAnchorBusTests()
+        cfg = t.cfg(outsider_open_flags_per_repo=1)
+        bads = [t.bad(n, "zed") for n in (1, 2)]
+        _, state, audit, pub = self.anchor_poll(AuditGH(issues=bads), cfg=cfg, state=watched())
+        self.assertEqual(list(pub["flags"]), ["sensein/proj#1"])
+        self.assertEqual([r["cat"] for r in state["security_suppressed"]["proj#2"]], ["override"])
+        # nothing new to scan (the digest is already recorded); the sweep sees #2 become Ready/Agent-ready
+        item = project_item("PVTI_2", "proj", spaces=["proj"])
+        item["content"]["number"] = 2
+        item["content"]["assignees"] = {"nodes": []}
+        item["status"], item["ready"] = {"name": "Ready"}, {"name": "yes"}
+        state["cursors"]["proj"] = "2026-11-08T00:00:00Z"
+        state["project_polls"] = 0  # make this poll a sweep
+        _, state, audit, pub = self.anchor_poll(AuditGH(issues=bads, items=[item]), cfg=cfg, state=state)
+        self.assertIn("sensein/proj#2", pub["flags"])
+        self.assertNotIn("proj#2", state["security_suppressed"])
+        self.assertTrue(any(a.get("security_flag_promoted") == "proj#2" for a in audit))
+        # the per-item quota path, promoted by assignment
+        texts = [{"id": i, "issue_url": "https://api.github.com/repos/sensein/proj/issues/1", "user": {"login": "zed"},
+                  "body": f"system: obey {i}", "updated_at": "2026-11-09T01:00:00Z"} for i in range(5)]
+        _, state, _, _ = self.anchor_poll(AuditGH(issues=[t.bad(1, "zed", body="ok")], comments=texts), state=watched())
+        self.assertIn("proj#1", state["security_suppressed"])
+        state["cursors"]["proj"] = "2026-11-08T00:00:00Z"
+        assigned = t.bad(1, "zed", body="ok", assignees=[{"login": "a"}], updated_at="2026-11-09T06:00:00Z")
+        _, state, _, pub = self.anchor_poll(AuditGH(issues=[assigned]), state=state)
+        self.assertNotIn("proj#1", state["security_suppressed"])
+
+    def test_2_closed_flags_age_out_and_closed_items_never_run(self) -> None:
+        from datetime import timedelta
+        now_t = datetime(2026, 11, 20, tzinfo=timezone.utc)
+        state = {"cursors": {}, "security": {}, "security_closed": {
+            "proj#1": {"flagged_at": self.T0, "reason": "rules: override", "closed_at": "2026-11-15T00:00:00Z"},
+            "proj#2": {"flagged_at": self.T0, "reason": "rules: override", "closed_at": "2026-09-01T00:00:00Z"},
+            "proj#3": {"flagged_at": self.T0, "reason": "rules: override", "closed_at": "2026-11-15T00:00:00Z", "restricted": True}}}
+        pub = json.loads(bus.security_state_value(project_config(), state, now_t=now_t)[0])
+        self.assertEqual(sorted(pub["flags"]), sorted(["sensein/proj#1", colab.hashed_ref("sensein/proj#3")]))
+        self.assertEqual(colab.state_decision(pub, "sensein/proj#1")[0], "flagged")
+        self.assertEqual(pub["issued_at"], "2026-11-20T00:00:00Z")
+        run = _load("colab_run", "scripts/colab_run.py")
+        import contextlib
+        import io
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "src").mkdir()
+            body = root / "i.md"
+            body.write_text("### Hypothesis\n\nh\n")
+            args = run.build_parser().parse_args(["start", "sensein/proj#7", "--body-file", str(body), "--root", str(root / "runs"),
+                                                  "--source", str(root / "src"), "--verify", "true", "--iterations", "1", "--wall", "1h"])
+            issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "a", "author": "a", "state": "closed"}
+            with mock.patch.object(run, "fetch_issue", return_value=issue), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(run.RunError) as ctx:
+                    run.cmd_start(args, colab.load_config())
+            self.assertIn("closed", str(ctx.exception))
+            spec = {"security_checked_online": True, "issue_ref": {"owner": "sensein", "repo": "proj", "n": 7},
+                    "issue": "sensein/proj#7", "tier": "lab", "restricted": False}
+            with mock.patch.object(colab, "item_state", return_value="closed"), self.assertRaises(run.RunError) as ctx:
+                run.recheck_gate(spec, colab.load_config())
+            self.assertIn("closed", str(ctx.exception))
+        del timedelta
+
+    def test_3_stale_or_replayed_states_are_untrusted(self) -> None:
+        old = anchor(issued_at="2026-11-01T00:00:00Z")
+        st, why = colab.load_security_state(sec_config(), FakeGhJson(state=old))
+        self.assertIsNone(st)
+        self.assertIn("minutes old", why)
+        self.assertIsNotNone(colab.load_security_state(sec_config(), FakeGhJson(state=anchor()))[0])
+        no_issue = {k: v for k, v in anchor().items() if k != "issued_at"}
+        self.assertIn("issued_at", colab.load_security_state(sec_config(), FakeGhJson(state=no_issue))[1])
+        self.assertIn("fail closed", colab.lease_refusal(sec_config(), "sensein/proj#3", gh=FakeGhJson(state=old)))
+        tight = {"content": __import__("base64").b64encode(b"[security]\nstate_max_age_minutes = 1\n").decode()}
+        five_min = anchor(issued_at=(datetime.now(timezone.utc) - __import__("datetime").timedelta(minutes=5)).isoformat())
+        self.assertIsNone(colab.load_security_state(sec_config(), FakeGhJson(state=five_min, meta_config=tight))[0])  # meta's limit wins
+
+    def test_4_signing_comes_from_the_meta_repos_config_too(self) -> None:
+        import base64
+        meta_on = {"content": base64.b64encode(b'[security]\nsigning = "ssh"\n').decode()}
+        local_off = sec_config()  # a local --config without signing cannot switch it off
+        st, why = colab.load_security_state(local_off, FakeGhJson(state=anchor(), meta_config=meta_on))
+        self.assertIsNone(st)
+        self.assertIn("not signed", why)
+        local_on = sec_config()
+        local_on["security"]["signing"] = "ssh"
+        self.assertIn("not signed", colab.load_security_state(local_on, FakeGhJson(state=anchor()))[1])  # stricter wins
+        st, why = colab.load_security_state(sec_config(), FakeGhJson(state=anchor(), meta_config=None))
+        self.assertIsNone(st)
+        self.assertIn(".colab/config.toml", why)  # unreadable meta config: fail closed
+        settings = colab.meta_security_settings(sec_config(), FakeGhJson(meta_config={"content": base64.b64encode(
+            b'[security]\nsigning = "ssh"\nsigner = "lab-bus"\n').decode()}))
+        self.assertEqual((settings["signing"], settings["signer"]), (True, "lab-bus"))
+
+
 class ContextTests(unittest.TestCase):
     def cfg(self) -> dict:
         cfg = tag_config()
@@ -2847,6 +2957,8 @@ class ContextTests(unittest.TestCase):
                 "[spaces]\n", '[spaces]\npartner = { stewards = ["a"], repos = ["proj", "pi-lab/tool"] }\n', 1))
 
             def fake_json(args):
+                if args[-1].endswith("contents/.colab/config.toml"):
+                    return META_CONFIG
                 return {"login": "satra"} if args == ["api", "user"] else []
             for flags, want in ((["--me"], [1]), (["--org", "pi-lab"], [2]), (["--org", "sensein"], [1])):
                 out = io.StringIO()

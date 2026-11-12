@@ -2007,10 +2007,40 @@ def verify_state_signature(config: dict, data: str, sig: str, gh=None) -> bool:
     return proc.returncode == 0
 
 
-def load_security_state(config: dict, gh=None) -> tuple[dict | None, str]:
+STATE_MAX_AGE_MINUTES = 30
+
+
+def meta_security_settings(config: dict, gh=None) -> dict | None:
+    """The security settings the CLI enforces, from the meta repo's own `.colab/config.toml` (fetched like
+    allowed_signers), never only from a local --config: signing is on if either copy turns it on, the signer comes
+    from the copy that turned it on, and the maximum state age is the smaller one. None when the meta copy cannot
+    be read (the gate then fails closed)."""
+    gh = gh or _gh_json
+    blob = gh(["api", f"repos/{config['org']['name']}/{config['org']['meta_repo']}/contents/.colab/config.toml"])
+    try:
+        meta = tomllib.loads(base64.b64decode(blob["content"]).decode())
+    except (TypeError, KeyError, ValueError, UnicodeDecodeError):
+        return None
+    local_sec, meta_sec = config.get("security") or {}, meta.get("security") or {}
+
+    def max_age(cfg_sec: dict, cfg: dict) -> float:
+        poll = float((cfg.get("bus") or {}).get("poll_seconds", 300) or 300)
+        return float(cfg_sec.get("state_max_age_minutes") or max(STATE_MAX_AGE_MINUTES, 3 * poll / 60))
+    meta_signs = str(meta_sec.get("signing") or "").lower() == "ssh"
+    local_signs = str(local_sec.get("signing") or "").lower() == "ssh"
+    signer = (meta_sec if meta_signs else local_sec).get("signer") or "colab-bus"
+    return {"signing": meta_signs or local_signs, "signer": str(signer),
+            "max_age_minutes": min(max_age(local_sec, config), max_age(meta_sec, meta))}
+
+
+def load_security_state(config: dict, gh=None, now: datetime | None = None) -> tuple[dict | None, str]:
     """(COLAB_SECURITY_STATE, "") or (None, why). The variable is written only by the bus, which holds the
-    Variables permission. It fails closed when it is unreadable, malformed, overflowed, or, with
-    `[security] signing = "ssh"`, unsigned or not verified against `.colab/allowed_signers`."""
+    Variables permission. It fails closed when it is unreadable, malformed, overflowed, older than the maximum age
+    (its `issued_at`, inside the signed state, stops a replay of an old value), or, when the meta repo's config
+    (or the local one) turns signing on, unsigned or not verified against `.colab/allowed_signers`."""
+    settings = meta_security_settings(config, gh)
+    if settings is None:
+        return None, "could not read the meta repo's .colab/config.toml (the security settings come from there)"
     path = f"repos/{config['org']['name']}/{config['org']['meta_repo']}/actions/variables/{SECURITY_VAR}"
     try:
         data = gh(["api", path]) if gh else _gh_api_strict(path)
@@ -2024,11 +2054,11 @@ def load_security_state(config: dict, gh=None) -> tuple[dict | None, str]:
         return None, f"{SECURITY_VAR} is malformed"
     if value.get("overflow"):
         return None, f"{SECURITY_VAR} overflowed (the bus could not fit its state); the gate fails closed until it fits"
-    signing = str((config.get("security") or {}).get("signing") or "").lower()
-    if signing == "ssh":
+    if settings["signing"]:
         if not isinstance(value.get("state"), str) or not isinstance(value.get("sig"), str):
             return None, f"{SECURITY_VAR} is not signed, but [security] signing is on"
-        if not verify_state_signature(config, value["state"], value["sig"], gh):
+        signed_cfg = {**config, "security": {**(config.get("security") or {}), "signer": settings["signer"]}}
+        if not verify_state_signature(signed_cfg, value["state"], value["sig"], gh):
             return None, f"{SECURITY_VAR}'s signature does not verify against .colab/allowed_signers"
     if isinstance(value.get("state"), str):
         try:
@@ -2037,6 +2067,14 @@ def load_security_state(config: dict, gh=None) -> tuple[dict | None, str]:
             return None, f"{SECURITY_VAR} is malformed"
         if not isinstance(value, dict) or value.get("v") != 1 or value.get("overflow"):
             return None, f"{SECURITY_VAR} is malformed or overflowed"
+    try:
+        issued = datetime.fromisoformat(str(value.get("issued_at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None, f"{SECURITY_VAR} has no issued_at"
+    age = ((now or datetime.now(timezone.utc)) - issued).total_seconds() / 60
+    if age > settings["max_age_minutes"]:
+        return None, (f"{SECURITY_VAR} is {age:.0f} minutes old (limit {settings['max_age_minutes']:.0f}): the bus may be "
+                      "down, or an old value was replayed")
     return value, ""
 
 
@@ -2075,6 +2113,14 @@ def repo_is_public(repo: str, gh=None) -> bool:
     gh = gh or _gh_json
     data = gh(["api", f"repos/{repo}"])
     return isinstance(data, dict) and str(data.get("visibility") or "").lower() == "public"
+
+
+def item_state(item: str, gh=None) -> str | None:
+    """"open" or "closed" (None when unreadable)."""
+    gh = gh or _gh_json
+    m = ITEM.match(item.strip())
+    data = gh(["api", f"repos/{m['repo']}/issues/{m['number']}"]) if m else None
+    return str(data.get("state") or "").lower() or None if isinstance(data, dict) else None
 
 
 def item_updated_at(item: str, gh=None) -> str | None:

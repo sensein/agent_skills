@@ -140,6 +140,7 @@ def org_members(gh, org: str) -> set[str] | None:
 
 
 BUG = re.compile(r"(?i)\bbug\b")
+SUPPRESSED_PER_ITEM = 10  # outsider hits kept per item for promotion
 HOOK_PENDING_CAP = 200  # texts carried over for the injection hook
 HOOK_TEXT_CAP = 20000
 COMMENT_PAGES = 30  # pages of 100 comments read per repo per poll before the cursor is held back
@@ -1050,6 +1051,30 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     outsider_repo_cap = int(sec_cfg.get("outsider_open_flags_per_repo", OUTSIDER_OPEN_FLAGS_PER_REPO))
     closed_flags = state.setdefault("security_closed", {})  # flags on closed items: out of the published state
 
+    suppressed = state.setdefault("security_suppressed", {})  # outsider hits kept audit-only, per item
+
+    def keep_suppressed(key: str, where: str, found: dict, node_id: str, item: dict | None, repo: str) -> None:
+        rows = suppressed.pop(key, [])[-(SUPPRESSED_PER_ITEM - 1):]
+        rows.append({"where": where, "cat": _categories(found["reason"]), "reason": found["reason"][:200],
+                     "at": now().replace("+00:00", "Z"), "node_id": node_id,
+                     "restricted": tier_for(item, repo) == "restricted"})
+        suppressed[key] = rows
+        while len(suppressed) > SEEN_CAP:
+            del suppressed[next(iter(suppressed))]
+
+    def promote(key: str, why: str) -> None:
+        """Flag an item whose outsider hits were kept audit-only, now that someone is working on it."""
+        rows = suppressed.pop(key, [])
+        if not rows or key in flagged:
+            return
+        last = rows[-1]
+        item_id = project.flag(last.get("node_id", ""), (contrib.get(key) or {}).get("project_item"))
+        flagged[key] = {"flagged_at": now().replace("+00:00", "Z"), "where": last["where"], "reason": last["reason"],
+                        "ref": ref_of(key), "node_id": last.get("node_id", ""), "project_item": item_id,
+                        "outsider": False, "restricted": any(r.get("restricted") for r in rows)}
+        stats["flagged"] = stats.get("flagged", 0) + 1
+        _append(state_dir / "audit.jsonl", {"security_flag_promoted": key, "why": why, "hits": len(rows), "at": now()})
+
     def tier_for(item: dict | None, repo: str) -> str:
         labels = [lab["name"] if isinstance(lab, dict) else lab for lab in (item or {}).get("labels", [])]
         return tier_of(visibility.get(repo), labels, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)),
@@ -1059,10 +1084,10 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         """A closed item's flag leaves the published state (so throwaway issues age out); reopening restores it."""
         key = f"{repo}#{item.get('number')}"
         if item.get("state") == "closed" and key in flagged:
-            closed_flags[key] = flagged.pop(key)
+            closed_flags[key] = {**flagged.pop(key), "closed_at": now().replace("+00:00", "Z")}
             _append(state_dir / "audit.jsonl", {"security_flag_closed": key, "at": now()})
         elif item.get("state") != "closed" and key in closed_flags:
-            flagged[key] = closed_flags.pop(key)
+            flagged[key] = {k: v for k, v in closed_flags.pop(key).items() if k != "closed_at"}
             _append(state_dir / "audit.jsonl", {"security_flag_reopened": key, "at": now()})
         while len(closed_flags) > SEEN_CAP:
             del closed_flags[next(iter(closed_flags))]
@@ -1208,7 +1233,9 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         outsider_only = bool(authors) and outsiders == authors
         if outsider_only and not claimed and sum(1 for k, v in flagged.items()
                                                  if v.get("outsider") and k.rpartition("#")[0] == repo) >= outsider_repo_cap:
-            # Outsiders cannot fill COLAB_SECURITY_STATE with throwaway issues: past the cap the hit is audit-only.
+            # Outsiders cannot fill COLAB_SECURITY_STATE with throwaway issues: past the cap the hit is audit-only,
+            # kept so it is flagged as soon as someone starts working on the item.
+            keep_suppressed(key, where, found, node_id, item, repo)
             stats["flags_suppressed"] = stats.get("flags_suppressed", 0) + 1
             _append(state_dir / "audit.jsonl", {"security_flag_suppressed": key, "where": where, "authors": sorted(authors),
                                                 "why": "outsider open-flag cap for this repo", "reason": found["reason"],
@@ -1223,6 +1250,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             under = [a for a in live if (outsider_counts.get(f"{a}|{ref}") or {}).get("day") != day
                      or outsider_counts[f"{a}|{ref}"].get("n", 0) < outsider_limit]
             if not under:
+                if live:  # over the quota (an ignored author's content is not kept)
+                    keep_suppressed(key, where, found, node_id, item, repo)
                 stats["flags_suppressed"] = stats.get("flags_suppressed", 0) + 1
                 _append(state_dir / "audit.jsonl", {"security_flag_suppressed": key, "where": where, "authors": sorted(authors),
                                                     "why": "ignored author" if not live else "outsider daily limit for this item",
@@ -1241,8 +1270,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         flagged[key] = {"flagged_at": now().replace("+00:00", "Z"), "where": where, "reason": found["reason"], "ref": ref,
                         "node_id": node_id, "project_item": item_id, "outsider": outsider_only and not claimed,
                         "restricted": tier_for(item, repo) == "restricted"}
-        if (item or {}).get("state") == "closed":  # a hit on a closed item waits out of the published state
-            closed_flags[key] = flagged.pop(key)
+        if (item or {}).get("state") == "closed":  # a hit on a closed item is kept as a closed flag
+            closed_flags[key] = {**flagged.pop(key), "closed_at": now().replace("+00:00", "Z")}
         _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
                                             "authors": sorted(authors), "spans": found["spans"][:5], "truncated": found.get("truncated", False),
                                             "project": bool(item_id), "at": now()})
@@ -1395,6 +1424,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             scan_text_for(repo, item.get("number"), "body", f"{item.get('title') or ''}\n{item.get('body') or ''}", item, on_board,
                           {(item.get("user") or {}).get("login")})
             track_open_state(repo, item)
+            if item.get("state") != "closed" and item.get("assignees") and f"{repo}#{item.get('number')}" in suppressed:
+                promote(f"{repo}#{item.get('number')}", "assigned")
         # Comments, PR review bodies, and inline review comments: each one, and per item their concatenation
         # (so text split across several comments is scanned whole too).
         texts: list[tuple[int | None, str, str]] = []
@@ -1496,6 +1527,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             project.sweep()
     except Exception as err:  # bookkeeping must never break the poll
         project._fail("sweep", err)
+    for key in [k for k in suppressed if ref_of(k) in hot and k not in closed_flags]:
+        promote(key, "Ready/Agent-ready, in progress, or assigned")
     publish_security_state(gh, config, state, state_dir, stats)  # the trust anchor the CLI reads
     save()
     return stats
@@ -1537,6 +1570,19 @@ def security_state_value(config: dict, state: dict, now_t: datetime | None = Non
         name = hashed_ref(ref) if v.get("restricted") else ref
         names[ref] = name
         flags[name] = {"at": v["flagged_at"], "cat": _categories(v.get("reason", ""))}
+    closed_days = float((config.get("security") or {}).get("closed_flag_days", 30))
+    closed_cutoff = now_t.timestamp() - closed_days * 86400
+    for k, v in (state.get("security_closed") or {}).items():
+        try:
+            closed_at = datetime.fromisoformat(str(v.get("closed_at") or "").replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            closed_at = 0.0
+        if not v.get("flagged_at") or closed_at < closed_cutoff:
+            continue
+        ref = ref_of(k)
+        name = hashed_ref(ref) if v.get("restricted") else ref
+        names[ref] = name
+        flags[name] = {"at": v["flagged_at"], "cat": _categories(v.get("reason", "")), "closed": 1}
     clears = {names[r]: c for r, c in (verified.get("clears") or {}).items()
               if r in names and c["at"] > flags[names[r]]["at"]}
 
@@ -1548,13 +1594,18 @@ def security_state_value(config: dict, state: dict, now_t: datetime | None = Non
     for r in [r for r, c in clears.items() if age(c["at"]) < cutoff]:
         clears.pop(r)
         flags.pop(r)
-    body = {"v": 1, "seen": dict(sorted((state.get("cursors") or {}).items())), "flags": flags, "clears": clears,
+    body = {"v": 1, "issued_at": now_t.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            "seen": dict(sorted((state.get("cursors") or {}).items())), "flags": flags, "clears": clears,
             "ignored": verified.get("ignored") or {}}
     dropped = 0
     while len(json.dumps(body, separators=(",", ":")).encode()) > limit and clears:
         oldest = min(clears, key=lambda r: clears[r]["at"])
         clears.pop(oldest)
         flags.pop(oldest)
+        dropped += 1
+    closed = sorted((r for r, f in flags.items() if f.get("closed")), key=lambda r: flags[r]["at"])
+    while len(json.dumps(body, separators=(",", ":")).encode()) > limit and closed:
+        flags.pop(closed.pop(0))  # closed items' flags go next; open flags are always kept
         dropped += 1
     value = json.dumps(body, separators=(",", ":"), sort_keys=True)
     if len(value.encode()) > limit:

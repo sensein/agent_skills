@@ -110,6 +110,7 @@ The Security gate trusts `COLAB_SECURITY_STATE`, so it is only as strong as the 
 - **A locked audit issue.** Lock the Security audit issue to collaborators.
 - **Alerts.** The watchdog alerts on a stale heartbeat and on the security counters in it: `security_foreign_edits`, `security_state_overflow`, and `records_rejected`.
 - **The meta repo is at least lab tier**, never public.
+- **Protect the meta repo's default branch** (required review, no direct pushes). `.colab/config.toml` and `.colab/allowed_signers` live there, and the CLI reads its security settings (signing, maximum state age) from the meta repo's copy, taking the stricter of that and any local `--config`.
 
 ## Session Heartbeats
 

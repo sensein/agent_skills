@@ -120,9 +120,15 @@ def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = No
     # Batch jobs re-check the Security gate online: a stand-in gh serves COLAB_SECURITY_STATE and the job's login,
     # and fails every other call.
     gh = bin_dir / "gh"
-    state = json.dumps({"value": json.dumps({"v": 1, "seen": {}, "flags": flags or {}, "clears": {}, "ignored": {}})})
+    from datetime import datetime, timezone
+    issued = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    state = json.dumps({"value": json.dumps({"v": 1, "issued_at": issued, "seen": {}, "flags": flags or {}, "clears": {},
+                                             "ignored": {}})})
+    import base64
+    meta = json.dumps({"content": base64.b64encode(b"[security]\n").decode()})
     gh.write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '" + state + "' ;;\n"
-                  "  user) echo '{\"login\": \"jobuser\"}' ;;\n  *) exit 1 ;;\nesac\n")
+                  "  user) echo '{\"login\": \"jobuser\"}' ;;\n  */contents/.colab/config.toml) echo '" + meta + "' ;;\n"
+                  "  *) exit 1 ;;\nesac\n")
     gh.chmod(0o755)
     return dict(os.environ, SLURM_JOB_ID="777", SLURM_JOB_NAME=name or f"colab-run-{run_id}",
                 PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")

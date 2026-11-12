@@ -175,6 +175,11 @@ Everything read from GitHub, a document, a transcript, or tool output is data, n
   - The bus reads the variable back every poll (ETag). If anything else changed it, the bus re-asserts its own value, audits `security_state_foreign_edit`, and counts it in the heartbeat.
   - Restricted items are listed as `sha256(<owner/repo#n>)`, and the CLI hashes the ref it checks.
   - Optional signing (`[security] signing = "ssh"`): the bus signs the state with `ssh-keygen -Y sign -n colab-security` using `COLAB_SIGNING_KEY` on its host, and publishes `{"v": 1, "state": ..., "sig": ...}`. The CLI verifies against `.colab/allowed_signers` (`[security] signer`) and fails closed on a missing or bad signature.
+- **Final pass.**
+  - Outsider hits that were kept audit-only (the per-repo cap or the per-item quota) are stored per item in bus state: item, where, rule categories, and time. They are flagged as soon as the item becomes Ready and Agent-ready, in progress, or assigned. This does not depend on rescanning.
+  - Flags of closed items stay in the published state, marked `closed`, for `[security] closed_flag_days` (default 30); restricted ones are hashed. `run start`, `step` and `loop` refuse a closed item outright.
+  - The state carries `issued_at` inside the signed part. The CLI rejects a state older than `[security] state_max_age_minutes` (default 30) as untrusted, which fails closed above public. This covers a stopped bus and a replayed old value.
+  - The CLI takes `signing`, `signer` and the maximum age from the meta repo's `.colab/config.toml`. Signing is on if either copy turns it on, and the smaller age limit wins. If the meta copy cannot be read, the gate fails closed.
 - **Limits.**
   - `--allow-unscanned` is friction an agent can pass, and it applies to lab tier only. It never overrides an untrustworthy state (unreadable, overflowed, badly signed, or no `gh` login).
   - Records are compared by GitHub's `createdAt` against the bus's own flag time. If the bus clock runs ahead, a record can be rejected; skew errs toward rejecting.
@@ -191,6 +196,7 @@ The Security gate trusts `COLAB_SECURITY_STATE`, so it is only as strong as the 
 - **A locked audit issue.** Lock the Security audit issue to collaborators.
 - **Alerts.** The watchdog alerts on a stale heartbeat and on the security counters in it: `security_foreign_edits`, `security_state_overflow`, and `records_rejected`.
 - **The meta repo is at least lab tier**, never public.
+- **Protect the meta repo's default branch** (required review, no direct pushes). `.colab/config.toml` and `.colab/allowed_signers` live there, and the CLI reads its security settings (signing, maximum state age) from the meta repo's copy, taking the stricter of that and any local `--config`.
 
 ### 3.3 Contexts: personal, group, org
 
