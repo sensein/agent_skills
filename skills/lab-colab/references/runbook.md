@@ -48,24 +48,33 @@ The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, sign
 2. `colab.py app-manifest --out <folder>`. Open the file link it prints in a browser signed in to GitHub as an org owner. Press **Create the App on GitHub**, then **Create GitHub App for `<org>`**.
 3. You land on the App's settings page. Copy the **App ID** (a number near the top) into the entry as `app_id = <number>`, by PR.
 4. On the same page, under **Private keys**, click **Generate a private key**. Your browser downloads `<app>.<date>.private-key.pem`.
-5. Store the two secrets, then delete the file:
+5. Re-plan and apply: the `colab-state` ruleset gains the App (an `Integration` bypass, by `app_id`; nothing is removed), and apply creates the `colab-bus` environment with the default branch as its only deployment branch. By hand, the same is:
 
    ```bash
-   gh secret set COLAB_APP_ID --repo <org>/<meta repo> --body <App ID>
-   gh secret set COLAB_APP_PRIVATE_KEY --repo <org>/<meta repo> < ~/Downloads/<app>.<date>.private-key.pem
+   gh api -X PUT repos/<org>/<meta repo>/environments/colab-bus --input - <<< '{"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}'
+   gh api -X POST repos/<org>/<meta repo>/environments/colab-bus/deployment-branch-policies -f name=<default branch> -f type=branch
+   ```
+
+   Optional: in Settings > Environments > colab-bus, add required reviewers, so a run waits for one of them (scheduled runs wait too).
+6. Store the secrets in that environment, never as repository secrets (a workflow on any branch can read repository secrets), then delete the file:
+
+   ```bash
+   gh secret set COLAB_APP_ID --env colab-bus --repo <org>/<meta repo> --body <App ID>
+   gh secret set COLAB_APP_PRIVATE_KEY --env colab-bus --repo <org>/<meta repo> < ~/Downloads/<app>.<date>.private-key.pem
    rm ~/Downloads/<app>.<date>.private-key.pem
    ```
 
-6. Install the App: open `https://github.com/apps/<app>/installations/new`, click **Install** next to the org, choose **Only select repositories**, and pick the meta repo and every space repo (or **All repositories**: no upkeep when spaces change, but the App can then write issues in every repo).
-7. Re-plan and apply: the `colab-state` ruleset gains the App (an `Integration` bypass, by `app_id`); nothing is removed.
+7. Install the App: open `https://github.com/apps/<app>/installations/new`, click **Install** next to the org, choose **Only select repositories**, and pick only what the plan lists: the meta repo, the space repos, and the subscriber repos in the org. Not **All repositories**: the App could then write issues and files in every repo. Add a repo there when a space or subscription gains one.
 8. Seed the workflow by PR: `colab.py seed --dest <meta clone> --refresh-bus` (it also refreshes `bus/colab_bus.py` and `bus/colab.py`), scan, open the PR, merge after review.
 9. Start the first run: Actions tab > colab-bus > **Run workflow** (or `gh workflow run colab-bus.yml --repo <org>/<meta repo>`). If the meta repo has no `colab-state` branch yet, this run creates it (only once the ruleset is active). `colab.py bus status` then shows it.
 
 **Checking it.** `colab.py bus status`; the workflow's runs in the Actions tab (each run prints one JSON line: its stats and counts of its audit lines, no item text); the watchdog. A red run means it could not sign in (secrets, installation) or could not run; the line says why in words.
 
-**Rotating the key.** On the App's page, **Generate a private key** (a new `.pem`); `gh secret set COLAB_APP_PRIVATE_KEY --repo <org>/<meta repo> < <new file>.pem`; delete the file; run the workflow once and check it is green; then **Delete** the old key on the App's page. The bus's sealed state (entries about restricted items) was keyed to the old key: the next run drops it and carries the restricted flags from the published security state, by hash, so no flag is lost.
+**Rotating the key.** On the App's page, **Generate a private key** (a new `.pem`); `gh secret set COLAB_APP_PRIVATE_KEY --env colab-bus --repo <org>/<meta repo> < <new file>.pem`; delete the file; run the workflow once and check it is green; then **Delete** the old key on the App's page. **Rotate at once if the secrets were ever repository secrets** (not environment secrets), or ever readable from another branch: any member with write could have read them. Delete those repository secrets first (`gh secret delete COLAB_APP_PRIVATE_KEY --repo <org>/<meta repo>`, and the same for `COLAB_APP_ID` and `COLAB_SIGNING_KEY`); `colab.py setup --app` refuses them until they are gone.
 
-**Disabling it.** Actions tab > colab-bus > **...** > **Disable workflow**. A standby takes over once the lease is stale (45 minutes). To remove it for good: delete the `[[buses]]` entry and the workflow by PR, delete the two secrets, and uninstall or delete the App (Organization settings > GitHub Apps); re-plan (the ruleset keeps its `Integration` bypass until an owner removes it: apply never removes one).
+**Disabled by GitHub.** GitHub turns a scheduled workflow off after 60 days without repository activity (the watchdog alerts: "The colab-bus workflow is disabled_inactivity"). Re-enable it: Actions tab > colab-bus > **Enable workflow**. The watchdog is a scheduled workflow too, so it can be turned off the same way; the rollout's regular PRs keep both on.
+
+**Disabling it.** Actions tab > colab-bus > **...** > **Disable workflow**. A standby takes over once the lease is stale (45 minutes). To remove it for good: delete the `[[buses]]` entry and the workflow by PR, delete the two secrets, delete the `colab-bus` environment, and uninstall or delete the App (Organization settings > GitHub Apps); re-plan (the ruleset keeps its `Integration` bypass until an owner removes it: apply never removes one).
 
 **Moving from an ORCD bus.** Run both for a while, with the ORCD bus as the standby, then retire it:
 
@@ -74,7 +83,7 @@ The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, sign
 3. Watch a few days: green runs, `bus status`, a quiet watchdog, deliveries in live spaces.
 4. Keep the ORCD bus as a standby, or retire it: cancel the job, remove its entry by PR, and have an owner take the operator out of `colab-bus-operators`.
 
-**Limits.** Scheduled runs can start late (the lease therefore lasts at least 45 minutes and the CLI accepts a security state up to 60 minutes old). GitHub turns off a schedule after 60 days without repository activity; the rollout's PRs keep it on. An `[scan] injection_command` that needs ORCD does not run in Actions (the rules do). The drift check (section 2) does not run in Actions either: run `colab.py plan` yourself now and then. The audit log of a run is not kept.
+**Limits.** Scheduled runs can start late, so the lease lasts at least 45 minutes (a standby takes over after 45 minutes, not 15) and the CLI accepts a security state up to 60 minutes old (a replayed or stale state passes for up to an hour; lower `[security] state_max_age_minutes` to shorten that, at the cost of failing closed when a run is late). Each run is a deployment to the `colab-bus` environment, so the repo's Deployments list grows. An `[scan] injection_command` that needs ORCD does not run in Actions (the rules do). The drift check (section 2) does not run in Actions either: run `colab.py plan` yourself now and then. Audit lines go to `audit/<YYYY-MM>.jsonl` on `colab-state` without spans or reasons; the full lines with spans stay in the run's temporary folder and are not kept.
 
 ## 5. Operating a standby bus on a cluster
 
