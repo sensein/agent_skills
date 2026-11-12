@@ -943,15 +943,23 @@ def migrate_case(state: dict, keys: set[str]) -> None:
         state["links_checked"] = {fix(k): v for k, v in state["links_checked"].items()}
 
 
-def already_delivered(gh, repo_path: str, key: str, since: str) -> bool:
-    """Is there already a delivery with this idempotency key (the envelope id) in the subscriber repo, from any bus?
-    Reads the repo's issues updated since the event (one page, newest first). A failed read counts as not found."""
+def already_delivered(gh, repo_path: str, key: str, since: str, writers: set[str] | frozenset = frozenset()) -> bool:
+    """Is there already a delivery with this idempotency key (the envelope id) in the subscriber repo, opened by a
+    bus? Only issues whose author is in `writers` (the registered operators, or the bus's own login without
+    [[buses]]) count: envelope ids are predictable, so an issue anyone else opens with the marker must never
+    suppress a delivery. Reads the repo's issues updated since the event (one page, newest first). A failed read
+    counts as not found."""
+    writers = {w.lower() for w in writers if w}
+    if not writers:
+        return False
     try:
         issues = gh.get(f"{repo_path}/issues?state=all&sort=created&direction=desc&per_page=100&since={since}",
                         conditional=False) or []
     except (urllib.error.URLError, OSError):
         return False
     for issue in issues if isinstance(issues, list) else []:
+        if str(((issue or {}).get("user") or {}).get("login") or "").lower() not in writers:
+            continue
         for m in DELIVERY_KEY.finditer((issue or {}).get("body") or ""):
             if m["key"] == key:
                 return True
@@ -959,7 +967,7 @@ def already_delivered(gh, repo_path: str, key: str, since: str) -> bool:
 
 
 def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path,
-              bot: str, save=lambda: None, store=None, bus_id: str = "", operator: str = "") -> dict:
+              bot: str, save=lambda: None, store=None, bus_id: str = "", operator: str = "", writers=None) -> dict:
     org = config["org"]["name"]
     meta_repo = config["org"].get("meta_repo", "lab-colab")
     spaces = config.get("spaces") or {}
@@ -970,6 +978,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     interval = config.get("bus", {}).get("write_interval_seconds", 1.0)
     threshold = config.get("bus", {}).get("fanout_digest_threshold", 20)
     stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
+    writers = set(writers) if writers is not None else {operator or bot}  # whose delivery issues count for a key
     # External repos: by default only items that involve org members ([bus] external_track = "involved");
     # "all" takes every item. Any other value counts as "involved". The member list is read once per poll.
     track_all = config.get("bus", {}).get("external_track", "involved") == "all"
@@ -1548,7 +1557,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     _append(state_dir / "audit.jsonl", {"dropped": {"digest": env["id"], "reason": "meta tier"}, "at": now()})
                 elif live(meta_key) or any(live(d["to"]) for d in deliveries):
                     _, untrusted = delivery_text(env)
-                    if already_delivered(gh, f"/repos/{org}/{meta_repo}", env["id"], env["at"] or now()):
+                    if already_delivered(gh, f"/repos/{org}/{meta_repo}", env["id"], env["at"] or now(), writers):
                         stats["deliveries_skipped"] = stats.get("deliveries_skipped", 0) + 1
                         _append(state_dir / "audit.jsonl", {"delivery_exists": env["id"], "to": meta_repo, "at": now()})
                     elif write(f"/repos/{org}/{meta_repo}/issues", {
@@ -1564,7 +1573,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             for d in deliveries:
                 if live(d["to"]) and d["via"] == "issue" and not is_external(d["to"]):
                     _, untrusted = delivery_text(env)
-                    if already_delivered(gh, path(d["to"]), env["id"], env["at"] or now()):
+                    if already_delivered(gh, path(d["to"]), env["id"], env["at"] or now(), writers):
                         stats["deliveries_skipped"] = stats.get("deliveries_skipped", 0) + 1
                         _append(state_dir / "audit.jsonl", {"delivery_exists": env["id"], "to": d["to"], "at": now()})
                     elif write(f"{path(d['to'])}/issues", {
@@ -1742,6 +1751,8 @@ def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats
                                             "at": now()})
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     published = state.get("security_published")
+    if getattr(store, "hold", False):
+        return  # colab-state could not be read this poll: publish nothing rather than fall back to the variable
     if store is not None and store.available:
         try:
             live = store.read(SECURITY_FILE)
@@ -1811,6 +1822,10 @@ class StateConflict(RuntimeError):
     """The colab-state ref moved since it was read (another bus committed): re-read and decide again."""
 
 
+class StateReadError(RuntimeError):
+    """colab-state exists but could not be read just now (a transient failure, not a missing branch)."""
+
+
 class StateBranch:
     """The protected `colab-state` branch of the meta repo, read at one commit and written with at most one commit
     per poll: the staged files go into one tree (on top of the head's tree), one commit whose only parent is the
@@ -1835,7 +1850,7 @@ class StateBranch:
         commit = self.gh.get(f"{self.base}/git/commits/{sha}", conditional=False)
         tree = ((commit.get("tree") or {}).get("sha")) if isinstance(commit, dict) else None
         if not tree:
-            return False
+            raise StateReadError(f"{STATE_BRANCH} head {sha[:12]} could not be read")
         self.head, self.tree, self.available = sha, tree, True
         return True
 
@@ -1858,6 +1873,24 @@ class StateBranch:
             return json.loads(text) if text else None
         except ValueError:
             return None
+
+    def file_date(self, path: str) -> str | None:
+        """The committer date, as GitHub returns it, of the newest commit that changed `path` (None when none).
+        The bus commits without setting dates, so GitHub stamps its own time: lease freshness never depends on a
+        writer's clock."""
+        commits = self.gh.get(f"{self.base}/commits?sha={self.head}&path={path}&per_page=1", conditional=False)
+        if not isinstance(commits, list) or not commits or not isinstance(commits[0], dict):
+            return None
+        return ((commits[0].get("commit") or {}).get("committer") or {}).get("date")
+
+    def read_lease(self) -> dict | None:
+        """lease.json, with `renewed_at` replaced by the server-side date of the commit that last wrote it."""
+        lease = self.read_json(LEASE_FILE)
+        if isinstance(lease, dict):
+            served = self.file_date(LEASE_FILE)
+            if served:
+                lease = {**lease, "written_renewed_at": lease.get("renewed_at"), "renewed_at": served}
+        return lease if isinstance(lease, dict) else None
 
     def head_author(self) -> str:
         """The GitHub login that made the head commit ('' when unknown)."""
@@ -1897,6 +1930,13 @@ class StateBranch:
             fn()
         self.staged, self._callbacks, self._read = {}, [], {}
         return self.head
+
+
+class HoldStore:
+    """A store that is not available and must not fall back to the Actions variables: publishing is held for this
+    poll (used when colab-state could not be read)."""
+    available = False
+    hold = True
 
 
 def operator_refusal(gh, org: str, entry: dict, login: str) -> str | None:
@@ -2022,15 +2062,27 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         operators = {login}
     route_bot = bot if bot is not None else ("" if entries else login)  # operator-run: own deliveries carry the marker
     ident = {"bus": entry["id"], "operator": entry["operator"], "host": entry.get("host", ""), "role": entry["role"]}
+    writers = operators
     store = StateBranch(gh, org, meta)
+
+    def keep_role(err) -> dict:
+        """A transient read failure never counts as "no lease": the bus keeps the role it had for this poll. An
+        active bus keeps delivering (delivery keys stop duplicates) but writes nothing to colab-state; a standby
+        stays standing by."""
+        _append(audit, {"state_branch_read_failed": str(err)[:300], "kept_role": state.get("bus_mode") or "passive", "at": now()})
+        if state.get("bus_mode") == "active":
+            found = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, store=HoldStore(),
+                         bus_id=entry["id"], operator=entry["operator"], writers=writers)
+            return {**ident, **found, "active": True, "state_read_failed": True, "errors": found.get("errors", 0) + 1}
+        return {**ident, "passive": True, "reason": "could not read the colab-state branch this poll", "errors": 1}
     try:
         store.load()
-    except (urllib.error.URLError, OSError) as err:
-        _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
-        return {**ident, "passive": True, "reason": "could not read the colab-state branch", "errors": 1}
+    except (urllib.error.URLError, OSError, StateReadError) as err:
+        return keep_role(err)
     if not store.available:
         # Migration: one release on the Actions variables, single bus, no lease (variables cannot compare-and-set).
-        stats = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, bus_id=entry["id"], operator=entry["operator"])
+        stats = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, bus_id=entry["id"], operator=entry["operator"],
+                     writers=writers)
         stats["state_branch"] = f"missing: run colab.py plan, which proposes creating {STATE_BRANCH}"
         if state.get("state_branch_warned", "")[:10] != now()[:10]:
             _append(audit, {"state_branch_missing": True, "fallback": "Actions variables (deprecated)", "at": now()})
@@ -2053,7 +2105,14 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
     passive_every = float((config.get("bus") or {}).get("passive_heartbeat_minutes", 30))
     was_active = False
     for attempt in range(3):
-        lease = store.read_json(LEASE_FILE)
+        try:
+            lease = store.read_lease()
+        except (urllib.error.URLError, OSError) as err:
+            if attempt == 0:
+                return keep_role(err)
+            stats["errors"] = stats.get("errors", 0) + 1
+            _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
+            break
         mode, why = lease_decision(lease, entry, entries or [entry], now_t, ttl)
         if attempt == 0:
             if mode == "active":
@@ -2066,7 +2125,7 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
                     if previous and previous != entry["id"]:
                         stats["took_over_from"] = previous
                 found = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, store=store,
-                             bus_id=entry["id"], operator=entry["operator"])
+                             bus_id=entry["id"], operator=entry["operator"], writers=writers)
                 for k, v in found.items():
                     stats[k] = stats.get(k, 0) + v if isinstance(v, int) and not isinstance(v, bool) and k in stats else v
             else:
@@ -2089,7 +2148,12 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         try:
             sha = store.commit(f"bus {entry['id']} ({entry['operator']}): {'poll' if active else 'standby'} at {now()}")
         except StateConflict:
-            if not store.load():
+            try:
+                if not store.load():
+                    break
+            except (urllib.error.URLError, OSError, StateReadError) as err:
+                stats["errors"] = stats.get("errors", 0) + 1
+                _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
                 break
             continue
         except (urllib.error.URLError, OSError) as err:

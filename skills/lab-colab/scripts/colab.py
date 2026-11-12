@@ -224,8 +224,9 @@ def state_branch_readme(config: dict) -> str:
 
 # --------------------------------------------------------------------------- the operator's assistant token
 #
-# Operators run the bus with their own login, so their own assistant must not hold that login's full rights: it
-# gets a lesser, fine-grained token. GitHub pre-fills the token form from URL parameters on TOKEN_NEW_URL
+# Operators run the bus with their own login, so their own assistant's ordinary gh calls use a lesser, fine-grained
+# token instead of that login. This narrows mistakes and ordinary misuse; it is NOT a boundary against a hijacked
+# agent running as the same OS user, which can bypass GH_CONFIG_DIR or read the operator's gh config. GitHub pre-fills the token form from URL parameters on TOKEN_NEW_URL
 # (`name`, `description`, `target_name`, `expires_in`, and one parameter per permission, named as in GitHub's
 # permission tables, valued read|write|admin). ASSISTANT_TOKEN_PERMISSIONS is the only place the grant is spelled.
 
@@ -239,7 +240,7 @@ ASSISTANT_TOKEN_PERMISSIONS = {
     "organization_projects": "write",  # the lab Project board
     "members": "read",                 # who is in the org and its teams
 }
-# Never in the assistant's token: these would let a hijacked assistant change the gate's state or the repo rules.
+# Never in the assistant's token: its ordinary calls must not change the gate's state or the repo rules.
 ASSISTANT_TOKEN_FORBIDDEN = ("administration", "organization_administration", "actions_variables",
                              "organization_actions_variables", "secrets", "workflows")
 ASSISTANT_TOKEN_DAYS = 90
@@ -888,36 +889,61 @@ def desired_rulesets(team_id) -> dict[str, dict]:
     }
 
 
-def _ruleset_shape(r: dict) -> dict:
-    """What the plan compares: target, enforcement, included refs, rule types (+ review count), bypass actors."""
-    rules = {}
-    for rule in r.get("rules") or []:
-        if isinstance(rule, dict):
-            params = rule.get("parameters") or {}
-            rules[rule.get("type")] = params.get("required_approving_review_count") if rule.get("type") == "pull_request" else True
-    bypass = sorted((str(b.get("actor_type")), str(b.get("actor_id")), str(b.get("bypass_mode")))
-                    for b in r.get("bypass_actors") or [] if isinstance(b, dict))
-    include = sorted(((r.get("conditions") or {}).get("ref_name") or {}).get("include") or [])
-    return {"target": r.get("target"), "enforcement": r.get("enforcement"), "include": include, "rules": rules, "bypass": bypass}
-
-
-def _ruleset_covers(have: dict, want: dict) -> bool:
-    """True when the existing ruleset is at least as strict as wanted: same target and refs, active, every wanted
-    rule present (a higher review count is fine), and no bypass actor beyond the wanted ones."""
-    h, w = _ruleset_shape(have), _ruleset_shape(want)
-    if h["target"] != w["target"] or h["enforcement"] != "active" or h["include"] != w["include"]:
-        return False
-    for rule, value in w["rules"].items():
-        if rule not in h["rules"]:
-            return False
-        if rule == "pull_request" and int(h["rules"][rule] or 0) < int(value or 0):
-            return False
-    return set(h["bypass"]) <= set(w["bypass"])
+def merge_ruleset(have: dict, want: dict) -> tuple[dict | None, list[str]]:
+    """Merge the plan's ruleset into an existing one of ours, only ever adding: missing rule types, missing included
+    refs, and missing bypass actors that the plan wants. Never removes a rule, condition, or bypass actor, and never
+    changes an existing rule's parameters. Returns (body for PUT or None when nothing to add, conflicts). A conflict
+    (wrong target, not active, a weaker existing rule, extra bypass actors, bypass list not visible) is left to a
+    person: the caller emits a manual note instead of replacing anything."""
+    conflicts: list[str] = []
+    if have.get("target") != want["target"]:
+        conflicts.append(f"its target is {have.get('target')!r}, not {want['target']!r}")
+    if have.get("enforcement") != "active":
+        conflicts.append(f"its enforcement is {have.get('enforcement')!r}, not 'active'")
+    if "bypass_actors" not in have:
+        conflicts.append("its bypass list was not visible to this login (an admin must review it)")
+    rules = [dict(r) for r in have.get("rules") or [] if isinstance(r, dict)]
+    have_types = {r.get("type"): r for r in rules}
+    added = []
+    for rule in want["rules"]:
+        current = have_types.get(rule["type"])
+        if current is None:
+            rules.append(rule)
+            added.append(f"rule {rule['type']}")
+        elif rule["type"] == "pull_request":
+            need = rule["parameters"]["required_approving_review_count"]
+            if int((current.get("parameters") or {}).get("required_approving_review_count") or 0) < need:
+                conflicts.append(f"its pull_request rule needs fewer than {need} approval(s)")
+    cond = json.loads(json.dumps(have.get("conditions") or {}))
+    ref = cond.setdefault("ref_name", {})
+    include = list(ref.get("include") or [])
+    for target in want["conditions"]["ref_name"]["include"]:
+        if target not in include:
+            include.append(target)
+            added.append(f"target {target}")
+    ref["include"], ref["exclude"] = include, list(ref.get("exclude") or [])
+    bypass = [dict(x) for x in have.get("bypass_actors") or [] if isinstance(x, dict)]
+    key = lambda x: (str(x.get("actor_type")), str(x.get("actor_id")))  # noqa: E731
+    wanted = {key(x) for x in want["bypass_actors"]}
+    extra = [x for x in bypass if key(x) not in wanted]
+    if extra:
+        conflicts.append("it has bypass actors beyond the plan's: "
+                         + ", ".join(f"{x.get('actor_type')} {x.get('actor_id')}" for x in extra))
+    for x in want["bypass_actors"]:
+        if key(x) not in {key(y) for y in bypass}:
+            bypass.append(x)
+            added.append(f"bypass {x['actor_type']}")
+    if not added:
+        return None, conflicts
+    return {"name": have.get("name"), "target": have.get("target"), "enforcement": have.get("enforcement"),
+            "conditions": cond, "rules": rules, "bypass_actors": bypass}, conflicts
 
 
 def operator_actions(config: dict, snapshot: dict) -> list[dict]:
-    """Plan steps for operator-run buses: the `colab-bus-operators` team (members = the operators in [[buses]]),
-    the `colab-state` branch, and the two rulesets on the meta repo. Other rulesets are never changed."""
+    """Plan steps for operator-run buses, in a safe order: the `colab-bus-operators` team (created empty; members are
+    added by a person, never by apply, so a config edit cannot grant push rights), the default-branch ruleset, the
+    colab-state ruleset (it can target the branch name before the branch exists), and only then the branch. Other
+    rulesets are never changed, and ours are only ever added to."""
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     out: list[dict] = []
     operators = bus_operators(config)
@@ -927,40 +953,51 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
                                         "the bus runs under its operator's GitHub login, and operators form the "
                                         f"{OPERATORS_TEAM} team"))
     if team is None:
-        out.append(_action("gh", 0, f"Create the team {OPERATORS_TEAM} in {org}: its members run the bus and are the only ones "
-                                    f"who may update the {STATE_BRANCH} branch",
+        out.append(_action("gh", 0, f"Create the team {OPERATORS_TEAM} in {org} (empty): its members run the bus and are the only "
+                                    f"ones who may update the {STATE_BRANCH} branch",
                            ["gh", "api", "-X", "POST", f"orgs/{org}/teams", "-f", f"name={OPERATORS_TEAM}", "-f", "privacy=closed",
                             "-f", "description=Lab Colab bus operators: may update the colab-state branch of the meta repo"]))
     have_members = set((team or {}).get("members") or [])
     for login in operators:
         if login not in have_members:
-            out.append(_action("gh", 0, f"Add {login} (operator of a bus in [[buses]]) to {OPERATORS_TEAM}",
+            out.append(_action("manual", 0, f"An org owner adds {login} (operator of a bus in [[buses]]) to {OPERATORS_TEAM}, after "
+                                            "checking that the [[buses]] entry was merged by a reviewed PR. Apply never does this: "
+                                            "team membership grants push rights on colab-state",
                                ["gh", "api", "-X", "PUT", f"orgs/{org}/teams/{OPERATORS_TEAM}/memberships/{login}", "-f", "role=member"]))
     extra = sorted(have_members - set(operators))
     if team is not None and extra:
         out.append(_action("manual", 0, f"{OPERATORS_TEAM} also has {', '.join(extra)}, who run no bus in [[buses]]. They can update "
                                         f"{STATE_BRANCH}; remove them in the team settings unless they are break-glass operators"))
-    if not snapshot.get("state_branch"):
-        out.append(_action("gh", 0, f"Create the {STATE_BRANCH} branch in {org}/{meta} (an orphan branch with a README): the bus keeps "
-                                    "its lease, heartbeats, and the security state there instead of Actions variables",
-                           ["colab.py", "apply", "(built in: create the orphan branch with the Git Data API)"],
-                           fn="state_init"))
     team_id = (team or {}).get("id") or TEAM_ID_PLACEHOLDER
     have = {r["name"]: r for r in snapshot.get("rulesets") or [] if not r.get("foreign")}
-    for name, want in desired_rulesets(team_id).items():
-        current = have.get(name)
-        if current is not None and _ruleset_covers(current, want):
-            continue
-        body = json.dumps(want)
+    wanted = desired_rulesets(team_id)
+    for name in (RULESET_DEFAULT, RULESET_STATE):  # the default branch first, then colab-state, then the branch
+        want, current = wanted[name], have.get(name)
         if current is None:
             desc = (f"Create the ruleset '{name}' on {org}/{meta}: "
-                    + (f"only {OPERATORS_TEAM} may update or delete {STATE_BRANCH}" if name == RULESET_STATE
+                    + (f"only {OPERATORS_TEAM} may update or delete {STATE_BRANCH} (created before the branch)" if name == RULESET_STATE
                        else "the default branch changes only by a reviewed PR (no direct pushes)"))
-            cmd = ["gh", "api", "-X", "POST", f"repos/{org}/{meta}/rulesets", "--input", "-"]
-        else:
-            desc = f"Update the ruleset '{name}' on {org}/{meta} (id {current['id']}): it is looser than the plan's"
-            cmd = ["gh", "api", "-X", "PUT", f"repos/{org}/{meta}/rulesets/{current['id']}", "--input", "-"]
-        out.append(_action("gh", 0, desc, cmd, input=body))
+            out.append(_action("gh", 0, desc, ["gh", "api", "-X", "POST", f"repos/{org}/{meta}/rulesets", "--input", "-"],
+                               input=json.dumps(want)))
+            continue
+        if team is None and name == RULESET_STATE:
+            continue  # its team bypass is compared once the team exists
+        body, conflicts = merge_ruleset(current, want)
+        if conflicts:
+            out.append(_action("manual", 0, f"The ruleset '{name}' (id {current.get('id')}) on {org}/{meta} differs from the plan in a "
+                                            f"way apply will not change: {'; '.join(conflicts)}. Review it in the repo settings "
+                                            "(Rules > Rulesets); apply only ever adds to a ruleset"))
+        elif body is not None:
+            out.append(_action("gh", 0, f"Add what is missing to the ruleset '{name}' on {org}/{meta} (id {current['id']}); "
+                                        "nothing existing is removed",
+                               ["gh", "api", "-X", "PUT", f"repos/{org}/{meta}/rulesets/{current['id']}", "--input", "-"],
+                               input=json.dumps(body)))
+    if not snapshot.get("state_branch"):
+        out.append(_action("gh", 0, f"Create the {STATE_BRANCH} branch in {org}/{meta} (an orphan branch with a README), only once "
+                                    f"the '{RULESET_STATE}' ruleset is active on it: the bus keeps its lease, heartbeats, and the "
+                                    "security state there instead of Actions variables",
+                           ["colab.py", "apply", "(built in: check the ruleset, then create the orphan branch with the Git Data API)"],
+                           fn="state_init"))
     return out
 
 
@@ -1083,11 +1120,15 @@ def _gh_input(args: list[str], payload: dict) -> object | None:
     return json.loads(out) if out else {}
 
 
-def state_init(config: dict, gh_input=None) -> tuple[bool, str]:
-    """Create the orphan `colab-state` branch holding only a README: one tree, one root commit, one ref.
-    Never touches an existing branch (creating a ref that exists fails)."""
+def state_init(config: dict, gh_input=None, gh=None) -> tuple[bool, str]:
+    """Create the orphan `colab-state` branch holding only a README: one tree, one root commit, one ref. Refuses
+    unless the colab-state ruleset is already active on that name (so the branch is never writable by every member,
+    even briefly). Never touches an existing branch (creating a ref that exists fails)."""
     gh_input = gh_input or _gh_input
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    why = state_rules_refusal(config, gh)
+    if why:
+        return False, f"not creating {STATE_BRANCH} yet: {why} (apply the '{RULESET_STATE}' ruleset first)"
     base = f"repos/{org}/{meta}/git"
     tree = gh_input(["api", "-X", "POST", f"{base}/trees"],
                     {"tree": [{"path": STATE_README, "mode": "100644", "type": "blob", "content": state_branch_readme(config)}]})
@@ -1129,8 +1170,9 @@ def _ago(at, now: datetime) -> str:
 def cmd_bus(config: dict, action: str, bus_id: str | None = None, gh=None, gh_input=None, login_fn=None,
             now: datetime | None = None, dry_run: bool = False, as_json: bool = False, out=None, err=None) -> int:
     """`bus status`: who holds the lease and each bus's last heartbeat, in plain words. `bus handback <id>`: write
-    the lease naming bus <id> (compare-and-set on the file's blob sha), so a returning primary takes over again; only
-    the operators team can write colab-state."""
+    the lease naming bus <id> (compare-and-set on the file's blob sha), so a returning primary takes over again.
+    Any operator (any member of the operators team) can hand the lease to any bus; the ruleset on colab-state only
+    limits it to that team. Lease freshness uses the date GitHub gave the commit that last wrote lease.json."""
     gh, gh_input = gh or _gh_json, gh_input or _gh_input
     out, err = out or sys.stdout, err or sys.stderr
     now = now or datetime.now(timezone.utc)
@@ -1138,6 +1180,12 @@ def cmd_bus(config: dict, action: str, bus_id: str | None = None, gh=None, gh_in
     entries = buses(config)
     ttl = lease_ttl_minutes(config)
     lease, sha = _state_file(config, LEASE_FILE, gh)
+    if isinstance(lease, dict):  # freshness from GitHub's own commit date, never the writer's clock
+        commits = gh(["api", f"repos/{org}/{meta}/commits?sha={STATE_BRANCH}&path={LEASE_FILE}&per_page=1"])
+        served = (((commits[0] if isinstance(commits, list) and commits and isinstance(commits[0], dict) else {})
+                   .get("commit") or {}).get("committer") or {}).get("date")
+        if served:
+            lease = {**lease, "renewed_at": served}
     if action == "status":
         listing = gh(["api", f"repos/{org}/{meta}/contents/heartbeat?ref={STATE_BRANCH}"])
         beats = {}
@@ -1736,7 +1784,9 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
 
 def _operator_checks(add, config, org, meta, login, env, home, settings_path, settings, settings_err, runner,
                      token_reader, http, cfg_abs, python, skill_dir) -> None:
-    """`setup --operator`: the bus entry, the operators team, and the lesser token for the operator's own assistant."""
+    """`setup --operator`: the bus entry, the operators team, and the lesser token for the operator's own assistant.
+    The lesser token narrows the assistant's ordinary gh calls; it is not a security boundary against an agent that
+    runs as the same OS user (that agent could unset GH_CONFIG_DIR or read the operator's gh config)."""
     entry = None
     try:
         entries = buses(config) if config else []
@@ -1777,7 +1827,7 @@ def _operator_checks(add, config, org, meta, login, env, home, settings_path, se
         token = (token_reader() or "").strip() or None
         pasted = token is not None
     if not token:
-        add("assistant token", "fail", "Your assistant still uses your full GitHub access, which could change the bus's state.",
+        add("assistant token", "fail", "Your assistant's GitHub calls still use your full login.",
             "a lesser fine-grained token: " + ", ".join(f"{k}={v}" for k, v in ASSISTANT_TOKEN_PERMISSIONS.items())
             + "; nothing else. If the link does not fill the form: " + " / ".join(assistant_token_steps(org)),
             "open the link (the form is filled in), click Generate token, copy it, then run `colab.py setup --operator` "
@@ -1792,8 +1842,9 @@ def _operator_checks(add, config, org, meta, login, env, home, settings_path, se
     if pasted:
         _private_write(token_file, token + "\n")
     _private_write(profile / "hosts.yml", gh_profile_hosts(login, token))
-    add("assistant token", "ok", "Your assistant has a lesser token: it can read and comment, but cannot change the bus's state.",
-        f"verified without writing; stored 0600 at {token_file}")
+    add("assistant token", "ok", "Your assistant's ordinary GitHub calls now use a lesser token (read and comment; no pushes, admin, or Actions variables).",
+        f"verified without writing; stored 0600 at {token_file}. This limits ordinary gh calls only: it is not a boundary "
+        "against a hijacked agent running as your OS user, which could unset GH_CONFIG_DIR or read your own gh login")
     current = (settings.get("env") or {}).get("GH_CONFIG_DIR")
     if current == str(profile):
         add("assistant uses it", "ok", "Your assistant uses the lesser token automatically.", f"settings.json env GH_CONFIG_DIR={profile}")
@@ -2711,6 +2762,34 @@ FORBIDDEN_STATE = (f"you cannot read the meta repo's security state (HTTP 403 on
 STATE_SOURCE = {"source": ""}  # where load_security_state read the state from, for `security status`
 
 
+def state_rules_refusal(config: dict, gh=None) -> str | None:
+    """Why colab-state cannot be trusted as protected, or None. GitHub's own view of the branch's active rules
+    (`rules/branches/colab-state`, readable by members) must include `update` (only bypass actors may push) and
+    `deletion`; and when the ruleset behind `update` shows its bypass list to this login, every bypass actor must be
+    the operators team. This is the trust anchor for the branch; the commit author is only a secondary hint."""
+    gh = gh or _gh_json
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    rules = gh(["api", f"repos/{org}/{meta}/rules/branches/{STATE_BRANCH}"])
+    if not isinstance(rules, list):
+        return f"could not read the rules that protect {STATE_BRANCH}"
+    by_type = {r.get("type"): r for r in rules if isinstance(r, dict)}
+    missing = [t for t in ("update", "deletion") if t not in by_type]
+    if missing:
+        return (f"{STATE_BRANCH} is not protected by active rules ({', '.join(missing)} missing), so anyone with write access "
+                f"could change it; `colab.py plan` proposes the '{RULESET_STATE}' ruleset")
+    rid = by_type["update"].get("ruleset_id")
+    ruleset = gh(["api", f"repos/{org}/{meta}/rulesets/{rid}"]) if rid else None
+    if isinstance(ruleset, dict) and isinstance(ruleset.get("bypass_actors"), list):
+        team = gh(["api", f"orgs/{org}/teams/{OPERATORS_TEAM}"])
+        team_id = team.get("id") if isinstance(team, dict) else None
+        bad = [b for b in ruleset["bypass_actors"] if not isinstance(b, dict) or b.get("actor_type") != "Team"
+               or (team_id is not None and b.get("actor_id") != team_id)]
+        if bad:
+            return (f"the ruleset that restricts updates of {STATE_BRANCH} lets others than {OPERATORS_TEAM} push: "
+                    + ", ".join(f"{b.get('actor_type')} {b.get('actor_id')}" for b in bad if isinstance(b, dict)))
+    return None
+
+
 def state_writer_refusal(config: dict, operators: list[str], gh=None) -> str | None:
     """With [[buses]] declared in the meta config, the last commit that changed the security file on colab-state
     must be by one of their operators (the ruleset already limits pushes to the operators team). Why not, or None."""
@@ -2823,7 +2902,10 @@ def load_security_state(config: dict, gh=None, now: datetime | None = None) -> t
             raw = base64.b64decode(blob["content"]).decode()
         except (ValueError, UnicodeDecodeError):
             return None, f"{SECURITY_FILE} on {STATE_BRANCH} is unreadable"
-        if settings.get("operators"):
+        why = state_rules_refusal(config, gh)
+        if why:
+            return None, why
+        if settings.get("operators"):  # a secondary hint: an author can be set by whoever pushes
             why = state_writer_refusal(config, settings["operators"], gh)
             if why:
                 return None, why

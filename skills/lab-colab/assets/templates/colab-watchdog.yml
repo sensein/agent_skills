@@ -28,6 +28,9 @@ jobs:
         run: |
           get() { gh api "repos/$GITHUB_REPOSITORY/contents/$1?ref=$2" --jq .content 2>/dev/null | base64 -d 2>/dev/null || true; }
           get lease.json colab-state > lease.json
+          # Freshness from GitHub's date for the commit that last wrote the lease, not the writer's clock.
+          gh api "repos/$GITHUB_REPOSITORY/commits?sha=colab-state&path=lease.json&per_page=1" \
+            --jq '.[0].commit.committer.date' > lease_date.txt 2>/dev/null || true
           get .colab/config.toml HEAD > config.toml
           mkdir -p beats
           for f in $(gh api "repos/$GITHUB_REPOSITORY/contents/heartbeat?ref=colab-state" --jq '.[].name' 2>/dev/null); do
@@ -66,7 +69,8 @@ jobs:
           if on_branch:
               lease = load("lease.json") or {}
               beats = {os.path.basename(p)[:-5]: (load(p) or {}) for p in glob.glob("beats/*.json")}
-              renewed = when(lease.get("renewed_at"))
+              served = open("lease_date.txt").read().strip() if os.path.exists("lease_date.txt") else ""
+              renewed = when(served) if served else when(lease.get("renewed_at"))
               ttl = float(os.environ.get("STALE_MINUTES") or lease.get("ttl_minutes") or 30)
               stale = renewed is None or now - renewed > dt.timedelta(minutes=ttl)
               holder = lease.get("holder")

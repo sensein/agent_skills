@@ -81,6 +81,7 @@ class FakeGit:
         self.ref: str | None = None
         self.ref_updates = 0
         self.variables: dict[str, str] = {}
+        self.clock = T0  # GitHub's own time, stamped on every commit
         self._n = 0
         if branch:
             tree = self._tree({"README.md": "state\n"})
@@ -97,11 +98,24 @@ class FakeGit:
 
     def _commit(self, tree: str, parents: list, author: str, message: str = "") -> str:
         sha = self._sha("commit")
-        self.commits[sha] = {"tree": tree, "parents": parents, "author": author, "message": message}
+        self.commits[sha] = {"tree": tree, "parents": parents, "author": author, "message": message,
+                             "date": self.clock.isoformat().replace("+00:00", "Z")}
         return sha
 
     def files(self) -> dict:
         return self.trees[self.commits[self.ref]["tree"]] if self.ref else {}
+
+    def last_change(self, sha: str, path: str) -> str | None:
+        """The newest commit reachable from sha (first parents) that changed path."""
+        while sha:
+            c = self.commits[sha]
+            parent = c["parents"][0] if c["parents"] else None
+            mine = self.trees[c["tree"]].get(path)
+            before = self.trees[self.commits[parent]["tree"]].get(path) if parent else None
+            if mine is not None and mine != before:
+                return sha
+            sha = parent
+        return None
 
     def push(self, author: str, files: dict) -> str:
         """A commit made outside the bus (e.g. someone else), on top of the head."""
@@ -117,9 +131,12 @@ class FakeBusGH:
         self.git, self.login, self.items = git, login, items or {}
         self.writes: list = []
         self.before_ref_update = None  # a hook to simulate another bus committing meanwhile
+        self.fail = ()  # path prefixes whose reads fail (a transient network error)
 
     def get(self, path, cache=False, conditional=True, **kw):
         g, b = self.git, self.BASE
+        if any(path.startswith(b + f) for f in self.fail):
+            raise urllib.error.URLError("temporary failure")
         if path == "/user":
             return {"login": self.login}
         if path == f"{b}/git/ref/heads/colab-state":
@@ -132,6 +149,11 @@ class FakeBusGH:
             c = g.commits.get(ref)
             text = g.trees[c["tree"]].get(rel) if c else None
             return None if text is None else {"content": base64.b64encode(text.encode()).decode(), "sha": "blob"}
+        if path.startswith(f"{b}/commits?"):
+            from urllib.parse import parse_qs as _pq
+            q = {k: v[0] for k, v in _pq(path.split("?", 1)[1]).items()}
+            found = g.last_change(q["sha"], q["path"])
+            return [{"sha": found, "commit": {"committer": {"date": g.commits[found]["date"]}}}] if found else []
         if path.startswith(f"{b}/commits/"):
             c = g.commits.get(path.rsplit("/", 1)[-1])
             return {"author": {"login": c["author"]}} if c else None
@@ -171,8 +193,8 @@ class FakeBusGH:
 
 def stub_poll(calls: list, publish: bool = True):
     """A poll that records how it was called and publishes the security state (into the store when given)."""
-    def poll(gh, config, rollout, subs, state, state_dir, bot, save=lambda: None, store=None, bus_id="", operator=""):
-        calls.append({"bus_id": bus_id, "operator": operator, "store": store, "bot": bot})
+    def poll(gh, config, rollout, subs, state, state_dir, bot, save=lambda: None, store=None, bus_id="", operator="", writers=None):
+        calls.append({"bus_id": bus_id, "operator": operator, "store": store, "bot": bot, "writers": writers})
         stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
         if publish:
             bus.publish_security_state(gh, config, state, state_dir, stats, store)
@@ -182,6 +204,7 @@ def stub_poll(calls: list, publish: bool = True):
 
 def run_cycle(gh, config, state, tmp, bus_id, now_t=T0, calls=None, **kw):
     calls = calls if calls is not None else []
+    gh.git.clock = now_t  # GitHub stamps commits with its own time; tests keep it in step with the bus
     return bus.cycle(gh, config, {"spaces": {}}, [], state, Path(tmp), gh.login, bus_id=bus_id, now_t=now_t,
                      poll=stub_poll(calls), **kw)
 
@@ -383,6 +406,52 @@ class CycleTests(unittest.TestCase):
             stats = run_cycle(gh, cfg(), state, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=10))
         self.assertNotIn("state_branch_foreign", stats)
 
+    def test_lease_freshness_uses_githubs_commit_date_not_the_writers_clock(self) -> None:
+        git = FakeGit()
+        forged = {"holder": "kab-hpc", "operator": "kabilar", "renewed_at": "2099-01-01T00:00:00Z", "ttl_minutes": 15}
+        git.clock = T0 - timedelta(hours=1)
+        git.push("kabilar", {"lease.json": json.dumps(forged)})  # written an hour ago, claims to be fresh until 2099
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = run_cycle(FakeBusGH(git, "satra"), cfg(), {}, tmp, "satra-orcd", calls=calls)
+        self.assertTrue(stats["active"])
+        self.assertEqual(stats["took_over_from"], "kab-hpc")
+        # and a lease whose writer's clock lags is still fresh when GitHub stamped it just now
+        git2 = FakeGit()
+        git2.clock = T0
+        git2.push("kabilar", {"lease.json": json.dumps({**forged, "renewed_at": "2000-01-01T00:00:00Z"})})
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = run_cycle(FakeBusGH(git2, "satra"), cfg(), {}, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=1))
+        self.assertTrue(stats["passive"])
+
+    def test_a_transient_read_failure_keeps_the_current_role(self) -> None:
+        git = FakeGit()
+        gh, state = FakeBusGH(git, "satra"), {}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_cycle(gh, cfg(), state, tmp, "satra-orcd")
+            updates = git.ref_updates
+            for failing in ("/git/commits/", "/contents/lease.json", "/commits?"):
+                gh.fail, calls = (failing,), []
+                stats = run_cycle(gh, cfg(), state, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=5), calls=calls)
+                self.assertTrue(stats["active"] and stats["state_read_failed"], (failing, stats))
+                self.assertEqual(len(calls), 1)  # still polls (delivery keys stop duplicates) ...
+                self.assertIsInstance(calls[0]["store"], bus.HoldStore)
+                self.assertEqual(git.ref_updates, updates)  # ... but writes nothing to colab-state
+                self.assertEqual(git.variables, {})  # and never falls back to the Actions variables
+            self.assertTrue(any("kept_role" in a for a in audit_lines(tmp)))
+            standby = FakeBusGH(git, "kabilar")
+            standby.fail = ("/git/commits/",)
+            calls = []
+            stats = run_cycle(standby, cfg(), {"bus_mode": "passive"}, tmp, "kab-hpc", now_t=T0 + timedelta(hours=2), calls=calls)
+            self.assertTrue(stats["passive"])  # a stale lease it cannot read is not "no lease"
+            self.assertEqual(calls, [])
+
+    def test_deliveries_count_only_registered_operators(self) -> None:
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+            run_cycle(FakeBusGH(FakeGit(), "satra"), cfg(), {}, tmp, "satra-orcd", calls=calls)
+        self.assertEqual(calls[0]["writers"], {"satra", "kabilar"})
+
     def test_wrong_operator_or_not_in_team_stays_passive_and_writes_nothing(self) -> None:
         for login, team in (("mallory", ("satra", "mallory")), ("satra", ("kabilar",))):
             git = FakeGit(team=team)
@@ -440,7 +509,7 @@ class DeliveryKeyTests(unittest.TestCase):
                  "baseline_at": {"proj": "2026-11-08T00:00:00Z", "dest": "2026-11-08T00:00:00Z"}}
         with tempfile.TemporaryDirectory() as tmp:
             return bus.poll_once(gh, cfg_, {"spaces": {"dest": {"bus": "live"}}}, [{"topic": "repo:proj", "subscriber": "dest"}],
-                                 state, Path(tmp), "", bus_id="satra-orcd", operator="satra")
+                                 state, Path(tmp), "", bus_id="satra-orcd", operator="satra", writers={"satra", "kabilar"})
 
     def test_new_delivery_carries_bus_operator_and_key(self) -> None:
         gh = self.gh([])
@@ -452,11 +521,22 @@ class DeliveryKeyTests(unittest.TestCase):
 
     def test_existing_key_from_any_bus_is_not_delivered_again(self) -> None:
         done = [{"number": 9, "body": "<!-- colab-delivery bus=kab-hpc operator=kabilar key=proj:issue:5:opened -->",
-                 "state": "open", "created_at": "2026-11-09T02:00:00Z", "updated_at": "2026-11-09T02:00:00Z", "labels": []}]
+                 "user": {"login": "kabilar"}, "state": "open", "created_at": "2026-11-09T02:00:00Z",
+                 "updated_at": "2026-11-09T02:00:00Z", "labels": []}]
         gh = self.gh(done)
         stats = self.poll(gh)
         self.assertEqual([w for w in gh.writes if w[1].endswith("/dest/issues")], [])
         self.assertEqual(stats["deliveries_skipped"], 1)
+
+    def test_a_marker_from_anyone_else_never_suppresses_a_delivery(self) -> None:
+        forged = [{"number": 9, "body": "<!-- colab-delivery bus=satra-orcd operator=satra key=proj:issue:5:opened -->",
+                   "user": {"login": "mallory"}, "state": "open", "created_at": "2026-11-09T02:00:00Z",
+                   "updated_at": "2026-11-09T02:00:00Z", "labels": []}]
+        gh = self.gh(forged)
+        stats = self.poll(gh)
+        self.assertEqual(len([w for w in gh.writes if w[1].endswith("/dest/issues")]), 1)
+        self.assertNotIn("deliveries_skipped", stats)
+        self.assertFalse(bus.already_delivered(gh, "/repos/sensein/dest", "proj:issue:5:opened", "x"))  # no writers: never
 
 
 class MissingProjectFieldTests(unittest.TestCase):
@@ -519,8 +599,11 @@ class MissingProjectFieldTests(unittest.TestCase):
 class FakeCli:
     """Stands in for colab._gh_json: the meta config, colab-state files, and who wrote them."""
 
-    def __init__(self, state=None, writer="satra", meta_buses=True, variable=None):
+    PROTECTED = [{"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11}]
+
+    def __init__(self, state=None, writer="satra", meta_buses=True, variable=None, rules="protected"):
         self.state, self.writer, self.variable = state, writer, variable
+        self.rules = self.PROTECTED if rules == "protected" else rules
         meta = '[security]\n' + ('[[buses]]\nid = "satra-orcd"\noperator = "satra"\nrole = "primary"\n' if meta_buses else "")
         self.meta = {"content": base64.b64encode(meta.encode()).decode()}
         self.calls = []
@@ -534,6 +617,8 @@ class FakeCli:
             return None if self.state is None else {"content": base64.b64encode(json.dumps(self.state).encode()).decode()}
         if path.startswith("repos/sensein/lab-colab/commits?sha=colab-state&path=security/state.json"):
             return [{"author": {"login": self.writer}}]
+        if path == "repos/sensein/lab-colab/rules/branches/colab-state":
+            return self.rules
         if "actions/variables/COLAB_SECURITY_STATE" in path:
             return None if self.variable is None else {"value": json.dumps(self.variable)}
         return None
@@ -556,6 +641,16 @@ class CliStateTests(unittest.TestCase):
         value, why = colab.load_security_state(self.CFG, FakeCli(state=fresh_state(), writer="mallory"))
         self.assertIsNone(value)
         self.assertIn("mallory", why)
+
+    def test_an_unprotected_branch_fails_closed(self) -> None:
+        for rules in ([], [{"type": "update"}], None):
+            value, why = colab.load_security_state(self.CFG, FakeCli(state=fresh_state(), rules=rules))
+            self.assertIsNone(value)
+            self.assertTrue("not protected" in why or "could not read" in why, why)
+        sec_cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "spaces": {"p": {"repos": ["proj"]}}}
+        cli = FakeCli(state=fresh_state(), rules=[])
+        gate = colab.gate_status(sec_cfg, "sensein/proj#3", gh=lambda a: {"login": "me"} if a == ["api", "user"] else cli(a))
+        self.assertTrue(gate["unavailable"])  # fails closed above public
 
     def test_falls_back_to_the_variable_marked_deprecated(self) -> None:
         value, why = colab.load_security_state(self.CFG, FakeCli(state=None, variable=fresh_state()))
@@ -652,25 +747,28 @@ class OperatorPlanTests(unittest.TestCase):
     def ops(self, snap, config=None):
         return colab.operator_actions(config or cfg(), snap)
 
-    def test_fresh_org_proposes_team_members_branch_and_rulesets(self) -> None:
+    def test_fresh_org_order_team_manual_rulesets_then_branch(self) -> None:
         acts = self.ops(op_snapshot())
         descs = [a["desc"] for a in acts]
         self.assertTrue(descs[0].startswith("Create the team colab-bus-operators"))
-        adds = [a["cmd"] for a in acts if "memberships" in " ".join(a["cmd"] or [])]
-        self.assertEqual([c[4].rsplit("/", 1)[-1] for c in adds], ["kabilar", "satra"])
-        [branch] = [a for a in acts if a.get("fn") == "state_init"]
-        self.assertEqual(branch["kind"], "gh")
+        adds = [a for a in acts if "memberships" in " ".join(a["cmd"] or [])]
+        self.assertEqual([a["kind"] for a in adds], ["manual", "manual"])  # never applied: membership grants push rights
+        self.assertEqual([a["cmd"][4].rsplit("/", 1)[-1] for a in adds], ["kabilar", "satra"])
         rulesets = [a for a in acts if "rulesets" in " ".join(a["cmd"] or [])]
-        self.assertEqual(len(rulesets), 2)
-        state_rs = json.loads(next(a["input"] for a in rulesets if colab.RULESET_STATE in a["input"]))
+        self.assertEqual([json.loads(a["input"])["name"] for a in rulesets], [colab.RULESET_DEFAULT, colab.RULESET_STATE])
+        [branch] = [a for a in acts if a.get("fn") == "state_init"]
+        self.assertEqual(acts[-1], branch)  # the branch comes after both rulesets
+        self.assertLess(acts.index(rulesets[1]), acts.index(branch))
+        state_rs = json.loads(rulesets[1]["input"])
         self.assertEqual(state_rs["conditions"]["ref_name"]["include"], ["refs/heads/colab-state"])
         self.assertEqual({r["type"] for r in state_rs["rules"]}, {"update", "deletion", "non_fast_forward"})
         self.assertEqual(state_rs["bypass_actors"], [{"actor_id": colab.TEAM_ID_PLACEHOLDER, "actor_type": "Team", "bypass_mode": "always"}])
-        default_rs = json.loads(next(a["input"] for a in rulesets if colab.RULESET_DEFAULT in a["input"]))
+        default_rs = json.loads(rulesets[0]["input"])
         self.assertEqual(default_rs["conditions"]["ref_name"]["include"], ["~DEFAULT_BRANCH"])
         pr = next(r for r in default_rs["rules"] if r["type"] == "pull_request")
         self.assertEqual(pr["parameters"]["required_approving_review_count"], 1)
         self.assertEqual(default_rs["bypass_actors"], [])
+        self.assertFalse(any(a["kind"] == "gh" and "memberships" in " ".join(a["cmd"] or []) for a in colab.build_plan({**colab.load_config(), "buses": BUSES}, op_snapshot())))
 
     def test_converged_org_proposes_nothing_and_other_rulesets_are_never_touched(self) -> None:
         team = {"id": 42, "slug": "colab-bus-operators", "members": ["kabilar", "satra"]}
@@ -678,21 +776,43 @@ class OperatorPlanTests(unittest.TestCase):
         rulesets = [{"id": 1, **want[colab.RULESET_STATE]}, {"id": 2, **want[colab.RULESET_DEFAULT]},
                     {"id": 3, "name": "someone else's", "foreign": True}]
         self.assertEqual(self.ops(op_snapshot(operators_team=team, state_branch=True, rulesets=rulesets)), [])
-        # a stricter existing ruleset (two reviews) is left alone too
         stricter = json.loads(json.dumps(want[colab.RULESET_DEFAULT]))
         stricter["rules"][2]["parameters"]["required_approving_review_count"] = 2
+        stricter["rules"].append({"type": "required_signatures"})
         rulesets[1] = {"id": 2, **stricter}
         self.assertEqual(self.ops(op_snapshot(operators_team=team, state_branch=True, rulesets=rulesets)), [])
 
-    def test_a_looser_ruleset_of_ours_is_updated_in_place(self) -> None:
+    def test_updates_only_add_and_never_remove(self) -> None:
         team = {"id": 42, "members": ["kabilar", "satra"]}
-        loose = colab.desired_rulesets(42)[colab.RULESET_STATE]
-        loose = {**loose, "id": 7, "bypass_actors": loose["bypass_actors"] + [{"actor_id": 9, "actor_type": "Team", "bypass_mode": "always"}]}
+        want = colab.desired_rulesets(42)
+        partial = json.loads(json.dumps(want[colab.RULESET_STATE]))
+        partial["rules"] = [{"type": "update"}, {"type": "required_linear_history"}]  # deletion missing; one extra
+        partial["conditions"]["ref_name"]["exclude"] = ["refs/heads/keep"]
         [act] = self.ops(op_snapshot(operators_team=team, state_branch=True,
-                                     rulesets=[loose, {"id": 2, **colab.desired_rulesets(42)[colab.RULESET_DEFAULT]}]))
-        self.assertEqual(act["cmd"][:4], ["gh", "api", "-X", "PUT"])
-        self.assertEqual(act["cmd"][4], "repos/sensein/lab-colab/rulesets/7")
-        self.assertEqual(json.loads(act["input"])["bypass_actors"][0]["actor_id"], 42)
+                                     rulesets=[{"id": 7, **partial}, {"id": 2, **want[colab.RULESET_DEFAULT]}]))
+        self.assertEqual(act["cmd"][:5], ["gh", "api", "-X", "PUT", "repos/sensein/lab-colab/rulesets/7"])
+        body = json.loads(act["input"])
+        types = [r["type"] for r in body["rules"]]
+        self.assertEqual(types[:2], ["update", "required_linear_history"])  # existing rules kept, in place
+        self.assertEqual(set(types), {"update", "required_linear_history", "deletion", "non_fast_forward"})
+        self.assertEqual(body["conditions"]["ref_name"]["exclude"], ["refs/heads/keep"])
+        self.assertEqual(body["bypass_actors"], want[colab.RULESET_STATE]["bypass_actors"])
+
+    def test_conflicts_become_manual_notes_not_replacements(self) -> None:
+        team = {"id": 42, "members": ["kabilar", "satra"]}
+        want = colab.desired_rulesets(42)
+        loose = json.loads(json.dumps(want[colab.RULESET_STATE]))
+        loose["bypass_actors"].append({"actor_id": 9, "actor_type": "Team", "bypass_mode": "always"})
+        weak = json.loads(json.dumps(want[colab.RULESET_DEFAULT]))
+        weak["rules"][2]["parameters"]["required_approving_review_count"] = 0
+        hidden = {k: v for k, v in want[colab.RULESET_DEFAULT].items() if k != "bypass_actors"}
+        for rulesets in ([{"id": 7, **loose}, {"id": 2, **want[colab.RULESET_DEFAULT]}],
+                         [{"id": 1, **want[colab.RULESET_STATE]}, {"id": 2, **weak}],
+                         [{"id": 1, **want[colab.RULESET_STATE]}, {"id": 2, **hidden}],
+                         [{"id": 1, **want[colab.RULESET_STATE], "enforcement": "evaluate"}, {"id": 2, **want[colab.RULESET_DEFAULT]}]):
+            acts = self.ops(op_snapshot(operators_team=team, state_branch=True, rulesets=rulesets))
+            self.assertEqual([a["kind"] for a in acts], ["manual"], acts)
+            self.assertIn("apply only ever adds", acts[0]["desc"])
 
     def test_extra_team_members_get_a_manual_note_not_a_removal(self) -> None:
         team = {"id": 42, "members": ["kabilar", "satra", "breakglass"]}
@@ -732,39 +852,64 @@ class OperatorPlanTests(unittest.TestCase):
         self.assertEqual([r["name"] for r in snap["rulesets"]], [colab.RULESET_STATE, "other"])
         self.assertNotIn("repos/sensein/lab-colab/rulesets/5", calls)
 
-    def test_apply_resolves_the_team_id_and_runs_the_branch_step(self) -> None:
+    def test_apply_resolves_the_team_id_and_runs_the_branch_step_last(self) -> None:
         acts = self.ops(op_snapshot())
-        ran = []
+        order = []
 
         def fake_run(cmd, **kw):
-            ran.append((cmd, kw.get("input")))
+            order.append(("run", cmd, kw.get("input")))
             return mock.Mock(returncode=0, stdout="{}", stderr="")
-        inits = []
         with mock.patch.object(colab.subprocess, "run", side_effect=fake_run), \
                 mock.patch.object(colab, "_gh_json", return_value={"id": 42}), \
-                mock.patch.dict(colab.BUILTIN_STEPS, {"state_init": lambda c: inits.append(c) or (True, "")}), \
+                mock.patch.dict(colab.BUILTIN_STEPS, {"state_init": lambda c: order.append(("init", None, None)) or (True, "")}), \
                 mock.patch("sys.stdout", new=io.StringIO()):
             rc = colab.apply(acts, yes=True, throttle=0, org="sensein", config_for_apply=cfg())
         self.assertEqual(rc, 0)
-        self.assertEqual(len(inits), 1)
-        posted = [json.loads(i) for c, i in ran if i]
-        self.assertEqual(len(posted), 2)
-        state_rs = next(p for p in posted if p["name"] == colab.RULESET_STATE)
-        self.assertEqual(state_rs["bypass_actors"][0]["actor_id"], 42)
+        self.assertEqual(order[-1][0], "init")
+        posted = [json.loads(i) for kind, c, i in order if i]
+        self.assertEqual([p["name"] for p in posted], [colab.RULESET_DEFAULT, colab.RULESET_STATE])
+        self.assertEqual(posted[1]["bypass_actors"][0]["actor_id"], 42)
+        self.assertFalse(any("memberships" in " ".join(c) for kind, c, i in order if c))
 
-    def test_state_init_makes_an_orphan_branch(self) -> None:
+    def rules_gh(self, rules, bypass=None):
+        def gh(args):
+            path = args[1]
+            if path == "repos/sensein/lab-colab/rules/branches/colab-state":
+                return rules
+            if path == "repos/sensein/lab-colab/rulesets/11":
+                return {"id": 11, **({"bypass_actors": bypass} if bypass is not None else {})}
+            if path == "orgs/sensein/teams/colab-bus-operators":
+                return {"id": 42}
+            return None
+        return gh
+
+    PROTECTED = [{"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11}, {"type": "non_fast_forward", "ruleset_id": 11}]
+
+    def test_state_init_refuses_until_the_ruleset_is_active(self) -> None:
         calls = []
 
         def gh_input(args, payload):
             calls.append((args[-1], payload))
             return {"sha": f"s{len(calls)}", "ref": "refs/heads/colab-state"}
-        ok, _ = colab.state_init(cfg(), gh_input)
+        ok, why = colab.state_init(cfg(), gh_input, gh=self.rules_gh([]))
+        self.assertFalse(ok)
+        self.assertIn("ruleset first", why)
+        self.assertEqual(calls, [])
+        ok, _ = colab.state_init(cfg(), gh_input, gh=self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"}]))
         self.assertTrue(ok)
         self.assertEqual([c[0] for c in calls], ["repos/sensein/lab-colab/git/trees", "repos/sensein/lab-colab/git/commits",
                                                   "repos/sensein/lab-colab/git/refs"])
         self.assertNotIn("base_tree", calls[0][1])
         self.assertEqual(calls[1][1]["parents"], [])
-        self.assertEqual(calls[2][1]["ref"], "refs/heads/colab-state")
+
+    def test_rules_refusal(self) -> None:
+        self.assertIsNone(colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED)))  # bypass list not visible: rules suffice
+        self.assertIsNone(colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"}])))
+        self.assertIn("deletion", colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED[:1])))
+        self.assertIn("could not read", colab.state_rules_refusal(cfg(), self.rules_gh(None)))
+        why = colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"},
+                                                                              {"actor_id": 1, "actor_type": "RepositoryRole"}]))
+        self.assertIn("RepositoryRole", why)
 
 
 # --------------------------------------------------------------------------- the operator's lesser token
@@ -977,6 +1122,8 @@ class OperatorSetupTests(unittest.TestCase):
             self.assertEqual(data["model"], "opus")
             self.assertEqual(len(list((home / ".claude").glob("settings.json.colab-bak-*"))), 1)
             self.assertEqual(got["assistant token"]["status"], "ok")
+            self.assertNotIn("cannot change", got["assistant token"]["say"])  # not a boundary: no such claim
+            self.assertIn("not a boundary", got["assistant token"]["details"])
             self.assertIn("start the bus", got)
             self.assertIn("sbatch", got["start the bus"]["note"])
             # re-run: the stored token is re-verified, nothing else changes
