@@ -359,6 +359,9 @@ BUS_WORKFLOW = ".github/workflows/colab-bus.yml"
 # The workflow's job runs in this Actions environment, whose deployment branches are the default branch only, and the
 # three secrets are environment secrets: a workflow on any other branch (anyone with write can push one) never sees them.
 BUS_ENVIRONMENT = "colab-bus"
+CODEOWNERS = ".github/CODEOWNERS"
+CODEOWNED = ("/.github/workflows/", "/bus/")  # the bus's workflow and code: their changes need a code owner's review
+_OWNER_RX = re.compile(r"^@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9_.-]+)?\Z")
 BUS_ENV_POLICY = {"protected_branches": False, "custom_branch_policies": True}
 
 
@@ -424,6 +427,25 @@ def env_commands(config: dict, branch: str) -> list[str]:
             f"gh api -X POST repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies -f name={branch} -f type=branch"]
 
 
+def code_owners(config: dict) -> list[str]:
+    """Who must review changes to the bus's workflow and code: `[bus] code_owners` ("@org/team" or "@login"), else the
+    operators team. Malformed entries are skipped."""
+    org = config["org"]["name"]
+    raw = (config.get("bus") or {}).get("code_owners") or [f"@{org}/{OPERATORS_TEAM}"]
+    return [str(o) for o in raw if _OWNER_RX.match(str(o))] or [f"@{org}/{OPERATORS_TEAM}"]
+
+
+def codeowners_lines(config: dict) -> list[str]:
+    owners = " ".join(code_owners(config))
+    return [f"{path} {owners}" for path in CODEOWNED]
+
+
+def codeowners_missing(text: str | None) -> list[str]:
+    """The bus paths that have no line in a CODEOWNERS text (a line for the path with any owners counts)."""
+    have = {line.split()[0] for line in (text or "").splitlines() if line.strip() and not line.lstrip().startswith("#")}
+    return [p for p in CODEOWNED if p not in have]
+
+
 def bus_install_repos(config: dict, subscribers=()) -> list[str]:
     """The repos the App must be installed on, and no others: the meta repo, the space repos in the org, and the
     subscriber repos in the org (deliveries are opened there). External repos are read without the App's install."""
@@ -484,8 +506,12 @@ def observe_apps(config: dict, gh=None) -> dict:
     bus_env: dict = {"exists": isinstance(env, dict) and bool(env.get("name"))}
     if bus_env["exists"]:
         policies = gh(["api", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies?per_page=100"])
+        rules = [r for r in env.get("protection_rules") or [] if isinstance(r, dict)]
         bus_env.update(policy=env.get("deployment_branch_policy"),
-                       reviewers=any(isinstance(r, dict) and r.get("type") == "required_reviewers" for r in env.get("protection_rules") or []),
+                       reviewers=any(r.get("type") == "required_reviewers" for r in rules),
+                       # any protection rule (wait timer, reviewers, custom rules) or self-review setting: never replaced
+                       protected=bool(rules) or bool(env.get("prevent_self_review"))
+                       or any(r.get("prevent_self_review") for r in rules) or env.get("can_admins_bypass") is False,
                        branches=[{"name": x.get("name"), "type": x.get("type") or "branch"}
                                  for x in (policies or {}).get("branch_policies") or [] if isinstance(x, dict)]
                        if isinstance(policies, dict) else None,
@@ -496,7 +522,12 @@ def observe_apps(config: dict, gh=None) -> dict:
     except (ValueError, UnicodeDecodeError):
         subs_text = ""
     workflow = gh(["api", f"repos/{org}/{meta}/contents/{BUS_WORKFLOW}"])
-    return {"apps": apps, "meta_secrets": names(gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])),
+    owners = gh(["api", f"repos/{org}/{meta}/contents/{CODEOWNERS}"])
+    try:
+        owners_text = base64.b64decode(owners["content"]).decode() if isinstance(owners, dict) and owners.get("content") else ""
+    except (ValueError, UnicodeDecodeError):
+        owners_text = ""
+    return {"bus_codeowners": not codeowners_missing(owners_text), "apps": apps, "meta_secrets": names(gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])),
             "meta_default_branch": (repo or {}).get("default_branch") if isinstance(repo, dict) else None,
             "bus_env": bus_env, "bus_subscribers": _subscriber_repos(subs_text, org),
             "bus_workflow": isinstance(workflow, dict) and bool(workflow.get("name") or workflow.get("content"))}
@@ -548,9 +579,12 @@ def app_actions(config: dict, snapshot: dict) -> list[dict]:
         desc = (f"Create the Actions environment '{BUS_ENVIRONMENT}' in {org}/{meta} with deployments from selected branches only "
                 f"(the next step allows {branch}, the default branch): the bus's secrets live in it, so a workflow pushed on any "
                 "other branch never sees them")
-        if env.get("exists") and env.get("reviewers"):
-            out.append(_action("manual", 0, desc + ". It exists with required reviewers, which a replace could drop: set "
-                                                   "Deployment branches to 'Selected branches and tags' in Settings > Environments by hand",
+        if env.get("exists") and (env.get("protected") or env.get("reviewers")):
+            out.append(_action("manual", 0, desc + ". It already has protection rules (a wait timer, reviewers, custom rules, or "
+                                                   "self-review settings), which a replace would reset, so apply leaves it alone. By hand: "
+                                                   f"Settings > Environments > {BUS_ENVIRONMENT} > Deployment branches and tags > "
+                                                   "'Selected branches and tags' (keep every other setting), then: "
+                                                   + env_commands(config, branch)[1],
                                link=f"https://github.com/{org}/{meta}/settings/environments"))
         else:
             out.append(_action("gh", 0, desc, ["gh", "api", "-X", "PUT", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}",
@@ -587,9 +621,11 @@ def app_actions(config: dict, snapshot: dict) -> list[dict]:
                                         + "; ".join(f"gh secret delete {n} --repo {org}/{meta}" for n in exposed)
                                         + f"), keep only the '{BUS_ENVIRONMENT}' environment's secrets, and rotate the App's key "
                                         "(runbook: rotating the key)", link=f"https://github.com/{org}/{meta}/settings/secrets/actions"))
-    if actions_buses(config) and snapshot.get("bus_workflow") is not True:
-        out.append(_action("local", 0, f"Seed the bus workflow ({BUS_WORKFLOW}) and refresh bus/ in the meta repo, then open a PR "
-                                       "(the default branch takes reviewed changes only)",
+    if actions_buses(config) and (snapshot.get("bus_workflow") is not True or snapshot.get("bus_codeowners") is False):
+        out.append(_action("local", 0, f"Seed the bus workflow ({BUS_WORKFLOW}), refresh bus/, and add {CODEOWNERS} lines so that "
+                                       f"changes to {' and '.join(CODEOWNED)} need a review by {', '.join(code_owners(config))} "
+                                       "(the default-branch ruleset requires code owner review; the owners need write access to the "
+                                       "meta repo), then open a PR (the default branch takes reviewed changes only)",
                            ["python", "colab.py", "seed", "--dest", f"<clone of {org}/{meta}>", "--refresh-bus"]))
     return out
 
@@ -1249,7 +1285,7 @@ def desired_rulesets(team_id, app_ids=()) -> dict[str, dict]:
                           "rules": [{"type": "deletion"}, {"type": "non_fast_forward"},
                                     {"type": "pull_request", "parameters": {
                                         "required_approving_review_count": 1, "dismiss_stale_reviews_on_push": True,
-                                        "require_code_owner_review": False, "require_last_push_approval": False,
+                                        "require_code_owner_review": True, "require_last_push_approval": False,
                                         "required_review_thread_resolution": False}}],
                           "bypass_actors": []},
     }
@@ -1280,6 +1316,10 @@ def merge_ruleset(have: dict, want: dict) -> tuple[dict | None, list[str]]:
             need = rule["parameters"]["required_approving_review_count"]
             if int((current.get("parameters") or {}).get("required_approving_review_count") or 0) < need:
                 conflicts.append(f"its pull_request rule needs fewer than {need} approval(s)")
+            if rule["parameters"].get("require_code_owner_review") and not (current.get("parameters") or {}).get("require_code_owner_review"):
+                # Only ever tightens: the code owners (CODEOWNERS: the bus workflow and bus/) must approve their changes.
+                current["parameters"] = {**(current.get("parameters") or {}), "require_code_owner_review": True}
+                added.append("code owner review")
     cond = json.loads(json.dumps(have.get("conditions") or {}))
     ref = cond.setdefault("ref_name", {})
     include = list(ref.get("include") or [])
@@ -1714,6 +1754,18 @@ def cmd_seed(dest: Path, config_path: Path | None, refresh_bus: bool = False) ->
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         written.append(path)
+    # CODEOWNERS: the bus's workflow and code need their owners' review. Missing lines are added; none is changed.
+    owners_path = dest / CODEOWNERS
+    if not owners_path.exists() or refresh_bus:
+        cfg = load_config(config_path) if config_path else load_config()
+        have = owners_path.read_text() if owners_path.exists() else ""
+        missing = codeowners_missing(have)
+        if missing:
+            new = [line for line in codeowners_lines(cfg) if line.split()[0] in missing]
+            head = "" if have else "# Lab Colab: changes to the bus's workflow and code need a review by their owners (colab.py seed).\n"
+            owners_path.parent.mkdir(parents=True, exist_ok=True)
+            owners_path.write_text(have + ("\n" if have and not have.endswith("\n") else "") + head + "\n".join(new) + "\n")
+            written.append(owners_path)
     scripts_dir = dest / "bus"
     for name in ("colab_bus.py", "colab.py"):
         target, source = scripts_dir / name, Path(__file__).with_name(name)

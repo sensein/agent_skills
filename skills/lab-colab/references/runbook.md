@@ -55,6 +55,8 @@ The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, sign
    gh api -X POST repos/<org>/<meta repo>/environments/colab-bus/deployment-branch-policies -f name=<default branch> -f type=branch
    ```
 
+   If the environment already has protection rules (a wait timer, reviewers, custom rules, self-review settings), apply leaves it alone and the plan prints these steps instead, so nothing is reset.
+
    Optional: in Settings > Environments > colab-bus, add required reviewers, so a run waits for one of them (scheduled runs wait too).
 6. Store the secrets in that environment, never as repository secrets (a workflow on any branch can read repository secrets), then delete the file:
 
@@ -65,7 +67,7 @@ The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, sign
    ```
 
 7. Install the App: open `https://github.com/apps/<app>/installations/new`, click **Install** next to the org, choose **Only select repositories**, and pick only what the plan lists: the meta repo, the space repos, and the subscriber repos in the org. Not **All repositories**: the App could then write issues and files in every repo. Add a repo there when a space or subscription gains one.
-8. Seed the workflow by PR: `colab.py seed --dest <meta clone> --refresh-bus` (it also refreshes `bus/colab_bus.py` and `bus/colab.py`), scan, open the PR, merge after review.
+8. Seed the workflow by PR: `colab.py seed --dest <meta clone> --refresh-bus` (it also refreshes `bus/colab_bus.py` and `bus/colab.py`, and adds `.github/CODEOWNERS` lines for `/.github/workflows/` and `/bus/`, owned by `[bus] code_owners`, default `@<org>/colab-bus-operators`, which needs write access to the meta repo; the default-branch ruleset requires code owner review, so changes there need an owner's approval; existing CODEOWNERS lines are never changed), scan, open the PR, merge after review.
 9. Start the first run: Actions tab > colab-bus > **Run workflow** (or `gh workflow run colab-bus.yml --repo <org>/<meta repo>`). If the meta repo has no `colab-state` branch yet, this run creates it (only once the ruleset is active). `colab.py bus status` then shows it.
 
 **Checking it.** `colab.py bus status`; the workflow's runs in the Actions tab (each run prints one JSON line: its stats and counts of its audit lines, no item text); the watchdog. A red run means it could not sign in (secrets, installation) or could not run; the line says why in words.
@@ -83,7 +85,7 @@ The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, sign
 3. Watch a few days: green runs, `bus status`, a quiet watchdog, deliveries in live spaces.
 4. Keep the ORCD bus as a standby, or retire it: cancel the job, remove its entry by PR, and have an owner take the operator out of `colab-bus-operators`.
 
-**Limits.** Scheduled runs can start late, so the lease lasts at least 45 minutes (a standby takes over after 45 minutes, not 15) and the CLI accepts a security state up to 60 minutes old (a replayed or stale state passes for up to an hour; lower `[security] state_max_age_minutes` to shorten that, at the cost of failing closed when a run is late). Each run is a deployment to the `colab-bus` environment, so the repo's Deployments list grows. An `[scan] injection_command` that needs ORCD does not run in Actions (the rules do). The drift check (section 2) does not run in Actions either: run `colab.py plan` yourself now and then. Audit lines go to `audit/<YYYY-MM>.jsonl` on `colab-state` without spans or reasons; the full lines with spans stay in the run's temporary folder and are not kept.
+**Limits.** Scheduled runs can start late, so the lease lasts at least 45 minutes (a standby takes over after 45 minutes, not 15) and the CLI accepts a security state up to 60 minutes old (a replayed or stale state passes for up to an hour; lower `[security] state_max_age_minutes` to shorten that, at the cost of failing closed when a run is late). Each run is a deployment to the `colab-bus` environment, so the repo's Deployments list grows. An `[scan] injection_command` that needs ORCD does not run in Actions (the rules do). The drift check (section 2) does not run in Actions either: run `colab.py plan` yourself now and then. Audit lines go to `audit/<YYYY-MM>.jsonl` on `colab-state` (then `-2`, `-3`, ... past 900 KB) without spans or reasons; the full lines with spans stay in the run's temporary folder and are not kept.
 
 ## 5. Operating a standby bus on a cluster
 

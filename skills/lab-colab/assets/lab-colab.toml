@@ -310,6 +310,8 @@ lease_ttl_minutes = 0            # a bus's lease (lease.json on colab-state) is 
                                  # 0 = three polls, at least 15 minutes, or 45 with an Actions bus (scheduled runs can start late)
 takeover_lookback_minutes = 60   # a bus taking over starts each repo this long before the previous holder's cursor (delivery keys stop duplicates)
 passive_heartbeat_minutes = 30   # a standby writes its heartbeat this often (and whenever it changes between active and standby)
+code_owners = []                 # who must review changes to the bus workflow and bus/ (seeded .github/CODEOWNERS; the default
+                                 # branch ruleset requires code owner review): "@org/team" or "@login". [] = @<org>/colab-bus-operators
 
 # ---------------------------------------------------------------------------
 # Buses. By default the bus runs as a scheduled GitHub Actions workflow in the meta repo (.github/workflows/colab-bus.yml),

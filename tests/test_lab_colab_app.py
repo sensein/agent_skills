@@ -392,8 +392,9 @@ class AuditFileTests(unittest.TestCase):
     def test_lines_keep_kind_ref_actor_comment_and_time_only(self) -> None:
         store = bus.BusStateStore(acfg(), "actions", run="r1")
         _, sb = branch_with({})
-        text, dropped = store.audit_text(sb, sample_state(), self.RECORDS, T0)
-        self.assertEqual(dropped, 0)
+        files = store.audit_files(sb, sample_state(), self.RECORDS, T0)
+        self.assertEqual(list(files), ["audit/2026-11.jsonl"])
+        text = files["audit/2026-11.jsonl"]
         for gone in ("FREE TEXT", "IGNORE ALL", "spans", "reason", "why", "HTTP 500", "secret-repo#9", "proj#4", "where"):
             self.assertNotIn(gone, text)
         got = self.lines(text)
@@ -405,23 +406,62 @@ class AuditFileTests(unittest.TestCase):
         self.assertEqual((got[4]["kind"], got[4]["actor"]), ("state_branch_foreign_edit", ["mallory"]))
         self.assertEqual(set(got[5]), {"kind", "bus", "at"})
         self.assertEqual(got[6]["ref"], colab.hashed_ref("sensein/secret-repo#9"))
-        self.assertEqual(store.audit_path(T0), "audit/2026-11.jsonl")
+        self.assertEqual(store.audit_part(T0, 3), "audit/2026-11-3.jsonl")
 
-    def test_appends_only_and_stops_at_the_cap(self) -> None:
+    def test_appends_only_and_rolls_over_without_dropping(self) -> None:
         store = bus.BusStateStore(acfg(), "actions", run="r1")
         old = '{"at":"t0","bus":"actions","kind":"lease_taken"}\n'
         _, sb = branch_with({"audit/2026-11.jsonl": old})
-        text, _ = store.audit_text(sb, {}, self.RECORDS[:1], T0)
-        self.assertTrue(text.startswith(old))
-        self.assertEqual(len(text.splitlines()), 2)
-        self.assertEqual(store.audit_text(sb, {}, [], T0), (None, 0))
+        files = store.audit_files(sb, {}, self.RECORDS[:1], T0)
+        self.assertTrue(files["audit/2026-11.jsonl"].startswith(old))
+        self.assertEqual(len(files["audit/2026-11.jsonl"].splitlines()), 2)
+        self.assertEqual(store.audit_files(sb, {}, [], T0), {})
+        records = self.RECORDS * 5
         with mock.patch.object(bus, "AUDIT_FILE_CAP", len(old) + 400):
-            text, dropped = store.audit_text(sb, {}, self.RECORDS * 5, T0)
-            self.assertTrue(text.startswith(old))
-            self.assertGreater(dropped, 0)
-            self.assertEqual(self.lines(text)[-1]["kind"], "audit_file_full")
-            _, sb2 = branch_with({"audit/2026-11.jsonl": text})
-            self.assertEqual(store.audit_text(sb2, {}, self.RECORDS, T0)[0], None)  # full: nothing more this month
+            files = store.audit_files(sb, {}, records, T0)
+            self.assertTrue(files["audit/2026-11.jsonl"].startswith(old))  # the old lines, untouched
+            self.assertIn("audit/2026-11-2.jsonl", files)
+            new_lines = sum(len(t.splitlines()) for t in files.values()) - 1
+            self.assertEqual(new_lines, len(records))  # every line kept, none dropped
+            for t in files.values():
+                self.assertLessEqual(len(t.encode()), len(old) + 400 + 300)
+            # the next run appends to the newest part (or opens the one after it), never to an older one
+            def part(path):
+                stem = path.rsplit("/", 1)[1][:-len(".jsonl")]
+                return int(stem.split("-")[2]) if stem.count("-") == 2 else 1
+            _, sb2 = branch_with(files)
+            more = store.audit_files(sb2, {}, self.RECORDS[:1], T0)
+            newest = max(part(x) for x in files)
+            self.assertEqual(len(more), 1)
+            path, text = next(iter(more.items()))
+            self.assertIn(part(path), (newest, newest + 1))
+            if part(path) == newest:
+                self.assertTrue(text.startswith(files[path]))
+
+    def test_a_failed_read_writes_no_audit_rather_than_a_fresh_file(self) -> None:
+        store = bus.BusStateStore(acfg(), "actions", run="r1")
+        git, sb = branch_with({"audit/2026-11.jsonl": '{"kind":"old"}\n'})
+        sb.gh.fail = ("/contents/audit",)
+        with self.assertRaises(urllib.error.URLError):
+            store.audit_files(sb, {}, self.RECORDS, T0)
+        sb.gh.fail = ()
+        with mock.patch.object(sb.gh, "get", return_value={"content": "", "size": 2_000_000}):
+            with self.assertRaises(bus.StateReadError):  # a file too large to come back whole is never "empty"
+                store.audit_files(sb, {}, self.RECORDS, T0)
+        # in the cycle: the run still commits its state, and the audit file keeps its history
+        gh = AppGH(git)
+        gh.fail = ("/contents/audit",)
+
+        def poll_audits(gh_, config, rollout, subs, state, state_dir, bot, save=lambda: None, store=None, **kw):
+            bus._append(Path(state_dir) / "audit.jsonl", {"security_record_rejected": 9, "by": "mallory", "at": "t"})
+            stats = {"envelopes": 0, "deliveries": 0, "drops": 0, "dry_run": 0, "errors": 0}
+            bus.publish_security_state(gh_, config, state, state_dir, stats, store)
+            return stats
+        with tempfile.TemporaryDirectory() as tmp:
+            stats, _ = run(gh, acfg(), {}, tmp, poll=poll_audits)
+        self.assertTrue(stats["audit_skipped"])
+        self.assertEqual(git.files()["audit/2026-11.jsonl"], '{"kind":"old"}\n')
+        self.assertIn("bus/actions/state.json", git.files())
 
     def test_the_run_commits_its_audit_lines_with_its_state(self) -> None:
         git = ops.FakeGit()
@@ -696,6 +736,11 @@ class AppPlanTests(unittest.TestCase):
                                   "reviewers": True})
         acts = colab.app_actions(acfg(), wide)
         self.assertEqual([a["kind"] for a in acts], ["manual"])  # reviewers exist: never a replace that could drop them
+        for rules in ({"protected": True, "reviewers": False},):  # a wait timer, custom rule, or self-review setting
+            acts = colab.app_actions(acfg(), self.done(bus_env={**self.GOOD_ENV, "policy": None, **rules}))
+            env_steps = [a for a in acts if "environment" in a["desc"] and "Create" in a["desc"]]
+            self.assertEqual([a["kind"] for a in env_steps], ["manual"])
+            self.assertIn("deployment-branch-policies -f name=main", env_steps[0]["desc"])
         everywhere = self.done(apps={"colab-bus": {"exists": True, "id": 4242, "installed": True, "selection": "all"}})
         self.assertIn("installed on all repositories", colab.app_actions(acfg(), everywhere)[0]["desc"])
 
@@ -731,11 +776,56 @@ class AppPlanTests(unittest.TestCase):
         out = colab.observe_apps(acfg(), gh)
         self.assertEqual(out["apps"]["colab-bus"], {"exists": True, "id": 4242, "installed": True, "selection": "all"})
         self.assertEqual((out["meta_secrets"], out["bus_workflow"], out["meta_default_branch"]), (["COLAB_APP_ID"], True, "main"))
-        self.assertEqual(out["bus_env"], {"exists": True, "policy": self.GOOD_ENV["policy"], "reviewers": True,
+        self.assertEqual(out["bus_env"], {"exists": True, "policy": self.GOOD_ENV["policy"], "reviewers": True, "protected": True,
                                           "branches": [{"name": "main", "type": "branch"}], "secrets": ["COLAB_APP_KEY_X"]})
         self.assertEqual(out["bus_subscribers"], ["digest-repo"])
         self.assertFalse(any(re.search(r"/secrets/[A-Z]", c) for c in calls))  # never a secret by name
         self.assertEqual(colab.observe_apps(ops.cfg(), gh), {})  # no Actions bus: nothing read
+
+
+class CodeOwnersTests(unittest.TestCase):
+    def test_observe_marks_any_protection_rule_as_protected(self) -> None:
+        for env in ({"protection_rules": [{"type": "wait_timer", "wait_timer": 5}]},
+                    {"protection_rules": [{"type": "branch_policy"}]}, {"protection_rules": [], "can_admins_bypass": False},
+                    {"protection_rules": [{"type": "required_reviewers", "prevent_self_review": True, "reviewers": []}]}):
+            replies = {"repos/sensein/lab-colab/environments/colab-bus": {"name": "colab-bus", **env}}
+            out = colab.observe_apps(acfg(), lambda args: replies.get(args[1]))
+            self.assertTrue(out["bus_env"]["protected"], env)
+        plain = {"repos/sensein/lab-colab/environments/colab-bus": {"name": "colab-bus", "protection_rules": [], "can_admins_bypass": True}}
+        self.assertFalse(colab.observe_apps(acfg(), lambda args: plain.get(args[1]))["bus_env"]["protected"])
+
+    def test_seed_adds_codeowners_lines_and_never_changes_existing_ones(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp)
+            colab.cmd_seed(dest, None)
+            text = (dest / ".github" / "CODEOWNERS").read_text()
+            self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
+            self.assertIn("/bus/ @sensein/colab-bus-operators", text)
+            (dest / ".github" / "CODEOWNERS").write_text("* @sensein/admins\n/bus/ @someone\n")
+            self.assertNotIn(dest / ".github" / "CODEOWNERS", colab.cmd_seed(dest, None))  # without --refresh-bus: untouched
+            colab.cmd_seed(dest, None, refresh_bus=True)
+            text = (dest / ".github" / "CODEOWNERS").read_text()
+            self.assertTrue(text.startswith("* @sensein/admins\n/bus/ @someone\n"))  # nothing changed, one line added
+            self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
+            self.assertEqual(text.count("/bus/"), 1)
+        cfg = {"org": {"name": "sensein"}, "bus": {"code_owners": ["@sensein/admins", "not an owner", "@satra"]}}
+        self.assertEqual(colab.codeowners_lines(cfg), ["/.github/workflows/ @sensein/admins @satra", "/bus/ @sensein/admins @satra"])
+        self.assertEqual(colab.codeowners_missing("# c\n/bus/ @x\n"), ["/.github/workflows/"])
+
+    def test_plan_seeds_codeowners_and_the_ruleset_requires_code_owner_review(self) -> None:
+        snap = AppPlanTests().done(bus_codeowners=False)
+        acts = colab.app_actions(acfg(), snap)
+        self.assertEqual([a["kind"] for a in acts], ["local"])
+        self.assertIn("CODEOWNERS", acts[0]["desc"])
+        want = colab.desired_rulesets(99)[colab.RULESET_DEFAULT]
+        self.assertTrue(want["rules"][2]["parameters"]["require_code_owner_review"])
+        old = json.loads(json.dumps(want))
+        old["rules"][2]["parameters"]["require_code_owner_review"] = False
+        have = {"id": 3, "name": colab.RULESET_DEFAULT, **old}
+        body, conflicts = colab.merge_ruleset(have, want)
+        self.assertEqual(conflicts, [])
+        self.assertTrue(next(r for r in body["rules"] if r["type"] == "pull_request")["parameters"]["require_code_owner_review"])
+        self.assertEqual(colab.merge_ruleset({**have, **json.loads(json.dumps(want))}, want)[0], None)  # already there: nothing
 
 
 class ManifestTests(unittest.TestCase):

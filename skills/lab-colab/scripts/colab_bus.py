@@ -2042,6 +2042,21 @@ class StateBranch:
             self._read[path] = text
         return self._read[path]
 
+    def read_strict(self, path: str) -> str | None:
+        """The file at the loaded head; None only when GitHub says it does not exist (404). Any other failure, or a
+        reply without its full content (the Contents API leaves `content` empty above 1 MB), raises: never mistake a
+        failed read for an empty file."""
+        blob = self.gh.get(f"{self.base}/contents/{path}?ref={self.head}", conditional=False)
+        if blob is None:
+            return None
+        try:
+            text = base64.b64decode(blob["content"]).decode()
+        except (KeyError, TypeError, ValueError, UnicodeDecodeError):
+            raise StateReadError(f"{path} on {STATE_BRANCH} could not be read whole") from None
+        if isinstance(blob.get("size"), int) and len(text.encode()) != blob["size"]:
+            raise StateReadError(f"{path} on {STATE_BRANCH} came back incomplete")
+        return text
+
     def read_json(self, path: str):
         text = self.read(path)
         try:
@@ -2141,7 +2156,8 @@ BUS_STATE_CAPS = {"seen": 5000, "scanned": 5000, "links_checked": 5000, "display
 ITEM_SECTIONS = ("scanned", "links_checked", "contributions", "security", "security_closed", "security_suppressed",
                  "security_unreviewed")  # keyed by "<repo key>#<n>[:where]"
 HASHED_SECTIONS = ("scanned", "links_checked")  # restricted keys kept as sha256 (value: a digest, no text)
-AUDIT_FILE_CAP = 1024 * 1024  # bytes per audit/<YYYY-MM>.jsonl on colab-state
+AUDIT_FILE_CAP = 900 * 1024  # bytes per audit file on colab-state (the Contents API returns files up to 1 MB whole)
+AUDIT_MAX_PARTS = 500
 AUDIT_ACTOR_KEYS = ("by", "author", "authors", "user", "login", "from_operator", "operator")
 LOGIN_OR_BOT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\[bot\])?\Z")
 _ITEM_KEY = re.compile(r"^(?P<repo>[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)#(?P<n>\d+)(?::.*)?\Z")
@@ -2344,9 +2360,6 @@ class BusStateStore:
         return "loaded"
 
     # the audit log, append-only on colab-state
-    def audit_path(self, now_t: datetime) -> str:
-        return f"audit/{now_t.astimezone(timezone.utc):%Y-%m}.jsonl"
-
     def audit_record(self, record: dict, state: dict, restricted: set[str], hidden_refs: set[str]) -> dict | None:
         """One audit line as kept on colab-state: its kind, the item ref (hashed when restricted), the actor(s), the
         comment id, the bus, and the time. No spans, reasons, errors, or other text."""
@@ -2384,35 +2397,45 @@ class BusStateStore:
         out["at"] = str(at)[:40] if at else now()
         return out
 
-    def audit_text(self, store, state: dict, records: list[dict], now_t: datetime) -> tuple[str | None, int]:
-        """(the month's audit file with this run's lines appended, lines dropped because the file is full). Existing
-        lines are never changed: the new text always starts with the file as read at the head."""
+    def audit_part(self, now_t: datetime, n: int) -> str:
+        month = f"{now_t.astimezone(timezone.utc):%Y-%m}"
+        return f"audit/{month}.jsonl" if n == 1 else f"audit/{month}-{n}.jsonl"
+
+    def audit_files(self, store, state: dict, records: list[dict], now_t: datetime) -> dict[str, str]:
+        """{path: text} to stage: this run's lines appended to the month's newest file, rolling over to
+        audit/<YYYY-MM>-<n>.jsonl when it would pass AUDIT_FILE_CAP. Nothing is ever dropped or rewritten: each new text
+        starts with the file exactly as read at the head. A failed read raises (StateReadError, URLError); the caller
+        then writes no audit this run rather than start a file that would hide the history."""
         records = [r for r in records if isinstance(r, dict)]
-        if not records:
-            return None, 0
         restricted = self._restricted_repos(state)
         hidden_refs = self._hidden_refs(state, restricted)
-        base = store.read(self.audit_path(now_t)) or ""
-        if base and not base.endswith("\n"):
-            base += "\n"
-        lines, dropped, size = [], 0, len(base.encode())
-        full = base.rstrip("\n").endswith('"kind":"audit_file_full"}')
+        lines = []
         for r in records:
             rec = self.audit_record(r, state, restricted, hidden_refs)
-            if rec is None:
-                continue
-            line = json.dumps(rec, separators=(",", ":"), sort_keys=True) + "\n"
-            if full or size + len(line.encode()) > AUDIT_FILE_CAP - 200:
-                dropped += 1
-                continue
-            lines.append(line)
-            size += len(line.encode())
-        if dropped and not full:
-            lines.append(json.dumps({"at": now(), "bus": self.bus_id, "kind": "audit_file_full"}, separators=(",", ":"),
-                                    sort_keys=True) + "\n")
+            if rec is not None:
+                lines.append(json.dumps(rec, separators=(",", ":"), sort_keys=True) + "\n")
         if not lines:
-            return None, dropped
-        return base + "".join(lines), dropped
+            return {}
+        n, base = 1, store.read_strict(self.audit_part(now_t, 1))
+        while base is not None:  # find the newest part: the first one that does not exist ends the search
+            nxt = store.read_strict(self.audit_part(now_t, n + 1))
+            if nxt is None:
+                break
+            n, base = n + 1, nxt
+            if n >= AUDIT_MAX_PARTS:
+                raise StateReadError("too many audit parts this month")
+        original = base or ""
+        current = original + ("\n" if original and not original.endswith("\n") else "")
+        out: dict[str, str] = {}
+        size = len(current.encode())
+        for line in lines:
+            if size and size + len(line.encode()) > AUDIT_FILE_CAP:
+                out[self.audit_part(now_t, n)] = current  # full: the rest goes into the next part
+                n, current, size = n + 1, "", 0
+            current += line
+            size += len(line.encode())
+        out[self.audit_part(now_t, n)] = current
+        return {p: t for p, t in out.items() if t and t.rstrip("\n") != original.rstrip("\n")}  # unchanged parts are not restaged
 
     def changed_since_adopt(self, store) -> bool:
         """Did another run of this bus write its state since this run loaded it (two runs overlapping)?"""
@@ -2725,11 +2748,14 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
                 overrides["passive_beat_ts"] = now_t.timestamp()
             store.stage(remote.path, remote.dump({k: v for k, v in state.items()}, published, overrides))
             # This run's audit lines, appended to the month's file in the same commit (kinds, refs, actors, times only).
-            text, dropped = remote.audit_text(store, state, _read_audit(audit), now_t)
-            if text is not None:
-                store.stage(remote.audit_path(now_t), text)
-            if dropped:
-                stats["audit_dropped"] = dropped
+            for path in [p for p in store.staged if p.startswith("audit/")]:
+                store.unstage(path)  # a retry recomputes them from the head it just read
+            try:
+                for path, text in remote.audit_files(store, state, _read_audit(audit), now_t).items():
+                    store.stage(path, text)
+            except (urllib.error.URLError, OSError, StateReadError) as err:
+                stats["audit_skipped"] = True  # never a fresh file over unread history; the lines stay in the run's log counts
+                _append(audit, {"audit_write_skipped": str(err)[:200], "at": now()})
         try:
             sha = store.commit(f"bus {entry['id']} ({entry['operator']}): {'poll' if active else 'standby'} at {now()}")
         except StateConflict:
