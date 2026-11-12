@@ -180,8 +180,9 @@ name = "Contributions"           # kept by the bus for external items: "kabilar:
 type = "TEXT"
 
 [[fields]]
-name = "Security"                # injection-scan gate: the bus sets flagged; a steward or the item's Lead clears it
-type = "SINGLE_SELECT"           # (`colab.py security clear`). Empty = unreviewed. next, claim and run skip flagged items
+name = "Security"                # injection-scan gate, kept by the bus: unreviewed = scanned, no finding; flagged = a hit; cleared =
+type = "SINGLE_SELECT"           # a steward who is not the assignee or claimant cleared it, with an audit record (`colab.py security clear`).
+                                 # Empty = not scanned. next lists but marks it; run refuses it above public; a cleared without a record is re-flagged
 options = ["unreviewed", "flagged", "cleared"]
 
 [[fields]]
@@ -307,7 +308,10 @@ injection_scan = true            # scan new or edited bodies and comments; a hit
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 
 [security]
-audit_issue = 0                  # meta-repo issue that `colab.py security clear` comments on (who, when, why); 0 = local audit file only
+audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear: `security clear`
+                                 # and `ignore-author` post their records there, and the bus honours a clear only with a record
+                                 # from a steward of the item's spaces who is not its assignee or claimant
+outsider_flags_per_day = 3       # injection-scan flags per non-member author per day; past that, audit-only. Members' content always flags
 
 # ---------------------------------------------------------------------------
 # Optional private plugin marketplace: one plugin per skill folder of source_repo, synced into

@@ -100,7 +100,7 @@ def make_source(root: Path, git: bool = False) -> Path:
 def start(root: Path, src: Path, *extra: str, body: str = ISSUE, expect: int = 0, confirm: bool = True) -> dict:
     body_file = root / "issue.md"
     body_file.write_text(body)
-    proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body_file), "--root", str(root / "runs"),
+    proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body_file), "--root", str(root / "runs"),
                "--source", str(src), "--comment-every", "0", "--claimant", "alice", "--editor", "alice", *extra)
     assert proc.returncode == expect, proc.stderr + proc.stdout
     if expect != 0:
@@ -195,7 +195,7 @@ class WorkspaceIsolationTests(unittest.TestCase):
             env.pop("COLAB_RUN_ROOT", None)
             body = Path(tmp) / "i.md"
             body.write_text(ISSUE)
-            proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--mode", "dir", "--comment-every", "0",
+            proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--mode", "dir", "--comment-every", "0",
                        check=True, env=env)
             run_dir = Path(json.loads(proc.stdout)["run_dir"])
             self.assertEqual(run_dir.parent, (Path(tmp) / "lab-colab" / "runs").resolve())
@@ -403,7 +403,7 @@ class ConcurrencyAndAppendOnlyTests(unittest.TestCase):
             body.write_text(ISSUE)
 
             def go(_):
-                return json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+                return json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                       "--source", str(src), "--comment-every", "0", "--claimant", "a", "--editor", "a", check=True).stdout)
 
             with ThreadPoolExecutor(max_workers=5) as pool:
@@ -478,7 +478,7 @@ class ProgressCommentTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                "--source", str(make_source(root)), "--mode", "dir", "--comment-every", "2", "--iterations", "9",
                                "--compute", "100", "--claimant", "a", "--editor", "a", check=True).stdout)
             go_online(r)
@@ -500,7 +500,7 @@ class ProgressCommentTests(unittest.TestCase):
             body = root / "i.md"
             body.write_text(ISSUE)
             leak = "/" + "orcd/scratch/orcd/999/someone/x"
-            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                "--source", str(make_source(root)), "--mode", "dir", "--comment-every", "1",
                                "--metric", leak, "--claimant", "a", "--editor", "a", check=True).stdout)
             go_online(r)
@@ -647,7 +647,7 @@ class ColabPyDelegationTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            proc = subprocess.run([sys.executable, str(COLAB), "run", "start", "sensein/lab#7", "--offline", "--body-file", str(body),
+            proc = subprocess.run([sys.executable, str(COLAB), "run", "start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
                                    "--root", str(root / "runs"), "--source", str(make_source(root)), "--mode", "dir",
                                    "--comment-every", "0"], capture_output=True, text=True)
             self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -719,7 +719,7 @@ class ConfirmVerifyTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                        "--source", str(make_source(root)), "--mode", "dir", "--claimant", "alice", "--editor", "mallory",
                        "--comment-every", "0", check=True)
             self.assertIn("WARNING", proc.stderr)
@@ -804,11 +804,12 @@ class TierDetectionTests(unittest.TestCase):
         return run.build_parser().parse_args(["start", "sensein/proj#7", "--body-file", str(body), "--root", str(root / "runs"),
                                               "--source", str(src), "--comment-every", "0", *extra])
 
-    def _start(self, root: Path, args, fetch, sensitivity=None, security="unreviewed") -> dict:
+    def _start(self, root: Path, args, fetch, sensitivity=None, gate=None) -> dict:
+        gate = gate or {"state": "ok", "reason": "scanned by the bus, no finding"}
         import colab
         out = io.StringIO()
         with mock.patch.object(run, "fetch_issue", fetch), mock.patch.object(run, "gh_login", return_value="alice"), \
-                mock.patch.object(run, "fetch_security", return_value=security), \
+                mock.patch.object(run, "fetch_gate", return_value=gate), \
                 mock.patch.object(run, "fetch_sensitivity", return_value=sensitivity), contextlib.redirect_stdout(out), \
                 contextlib.redirect_stderr(io.StringIO()):
             run.cmd_start(args, colab.load_config())
@@ -844,21 +845,66 @@ class TierDetectionTests(unittest.TestCase):
             self.assertEqual(out["tier"], "lab")
             self.assertTrue((Path(out["run_dir"]) / "workspace" / "code.txt").exists())
 
-    def test_flagged_items_are_refused_until_cleared(self) -> None:
+    def test_flagged_items_are_refused_and_unscanned_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             src = make_source(root)
             body = root / "i.md"
             body.write_text(ISSUE)
             issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "alice", "author": "alice"}
+            fetch = mock.Mock(return_value=issue)
             with self.assertRaises(run.RunError) as ctx:
-                self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security="flagged")
+                self._start(root, self._start_args(root, src, body), fetch, gate={"state": "flagged", "reason": "Security = flagged"})
             self.assertIn("security clear", str(ctx.exception))
             self.assertFalse((root / "runs").exists() and any((root / "runs").iterdir()))  # nothing was made
-            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security="cleared")
-            self.assertEqual(out["tier"], "lab")
-            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=issue), security=None)
-            self.assertTrue(any("Security field" in w for w in out.get("warnings", [])))
+            unscanned = {"state": "unscanned", "reason": "not on the lab Project"}
+            with self.assertRaises(run.RunError) as ctx:
+                self._start(root, self._start_args(root, src, body), fetch, gate=unscanned)
+            self.assertIn("--allow-unscanned", str(ctx.exception))
+            out = self._start(root, self._start_args(root, src, body, "--allow-unscanned"), fetch, gate=unscanned)
+            self.assertTrue(any("WARNING" in w for w in out["warnings"]))
+            spec = json.loads((Path(out["run_dir"]) / "run.json").read_text())
+            self.assertTrue(spec["allow_unscanned"] and spec["security_checked_online"])
+            with self.assertRaises(run.RunError) as ctx:  # never for restricted
+                self._start(root, self._start_args(root, src, body, "--allow-unscanned", "--label", "tier:restricted"), fetch, gate=unscanned)
+            self.assertIn("never applies", str(ctx.exception))
+            public = dict(issue, visibility="public")
+            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=public), gate=unscanned)
+            self.assertEqual(out["tier"], "public")  # the public tier does not need a scan
+
+    def test_offline_needs_an_asserted_security_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "issue.md"
+            body.write_text(ISSUE)
+            base = ["start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+                    "--source", str(src), "--claimant", "a", "--editor", "a"]
+            proc = cli(*base)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("--offline needs --security", proc.stderr)
+            self.assertEqual(cli(*base, "--security", "flagged").returncode, 2)
+            self.assertEqual(cli(*base, "--security", "cleared").returncode, 0)
+            self.assertEqual(cli(*base, "--visibility", "public").returncode, 0)
+
+    def test_step_rechecks_the_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            r = start(root, make_source(root))
+            path = Path(r["run_dir"]) / "run.json"
+            spec = json.loads(path.read_text())
+            spec["security_checked_online"] = True
+            path.write_text(json.dumps(spec))
+            args = run.build_parser().parse_args(["step", "--run-dir", r["run_dir"], "--confirm-verify", r["commands"]["sha256"]])
+            import colab
+            for gate, refused in (({"state": "flagged", "reason": "Security = flagged"}, "flagged"),
+                                  ({"state": "unscanned", "reason": "unreadable"}, "not been scanned")):
+                with mock.patch.object(run, "fetch_gate", return_value=gate), self.assertRaises(run.RunError) as ctx:
+                    run.cmd_step(args, colab.load_config())
+                self.assertIn(refused, str(ctx.exception))
+            with mock.patch.object(run, "fetch_gate", return_value={"state": "ok", "reason": ""}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(run.cmd_step(args, colab.load_config()), 0)
 
     def test_restricted_start_never_copies_the_source_and_the_job_does(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1252,7 +1298,7 @@ class ConfigIndependenceTests(unittest.TestCase):
             cfg.write_text('[org]\nname = "sensein"\nmeta_repo = "lab-colab"\n')
             body = root / "i.md"
             body.write_text("### Hypothesis\n\nh\n\n### Data\n\nd\n")  # a form rendered before budget/verify existed
-            proc = cli("--config", str(cfg), "start", "sensein/lab#7", "--offline", "--body-file", str(body),
+            proc = cli("--config", str(cfg), "start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
                        "--root", str(root / "runs"), "--source", str(make_source(root)), "--mode", "dir",
                        "--verify", "echo 1", "--iterations", "2", "--wall", "1h", "--claimant", "a", "--editor", "a")
             self.assertEqual(proc.returncode, 0, proc.stderr)

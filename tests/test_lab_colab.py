@@ -196,6 +196,7 @@ class PlanTests(unittest.TestCase):
     def test_converged_org_only_asks_for_gate(self) -> None:
         cfg = config_with_spaces()
         cfg["sessions"]["issue"] = 5
+        cfg["security"]["audit_issue"] = 6
         snap = snapshot(
             issue_types=[t["name"] for t in cfg["types"]],
             projects=[{"number": 7, "title": "Lab portfolio"}],
@@ -848,6 +849,14 @@ class DriftCheckTests(unittest.TestCase):
             audit = (Path(tmp) / "audit.jsonl").read_text() if (Path(tmp) / "audit.jsonl").exists() else ""
         return gh, state, stats, audit
 
+    def test_plan_proposes_the_security_audit_issue(self) -> None:
+        actions = colab.build_plan(config_with_spaces(), snapshot(), today=date(2026, 11, 11))
+        made = [a for a in actions if a["kind"] == "gh" and "'Security audit'" in a["desc"]]
+        self.assertEqual(len(made), 1)
+        self.assertIn("Security audit", made[0]["cmd"])
+        self.assertTrue(any(a["kind"] == "manual" and "[security] audit_issue" in a["desc"] for a in actions))
+        self.assertEqual(CONFIG["security"]["audit_issue"], 0)
+
     def test_recurring_actions_are_filtered(self) -> None:
         plan = [{"kind": "gate", "desc": "Space x: phase 1 gate"},
                 {"kind": "local", "desc": "Start the bus in dry-run on ORCD"},
@@ -862,6 +871,7 @@ class DriftCheckTests(unittest.TestCase):
         cfg = config_with_spaces()
         cfg["marketplace"]["repo"] = ""
         done = dict(cfg["sessions"], issue=3); cfg["sessions"] = done
+        cfg["security"] = {"audit_issue": 9}
         cfg["org"]["project_number"] = 4
         snap = snapshot(rollout={"schema": 1, "gates": [], "spaces": {"proj": {"phase": 0, "bus": "dry-run"}}},
                         projects=[{"number": 4, "title": cfg["org"]["project_title"]}],
@@ -2124,87 +2134,328 @@ class SecurityFlagBusTests(unittest.TestCase):
                       CONFIG["fields"])
 
 
-def sec_reply(security="flagged", lead="", labels=(), number=0):
-    return {"data": {"repository": {"issueOrPullRequest": {"__typename": "Issue",
-            "labels": {"nodes": [{"name": n} for n in labels]},
-            "projectItems": {"nodes": [{"id": "PVTI_1", "project": {"id": "PVT", "number": number},
-                                        "lead": {"text": lead} if lead else None,
-                                        "security": {"name": security} if security else None}]}}}}}
+def sec_reply(security="flagged", labels=(), assignees=(), project="PVT", pages=1):
+    """Pages of issueOrPullRequest replies; the lab Project's item is on the last page."""
+    out = []
+    for i in range(pages):
+        last = i == pages - 1
+        nodes = [{"id": f"PVTI_other{i}", "project": {"id": f"PVT_attacker{i}", "number": 5},
+                  "security": {"name": "cleared"}}]
+        if last and project:
+            nodes.append({"id": "PVTI_1", "project": {"id": project, "number": 5},
+                          "security": {"name": security} if security else None})
+        out.append({"data": {"repository": {"issueOrPullRequest": {"__typename": "Issue",
+                    "labels": {"nodes": [{"name": n} for n in labels]},
+                    "assignees": {"nodes": [{"login": a} for a in assignees]},
+                    "projectItems": {"pageInfo": {"hasNextPage": not last, "endCursor": f"c{i}"}, "nodes": nodes}}}}})
+    return out
+
+
+def clear_record(item, by, at="2026-11-11T10:00:00Z", text_by=None):
+    return {"user": {"login": by}, "created_at": at,
+            "body": f"Security cleared on {item} by @{text_by or by}.\n\n<!-- colab-security-clear item={item} -->"}
 
 
 class FakeGhJson:
-    """Stands in for colab._gh_json in the security gate: serves the item, the field, and records mutations."""
+    """Stands in for colab._gh_json in the security gate: the lab Project, the item (paged), its comments,
+    the audit issue, org membership, and mutations (recorded in order)."""
 
-    def __init__(self, item):
-        self.item, self.calls = item, []
+    def __init__(self, pages=None, comments=(), audit=(), members=("a", "b"), fail_post=False):
+        self.pages = pages if pages is not None else sec_reply()
+        self.comments, self.audit, self.members, self.fail_post = list(comments), list(audit), set(members), fail_post
+        self.calls = []
 
     def __call__(self, args):
         self.calls.append(args)
         text = " ".join(args)
+        if "organization(login: $org) { projectV2(number: $n) { id } }" in text:
+            return {"data": {"organization": {"projectV2": {"id": "PVT"}}}}
         if "issueOrPullRequest" in text:
-            return self.item
+            after = next((a.split("=", 1)[1] for a in args if a.startswith("after=")), None)
+            return self.pages[int(after[1:]) + 1 if after else 0]
         if "field(name: \"Security\")" in text and "node(id" in text:
             return {"data": {"node": {"field": {"id": "F-S", "options": [{"id": "s-c", "name": "cleared"}, {"id": "s-f", "name": "flagged"}]}}}}
-        return {"data": {}}
+        if "-X" in args and "POST" in args:
+            return None if self.fail_post else {"id": 1}
+        if args[:2] == ["api", "graphql"]:
+            return {"data": {}}
+        path = args[1] if len(args) > 1 else ""
+        if path.startswith("orgs/sensein/members/"):
+            return {} if path.rsplit("/", 1)[-1] in self.members else None
+        if path.startswith("repos/sensein/lab-colab/issues/12/comments"):
+            return self.audit if "page=1" in path else []
+        if "/issues/3/comments" in path:
+            return self.comments if "page=1" in path else []
+        return None
 
 
-def sec_config() -> dict:
-    cfg = tag_config()
-    cfg["org"]["project_number"] = 0
+def sec_config(audit_issue=12) -> dict:
+    cfg = tag_config()  # spaces: sails (stewards a; repos proj), partner (stewards a; repos pi-lab/tool, proj)
+    cfg["org"]["project_number"] = 5
+    cfg["spaces"]["sails"]["stewards"] = ["a", "s2"]
+    cfg["security"] = {"audit_issue": audit_issue}
     return cfg
 
 
 class SecurityCommandTests(unittest.TestCase):
-    def _run(self, action, login, item=None, reason="", cfg=None):
+    """Review finding 1: two-person clear, the audit record required; finding 3: the gate fails closed."""
+
+    def _run(self, action, login, gh=None, reason="checked", cfg=None, item="sensein/proj#3"):
         import io
-        gh = FakeGhJson(item or sec_reply())
+        gh = gh or FakeGhJson()
         out, err = io.StringIO(), io.StringIO()
-        rc = colab.cmd_security(cfg or sec_config(), action, "sensein/proj#3", reason, gh=gh, login_fn=lambda: login,
+        rc = colab.cmd_security(cfg or sec_config(), action, item, reason, gh=gh, login_fn=lambda: login,
                                 now=datetime(2026, 11, 11, tzinfo=timezone.utc), out=out, err=err)
         return rc, gh, out.getvalue(), err.getvalue()
 
-    def test_steward_or_lead_may_clear_others_may_not(self) -> None:
-        rc, gh, out, _ = self._run("clear", "A", reason="checked: a quoted example, not an instruction")
-        self.assertEqual(rc, 0)
-        self.assertTrue(any("singleSelectOptionId" in " ".join(c) and "option=s-c" in c for c in gh.calls))
-        record = json.loads(out)
-        self.assertEqual((record["by"], record["was"], record["at"]), ("A", "flagged", "2026-11-11T00:00:00Z"))
+    def test_a_steward_who_is_not_assignee_or_claimant_clears_with_a_record_first(self) -> None:
+        rc, gh, out, err = self._run("clear", "S2", reason="a quoted example, not an instruction")
+        self.assertEqual(rc, 0, err)
+        posts = [i for i, c in enumerate(gh.calls) if "POST" in c]
+        sets = [i for i, c in enumerate(gh.calls) if "singleSelectOptionId" in " ".join(c)]
+        self.assertEqual(len(posts), 1)
+        self.assertLess(posts[0], sets[0])  # the record is written before the field
+        body = " ".join(gh.calls[posts[0]])
+        self.assertIn("repos/sensein/lab-colab/issues/12/comments", body)
+        self.assertIn("<!-- colab-security-clear item=sensein/proj#3 -->", body)
+        self.assertEqual(json.loads(out)["by"], "s2")
         import os
-        audit = Path(os.environ["XDG_STATE_HOME"]) / "lab-colab" / "security-audit.jsonl"
-        self.assertIn("checked: a quoted example", audit.read_text())
-        rc, gh, _, err = self._run("clear", "mallory")
+        self.assertIn("a quoted example", (Path(os.environ["XDG_STATE_HOME"]) / "lab-colab" / "security-audit.jsonl").read_text())
+
+    def test_refusals(self) -> None:
+        lease = {"user": {"login": "s2"}, "body": colab.compose_lease("s2")}
+        cases = {
+            "assignee": (FakeGhJson(pages=sec_reply(assignees=["S2"])), "s2"),
+            "claimant": (FakeGhJson(comments=[lease]), "s2"),
+            "claimant named in a lease marker": (FakeGhJson(comments=[{"user": {"login": "x"}, "body": colab.compose_lease("s2")}]), "s2"),
+            "not a steward (a Lead no longer may clear)": (FakeGhJson(), "lead-person"),
+        }
+        for name, (gh, login) in cases.items():
+            rc, gh, _, err = self._run("clear", login, gh=gh)
+            self.assertEqual(rc, 2, name)
+            self.assertIn("refused", err, name)
+            self.assertFalse(any("POST" in c or "singleSelectOptionId" in " ".join(c) for c in gh.calls), name)
+        rc, _, _, err = self._run("clear", "s2", cfg=sec_config(audit_issue=0))
         self.assertEqual(rc, 2)
-        self.assertIn("refused", err)
-        self.assertFalse(any("singleSelectOptionId" in " ".join(c) for c in gh.calls))
-        rc, _, _, _ = self._run("clear", "Lea", item=sec_reply(lead="@lea"))
-        self.assertEqual(rc, 0)
+        self.assertIn("[security] audit_issue", err)
+        rc, gh, _, err = self._run("clear", "s2", gh=FakeGhJson(fail_post=True))
+        self.assertEqual(rc, 1)
+        self.assertFalse(any("singleSelectOptionId" in " ".join(c) for c in gh.calls))  # no record, no clear
+        rc, _, _, err = self._run("clear", "s2", reason="see /" + "orcd/data/x/y")
+        self.assertEqual(rc, 1)
+        self.assertIn("leak-scan", err)
 
-    def test_external_labels_never_grant_stewardship_and_status_reports(self) -> None:
-        rc, _, out, _ = self._run("status", "a", item=sec_reply(labels=["space:sails"]))
+    def test_gate_status(self) -> None:
+        cfg = sec_config()
+        item = "sensein/proj#3"
+        g = lambda gh, c=cfg: colab.gate_status(c, item, gh)["state"]
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("flagged"))), "flagged")
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("unreviewed"))), "ok")
+        self.assertEqual(g(FakeGhJson(pages=sec_reply(None))), "unscanned")
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("unreviewed", project=None))), "unscanned")  # not on the lab Project
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("unreviewed", pages=3))), "ok")  # found on the third page
+        off = sec_config()
+        off["bus"]["injection_scan"] = False
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("unreviewed")), off), "unscanned")
+        unset = sec_config()
+        unset["org"]["project_number"] = 0
+        got = colab.gate_status(unset, item, FakeGhJson(pages=sec_reply("cleared")))
+        self.assertEqual(got["state"], "unscanned")
+        self.assertIn("project_number", got["reason"])  # never reads whatever Project the item is on
+        cleared = sec_reply("cleared")
+        self.assertEqual(g(FakeGhJson(pages=cleared, audit=[clear_record(item, "s2")])), "ok")
+        self.assertEqual(g(FakeGhJson(pages=cleared)), "flagged")  # a direct edit: no record
+        self.assertEqual(g(FakeGhJson(pages=cleared, audit=[clear_record(item, "mallory", text_by="s2")])), "flagged")
+        self.assertEqual(g(FakeGhJson(pages=sec_reply("cleared", assignees=["s2"]), audit=[clear_record(item, "s2")])), "flagged")
+        self.assertEqual(g(FakeGhJson(pages=cleared, audit=[clear_record("sensein/proj#4", "s2")])), "flagged")
+        ok, _ = colab.verify_clear({"item": item, "stewards": ["s2"], "assignees": []},
+                                   colab.audit_records([clear_record(item, "s2", at="2026-11-11T10:00:00Z")]), set(),
+                                   flagged_at="2026-11-11T11:00:00Z")
+        self.assertFalse(ok)  # a record from before the latest flag does not count
+
+    def test_status_reports_gate_and_whether_you_may_clear(self) -> None:
+        rc, _, out, _ = self._run("status", "s2", gh=FakeGhJson(pages=sec_reply(labels=["space:sails"])))
         info = json.loads(out)
-        self.assertEqual((info["security"], info["you_can_clear"]), ("flagged", True))
+        self.assertEqual((info["security"], info["gate"], info["you_can_clear"]), ("flagged", "flagged", True))
         self.assertEqual(info["spaces"], ["partner", "sails"])
-        rc, _, out, _ = self._run("status", "a", item=sec_reply(security=None))
-        self.assertEqual(json.loads(out)["security"], "unreviewed")
 
-    def test_audit_comment_goes_to_the_meta_repo_when_configured(self) -> None:
-        cfg = sec_config()
-        cfg["security"] = {"audit_issue": 12}
-        rc, gh, _, _ = self._run("clear", "a", reason="fine", cfg=cfg)
-        self.assertEqual(rc, 0)
-        posted = [c for c in gh.calls if "repos/sensein/lab-colab/issues/12/comments" in c]
-        self.assertEqual(len(posted), 1)
-        self.assertIn("by @a", " ".join(posted[0]))
+    def test_ignore_author(self) -> None:
+        rc, gh, out, err = self._run("ignore-author", "a", reason="spam", item="zed")
+        self.assertEqual(rc, 0, err)
+        self.assertTrue(any("<!-- colab-security-ignore-author login=zed -->" in " ".join(c) for c in gh.calls))
+        for login, target, why in (("a", "b", "member"), ("a", "a", "self"), ("x", "zed", "not a steward")):
+            rc, gh, _, err = self._run("ignore-author", login, item=target)
+            self.assertEqual(rc, 2, why)
+            self.assertFalse(any("POST" in c for c in gh.calls), why)
+        rc, _, _, err = self._run("ignore-author", "a", item="zed", cfg=sec_config(audit_issue=0))
+        self.assertEqual(rc, 2)
 
-    def test_lease_and_next_skip_flagged_and_external(self) -> None:
+    def test_lease_needs_item_and_refuses_flagged_unverified_and_external(self) -> None:
+        import contextlib
+        import io
         cfg = sec_config()
-        self.assertIn("flagged", colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson(sec_reply())))
-        self.assertIsNone(colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson(sec_reply(security="cleared"))))
-        self.assertIn("read-only", colab.lease_refusal(cfg, "pi-lab/tool#3", gh=FakeGhJson(sec_reply())))
+        self.assertIn("flagged", colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson()))
+        self.assertIn("audit record", colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson(pages=sec_reply("cleared"))))
+        self.assertIsNone(colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson(pages=sec_reply("unreviewed"))))
+        self.assertIsNone(colab.lease_refusal(cfg, "sensein/proj#3", gh=FakeGhJson(pages=sec_reply(None))))  # claiming is not running
+        self.assertIn("read-only", colab.lease_refusal(cfg, "pi-lab/tool#3", gh=FakeGhJson()))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(colab.main(["lease", "--user", "a"]), 2)
+        self.assertIn("lease now needs --item", err.getvalue())
+
+    def test_next_lists_unscanned_with_a_marker_and_skips_flagged(self) -> None:
         items = [{"status": "Ready", "agent-ready": "yes", "security": sec,
                   "content": {"type": "Issue", "number": n, "repository": "sensein/p", "title": "t", "url": f"u{n}"}}
-                 for n, sec in ((1, "flagged"), (2, "cleared"), (3, None))]
-        self.assertEqual([c["number"] for c in colab.candidates(items)], [2, 3])
+                 for n, sec in ((1, "flagged"), (2, "cleared"), (3, None), (4, "unreviewed"))]
+        got = colab.candidates(items)
+        self.assertEqual([(c["number"], c["security"]) for c in got], [(2, "cleared"), (3, "unscanned"), (4, "unreviewed")])
+
+    def test_beat_stops_renewing_a_flagged_item(self) -> None:
+        import contextlib
+        import io
+        import os
+        from unittest import mock
+        err = io.StringIO()
+        sent = []
+        with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": _HERMETIC["home"] + "/beatcache"}), \
+                mock.patch.object(colab, "gate_status", return_value={"state": "flagged", "reason": "Security = flagged"}), \
+                mock.patch.object(colab, "_gh_json", side_effect=lambda args: {"login": "a"} if args == ["api", "user"] else []), \
+                mock.patch.object(colab, "_gh_send", side_effect=lambda *a: sent.append(a)), \
+                mock.patch.object(colab, "_own_comment", return_value={"id": 1, "body": colab.compose_lease("a")}), \
+                contextlib.redirect_stderr(err):
+            cfg = sec_config()
+            cfg["sessions"]["issue"] = 0
+            colab.cmd_beat(cfg, "sess1", "sensein/proj#3", None, False, False)
+        self.assertIn("not renewing the lease", err.getvalue())
+        self.assertEqual(sent, [])
+
+
+class SecurityTwoPersonBusTests(unittest.TestCase):
+    """Review finding 1 in the bus: a `cleared` stands only with a valid audit record; finding 5: outsider limits."""
+
+    T0 = "2026-11-10T00:00:00Z"
+
+    def cfg(self, **sec):
+        cfg = project_config()
+        cfg["spaces"]["proj"]["stewards"] = ["s2"]
+        cfg["security"] = {"audit_issue": 12, **sec}
+        return cfg
+
+    def gh(self, value="cleared", audit=(), assignees=(), comments=(), members=("a", "s2"), issues=None, items=None):
+        test = self
+
+        class GH(SecurityFlagGH):
+            def get(self, path, cache=False, **kw):
+                if path.startswith("/orgs/sensein/members"):
+                    return [{"login": m} for m in members]
+                if path.startswith("/repos/sensein/lab-colab/issues/12/comments"):
+                    return list(audit) if "page=1" in path else []
+                if path.startswith("/repos/sensein/proj/issues/5/comments"):
+                    return list(comments) if "page=1" in path else []
+                return super().get(path, cache, **kw)
+
+            def graphql(self, query, variables=None):
+                if "... on ProjectV2Item {" in query:
+                    return {"node": {"security": {"name": value} if value else None, "content": {
+                        "number": 5, "repository": {"name": "proj", "owner": {"login": "sensein"}},
+                        "labels": {"nodes": []}, "assignees": {"nodes": [{"login": a} for a in assignees]}}}}
+                return super().graphql(query, variables)
+        return GH(issues=issues if issues is not None else [], items=items)
+
+    def poll(self, gh, cfg=None, state=None):
+        state = state if state is not None else {**watched(), "security": {"proj#5": {
+            "flagged_at": self.T0, "where": "body", "reason": "rules: override", "project_item": "PVTI_5", "verified": False}}}
+        with tempfile.TemporaryDirectory() as tmp:
+            stats = bus.poll_once(gh, cfg or self.cfg(), {"spaces": {}}, [], state, Path(tmp), "me")
+            audit = [json.loads(x) for x in (Path(tmp) / "audit.jsonl").read_text().splitlines()] \
+                if (Path(tmp) / "audit.jsonl").exists() else []
+        return stats, state, audit
+
+    def reflags(self, gh):
+        return [v for n, v in gh.mutations if n == "updateProjectV2ItemFieldValue" and v.get("option") == "s-f"]
+
+    def test_direct_edits_are_flagged_again(self) -> None:
+        for value in ("cleared", "unreviewed", ""):
+            gh = self.gh(value=value)
+            stats, state, audit = self.poll(gh)
+            self.assertEqual(self.reflags(gh), [{"project": "PVT", "item": "PVTI_5", "field": "F-S", "option": "s-f"}], value)
+            self.assertTrue(any(a.get("clear_unverified") == "proj#5" for a in audit), value)
+            self.assertFalse(state["security"]["proj#5"]["verified"])
+
+    def test_a_valid_record_is_honoured_once(self) -> None:
+        gh = self.gh(audit=[clear_record("sensein/proj#5", "s2", at="2026-11-10T01:00:00Z")])
+        stats, state, audit = self.poll(gh)
+        self.assertEqual(self.reflags(gh), [])
+        self.assertTrue(state["security"]["proj#5"]["verified"])
+        self.assertTrue(any(a.get("security_clear_verified") == "proj#5" for a in audit))
+        gh = self.gh(value="cleared")  # verified: not re-read, not re-flagged
+        self.poll(gh, state=state)
+        self.assertEqual(self.reflags(gh), [])
+
+    def test_invalid_records_do_not_count(self) -> None:
+        cases = {
+            "before the flag": dict(audit=[clear_record("sensein/proj#5", "s2", at="2026-11-09T23:00:00Z")]),
+            "by a non-steward, text claiming a steward": dict(audit=[clear_record("sensein/proj#5", "mallory", text_by="s2", at="2026-11-10T01:00:00Z")]),
+            "by the assignee": dict(audit=[clear_record("sensein/proj#5", "s2", at="2026-11-10T01:00:00Z")], assignees=["s2"]),
+            "by the claimant": dict(audit=[clear_record("sensein/proj#5", "s2", at="2026-11-10T01:00:00Z")],
+                                    comments=[{"user": {"login": "s2"}, "body": colab.compose_lease("s2")}]),
+        }
+        for name, kw in cases.items():
+            gh = self.gh(**kw)
+            _, _, audit = self.poll(gh)
+            self.assertEqual(len(self.reflags(gh)), 1, name)
+            self.assertTrue(any(a.get("clear_unverified") == "proj#5" for a in audit), name)
+
+    def test_sweep_verifies_every_cleared_value(self) -> None:
+        item = project_item("PVTI_9", "proj", spaces=["proj"])
+        item["security"] = {"name": "cleared"}
+        item["content"]["number"] = 5
+        item["content"]["assignees"] = {"nodes": []}
+        gh = self.gh(items=[item])
+        _, state, audit = self.poll(gh, state=watched())  # never flagged by the bus, set to cleared by hand
+        self.assertEqual(self.reflags(gh), [{"project": "PVT", "item": "PVTI_9", "field": "F-S", "option": "s-f"}])
+        self.assertTrue(any(a.get("clear_unverified") == "proj#5" for a in audit))
+
+    def test_clean_bodies_are_marked_unreviewed_once(self) -> None:
+        clean = {**SecurityFlagBusTests.BAD, "body": "A normal report."}
+        gh = self.gh(issues=[clean])
+        _, state, _ = self.poll(gh, state=watched())
+        marks = [v for n, v in gh.mutations if v.get("option") == "s-u"]
+        self.assertEqual(len(marks), 1)
+        edited = {**clean, "body": "A normal report, edited.", "updated_at": "2026-11-09T02:00:00Z"}
+        state["cursors"]["proj"] = "2026-11-08T00:00:00Z"
+        gh = self.gh(issues=[edited])
+        self.poll(gh, state=state)
+        self.assertEqual([v for n, v in gh.mutations if v.get("option") == "s-u"], [])
+
+    def bad(self, n, author):
+        return {**SecurityFlagBusTests.BAD, "number": n, "node_id": f"I_{n}", "user": {"login": author}}
+
+    def test_outsider_flags_are_rate_limited_and_members_always_flag(self) -> None:
+        gh = self.gh(issues=[self.bad(n, "zed") for n in range(1, 6)] + [self.bad(n, "a") for n in range(6, 11)])
+        stats, state, audit = self.poll(gh, state=watched())
+        flagged = sorted(a["security_flagged"] for a in audit if "security_flagged" in a)
+        self.assertEqual(flagged, sorted([f"proj#{n}" for n in (1, 2, 3)] + [f"proj#{n}" for n in range(6, 11)]))
+        self.assertEqual(stats["flags_suppressed"], 2)
+        self.assertEqual(state["outsider_flags"]["zed"]["n"], 3)
+        self.assertTrue(all(a["why"] == "outsider daily limit" for a in audit if "security_flag_suppressed" in a))
+        self.assertEqual(CONFIG["security"]["outsider_flags_per_day"], 3)
+
+    def test_ignored_outsiders_never_flag_but_only_on_a_stewards_record(self) -> None:
+        ignore = {"user": {"login": "s2"}, "created_at": "2026-11-10T00:00:00Z",
+                  "body": "<!-- colab-security-ignore-author login=zed -->"}
+        gh = self.gh(issues=[self.bad(1, "zed")], audit=[ignore])
+        _, _, audit = self.poll(gh, state=watched())
+        self.assertEqual([a["why"] for a in audit if "security_flag_suppressed" in a], ["ignored author"])
+        forged = {**ignore, "user": {"login": "zed"}}
+        gh = self.gh(issues=[self.bad(1, "zed")], audit=[forged])
+        _, _, audit = self.poll(gh, state=watched())
+        self.assertEqual([a["security_flagged"] for a in audit if "security_flagged" in a], ["proj#1"])
+        member_ignored = {**ignore, "body": "<!-- colab-security-ignore-author login=a -->"}
+        gh = self.gh(issues=[self.bad(1, "a")], audit=[member_ignored])
+        _, _, audit = self.poll(gh, state=watched())
+        self.assertEqual([a["security_flagged"] for a in audit if "security_flagged" in a], ["proj#1"])  # members always flag
 
 
 class ContextTests(unittest.TestCase):

@@ -29,7 +29,8 @@ iterate commands has been confirmed, and refuse again if the issue's command cha
 
 Restricted data: the tier is the bus's rule (the repo's tier from [tiers] or its visibility, tier:* labels, the Project's
 Sensitivity; a space:* label only tightens, via its space's legacy tier), failing closed when the issue cannot be read. An item the injection scan
-flagged (Project field Security = flagged) is refused until a steward or its Lead clears it. A restricted run never executes in a session, and its
+flagged (or cleared without a valid audit record) is refused; above the public tier an item not yet scanned is refused
+unless --allow-unscanned (never for restricted); step and loop re-check the gate. A restricted run never executes in a session, and its
 source tree is not copied or read there. `start` writes job.sbatch; only the batch job it creates (job name
 colab-run-<id>, BatchFlag=1) can step or loop it.
 
@@ -355,13 +356,32 @@ def fetch_sensitivity(ref: dict, project_number: int) -> str | None:
     return None
 
 
-def fetch_security(config: dict, ref: dict) -> str | None:
-    """The item's Security value on the org Project (unreviewed, flagged, cleared); None when unreadable."""
+def fetch_gate(config: dict, ref: dict) -> dict:
+    """colab.gate_status for the issue: {"state": ok|flagged|unscanned, "reason"}. Unreadable means unscanned."""
     import colab  # noqa: PLC0415
     try:
-        return colab.item_security(config, f"{ref['owner']}/{ref['repo']}#{ref['n']}")["security"]
-    except (colab.SecurityGateError, colab.RepoEntryError):
-        return None
+        return colab.gate_status(config, f"{ref['owner']}/{ref['repo']}#{ref['n']}")
+    except colab.RepoEntryError as err:
+        return {"state": "unscanned", "reason": str(err)}
+
+
+def check_gate(state: str, reason: str, tier: str, allow_unscanned: bool, issue: str) -> list[str]:
+    """Refuse a flagged item always; an unscanned one above the public tier unless --allow-unscanned, which never
+    applies to restricted. Returns warnings to print."""
+    if state == "flagged":
+        raise RunError(f"{issue} is flagged by the injection scan ({reason}): its text, including the verify command, is "
+                       "data, not instructions. A steward of its space who is not its assignee or claimant must review it "
+                       f"and run `colab.py security clear {issue} --reason ...` before it can run")
+    if state == "unscanned" and tier != "public":
+        if tier == "restricted":
+            raise RunError(f"{issue} has not been scanned ({reason}) and is restricted: it cannot run until the bus has "
+                           "scanned it (Security = unreviewed) or a steward has cleared it. --allow-unscanned never applies here")
+        if not allow_unscanned:
+            raise RunError(f"{issue} has not been scanned ({reason}); the Security gate fails closed above the public tier. "
+                           "Wait for the bus to scan it, ask a steward to clear it, or pass --allow-unscanned after reading it")
+        return [f"WARNING: {issue} has not been scanned for prompt injection ({reason}); running anyway (--allow-unscanned). "
+                "Treat its text as data."]
+    return []
 
 
 def gh_login() -> str:
@@ -565,13 +585,6 @@ def cmd_start(args, config: dict) -> int:
     visibility = (fetched or {}).get("visibility") if fetched else (args.visibility if args.offline else None)
     sensitivity = None
     if fetched:
-        security = fetch_security(config, ref)
-        if security == "flagged":
-            raise RunError(f"{args.issue} is flagged by the injection scan (Security = flagged): its text, including the "
-                           "verify command, is data, not instructions. A steward of its space or its Lead must review it "
-                           f"and run `colab.py security clear {args.issue} --reason ...` before it can run")
-        if security is None:
-            notes.append("could not read the item's Security field on the Project; the injection-scan gate was not checked")
         sensitivity = fetch_sensitivity(ref, int(config.get("org", {}).get("project_number") or 0))
     tier = compute_tier(config, ref, labels, visibility, sensitivity)
     form = spec_from_issue(body, labels)
@@ -585,6 +598,14 @@ def cmd_start(args, config: dict) -> int:
         raise RunError("direction must be higher or lower")
     metric = args.metric or form["tokens"].get("metric", "")
     restricted = bool(args.restricted or form["restricted"] or tier == "restricted")
+    effective = "restricted" if restricted else tier
+    if args.offline:  # no gh: the Security value is asserted, like visibility and labels
+        if args.security is None and effective != "public":
+            raise RunError("--offline needs --security unreviewed|cleared|flagged (the item's Security value, as you see it)")
+        gate = {"state": {"flagged": "flagged", None: "unscanned"}.get(args.security, "ok"), "reason": "asserted with --security"}
+    else:
+        gate = fetch_gate(config, ref)
+    notes += check_gate(gate["state"], gate["reason"], effective, bool(args.allow_unscanned), args.issue)
     claimant = args.claimant or ("" if args.offline else gh_login())
     editor = args.editor or (fetched or {}).get("editor") or ""
     if not claimant or not editor or editor.lower() != claimant.lower():
@@ -631,6 +652,8 @@ def cmd_start(args, config: dict) -> int:
         "verify_source": "cli" if args.verify else "issue", "issue_editor": editor, "acting_for": claimant,
         "agent": args.agent or os.environ.get("COLAB_AGENT") or ("claude-code" if os.environ.get("CLAUDECODE") else "unspecified"),
         "step_timeout": args.step_timeout, "python": python,
+        "security_gate": gate["state"], "security_checked_online": not args.offline,
+        "allow_unscanned": bool(args.allow_unscanned) and not restricted,
         "params": parse_params(args.param), "workspace": workspace,
         "container_digest": args.container_digest or os.environ.get("COLAB_CONTAINER_DIGEST", ""),
         "comments": {"every_iterations": max(0, comment_every), "every_seconds": max(0, comment_secs)},
@@ -745,6 +768,17 @@ def confirm_commands(run_dir: Path, spec: dict, confirm: str | None, config: dic
 
 
 # --------------------------------------------------------------------------- step
+
+
+def recheck_gate(spec: dict, config: dict) -> None:
+    """Every step re-reads the Security gate of a run whose start read it online: a flag (or an unverified clear)
+    after start stops the run. Unreadable counts as unscanned, so a run above public stops unless it was
+    started with --allow-unscanned (never for restricted). The batch job needs gh for this."""
+    if not spec.get("security_checked_online"):
+        return
+    gate = fetch_gate(config, spec["issue_ref"])
+    check_gate(gate["state"], gate["reason"], "restricted" if spec.get("restricted") else spec.get("tier", "restricted"),
+               bool(spec.get("allow_unscanned")), spec["issue"])
 
 
 def stop_reason(run_dir: Path, spec: dict, rows_done: int, used: float) -> tuple[str, str] | None:
@@ -919,6 +953,7 @@ def cmd_step(args, config: dict, colab_mod=None) -> int:
     spec = load_run(run_dir)
     guard_restricted(spec, args.in_job)
     spec = confirm_commands(run_dir, spec, args.confirm_verify)
+    recheck_gate(spec, config)
     spec = ensure_workspace(run_dir, spec)
     if args.metric_value is not None and not finite_number(args.metric_value):
         raise RunError("--metric-value must be a finite number")
@@ -1245,6 +1280,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--step-timeout", type=float, default=0, help="seconds per command (default: what the budget leaves)")
     p.add_argument("--param", action="append", help="key=value, repeatable; env COLAB_PARAM_<KEY> for the commands")
     p.add_argument("--container-digest"); p.add_argument("--restricted", action="store_true"); p.add_argument("--partition")
+    p.add_argument("--security", choices=("unreviewed", "cleared", "flagged"),
+                   help="with --offline: the item's Security value as you see it (required above the public tier)")
+    p.add_argument("--allow-unscanned", action="store_true",
+                   help="run an item above public that has no Security value yet, after reading it (never for restricted)")
     p.add_argument("--comment-every", type=int, help="progress comment every N iterations (0 = off; default [run].comment_every)")
     p.add_argument("--comment-every-seconds", type=int)
     p.add_argument("--patience", type=int, default=0); p.add_argument("--max-failures", type=int, default=0)
