@@ -292,7 +292,7 @@ Enabled by `[bus] project_sync = true` once `[org] project_number` is set. It is
 - **A failed Spaces set after a successful add.** The item is already on the Project, and the failed set is audited (`project_write_failed`, `set Spaces <item>`) and counted in `errors`. The periodic sweep sees the item's Spaces differ from the desired value and repairs it, so nothing is retried inline.
 - **Config.** `[bus] project_add` may be a list or a single string (one kind); a kind other than `issue` or `pull_request` is ignored with a warning and an audit entry (`project_add_unknown_kind`).
 - **External items** are added once they involve the group (section 1.5), not on open; the same pass sets their Spaces and keeps their Contributions text current, writing only when the text changed.
-- **Security.** An injection-scan hit sets Security = flagged (section 3.2). A missing Contributions or Security field (plan not yet applied) is audited as `project_field_missing` and skipped.
+- **Security.** An injection-scan hit sets Security = flagged (section 3.2). A missing Contributions or Security field (plan not yet applied) is audited as `project_field_missing` (once a day) and skipped; each field is looked up in its own query, so a missing optional field never stops the Spaces sync.
 - **Throttle and failures.** Writes are spaced by `write_interval_seconds` and counted in the stats as `project_writes`. A failed read or write is logged to `audit.jsonl` (`project_write_failed`), counted in `errors`, and the poll goes on.
 - **Access.** The bus acts with its operator's login, so it can do what the operator can: Projects read and write on the organization, issues in the space and subscriber repos, and pushes to `colab-state` as a member of `colab-bus-operators`.
 

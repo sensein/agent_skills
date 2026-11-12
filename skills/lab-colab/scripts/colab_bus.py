@@ -482,11 +482,18 @@ def read_token(token_file: Path | None) -> str:
 
 # --------------------------------------------------------------------------- Project sync
 
-Q_PROJECT = ("query($org: String!, $n: Int!) { organization(login: $org) { projectV2(number: $n) { id "
-             "field(name: \"Spaces\") { ... on ProjectV2FieldCommon { id } "
-             "... on ProjectV2MultiSelectField { options: multiSelectOptions { id name } } } "
-             "contributions: field(name: \"Contributions\") { ... on ProjectV2FieldCommon { id } } "
-             "security: field(name: \"Security\") { ... on ProjectV2SingleSelectField { id options { id name } } } } } }")
+# The Project lookup asks for each field in its own query: GitHub fails a whole query (NOT_FOUND "Could not resolve
+# to a ProjectV2FieldConfiguration with the name ...") when one named field is missing, and Contributions and
+# Security are optional (plan creates them), so a missing one must never stop the Spaces sync.
+_Q_HEAD = "query($org: String!, $n: Int!) { organization(login: $org) { projectV2(number: $n) { id "
+Q_PROJECT = _Q_HEAD + "} } }"
+Q_PROJECT_FIELDS = {
+    "Spaces": _Q_HEAD + ("field(name: \"Spaces\") { ... on ProjectV2FieldCommon { id } "
+                         "... on ProjectV2MultiSelectField { options: multiSelectOptions { id name } } } } } }"),
+    "Contributions": _Q_HEAD + "contributions: field(name: \"Contributions\") { ... on ProjectV2FieldCommon { id } } } } }",
+    "Security": _Q_HEAD + ("security: field(name: \"Security\") { ... on ProjectV2SingleSelectField { id options { id name } } } "
+                           "} } }"),
+}
 Q_ITEMS = ("query($project: ID!, $after: String) { node(id: $project) { ... on ProjectV2 { "
            "items(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { id "
            "content { __typename "
@@ -562,18 +569,39 @@ class ProjectSync:
     def ids(self) -> dict | None:
         """Project node id, Spaces field id, and option name -> id; cached per sync, refreshed each sweep."""
         if self._ids is None:
+            variables = {"org": self.org, "n": self.number}
             try:
-                node = self.gh.graphql(Q_PROJECT, {"org": self.org, "n": self.number})["organization"]["projectV2"]
-                field = node.get("field") or {}
-                security = node.get("security") or {}
-                self._ids = {"project": node["id"], "field": field.get("id"),
-                             "options": {o["name"]: o["id"] for o in field.get("options") or []},
-                             "contributions": (node.get("contributions") or {}).get("id"),
-                             "security": security.get("id"),
-                             "security_options": {o["name"].lower(): o["id"] for o in security.get("options") or []}}
+                project = self.gh.graphql(Q_PROJECT, variables)["organization"]["projectV2"]["id"]
             except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
                 self._fail("project lookup", err)
                 return None
+            found: dict[str, dict] = {}
+            for name, query in Q_PROJECT_FIELDS.items():
+                key = {"Spaces": "field", "Contributions": "contributions", "Security": "security"}[name]
+                try:
+                    node = self.gh.graphql(query, variables)["organization"]["projectV2"]
+                    found[name] = node.get(key) or {}
+                except GraphQLError as err:
+                    if "NOT_FOUND" not in str(err) and "Could not resolve" not in str(err):
+                        self._fail(f"project lookup ({name})", err)
+                        return None
+                    found[name] = {}  # missing: skipped and audited once a day; the fields that exist keep syncing
+                except (urllib.error.URLError, OSError, KeyError, TypeError) as err:
+                    self._fail(f"project lookup ({name})", err)
+                    return None
+            field, security = found["Spaces"], found["Security"]
+            for name in ("Contributions", "Security"):
+                if not found[name].get("id"):
+                    self._missing(name)
+            if found["Contributions"].get("id"):
+                self.state.get("project_fields_missing", {}).pop("Contributions", None)
+            if security.get("id"):
+                self.state.get("project_fields_missing", {}).pop("Security", None)
+            self._ids = {"project": project, "field": field.get("id"),
+                         "options": {o["name"]: o["id"] for o in field.get("options") or []},
+                         "contributions": found["Contributions"].get("id"),
+                         "security": security.get("id"),
+                         "security_options": {o["name"].lower(): o["id"] for o in security.get("options") or []}}
         return self._ids
 
     def add(self, env: dict) -> None:
@@ -596,9 +624,14 @@ class ProjectSync:
                                                          "options": [ids["options"][n] for n in known]})
 
     def _missing(self, field: str) -> None:
-        """Audit a Project field the config wants but the board lacks (run plan/apply), once per poll."""
-        if field not in self._noted:
-            self._noted.add(field)
+        """Audit a Project field the config wants but the board lacks (run plan/apply): once per field per day, not
+        every poll. Writes to that field are skipped; the fields that exist keep syncing."""
+        if field in self._noted:
+            return
+        self._noted.add(field)
+        noted = self.state.setdefault("project_fields_missing", {})
+        if noted.get(field, "")[:10] != now()[:10]:
+            noted[field] = now()
             _append(self.state_dir / "audit.jsonl", {"project_field_missing": field, "at": now()})
 
     def track_external(self, env: dict, by: dict, entry: dict, involved: bool, opened_after_baseline: bool) -> None:

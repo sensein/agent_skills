@@ -459,6 +459,60 @@ class DeliveryKeyTests(unittest.TestCase):
         self.assertEqual(stats["deliveries_skipped"], 1)
 
 
+class MissingProjectFieldTests(unittest.TestCase):
+    """Regression (live bus on #70): a Project with Spaces but no Contributions/Security failed the whole lookup
+    query (NOT_FOUND on a named field), which also stopped the Spaces sync."""
+
+    class GH:
+        def __init__(self):
+            self.mutations, self.queries = [], []
+
+        def graphql(self, query, variables=None):
+            self.queries.append(query)
+            if query.lstrip().startswith("mutation"):
+                name = query.split("{", 2)[1].split("(")[0].strip()
+                self.mutations.append((name, variables))
+                if name == "addProjectV2ItemById":
+                    return {"addProjectV2ItemById": {"item": {"id": "ITEM-1"}}}
+                return {}
+            for missing in ("Contributions", "Security"):
+                if f'field(name: "{missing}")' in query:  # what GitHub does for a missing named field
+                    raise bus.GraphQLError(json.dumps([{"type": "NOT_FOUND", "message": "Could not resolve to a "
+                                                        f"Unions::ProjectV2FieldConfiguration with the name {missing}."}]))
+            if "projectV2(number" in query:
+                return {"organization": {"projectV2": {"id": "PVT", "field": {"id": "FLD", "options": [
+                    {"id": "o-proj", "name": "proj"}]}}}}
+            return {"node": {"items": {"pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": [
+                {"id": "ITEM-2", "content": {"__typename": "Issue", "number": 2, "repository": {"name": "proj", "owner": {"login": "sensein"}},
+                                             "labels": {"nodes": []}, "assignees": {"nodes": []}},
+                 "fieldValueByName": {"options": []}}]}}}
+
+    def sync(self, gh, state, tmp):
+        c = cfg()
+        c["org"]["project_number"] = 7
+        c["bus"].update(project_sync=True)
+        stats = {"errors": 0}
+        return bus.ProjectSync(gh, c, state, Path(tmp), stats, {"proj": ["proj"]}), stats
+
+    def test_spaces_keep_syncing_and_missing_fields_are_audited_once(self) -> None:
+        gh, state = self.GH(), {}
+        with tempfile.TemporaryDirectory() as tmp:
+            project, stats = self.sync(gh, state, tmp)
+            project.add({"id": "proj:issue:1:opened", "node_id": "I_1", "kind": "issue", "spaces": ["proj"], "transition": "opened"})
+            project.sweep()
+            self.assertEqual(stats["errors"], 0)
+            sets = [v for n, v in gh.mutations if n == "updateProjectV2ItemFieldValue"]
+            self.assertEqual([v["item"] for v in sets], ["ITEM-1", "ITEM-2"])  # add-time and sweep Spaces writes
+            self.assertTrue(all(v["field"] == "FLD" for v in sets))
+            self.assertIsNone(project.ids()["security"])
+            missing = [a["project_field_missing"] for a in audit_lines(tmp) if "project_field_missing" in a]
+            self.assertEqual(sorted(missing), ["Contributions", "Security"])
+            self.assertFalse(any("project_write_failed" in a for a in audit_lines(tmp)))
+            again, _ = self.sync(gh, state, tmp)  # the next poll, same day: no second audit line
+            again.sweep()
+            self.assertEqual(len([a for a in audit_lines(tmp) if "project_field_missing" in a]), 2)
+
+
 # --------------------------------------------------------------------------- the CLI reads colab-state
 
 
