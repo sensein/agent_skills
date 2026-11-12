@@ -13,8 +13,8 @@ Do these in order. Each step is safe to repeat.
 5. **Meta repo.** Clone the new private meta repo and run `colab.py seed --dest <clone>`. Put the Project number in `.colab/config.toml` as `[org] project_number`, and the Session activity issue number as `[sessions] issue`. Scan, then open a PR. From now on the meta-repo copy of the config is the one to pass as `--config`.
 6. **Spaces.** Declare `[spaces]` (stewards, repos, optional tier) in the meta-repo config, by PR. Re-plan: the Spaces field options and the `Space: <name>` views appear.
 7. **Org-wide forms.** `colab.py render-forms --dest <clone of the forms repo>/.github/ISSUE_TEMPLATE`, scan, PR.
-8. **Marketplace (optional).** Set `[marketplace] repo`, `source_repo`, `name` (and `exclude`). Re-plan: it creates the private repo, sets its Actions workflow permissions to read and write with PR approval allowed, and adds a `local` step `colab.py seed-marketplace --dest <clone>`. Seed, scan, PR. Then an org owner does the two `manual` steps: install the Claude GitHub App on the repo, and in claude.ai go to Organization settings > Plugins & skills > Marketplaces > Add plugins > Sync from GitHub. `check_marketplace.py` in the new repo enforces the claude.ai rules in CI (see section 5).
-9. **Bus.** Add a `[[buses]]` entry for the operator by PR; re-plan and apply (team `colab-bus-operators`, the `colab-state` branch, the rulesets). The operator runs `colab.py setup --operator` and follows [operators.md](./operators.md). It starts in dry-run.
+8. **Marketplace (optional).** Set `[marketplace] repo`, `source_repo`, `name` (and `exclude`). Re-plan: it creates the private repo, sets its Actions workflow permissions to read and write with PR approval allowed, and adds a `local` step `colab.py seed-marketplace --dest <clone>`. Seed, scan, PR. Then an org owner does the two `manual` steps: install the Claude GitHub App on the repo, and in claude.ai go to Organization settings > Plugins & skills > Marketplaces > Add plugins > Sync from GitHub. `check_marketplace.py` in the new repo enforces the claude.ai rules in CI (see section 6).
+9. **Bus.** Add the Actions bus by PR (`[[buses]] id = "actions"`, `kind = "actions"`, `app = "<slug>"`, `role = "primary"`); re-plan and apply (the rulesets, the team `colab-bus-operators`), then do the owner steps the plan lists (section 4: create the App, record its `app_id`, install it, set the two secrets, seed the workflow). Optionally add a standby run by an operator ([operators.md](./operators.md)). It starts in dry-run.
 10. **Hooks.** Each member runs `colab.py setup --install-hooks`.
 11. **Gates.** Record each space's gates with evidence, one PR each (`colab.py gate ...`).
 
@@ -38,9 +38,47 @@ Re-applying is not always harmless. Know these before you press `--yes`.
 - **View filters** are safe to re-apply: only the filter text changes.
 - **Issue types, repos, and the marketplace permissions** are idempotent.
 
-## 4. Operating the bus
+## 4. The Actions bus (the default)
 
-The bus is a Slurm job that polls GitHub. Its job file is the filled copy of `bus/colab-bus.sbatch.template`, kept in the bus state directory outside git. Never work on it from a clone of the meta repo.
+The bus is the workflow `.github/workflows/colab-bus.yml` in the meta repo, signed in as the org's GitHub App. Nobody runs it; an org owner sets it up once.
+
+**Setting it up** (an org owner; `colab.py plan` lists these steps and `colab.py setup --app` checks each):
+
+1. Declare it by PR: `[[buses]] id = "actions"`, `kind = "actions"`, `app = "colab-bus"` (or the lab's own name), `role = "primary"`.
+2. `colab.py app-manifest --out <folder>`. Open the file link it prints in a browser signed in to GitHub as an org owner. Press **Create the App on GitHub**, then **Create GitHub App for `<org>`**.
+3. You land on the App's settings page. Copy the **App ID** (a number near the top) into the entry as `app_id = <number>`, by PR.
+4. On the same page, under **Private keys**, click **Generate a private key**. Your browser downloads `<app>.<date>.private-key.pem`.
+5. Store the two secrets, then delete the file:
+
+   ```bash
+   gh secret set COLAB_APP_ID --repo <org>/<meta repo> --body <App ID>
+   gh secret set COLAB_APP_PRIVATE_KEY --repo <org>/<meta repo> < ~/Downloads/<app>.<date>.private-key.pem
+   rm ~/Downloads/<app>.<date>.private-key.pem
+   ```
+
+6. Install the App: open `https://github.com/apps/<app>/installations/new`, click **Install** next to the org, choose **Only select repositories**, and pick the meta repo and every space repo (or **All repositories**: no upkeep when spaces change, but the App can then write issues in every repo).
+7. Re-plan and apply: the `colab-state` ruleset gains the App (an `Integration` bypass, by `app_id`); nothing is removed.
+8. Seed the workflow by PR: `colab.py seed --dest <meta clone> --refresh-bus` (it also refreshes `bus/colab_bus.py` and `bus/colab.py`), scan, open the PR, merge after review.
+9. Start the first run: Actions tab > colab-bus > **Run workflow** (or `gh workflow run colab-bus.yml --repo <org>/<meta repo>`). If the meta repo has no `colab-state` branch yet, this run creates it (only once the ruleset is active). `colab.py bus status` then shows it.
+
+**Checking it.** `colab.py bus status`; the workflow's runs in the Actions tab (each run prints one JSON line: its stats and counts of its audit lines, no item text); the watchdog. A red run means it could not sign in (secrets, installation) or could not run; the line says why in words.
+
+**Rotating the key.** On the App's page, **Generate a private key** (a new `.pem`); `gh secret set COLAB_APP_PRIVATE_KEY --repo <org>/<meta repo> < <new file>.pem`; delete the file; run the workflow once and check it is green; then **Delete** the old key on the App's page. The bus's sealed state (entries about restricted items) was keyed to the old key: the next run drops it and carries the restricted flags from the published security state, by hash, so no flag is lost.
+
+**Disabling it.** Actions tab > colab-bus > **...** > **Disable workflow**. A standby takes over once the lease is stale (45 minutes). To remove it for good: delete the `[[buses]]` entry and the workflow by PR, delete the two secrets, and uninstall or delete the App (Organization settings > GitHub Apps); re-plan (the ruleset keeps its `Integration` bypass until an owner removes it: apply never removes one).
+
+**Moving from an ORCD bus.** Run both for a while, with the ORCD bus as the standby, then retire it:
+
+1. Set up the Actions bus (above) with `role = "primary"`, and change the ORCD entry to `role = "standby"`, `order = 1`, in the same PR.
+2. Hand the lease over: `colab.py bus handback actions` (any operator). At its next run the Actions bus becomes active and starts from the ORCD bus's published flags, clears, and cursors (look-back `takeover_lookback_minutes`; delivery keys stop duplicates). The ORCD bus stands by.
+3. Watch a few days: green runs, `bus status`, a quiet watchdog, deliveries in live spaces.
+4. Keep the ORCD bus as a standby, or retire it: cancel the job, remove its entry by PR, and have an owner take the operator out of `colab-bus-operators`.
+
+**Limits.** Scheduled runs can start late (the lease therefore lasts at least 45 minutes and the CLI accepts a security state up to 60 minutes old). GitHub turns off a schedule after 60 days without repository activity; the rollout's PRs keep it on. An `[scan] injection_command` that needs ORCD does not run in Actions (the rules do). The drift check (section 2) does not run in Actions either: run `colab.py plan` yourself now and then. The audit log of a run is not kept.
+
+## 5. Operating a standby bus on a cluster
+
+A standby is a Slurm job that polls GitHub. Its job file is the filled copy of `bus/colab-bus.sbatch.template`, kept in the bus state directory outside git. Never work on it from a clone of the meta repo.
 
 - **Check it.** `colab.py bus status` (which bus holds the lease, and each bus's last heartbeat); `squeue -u $USER -n colab-bus`; the newest `colab-bus-<jobid>.out` in the state directory. The `colab-watchdog` workflow alerts when no bus holds a fresh lease, naming the operators.
 - **Hand over.** A standby takes over by itself when the primary's lease goes stale. When the primary is back, an operator (any operator can) runs `colab.py bus handback <primary id>`; the standby stands by at its next poll. To move the bus for good, change `role`/`order` in `[[buses]]` by PR and hand back.
@@ -50,7 +88,7 @@ The bus is a Slurm job that polls GitHub. Its job file is the filled copy of `bu
 - **The drift check.** Every `drift_check_hours` the bus runs `observe` and `build_plan`, read-only, with the config it loaded. `observe` calls `gh`, which must be on the bus job's PATH and logged in as someone who can read the org. If it cannot, the failure goes to `audit.jsonl` as `drift_check_failed`, the poll goes on, and the check retries within the hour. The result is the `drift_actions` count in the heartbeat and in `state.json`. Set `drift_check_hours = 0` to turn it off.
 - **Stop it.** Cancel the job. State stays in the state directory, so a restart resumes where it was.
 
-## 5. The marketplace rules (claude.ai org sync)
+## 6. The marketplace rules (claude.ai org sync)
 
 `scripts/check_marketplace.py` in the marketplace repo encodes these. They were learned from claude.ai rejecting a sync, so keep them.
 
