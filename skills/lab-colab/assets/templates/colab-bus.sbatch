@@ -19,6 +19,9 @@
 #SBATCH -o {{STATE_DIR}}/colab-bus-%j.out
 
 umask 077
+# With [security] signing = "ssh": the bus signs COLAB_SECURITY_STATE with this private key (0600, on this host
+# only, never in git); its public key goes in the meta repo's .colab/allowed_signers as `colab-bus <pubkey>`.
+# export COLAB_SIGNING_KEY={{STATE_DIR}}/colab-security-signing-key
 STATE_DIR={{STATE_DIR}}
 META={{META_CLONE}}
 PY={{PYTHON}}

@@ -30,7 +30,30 @@ run = importlib.util.module_from_spec(_spec)
 sys.modules["colab_run"] = run
 _spec.loader.exec_module(run)
 
-GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org",
+
+# Hermetic: never read the member's COLAB_CONFIG, ~/.claude, caches, or tokens while these tests run.
+HERMETIC_DROP = ("COLAB_CONFIG", "COLAB_RUN_ROOT", "COLAB_AGENT", "COLAB_CONTAINER_DIGEST", "COLAB_RUN_PARTITION",
+                 "CLAUDECODE", "GITHUB_TOKEN", "GH_TOKEN")
+_HERMETIC: dict = {}
+
+
+def setUpModule() -> None:
+    import os
+    import tempfile
+    from unittest import mock
+    home = tempfile.mkdtemp(prefix="colab-test-home-")
+    env = {k: v for k, v in os.environ.items() if k not in HERMETIC_DROP}
+    env.update(HOME=home, XDG_CACHE_HOME=f"{home}/cache", XDG_STATE_HOME=f"{home}/state", XDG_CONFIG_HOME=f"{home}/config")
+    _HERMETIC["home"], _HERMETIC["patch"] = home, mock.patch.dict(os.environ, env, clear=True)
+    _HERMETIC["patch"].start()
+
+
+def tearDownModule() -> None:
+    import shutil
+    _HERMETIC["patch"].stop()
+    shutil.rmtree(_HERMETIC["home"], ignore_errors=True)
+
+GIT_ENV = dict({k: v for k, v in os.environ.items() if k not in HERMETIC_DROP}, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org",
                GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.org")
 ISSUE = """### Hypothesis
 
@@ -77,7 +100,7 @@ def make_source(root: Path, git: bool = False) -> Path:
 def start(root: Path, src: Path, *extra: str, body: str = ISSUE, expect: int = 0, confirm: bool = True) -> dict:
     body_file = root / "issue.md"
     body_file.write_text(body)
-    proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body_file), "--root", str(root / "runs"),
+    proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body_file), "--root", str(root / "runs"),
                "--source", str(src), "--comment-every", "0", "--claimant", "alice", "--editor", "alice", *extra)
     assert proc.returncode == expect, proc.stderr + proc.stdout
     if expect != 0:
@@ -88,12 +111,25 @@ def start(root: Path, src: Path, *extra: str, body: str = ISSUE, expect: int = 0
     return out
 
 
-def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = None) -> dict:
+def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = None, flags: dict | None = None) -> dict:
     """An environment that looks like a Slurm job, with a fake scontrol on PATH."""
     bin_dir = Path(tempfile.mkdtemp(dir=root, prefix="fakebin-"))
     scontrol = bin_dir / "scontrol"
     scontrol.write_text(f"#!/bin/sh\necho 'JobId=777 JobName=x BatchFlag={1 if batch else 0} Command=/x'\n")
     scontrol.chmod(0o755)
+    # Batch jobs re-check the Security gate online: a stand-in gh serves COLAB_SECURITY_STATE and the job's login,
+    # and fails every other call.
+    gh = bin_dir / "gh"
+    from datetime import datetime, timezone
+    issued = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    state = json.dumps({"value": json.dumps({"v": 1, "issued_at": issued, "seen": {}, "flags": flags or {}, "clears": {},
+                                             "ignored": {}})})
+    import base64
+    meta = json.dumps({"content": base64.b64encode(b"[security]\n").decode()})
+    gh.write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '" + state + "' ;;\n"
+                  "  user) echo '{\"login\": \"jobuser\"}' ;;\n  */contents/.colab/config.toml) echo '" + meta + "' ;;\n"
+                  "  *) exit 1 ;;\nesac\n")
+    gh.chmod(0o755)
     return dict(os.environ, SLURM_JOB_ID="777", SLURM_JOB_NAME=name or f"colab-run-{run_id}",
                 PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
 
@@ -172,7 +208,7 @@ class WorkspaceIsolationTests(unittest.TestCase):
             env.pop("COLAB_RUN_ROOT", None)
             body = Path(tmp) / "i.md"
             body.write_text(ISSUE)
-            proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--mode", "dir", "--comment-every", "0",
+            proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--mode", "dir", "--comment-every", "0",
                        check=True, env=env)
             run_dir = Path(json.loads(proc.stdout)["run_dir"])
             self.assertEqual(run_dir.parent, (Path(tmp) / "lab-colab" / "runs").resolve())
@@ -380,7 +416,7 @@ class ConcurrencyAndAppendOnlyTests(unittest.TestCase):
             body.write_text(ISSUE)
 
             def go(_):
-                return json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+                return json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                       "--source", str(src), "--comment-every", "0", "--claimant", "a", "--editor", "a", check=True).stdout)
 
             with ThreadPoolExecutor(max_workers=5) as pool:
@@ -455,7 +491,7 @@ class ProgressCommentTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                "--source", str(make_source(root)), "--mode", "dir", "--comment-every", "2", "--iterations", "9",
                                "--compute", "100", "--claimant", "a", "--editor", "a", check=True).stdout)
             go_online(r)
@@ -477,7 +513,7 @@ class ProgressCommentTests(unittest.TestCase):
             body = root / "i.md"
             body.write_text(ISSUE)
             leak = "/" + "orcd/scratch/orcd/999/someone/x"
-            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            r = json.loads(cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                                "--source", str(make_source(root)), "--mode", "dir", "--comment-every", "1",
                                "--metric", leak, "--claimant", "a", "--editor", "a", check=True).stdout)
             go_online(r)
@@ -624,7 +660,7 @@ class ColabPyDelegationTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            proc = subprocess.run([sys.executable, str(COLAB), "run", "start", "sensein/lab#7", "--offline", "--body-file", str(body),
+            proc = subprocess.run([sys.executable, str(COLAB), "run", "start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
                                    "--root", str(root / "runs"), "--source", str(make_source(root)), "--mode", "dir",
                                    "--comment-every", "0"], capture_output=True, text=True)
             self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -696,7 +732,7 @@ class ConfirmVerifyTests(unittest.TestCase):
             root = Path(tmp)
             body = root / "i.md"
             body.write_text(ISSUE)
-            proc = cli("start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+            proc = cli("start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body), "--root", str(root / "runs"),
                        "--source", str(make_source(root)), "--mode", "dir", "--claimant", "alice", "--editor", "mallory",
                        "--comment-every", "0", check=True)
             self.assertIn("WARNING", proc.stderr)
@@ -737,9 +773,24 @@ class TierDetectionTests(unittest.TestCase):
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "restricted")
         cfg = self.cfg(a={"repos": ["proj"], "tier": "lab"})
         self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "lab")
-        # a space:* label pulls in that space's tier too
+        # review finding 4: a space:* label tightens with that space's legacy tier, never loosens
         cfg = self.cfg(a={"repos": ["other"]}, hot={"repos": [], "tier": "restricted"})
         self.assertEqual(run.compute_tier(cfg, self.REF, ["space:hot"], "public"), "restricted")
+        cfg = self.cfg(a={"repos": ["proj"]}, cool={"repos": [], "tier": "lab"})
+        cfg["tiers"] = {"restricted": ["proj"]}
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:cool"], "public"), "restricted")  # never loosens
+        self.assertEqual(run.compute_tier(cfg, self.REF, ["space:nope"], "private"), "restricted")
+        ext = {"owner": "pi-lab", "repo": "x", "n": 1}
+        self.assertEqual(run.compute_tier(self.cfg(hot={"repos": [], "tier": "restricted"}), ext, ["space:hot"], "public"),
+                         "public")  # labels set in another org are ignored
+
+    def test_tiers_table_overrides_per_repo(self) -> None:
+        cfg = self.cfg(a={"repos": ["proj", "pi-lab/tool"]})
+        cfg["tiers"] = {"restricted": ["proj"], "lab": ["pi-lab/tool"]}
+        self.assertEqual(run.compute_tier(cfg, self.REF, [], "public"), "restricted")
+        ext = {"owner": "pi-lab", "repo": "tool", "n": 1}
+        self.assertEqual(run.compute_tier(cfg, ext, [], "private"), "lab")  # opted in
+        self.assertEqual(run.compute_tier(cfg, ext, ["tier:restricted"], "private"), "restricted")  # a label still tightens
 
     def test_repos_in_other_orgs_use_their_qualified_entry(self) -> None:
         cfg = self.cfg(p={"repos": ["pi-lab/proj"], "tier": "restricted"}, a={"repos": ["proj"]})
@@ -766,10 +817,12 @@ class TierDetectionTests(unittest.TestCase):
         return run.build_parser().parse_args(["start", "sensein/proj#7", "--body-file", str(body), "--root", str(root / "runs"),
                                               "--source", str(src), "--comment-every", "0", *extra])
 
-    def _start(self, root: Path, args, fetch, sensitivity=None) -> dict:
+    def _start(self, root: Path, args, fetch, sensitivity=None, gate=None) -> dict:
+        gate = gate or {"state": "ok", "reason": "scanned by the bus, no finding"}
         import colab
         out = io.StringIO()
         with mock.patch.object(run, "fetch_issue", fetch), mock.patch.object(run, "gh_login", return_value="alice"), \
+                mock.patch.object(run, "fetch_gate", return_value=gate), \
                 mock.patch.object(run, "fetch_sensitivity", return_value=sensitivity), contextlib.redirect_stdout(out), \
                 contextlib.redirect_stderr(io.StringIO()):
             run.cmd_start(args, colab.load_config())
@@ -804,6 +857,118 @@ class TierDetectionTests(unittest.TestCase):
             self.assertFalse(out["restricted"])
             self.assertEqual(out["tier"], "lab")
             self.assertTrue((Path(out["run_dir"]) / "workspace" / "code.txt").exists())
+
+    def test_flagged_items_are_refused_and_unscanned_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "alice", "author": "alice"}
+            fetch = mock.Mock(return_value=issue)
+            with self.assertRaises(run.RunError) as ctx:
+                self._start(root, self._start_args(root, src, body), fetch, gate={"state": "flagged", "reason": "Security = flagged"})
+            self.assertIn("security clear", str(ctx.exception))
+            self.assertFalse((root / "runs").exists() and any((root / "runs").iterdir()))  # nothing was made
+            unscanned = {"state": "unscanned", "reason": "not on the lab Project"}
+            with self.assertRaises(run.RunError) as ctx:
+                self._start(root, self._start_args(root, src, body), fetch, gate=unscanned)
+            self.assertIn("--allow-unscanned", str(ctx.exception))
+            out = self._start(root, self._start_args(root, src, body, "--allow-unscanned"), fetch, gate=unscanned)
+            self.assertTrue(any("WARNING" in w for w in out["warnings"]))
+            spec = json.loads((Path(out["run_dir"]) / "run.json").read_text())
+            self.assertTrue(spec["allow_unscanned"] and spec["security_checked_online"])
+            with self.assertRaises(run.RunError) as ctx:  # never for restricted
+                self._start(root, self._start_args(root, src, body, "--allow-unscanned", "--label", "tier:restricted"), fetch, gate=unscanned)
+            self.assertIn("never applies", str(ctx.exception))
+            public = dict(issue, visibility="public")
+            out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=public), gate=unscanned)
+            self.assertEqual(out["tier"], "public")  # the public tier does not need a scan
+
+    def test_start_passes_the_claimant_as_acting_for(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "alice", "author": "alice"}
+            gate = mock.Mock(return_value={"state": "ok", "reason": ""})
+            import colab
+            out = io.StringIO()
+            with mock.patch.object(run, "fetch_issue", return_value=issue), mock.patch.object(run, "gh_login", return_value="alice"), \
+                    mock.patch.object(run, "fetch_gate", gate), mock.patch.object(run, "fetch_sensitivity", return_value=None), \
+                    contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                run.cmd_start(self._start_args(root, src, body), colab.load_config())
+            self.assertEqual(gate.call_args.kwargs["acting_for"], "alice")  # a clear by alice does not count for her run
+
+    def test_offline_is_refused_while_gh_works(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            import colab
+            base = ["start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
+                    "--root", str(root / "runs"), "--source", str(src), "--claimant", "a", "--editor", "a"]
+            with mock.patch.object(run, "gh_login", return_value="someone"), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(run.RunError) as ctx:
+                    run.cmd_start(run.build_parser().parse_args(base), colab.load_config())
+                self.assertIn("--force-offline", str(ctx.exception))
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    run.cmd_start(run.build_parser().parse_args(base + ["--force-offline"]), colab.load_config())
+                self.assertTrue(any("--force-offline" in w for w in json.loads(out.getvalue())["warnings"]))
+                with self.assertRaises(run.RunError) as ctx:
+                    run.cmd_start(run.build_parser().parse_args(base + ["--force-offline", "--label", "tier:restricted"]),
+                                  colab.load_config())
+                self.assertIn("drop --offline", str(ctx.exception))
+
+    def test_batch_jobs_recheck_the_published_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            r = start(root, make_source(root), "--label", "tier:restricted")
+            flags = {"sensein/lab#7": {"at": "2026-11-10T00:00:00Z", "cat": "override"}}
+            proc = cli("step", "--run-dir", r["run_dir"], "--in-job", "--confirm-verify", r["commands"]["sha256"],
+                       env=batch_env(root, r["run_id"], flags=flags))
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("flagged by the bus", proc.stderr)
+            proc = cli("step", "--run-dir", r["run_dir"], "--in-job", "--confirm-verify", r["commands"]["sha256"],
+                       env=batch_env(root, r["run_id"]))
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_offline_needs_an_asserted_security_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "issue.md"
+            body.write_text(ISSUE)
+            base = ["start", "sensein/lab#7", "--offline", "--body-file", str(body), "--root", str(root / "runs"),
+                    "--source", str(src), "--claimant", "a", "--editor", "a"]
+            proc = cli(*base)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("--offline needs --security", proc.stderr)
+            self.assertEqual(cli(*base, "--security", "flagged").returncode, 2)
+            self.assertEqual(cli(*base, "--security", "cleared").returncode, 0)
+            self.assertEqual(cli(*base, "--visibility", "public").returncode, 0)
+
+    def test_step_rechecks_the_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            r = start(root, make_source(root))
+            path = Path(r["run_dir"]) / "run.json"
+            spec = json.loads(path.read_text())
+            spec["security_checked_online"] = True
+            path.write_text(json.dumps(spec))
+            args = run.build_parser().parse_args(["step", "--run-dir", r["run_dir"], "--confirm-verify", r["commands"]["sha256"]])
+            import colab
+            for gate, refused in (({"state": "flagged", "reason": "Security = flagged"}, "flagged"),
+                                  ({"state": "unscanned", "reason": "unreadable"}, "not been scanned")):
+                with mock.patch.object(run, "fetch_gate", return_value=gate), self.assertRaises(run.RunError) as ctx:
+                    run.cmd_step(args, colab.load_config())
+                self.assertIn(refused, str(ctx.exception))
+            with mock.patch.object(run, "fetch_gate", return_value={"state": "ok", "reason": ""}), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(run.cmd_step(args, colab.load_config()), 0)
 
     def test_restricted_start_never_copies_the_source_and_the_job_does(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1197,7 +1362,7 @@ class ConfigIndependenceTests(unittest.TestCase):
             cfg.write_text('[org]\nname = "sensein"\nmeta_repo = "lab-colab"\n')
             body = root / "i.md"
             body.write_text("### Hypothesis\n\nh\n\n### Data\n\nd\n")  # a form rendered before budget/verify existed
-            proc = cli("--config", str(cfg), "start", "sensein/lab#7", "--offline", "--body-file", str(body),
+            proc = cli("--config", str(cfg), "start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
                        "--root", str(root / "runs"), "--source", str(make_source(root)), "--mode", "dir",
                        "--verify", "echo 1", "--iterations", "2", "--wall", "1h", "--claimant", "a", "--editor", "a")
             self.assertEqual(proc.returncode, 0, proc.stderr)

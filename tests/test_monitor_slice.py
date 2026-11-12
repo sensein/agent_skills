@@ -309,7 +309,7 @@ class ExitCodeIntegrationTests(unittest.TestCase):
         body.write_text("### Hypothesis\n\nh\n\n### Data (pointers only, never restricted content)\n\nd\n")
         result = subprocess.run(
             [
-                sys.executable, str(RUN_SCRIPT), "start", "sensein/demo#1", "--offline",
+                sys.executable, str(RUN_SCRIPT), "start", "sensein/demo#1", "--offline", "--security", "unreviewed", "--force-offline",
                 "--body-file", str(body), "--root", str(lab_root / "runs"),
                 "--source", str(project_root), "--mode", "dir", "--verify", "true",
                 "--direction", "higher", "--iterations", "50", "--wall", "2 hours", "--loop", "10 minutes",
