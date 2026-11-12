@@ -8,13 +8,20 @@ connections. Stdlib only, Python 3.11+.
 Per destination space, from .colab/rollout.json:
   dry-run  log what would be delivered to <state>/would-deliver.jsonl; write nothing
   live     open a delivery issue in the subscriber repo (throttled)
-The heartbeat (repo variable COLAB_BUS_HEARTBEAT on the meta repo) is written in both modes.
+A bus runs under the GitHub login of its operator ([[buses]] in the config; operators are the org team
+colab-bus-operators). One bus is active per org: it holds lease.json on the meta repo's protected `colab-state`
+branch, renewed every poll; standbys take over in order only when it is stale, and a returning primary stands by
+until `colab.py bus handback <id>`. Each poll writes at most one commit there (lease, heartbeat/<bus id>.json,
+security/state.json) with compare-and-set on the branch head. Without that branch (a meta repo not migrated yet)
+the bus writes the deprecated Actions variables COLAB_BUS_HEARTBEAT and COLAB_SECURITY_STATE, for one release.
+The heartbeat is written in both modes.
 
 Safety rules enforced here:
   - destination tier = max(actual repo visibility, declared override); unknown repo = public
   - events only move to an equal or stricter tier; anything else is dropped and audited
   - restricted events carry no summary, and move only for spaces with the `restricted` switch
-  - the bus never routes its own deliveries (body marker), so it cannot loop
+  - the bus never routes its own deliveries (body marker naming the bus and operator), so it cannot loop; each
+    delivery carries an idempotency key (the envelope id), checked in the destination before creating an issue
   - it adds no labels anywhere: tier and space membership come from the config
   - tiers are per repo: [tiers] entry, else visibility; tier:* labels tighten, and a space:* label only tightens (its space's legacy tier);
     a digest's tier is the combined (strictest) tier of what it includes
@@ -25,8 +32,8 @@ Safety rules enforced here:
     route; their summaries are delivered quoted, marked [external] and untrusted; nothing is ever written
     there, and subscriptions deliver only to repos in [org] name (others, and malformed entries, are dropped)
   - new or edited bodies, comments, and reviews are injection-scanned once per version (capped, time-budgeted); hits
-    are audited (reason, truncated spans) in private state only. The bus publishes COLAB_SECURITY_STATE (flags,
-    verified clears and ignores, repo cursors) as a meta-repo Actions variable: the trust anchor the CLI reads.
+    are audited (reason, truncated spans) in private state only. The bus publishes its security state (flags,
+    verified clears and ignores, repo cursors) as security/state.json on colab-state: the trust anchor the CLI reads.
     The Project's Security field is display only and is overwritten where it disagrees
   - repo keys are lower-case; state saved under an older mixed-case key is migrated on the next poll
   - it validates each issue's fenced links block once per body version
@@ -48,6 +55,7 @@ State lives in --state-dir (private group storage, not scratch).
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -65,7 +73,9 @@ from pathlib import Path
 API = "https://api.github.com"
 GRAPHQL_URL = "https://api.github.com/graphql"
 RANK = {"public": 0, "lab": 1, "restricted": 2}
-DELIVERY_MARKER = "<!-- colab-delivery -->"
+DELIVERY_MARKER = "<!-- colab-delivery -->"  # every bus write carries it; deliveries add delivery_marker(bus, operator, key)
+MARKED = re.compile(r"<!-- colab-delivery(?: [^>]*)? -->")
+DELIVERY_KEY = re.compile(r"<!-- colab-delivery bus=\S+ operator=\S+ key=(?P<key>\S+) -->")
 SEEN_CAP = 20000
 
 
@@ -243,7 +253,7 @@ def may_deliver(event_tier: str, to_tier: str) -> bool:
 
 
 def is_delivery(item: dict) -> bool:
-    return DELIVERY_MARKER in (item.get("body") or "")
+    return bool(MARKED.search(item.get("body") or ""))
 
 
 def envelopes_for(kind: str, repo: str, visibility: str, item: dict,
@@ -347,7 +357,9 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CLEAR_MARKER, CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
+from colab import (CLEAR_MARKER, LEASE_FILE, OPERATORS_TEAM, SECURITY_FILE, STATE_BRANCH, BusConfigError,  # noqa: E402
+                   buses, compose_bus_lease, delivery_marker, heartbeat_path, lease_decision, lease_ttl_minutes,
+                   CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
                    OUTSIDER_OPEN_FLAGS_PER_REPO, SECURITY_SIG_NAMESPACE, hashed_ref,
                    all_stewards, cap_text, claimants_from, combined_tier, involved_by, item_stewards, declared_tiers, format_contributions,  # noqa: E402
                    injection_scan, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces)
@@ -898,8 +910,23 @@ def migrate_case(state: dict, keys: set[str]) -> None:
         state["links_checked"] = {fix(k): v for k, v in state["links_checked"].items()}
 
 
+def already_delivered(gh, repo_path: str, key: str, since: str) -> bool:
+    """Is there already a delivery with this idempotency key (the envelope id) in the subscriber repo, from any bus?
+    Reads the repo's issues updated since the event (one page, newest first). A failed read counts as not found."""
+    try:
+        issues = gh.get(f"{repo_path}/issues?state=all&sort=created&direction=desc&per_page=100&since={since}",
+                        conditional=False) or []
+    except (urllib.error.URLError, OSError):
+        return False
+    for issue in issues if isinstance(issues, list) else []:
+        for m in DELIVERY_KEY.finditer((issue or {}).get("body") or ""):
+            if m["key"] == key:
+                return True
+    return False
+
+
 def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path,
-              bot: str, save=lambda: None) -> dict:
+              bot: str, save=lambda: None, store=None, bus_id: str = "", operator: str = "") -> dict:
     org = config["org"]["name"]
     meta_repo = config["org"].get("meta_repo", "lab-colab")
     spaces = config.get("spaces") or {}
@@ -1454,7 +1481,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         joined: dict = {}
         for number, where, body, author in texts:
             item = by_number.get(number)
-            if (external and item is None) or DELIVERY_MARKER in body:
+            if (external and item is None) or MARKED.search(body):
                 continue  # untracked external items are not scanned; the bus's own comments are skipped
             scan_text_for(repo, number, where, body, item, eligible(item), {author})
             joined.setdefault(number, []).append((body, author))
@@ -1480,6 +1507,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             for d in drops:
                 stats["drops"] += 1
                 _append(state_dir / "audit.jsonl", {"dropped": d, "at": now()})
+            marker = delivery_marker(bus_id, operator or bot, env["id"])
             if len(deliveries) > threshold:
                 # A digest combines items; its tier is the strictest of what it includes (one envelope here).
                 if not may_deliver(combined_tier([env]), to_tiers[meta_key]):
@@ -1487,9 +1515,12 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                     _append(state_dir / "audit.jsonl", {"dropped": {"digest": env["id"], "reason": "meta tier"}, "at": now()})
                 elif live(meta_key) or any(live(d["to"]) for d in deliveries):
                     _, untrusted = delivery_text(env)
-                    if write(f"/repos/{org}/{meta_repo}/issues", {
+                    if already_delivered(gh, f"/repos/{org}/{meta_repo}", env["id"], env["at"] or now()):
+                        stats["deliveries_skipped"] = stats.get("deliveries_skipped", 0) + 1
+                        _append(state_dir / "audit.jsonl", {"delivery_exists": env["id"], "to": meta_repo, "at": now()})
+                    elif write(f"/repos/{org}/{meta_repo}/issues", {
                         "title": delivery_title("[colab digest]", env),
-                        "body": f"{DELIVERY_MARKER}\n{untrusted}Source: {env['source']}\nTier: {env['tier']}\n\nSubscribers:\n"
+                        "body": f"{DELIVERY_MARKER}\n{marker}\n{untrusted}Source: {env['source']}\nTier: {env['tier']}\n\nSubscribers:\n"
                                 + "\n".join(f"- {d['to']}" for d in deliveries),
                     }):
                         stats["deliveries"] += 1
@@ -1500,9 +1531,13 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             for d in deliveries:
                 if live(d["to"]) and d["via"] == "issue" and not is_external(d["to"]):
                     _, untrusted = delivery_text(env)
-                    if write(f"{path(d['to'])}/issues", {
+                    if already_delivered(gh, path(d["to"]), env["id"], env["at"] or now()):
+                        stats["deliveries_skipped"] = stats.get("deliveries_skipped", 0) + 1
+                        _append(state_dir / "audit.jsonl", {"delivery_exists": env["id"], "to": d["to"], "at": now()})
+                    elif write(f"{path(d['to'])}/issues", {
                         "title": delivery_title("[colab]", env),
-                        "body": f"{DELIVERY_MARKER}\nDelivered by colab-bus.\n\n{untrusted}Source: {env['source']}\nTier: {env['tier']}\nEnvelope: `{env['id']}`",
+                        "body": f"{DELIVERY_MARKER}\n{marker}\nDelivered by colab-bus {bus_id or 'default'} "
+                                f"(operator {operator or bot}).\n\n{untrusted}Source: {env['source']}\nTier: {env['tier']}\nEnvelope: `{env['id']}`",
                     }):
                         stats["deliveries"] += 1
                 else:
@@ -1529,7 +1564,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         project._fail("sweep", err)
     for key in [k for k in suppressed if ref_of(k) in hot and k not in closed_flags]:
         promote(key, "Ready/Agent-ready, in progress, or assigned")
-    publish_security_state(gh, config, state, state_dir, stats)  # the trust anchor the CLI reads
+    publish_security_state(gh, config, state, state_dir, stats, store)  # the trust anchor the CLI reads
     save()
     return stats
 
@@ -1570,6 +1605,11 @@ def security_state_value(config: dict, state: dict, now_t: datetime | None = Non
         name = hashed_ref(ref) if v.get("restricted") else ref
         names[ref] = name
         flags[name] = {"at": v["flagged_at"], "cat": _categories(v.get("reason", ""))}
+    def age_of(at) -> float:
+        try:
+            return datetime.fromisoformat(str(at or "").replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return 0.0
     closed_days = float((config.get("security") or {}).get("closed_flag_days", 30))
     closed_cutoff = now_t.timestamp() - closed_days * 86400
     for k, v in (state.get("security_closed") or {}).items():
@@ -1585,6 +1625,18 @@ def security_state_value(config: dict, state: dict, now_t: datetime | None = Non
         flags[name] = {"at": v["flagged_at"], "cat": _categories(v.get("reason", "")), "closed": 1}
     clears = {names[r]: c for r, c in (verified.get("clears") or {}).items()
               if r in names and c["at"] > flags[names[r]]["at"]}
+    # Restricted flags taken over from a previous lease holder are listed by hash only, so they are carried verbatim
+    # (open ones always; closed ones for closed_flag_days) until this bus learns the item itself.
+    carried = state.get("security_inherited") or {}
+    for name, f in (carried.get("flags") or {}).items():
+        if name in flags or not isinstance(f, dict):
+            continue
+        if f.get("closed") and age_of(f.get("at")) < closed_cutoff:
+            continue
+        flags[name] = f
+        c = (carried.get("clears") or {}).get(name)
+        if isinstance(c, dict) and str(c.get("at") or "") > str(f.get("at") or ""):
+            clears[name] = c
 
     def age(at: str) -> float:
         try:
@@ -1624,11 +1676,13 @@ def ssh_sign(key_path: str, data: str) -> str:
     return proc.stdout
 
 
-def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats: dict) -> None:
-    """Keep COLAB_SECURITY_STATE on the meta repo equal to the bus's state: the trust anchor the CLI reads. Repo
-    variables need the Variables permission, which members' agents do not have; the Project's Security field is
-    display only. Each poll it reads the variable back (ETag) and re-asserts its own value when anything else
-    changed it (`security_state_foreign_edit`, counted in the heartbeat). Never raises."""
+def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats: dict, store=None) -> None:
+    """Keep the published security state equal to the bus's state: the trust anchor the CLI reads. With a loaded
+    `colab-state` branch (`store`), it is staged as `security/state.json` and committed with the poll's single
+    commit (only the operators team may push there); otherwise (a meta repo that has not moved yet) it is the
+    deprecated Actions variable COLAB_SECURITY_STATE. Each poll it reads the published value back and re-asserts
+    its own when anything else changed it (`security_state_foreign_edit`, counted in the heartbeat). The Project's
+    Security field is display only. Never raises."""
     if not (config.get("bus") or {}).get("injection_scan", True):
         return
     sec = config.get("security") or {}
@@ -1654,8 +1708,29 @@ def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats
         _append(state_dir / "audit.jsonl", {"security_state_overflow": True, "open_flags": len(state.get("security") or {}),
                                             "at": now()})
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
-    path = f"/repos/{org}/{meta}/actions/variables/{SECURITY_VAR}"
     published = state.get("security_published")
+    if store is not None and store.available:
+        try:
+            live = store.read(SECURITY_FILE)
+        except (urllib.error.URLError, OSError) as err:
+            live = None
+            _append(state_dir / "audit.jsonl", {"security_state_read_failed": str(err)[:300], "at": now()})
+        if published is not None and live is not None and live != published:
+            stats["security_foreign_edits"] = stats.get("security_foreign_edits", 0) + 1
+            _append(state_dir / "audit.jsonl", {"security_state_foreign_edit": True, "where": f"{STATE_BRANCH}:{SECURITY_FILE}",
+                                                "at": now()})
+        if live == value and published == value:
+            return
+        if overflow and published is not None and json.loads(published).get("overflow") and live == published:
+            return
+        store.stage(SECURITY_FILE, value)
+
+        def done() -> None:
+            state["security_published"] = value
+            stats["security_state_bytes"] = len(value.encode())
+        store.on_commit(done)
+        return
+    path = f"/repos/{org}/{meta}/actions/variables/{SECURITY_VAR}"
     try:
         current = gh.get(path, cache=True)
     except (urllib.error.URLError, OSError) as err:
@@ -1685,6 +1760,7 @@ def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats
 
 
 def heartbeat(gh, org: str, meta: str, stats: dict) -> None:
+    """The deprecated heartbeat variable, written only while the meta repo has no `colab-state` branch."""
     value = json.dumps({"at": now(), **stats})
     path = f"/repos/{org}/{meta}/actions/variables/COLAB_BUS_HEARTBEAT"
     try:
@@ -1693,6 +1769,312 @@ def heartbeat(gh, org: str, meta: str, stats: dict) -> None:
         if err.code != 404:
             raise
         gh.send("POST", f"/repos/{org}/{meta}/actions/variables", {"name": "COLAB_BUS_HEARTBEAT", "value": value})
+
+
+# --------------------------------------------------------------------------- shared state on colab-state
+
+
+class StateConflict(RuntimeError):
+    """The colab-state ref moved since it was read (another bus committed): re-read and decide again."""
+
+
+class StateBranch:
+    """The protected `colab-state` branch of the meta repo, read at one commit and written with at most one commit
+    per poll: the staged files go into one tree (on top of the head's tree), one commit whose only parent is the
+    head that was read, and a ref update with force=false. A ref that moved meanwhile refuses the update (it is no
+    longer a fast-forward), so two buses can never both write on the same head: compare-and-set. The bus only ever
+    reads the head commit, so the branch's growing history never matters (shallow-safe)."""
+
+    def __init__(self, gh, org: str, meta: str):
+        self.gh, self.base = gh, f"/repos/{org}/{meta}"
+        self.available, self.head, self.tree = False, None, None
+        self.staged: dict[str, str] = {}
+        self._read: dict[str, str | None] = {}
+        self._callbacks: list[tuple[str, object]] = []
+
+    def load(self) -> bool:
+        """Read the head commit and its tree. Staged files are kept (a retry re-applies them on the new head)."""
+        self.available, self._read = False, {}
+        ref = self.gh.get(f"{self.base}/git/ref/heads/{STATE_BRANCH}", conditional=False)
+        sha = ((ref.get("object") or {}).get("sha")) if isinstance(ref, dict) else None
+        if not sha:
+            return False
+        commit = self.gh.get(f"{self.base}/git/commits/{sha}", conditional=False)
+        tree = ((commit.get("tree") or {}).get("sha")) if isinstance(commit, dict) else None
+        if not tree:
+            return False
+        self.head, self.tree, self.available = sha, tree, True
+        return True
+
+    def read(self, path: str) -> str | None:
+        """The file as committed at the head that was loaded (never a staged value); None when absent."""
+        if path not in self._read:
+            blob = self.gh.get(f"{self.base}/contents/{path}?ref={self.head}", conditional=False)
+            text = None
+            if isinstance(blob, dict) and blob.get("content") is not None:
+                try:
+                    text = base64.b64decode(blob["content"]).decode()
+                except (ValueError, UnicodeDecodeError):
+                    text = None
+            self._read[path] = text
+        return self._read[path]
+
+    def read_json(self, path: str):
+        text = self.read(path)
+        try:
+            return json.loads(text) if text else None
+        except ValueError:
+            return None
+
+    def head_author(self) -> str:
+        """The GitHub login that made the head commit ('' when unknown)."""
+        c = self.gh.get(f"{self.base}/commits/{self.head}", conditional=False)
+        if not isinstance(c, dict):
+            return ""
+        return str((c.get("author") or {}).get("login") or (c.get("committer") or {}).get("login") or "").lower()
+
+    def stage(self, path: str, text: str) -> None:
+        self.staged[path] = text
+
+    def unstage(self, path: str) -> None:
+        self.staged.pop(path, None)
+        self._callbacks = [(p, fn) for p, fn in self._callbacks if p != path]
+
+    def on_commit(self, fn, path: str = SECURITY_FILE) -> None:
+        self._callbacks.append((path, fn))
+
+    def commit(self, message: str) -> str | None:
+        """One tree, one commit, one ref update (force=false). None when nothing is staged; StateConflict when the
+        ref moved since load()."""
+        if not self.staged:
+            return None
+        tree = self.gh.send("POST", f"{self.base}/git/trees", {
+            "base_tree": self.tree,
+            "tree": [{"path": p, "mode": "100644", "type": "blob", "content": t} for p, t in sorted(self.staged.items())]})
+        commit = self.gh.send("POST", f"{self.base}/git/commits",
+                              {"message": message, "tree": tree["sha"], "parents": [self.head]})
+        try:
+            self.gh.send("PATCH", f"{self.base}/git/refs/heads/{STATE_BRANCH}", {"sha": commit["sha"], "force": False})
+        except urllib.error.HTTPError as err:
+            if err.code in (409, 422):
+                raise StateConflict(str(err)) from None
+            raise
+        self.head, self.tree = commit["sha"], tree["sha"]
+        for _, fn in self._callbacks:
+            fn()
+        self.staged, self._callbacks, self._read = {}, [], {}
+        return self.head
+
+
+def operator_refusal(gh, org: str, entry: dict, login: str) -> str | None:
+    """Why this login may not run bus `entry` (it then stays passive and writes nothing), or None: the token's login
+    must be the entry's operator and an active member of the operators team."""
+    login = (login or "").lower()
+    if not login:
+        return "could not read the token's login (GET /user)"
+    if login != entry["operator"]:
+        return f"bus {entry['id']} is declared for operator {entry['operator']}, but this token belongs to {login}"
+    try:
+        m = gh.get(f"/orgs/{org}/teams/{OPERATORS_TEAM}/memberships/{login}", conditional=False)
+    except (urllib.error.URLError, OSError) as err:
+        return f"could not check {login}'s membership in {org}/{OPERATORS_TEAM} ({str(err)[:100]})"
+    if not (isinstance(m, dict) and m.get("state") == "active"):
+        return f"{login} is not an active member of the team {org}/{OPERATORS_TEAM} (ask an org owner; colab.py plan proposes it)"
+    return None
+
+
+def pick_entry(entries: list[dict], bus_id: str | None, login: str) -> dict | None:
+    if bus_id:
+        return next((b for b in entries if b["id"] == bus_id.lower()), None)
+    mine = [b for b in entries if b["operator"] == (login or "").lower()]
+    return mine[0] if len(mine) == 1 else None
+
+
+def inherit_state(state: dict, published: str | None, config: dict, lookback_minutes: float, now_t: datetime) -> int:
+    """On taking over the lease, start from the previous holder's published security state: its flags (plain refs
+    become local flags; hashed restricted refs are carried verbatim), verified clears and ignores, and its repo
+    cursors less a look-back window (with the baseline moved there too, so nothing older is routed; delivery keys
+    make the overlap harmless). Local knowledge wins. Returns the number of flags taken over."""
+    try:
+        value = json.loads(published or "")
+        if isinstance(value.get("state"), str):
+            value = json.loads(value["state"])
+    except (ValueError, AttributeError, TypeError):
+        return 0
+    if not isinstance(value, dict) or value.get("v") != 1 or value.get("overflow"):
+        return 0
+    org = config["org"]["name"]
+    local = state.setdefault("security", {})
+    closed = state.setdefault("security_closed", {})
+    carried = state.setdefault("security_inherited", {"flags": {}, "clears": {}})
+    verified = state.setdefault("security_verified", {"clears": {}, "ignored": {}})
+    taken = 0
+    for name, flag in (value.get("flags") or {}).items():
+        if not isinstance(flag, dict) or not flag.get("at"):
+            continue
+        if name.startswith("sha256:"):
+            carried["flags"].setdefault(name, flag)
+            if name in (value.get("clears") or {}):
+                carried["clears"].setdefault(name, value["clears"][name])
+            taken += 1
+            continue
+        repo, _, number = name.rpartition("#")
+        try:
+            key = f"{repo_key(repo, org)}#{number}"
+        except Exception:  # noqa: BLE001 - a malformed ref is skipped, never fatal
+            continue
+        if key in local or key in closed:
+            continue
+        entry = {"flagged_at": flag["at"], "where": "inherited", "reason": f"rules: {flag.get('cat') or 'inherited'}", "ref": name}
+        if flag.get("closed"):
+            closed[key] = {**entry, "closed_at": now()}
+        else:
+            local[key] = entry
+        taken += 1
+        clear = (value.get("clears") or {}).get(name)
+        if isinstance(clear, dict):
+            verified.setdefault("clears", {}).setdefault(name, clear)
+    for login, rec in (value.get("ignored") or {}).items():
+        verified.setdefault("ignored", {}).setdefault(login, rec)
+    cursors, baseline = state.setdefault("cursors", {}), state.setdefault("baseline_at", {})
+    for repo, cur in (value.get("seen") or {}).items():
+        t = _iso_minus(cur, lookback_minutes)
+        if t and (repo not in cursors or cursors[repo] < t):
+            cursors[repo] = t
+            baseline[repo] = max(baseline.get(repo, ""), t)
+    return taken
+
+
+def _iso_minus(at: str, minutes: float) -> str | None:
+    try:
+        t = datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return datetime.fromtimestamp(t.timestamp() - minutes * 60, timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path, login: str, save=lambda: None,
+          bus_id: str | None = None, bot: str | None = None, now_t: datetime | None = None, poll=None) -> dict:
+    """One bus cycle: who am I ([[buses]]), may I run (operator and team), who holds the lease, then either a full
+    poll (active) or nothing but an occasional heartbeat (passive), and one commit to colab-state.
+
+    Without a colab-state branch (a meta repo that has not migrated) it polls as before and writes the deprecated
+    variables, for one release. Without [[buses]] it is a single implicit bus run by the token's login."""
+    poll = poll or poll_once
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    now_t = now_t or datetime.now(timezone.utc)
+    login = (login or "").lower()
+    audit = state_dir / "audit.jsonl"
+    try:
+        entries = buses(config)
+    except BusConfigError as err:
+        _append(audit, {"buses_invalid": str(err), "at": now()})
+        return {"passive": True, "reason": f"[[buses]] is invalid: {err}", "errors": 1}
+    if entries:
+        entry = pick_entry(entries, bus_id, login)
+        if entry is None:
+            why = (f"no [[buses]] entry with id {bus_id}" if bus_id else
+                   f"no single [[buses]] entry for operator {login or '?'}; pass --bus-id")
+            _append(audit, {"bus_passive": why, "at": now()})
+            return {"passive": True, "reason": why}
+        refusal = operator_refusal(gh, org, entry, login)
+        if refusal:
+            _append(audit, {"bus_passive": refusal, "bus": entry["id"], "at": now()})
+            return {"passive": True, "bus": entry["id"], "reason": refusal}
+        operators = {b["operator"] for b in entries}
+    else:
+        entry = {"id": (bus_id or "default").lower(), "operator": login, "host": "", "role": "primary", "order": 0}
+        operators = {login}
+    route_bot = bot if bot is not None else ("" if entries else login)  # operator-run: own deliveries carry the marker
+    ident = {"bus": entry["id"], "operator": entry["operator"], "host": entry.get("host", ""), "role": entry["role"]}
+    store = StateBranch(gh, org, meta)
+    try:
+        store.load()
+    except (urllib.error.URLError, OSError) as err:
+        _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
+        return {**ident, "passive": True, "reason": "could not read the colab-state branch", "errors": 1}
+    if not store.available:
+        # Migration: one release on the Actions variables, single bus, no lease (variables cannot compare-and-set).
+        stats = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, bus_id=entry["id"], operator=entry["operator"])
+        stats["state_branch"] = f"missing: run colab.py plan, which proposes creating {STATE_BRANCH}"
+        if state.get("state_branch_warned", "")[:10] != now()[:10]:
+            _append(audit, {"state_branch_missing": True, "fallback": "Actions variables (deprecated)", "at": now()})
+            state["state_branch_warned"] = now()
+        heartbeat(gh, org, meta, {**ident, **stats})
+        return {**ident, **stats}
+
+    stats: dict = {}
+    last = state.get("state_branch_last")
+    if last and store.head != last:
+        author = store.head_author()
+        if author not in operators | {login}:
+            stats["security_foreign_edits"] = stats.get("security_foreign_edits", 0) + 1
+            stats["errors"] = stats.get("errors", 0) + 1
+            stats["state_branch_foreign"] = author or "unknown"
+            _append(audit, {"state_branch_foreign_edit": store.head, "author": author or "unknown", "at": now()})
+            state["security_published"] = None  # re-assert our own state on this commit
+    ttl = lease_ttl_minutes(config)
+    lookback = float((config.get("bus") or {}).get("takeover_lookback_minutes", 60))
+    passive_every = float((config.get("bus") or {}).get("passive_heartbeat_minutes", 30))
+    was_active = False
+    for attempt in range(3):
+        lease = store.read_json(LEASE_FILE)
+        mode, why = lease_decision(lease, entry, entries or [entry], now_t, ttl)
+        if attempt == 0:
+            if mode == "active":
+                was_active = True
+                previous = (lease or {}).get("handed_from") if (lease or {}).get("holder") == entry["id"] else (lease or {}).get("holder")
+                if state.get("bus_mode") != "active":  # becoming active (takeover, handback, or a fresh state dir)
+                    taken = inherit_state(state, store.read(SECURITY_FILE), config, lookback, now_t)
+                    _append(audit, {"lease_taken": previous or "(none)", "from_operator": (lease or {}).get("operator"),
+                                    "flags_inherited": taken, "at": now()})
+                    if previous and previous != entry["id"]:
+                        stats["took_over_from"] = previous
+                found = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, store=store,
+                             bus_id=entry["id"], operator=entry["operator"])
+                for k, v in found.items():
+                    stats[k] = stats.get(k, 0) + v if isinstance(v, int) and not isinstance(v, bool) and k in stats else v
+            else:
+                stats.update({"passive": True, "holder": (lease or {}).get("holder"), "reason": why})
+        elif was_active and mode != "active":
+            store.unstage(SECURITY_FILE)
+            store.unstage(LEASE_FILE)
+            stats.update({"lease_lost": True, "holder": (lease or {}).get("holder"), "reason": why})
+            _append(audit, {"lease_lost": (lease or {}).get("holder"), "at": now()})
+        active = mode == "active"
+        if active:
+            since = lease.get("since") if lease and lease.get("holder") == entry["id"] else None
+            store.stage(LEASE_FILE, json.dumps(compose_bus_lease(entry, now_t, ttl, since), indent=2, sort_keys=True) + "\n")
+        beat_due = active or state.get("bus_mode") != mode or \
+            (now_t.timestamp() - float(state.get("passive_beat_ts") or 0)) >= passive_every * 60
+        if beat_due:
+            store.stage(heartbeat_path(entry["id"]), json.dumps({"at": now(), **ident, "active": active, "lease": why,
+                                                                 **{k: v for k, v in stats.items() if k not in ident}},
+                                                                indent=2, sort_keys=True) + "\n")
+        try:
+            sha = store.commit(f"bus {entry['id']} ({entry['operator']}): {'poll' if active else 'standby'} at {now()}")
+        except StateConflict:
+            if not store.load():
+                break
+            continue
+        except (urllib.error.URLError, OSError) as err:
+            stats["errors"] = stats.get("errors", 0) + 1
+            _append(audit, {"state_branch_write_failed": str(err)[:300], "at": now()})
+            break
+        if sha:
+            state["state_branch_last"] = sha
+        if beat_due and not active:
+            state["passive_beat_ts"] = now_t.timestamp()
+        state["bus_mode"] = mode
+        stats["active"] = active
+        break
+    else:
+        stats["errors"] = stats.get("errors", 0) + 1
+        _append(audit, {"state_branch_conflict": "gave up after 3 attempts", "at": now()})
+    save()
+    return {**ident, **stats}
 
 
 def load_json(path: Path, default):
@@ -1704,7 +2086,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--meta", type=Path, required=True, help="local clone of the meta repo (reads .colab/*)")
     ap.add_argument("--state-dir", type=Path, required=True, help="private group storage for bus state")
     ap.add_argument("--token-file", type=Path, help="0600 file holding a fine-grained token (preferred)")
-    ap.add_argument("--bot", help="login whose events are ignored (default: the token's own login)")
+    ap.add_argument("--bot", help="login whose events are ignored (default: the token's own login without [[buses]]; "
+                                  "nobody with [[buses]], where the bus runs as a person and its writes carry a marker)")
+    ap.add_argument("--bus-id", default=os.environ.get("COLAB_BUS_ID"),
+                    help="this bus's [[buses]] id (default: $COLAB_BUS_ID, else the one entry run by the token's login)")
     ap.add_argument("--once", action="store_true", help="poll once and exit")
     args = ap.parse_args(argv)
     args.state_dir.mkdir(parents=True, exist_ok=True)
@@ -1725,7 +2110,7 @@ def main(argv: list[str] | None = None) -> int:
             state_path = args.state_dir / "state.json"
             state = load_json(state_path, {})
             gh = GitHub(gh_token, state)
-            bot = args.bot or (gh.get("/user") or {}).get("login", "")
+            login = (gh.get("/user", conditional=False) or {}).get("login", "")
 
             def save() -> None:
                 clean = {k: v for k, v in state.items() if not k.startswith("_")}
@@ -1733,11 +2118,14 @@ def main(argv: list[str] | None = None) -> int:
                 tmp.write_text(json.dumps(clean))
                 tmp.replace(state_path)
 
-            stats = poll_once(gh, config, rollout, subs, state, args.state_dir, bot, save)
-            stats.update(session_stats(gh, config, state, args.state_dir))
-            drift_check(gh, config, state, args.state_dir, stats)
-            save()
-            heartbeat(gh, config["org"]["name"], config["org"]["meta_repo"], stats)
+            def poll(*a, **kw):
+                found = poll_once(*a, **kw)
+                found.update(session_stats(gh, config, state, args.state_dir))
+                drift_check(gh, config, state, args.state_dir, found)
+                return found
+
+            stats = cycle(gh, config, rollout, subs, state, args.state_dir, login, save, bus_id=args.bus_id,
+                          bot=args.bot, poll=poll)
             print(json.dumps({"at": now(), **stats}), flush=True)
             backoff, failed = 60, False
             wait = int(config.get("bus", {}).get("poll_seconds", 300))

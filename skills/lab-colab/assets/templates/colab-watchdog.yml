@@ -1,10 +1,10 @@
-# Alerts the lab when the colab-bus heartbeat goes stale (e.g. ORCD maintenance,
-# a long queue wait), or when it reports a security problem: someone else edited
-# COLAB_SECURITY_STATE, the state overflowed, or audit records were rejected.
-# Lives in the private meta repo.
-# Needs: repo variable COLAB_BUS_HEARTBEAT (written by the bus); optional variable
-# COLAB_STALE_MINUTES (default 30); optional secret SLACK_WEBHOOK_URL. Without the
-# secret it opens an issue instead.
+# Alerts the lab when no colab-bus holds a fresh lease (e.g. ORCD maintenance, a long queue wait), naming the
+# operators to contact, or when the active bus reports a security problem: someone else edited the security state,
+# the state overflowed, or audit records were rejected. Lives in the private meta repo.
+# Reads the protected colab-state branch: lease.json, heartbeat/<bus id>.json, and [[buses]] in .colab/config.toml.
+# While a meta repo has no colab-state branch yet, it falls back to the deprecated COLAB_BUS_HEARTBEAT variable.
+# Optional variable COLAB_STALE_MINUTES (default: the lease's own ttl_minutes, else 30); optional secret
+# SLACK_WEBHOOK_URL. Without the secret it opens an issue instead.
 # GitHub disables scheduled workflows after 60 days without repository activity;
 # the rollout's regular PRs to .colab/ keep it active, or re-enable it from the Actions tab.
 name: colab-watchdog
@@ -13,6 +13,7 @@ on:
     - cron: "17,47 * * * *"
   workflow_dispatch:
 permissions:
+  contents: read
   issues: write
 jobs:
   check:
@@ -20,32 +21,78 @@ jobs:
     env:
       SLACK: ${{ secrets.SLACK_WEBHOOK_URL }}
       HEARTBEAT: ${{ vars.COLAB_BUS_HEARTBEAT }}
-      STALE_MINUTES: ${{ vars.COLAB_STALE_MINUTES || '30' }}
+      STALE_MINUTES: ${{ vars.COLAB_STALE_MINUTES || '' }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check heartbeat age
+      - name: Read the bus state
+        run: |
+          get() { gh api "repos/$GITHUB_REPOSITORY/contents/$1?ref=$2" --jq .content 2>/dev/null | base64 -d 2>/dev/null || true; }
+          get lease.json colab-state > lease.json
+          get .colab/config.toml HEAD > config.toml
+          mkdir -p beats
+          for f in $(gh api "repos/$GITHUB_REPOSITORY/contents/heartbeat?ref=colab-state" --jq '.[].name' 2>/dev/null); do
+            get "heartbeat/$f" colab-state > "beats/$f"
+          done
+          gh api "repos/$GITHUB_REPOSITORY/branches/colab-state" --jq .name > branch.txt 2>/dev/null || true
+      - name: Check the lease and heartbeats
         id: age
         run: |
           python3 - <<'PY'
-          import json, os, datetime as dt
+          import datetime as dt, glob, json, os, tomllib
+
+          def load(path):
+              try:
+                  with open(path) as fh:
+                      text = fh.read()
+                  return json.loads(text) if text.strip() else None
+              except (OSError, ValueError):
+                  return None
+
+          def when(at):
+              try:
+                  t = dt.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+                  return t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
+              except ValueError:
+                  return None
+
+          now = dt.datetime.now(dt.timezone.utc)
           try:
-              at = json.loads(os.environ.get("HEARTBEAT") or "{}").get("at")
-              seen = dt.datetime.fromisoformat(at) if at else None
-          except (ValueError, TypeError, AttributeError):
-              seen = None
-          try:
-              beat = json.loads(os.environ.get("HEARTBEAT") or "{}")
-          except ValueError:
-              beat = {}
-          stale = seen is None or dt.datetime.now(dt.timezone.utc) - seen > dt.timedelta(minutes=int(os.environ["STALE_MINUTES"]))
-          last = seen.isoformat() if seen else "never"
+              with open("config.toml", "rb") as fh:
+                  buses = tomllib.load(fh).get("buses") or []
+          except (OSError, tomllib.TOMLDecodeError):
+              buses = []
+          operators = sorted({str(b.get("operator", "")).lstrip("@") for b in buses if isinstance(b, dict)} - {""})
+          on_branch = open("branch.txt").read().strip() == "colab-state" if os.path.exists("branch.txt") else False
+          if on_branch:
+              lease = load("lease.json") or {}
+              beats = {os.path.basename(p)[:-5]: (load(p) or {}) for p in glob.glob("beats/*.json")}
+              renewed = when(lease.get("renewed_at"))
+              ttl = float(os.environ.get("STALE_MINUTES") or lease.get("ttl_minutes") or 30)
+              stale = renewed is None or now - renewed > dt.timedelta(minutes=ttl)
+              holder = lease.get("holder")
+              beat = beats.get(holder or "", {})
+              contacts = ", ".join(f"@{o}" for o in sorted(set(operators) | ({lease["operator"]} if lease.get("operator") else set())))
+              last = renewed.isoformat() if renewed else "never"
+          else:  # deprecated: the variable heartbeat of a meta repo that has not moved to colab-state yet
+              try:
+                  beat = json.loads(os.environ.get("HEARTBEAT") or "{}")
+              except ValueError:
+                  beat = {}
+              seen = when(beat.get("at")) if beat.get("at") else None
+              stale = seen is None or now - seen > dt.timedelta(minutes=float(os.environ.get("STALE_MINUTES") or 30))
+              holder, contacts, last = "the bus", ", ".join(f"@{o}" for o in operators), seen.isoformat() if seen else "never"
           security = [f"{k}={beat[k]}" for k in ("security_foreign_edits", "security_state_overflow", "records_rejected")
                       if beat.get(k)]
-          msg = (f"colab-bus heartbeat is stale (last: {last}). Is the Slurm job queued, or is ORCD down?" if stale else
-                 "colab-bus reports a security problem: " + ", ".join(security) +
-                 ". Check the bus audit log and who can write the meta repo's Actions variables.")
-          stale = stale or bool(security)
+          if stale:
+              msg = (f"No colab-bus holds a fresh lease (last: {holder or 'none'}, renewed {last}). Is the Slurm job queued, "
+                     f"or is the cluster down? Operators to contact: {contacts or 'none listed in [[buses]]'}. "
+                     "`colab.py bus status` shows every bus.")
+          else:
+              msg = (f"colab-bus {holder} reports a security problem: " + ", ".join(security) +
+                     ". Check the bus audit log and the history of the colab-state branch. Operators: " + (contacts or "none listed"))
+          alert = stale or bool(security)
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"stale={'true' if stale else 'false'}\n")
+              fh.write(f"stale={'true' if alert else 'false'}\n")
           with open("alert.txt", "w") as fh:
               fh.write(msg)
           with open("alert.json", "w") as fh:
@@ -57,10 +104,8 @@ jobs:
           curl -fsS -X POST -H 'Content-Type: application/json' --data @alert.json "$SLACK"
       - name: Open an issue instead
         if: steps.age.outputs.stale == 'true' && env.SLACK == ''
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           gh label create colab-bus-down --repo "$GITHUB_REPOSITORY" --color b60205 --force >/dev/null
           gh issue list --repo "$GITHUB_REPOSITORY" --label colab-bus-down --state open --json number -q '.[0].number' | grep -q . \
             || gh issue create --repo "$GITHUB_REPOSITORY" --label colab-bus-down \
-                 --title "colab-bus heartbeat is stale" --body-file alert.txt
+                 --title "No colab-bus holds a fresh lease" --body-file alert.txt

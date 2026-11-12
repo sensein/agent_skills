@@ -1125,7 +1125,7 @@ class SetupTests(unittest.TestCase):
             checks, rc = self.run_setup(Path(tmp), auth=(0, "  - Token scopes: 'gist'\n"), which=lambda n: "/usr/bin/gh" if n == "gh" else None)
             got = self.by_name(checks)
             self.assertEqual(rc, 1)
-            self.assertIn("gh auth refresh -s repo -s read:org -s project", got["gh scopes"]["fix"])
+            self.assertEqual("gh auth refresh -s repo,read:org,project", got["gh scopes"]["fix"])  # one command, plain words
             self.assertEqual(got["gh admin:org"]["status"], "info")  # never a failure
             self.assertEqual(got["COLAB_CONFIG"]["status"], "fail")
             self.assertIn("COLAB_CONFIG=", got["COLAB_CONFIG"]["fix"])
@@ -1225,7 +1225,7 @@ class SetupTests(unittest.TestCase):
                 rc = colab.main(["--config", str(cfg), "setup", "--install-hooks"])
             self.assertEqual(rc, 0, out.getvalue())
             self.assertTrue((home / ".claude" / "settings.json").exists())
-            self.assertIn("[ok  ] hooks", out.getvalue())
+            self.assertIn("✓ Your assistant now tells the lab when it is working.", out.getvalue())
 
 
 class NextTests(unittest.TestCase):

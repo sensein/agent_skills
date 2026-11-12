@@ -180,7 +180,7 @@ name = "Contributions"           # kept by the bus for external items: "kabilar:
 type = "TEXT"
 
 [[fields]]
-name = "Security"                # DISPLAY ONLY: the gate reads COLAB_SECURITY_STATE, an Actions variable only the bus writes. The bus
+name = "Security"                # DISPLAY ONLY: the gate reads security/state.json on the colab-state branch, which only bus operators can push. The bus
 type = "SINGLE_SELECT"           # overwrites any value that disagrees with its state: flagged, cleared (a verified two-person clear), or
                                  # unreviewed (scanned, no finding). Editing the field changes nothing
 options = ["unreviewed", "flagged", "cleared"]
@@ -306,6 +306,32 @@ external_detail_per_poll = 50    # external items whose comments/reviews/timelin
 external_calls_per_poll = 300    # and at most this many API calls for those details per poll; over budget, the rest carry over
 injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
+lease_ttl_minutes = 15           # a bus's lease (lease.json on colab-state) is stale this long after its last renewal (renewed every poll)
+takeover_lookback_minutes = 60   # a bus taking over starts each repo this long before the previous holder's cursor (delivery keys stop duplicates)
+passive_heartbeat_minutes = 30   # a standby writes its heartbeat this often (and whenever it changes between active and standby)
+
+# ---------------------------------------------------------------------------
+# Buses. Each bus runs under the GitHub login of the member who starts it, its operator: no machine account.
+# Operators are the org team `colab-bus-operators` (`colab.py plan` proposes the team with these operators as
+# members, the protected `colab-state` branch, and the rulesets). One bus is active at a time: it holds the lease
+# on colab-state, renewed every poll. Standbys (possibly at other institutions) take over in `order` only when the
+# lease is stale; a returning primary stays standing by until `colab.py bus handback <id>`. A bus whose login is not
+# its entry's operator, or not in the team, stays passive and writes nothing. A GitHub App could still run a bus
+# (operator = the app's bot login) if a lab prefers one; nothing here requires it.
+# ---------------------------------------------------------------------------
+# [[buses]]
+# id = "handle-orcd"               # short, unique in the org: lower-case letters, digits, hyphens
+# operator = "handle"              # the member who runs it; its writes are made with their login
+# host = "MIT ORCD, pi partition"  # where it runs, in words
+# role = "primary"                 # primary (one) or standby
+# order = 0                        # among standbys: lower takes over first
+#
+# [[buses]]
+# id = "partner-hpc"
+# operator = "handle-b"
+# host = "Partner University HPC"
+# role = "standby"
+# order = 1
 
 [security]
 audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear: `security clear`
@@ -313,12 +339,12 @@ audit_issue = 0                  # meta-repo "Security audit" issue (plan propos
                                  # from a steward of the item's spaces who is not its assignee or claimant
 outsider_flags_per_day = 3       # injection-scan flags per non-member author per item per day; past that, audit-only. Members' content,
                                  # and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags
-state_keep_days = 30             # COLAB_SECURITY_STATE keeps verified clears this long (open flags are always kept)
+state_keep_days = 30             # the security state keeps verified clears this long (open flags are always kept)
 outsider_open_flags_per_repo = 50  # open flags from non-members per repo; past that, audit-only (kept per item and flagged
                                    # as soon as the item is Ready/Agent-ready, in progress, or assigned)
-closed_flag_days = 30            # flags of closed items stay in COLAB_SECURITY_STATE (marked closed) this long
-state_max_age_minutes = 30       # the CLI rejects a COLAB_SECURITY_STATE issued longer ago (stale bus or replay); fail closed
-signing = ""                     # "ssh": the bus signs COLAB_SECURITY_STATE (ssh-keygen -Y, OpenSSH 8.1+) with COLAB_SIGNING_KEY
+closed_flag_days = 30            # flags of closed items stay in the security state (marked closed) this long
+state_max_age_minutes = 30       # the CLI rejects a security state issued longer ago (stale bus or replay); fail closed
+signing = ""                     # "ssh": the bus signs the security state (ssh-keygen -Y, OpenSSH 8.1+) with COLAB_SIGNING_KEY
                                  # on its host; the CLI verifies against .colab/allowed_signers and fails closed otherwise.
                                  # The CLI reads signing and state_max_age_minutes from the meta repo's copy of this file
                                  # (and takes the stricter of that and a local --config)
