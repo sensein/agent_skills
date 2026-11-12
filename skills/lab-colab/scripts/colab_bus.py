@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """colab-bus: poll GitHub, build envelopes, tier-check, match subscriptions, deliver.
 
-Runs as a light self-requeuing Slurm job (see assets/templates/colab-bus.sbatch).
-It polls instead of receiving webhooks because compute nodes accept no inbound
-connections. Stdlib only, Python 3.11+.
+By default it runs as a scheduled GitHub Actions workflow in the meta repo (assets/templates/colab-bus.yml), one poll
+per run (`--once --app`), signed in as the org's GitHub App: it mints the App's installation token itself from the
+COLAB_APP_ID and COLAB_APP_PRIVATE_KEY secrets (openssl, or the `cryptography` package, signs the JWT), keeps the
+token in memory only, and keeps its own state (cursors, ETags, seen ids, scan digests, security bookkeeping) on
+colab-state as bus/<bus id>/state.json, in the run's single commit; entries about restricted items are sealed there
+with a key derived from the App's private key. A standby (or an org without an App) runs the same code as a light
+self-requeuing Slurm job under an operator's login (assets/templates/colab-bus.sbatch). Either way it polls instead
+of receiving webhooks. Stdlib only, Python 3.11+.
 
 Per destination space, from .colab/rollout.json:
   dry-run  log what would be delivered to <state>/would-deliver.jsonl; write nothing
@@ -50,7 +55,9 @@ polls the multi-select Spaces field is recomputed (repo membership plus space:<n
 items that differ.
   - one envelope per item transition (opened, closed, published), not per edit
 
-State lives in --state-dir (private group storage, not scratch).
+State lives in --state-dir (private group storage, not scratch); with --app, in a private temporary folder for the
+run, plus bus/<bus id>/state.json on colab-state. The audit log of an Actions run is not kept: the run's log prints
+only how many lines of each kind it had.
 """
 from __future__ import annotations
 
@@ -357,7 +364,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CLEAR_MARKER, LEASE_FILE, LEASE_SKEW_SECONDS, _parse_time, OPERATORS_TEAM, SECURITY_FILE, STATE_BRANCH, BusConfigError,  # noqa: E402
+from colab import (app_login, bus_state_path, state_branch_readme, CLEAR_MARKER, LEASE_FILE, LEASE_SKEW_SECONDS, _parse_time, OPERATORS_TEAM, SECURITY_FILE, STATE_BRANCH, BusConfigError,  # noqa: E402
                    buses, compose_bus_lease, delivery_marker, heartbeat_path, lease_decision, lease_ttl_minutes,
                    CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
                    OUTSIDER_OPEN_FLAGS_PER_REPO, SECURITY_SIG_NAMESPACE, hashed_ref,
@@ -403,14 +410,15 @@ def remember(state: dict, env_id: str) -> bool:
 
 
 class GitHub:
-    def __init__(self, token: str, state: dict):
-        self.token = token
+    def __init__(self, token, state: dict):
+        self.token = token  # a string, or a callable that returns a current token (an App's installation token)
         self.etags: dict = state.setdefault("etags", {})
         self.cache: dict = state.setdefault("cache", {})
         self._mixed = {k.lower(): k for k in self.etags if k != k.lower()}  # paths saved before keys were lower-cased
 
     def _headers(self) -> dict:
-        return {"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github+json",
+        token = self.token() if callable(self.token) else self.token
+        return {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28"}
 
     def get(self, path: str, cache: bool = False, conditional: bool = True):
@@ -467,6 +475,156 @@ class GitHub:
 
 class GraphQLError(RuntimeError):
     pass
+
+
+# --------------------------------------------------------------------------- GitHub App authentication
+#
+# An Actions bus signs in as the org's GitHub App: a JWT (RS256, signed with the App's private key) proves the App, and
+# is exchanged for a short-lived installation token for the org (GET /orgs/{org}/installation, then
+# POST /app/installations/{id}/access_tokens). The key comes from an Actions secret through the environment; the token
+# lives only in this process's memory and is minted again before it expires (GitHub gives it one hour). Signing uses
+# `openssl dgst -sha256 -sign` (the key in a 0600 file in a private temporary folder, deleted at once), else the
+# `cryptography` package when it is importable; nothing else is needed.
+
+APP_TOKEN_REFRESH_SECONDS = 50 * 60  # mint a new installation token after this long (GitHub's last one hour)
+APP_JWT_SECONDS = 9 * 60             # GitHub accepts at most 10 minutes
+
+
+class AppAuthError(RuntimeError):
+    pass
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def rs256_sign(data: bytes, key_pem: str, runner=None) -> bytes:
+    """RSASSA-PKCS1-v1_5 with SHA-256 over `data`: openssl first, then the `cryptography` package. Raises AppAuthError."""
+    import shutil
+    import tempfile
+    runner = runner or subprocess.run
+    errors = []
+    if shutil.which("openssl"):
+        folder = tempfile.mkdtemp(prefix="colab-app-")  # 0700
+        key_path, proc = Path(folder) / "key.pem", None
+        try:
+            fd = os.open(key_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w") as fh:
+                fh.write(key_pem)
+            proc = runner(["openssl", "dgst", "-sha256", "-sign", str(key_path)], input=data, capture_output=True, timeout=30)
+        except (OSError, subprocess.SubprocessError) as err:
+            errors.append(f"openssl: {err.__class__.__name__}")
+        finally:
+            try:
+                key_path.unlink()
+            except OSError:
+                pass
+            try:
+                os.rmdir(folder)
+            except OSError:
+                pass
+        if proc is not None and proc.returncode == 0 and proc.stdout:
+            return proc.stdout
+        if proc is not None:
+            errors.append("openssl could not sign (is COLAB_APP_PRIVATE_KEY the App's .pem private key?)")
+    else:
+        errors.append("openssl is not on PATH")
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+    except ImportError:
+        errors.append("the cryptography package is not installed")
+    else:
+        try:
+            key = serialization.load_pem_private_key(key_pem.encode(), password=None)
+            return key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+        except (ValueError, TypeError) as err:
+            errors.append(f"cryptography: {err.__class__.__name__}")
+    raise AppAuthError("could not sign the App's JWT: " + "; ".join(errors))
+
+
+def app_jwt(app_id: str | int, key_pem: str, now_ts: float | None = None, signer=None) -> str:
+    """A GitHub App JWT: iat 60 s in the past (clock drift), exp 9 minutes ahead, iss the App id."""
+    now_ts = int(now_ts if now_ts is not None else time.time())
+    head = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = _b64url(json.dumps({"iat": now_ts - 60, "exp": now_ts + APP_JWT_SECONDS, "iss": str(app_id)},
+                              separators=(",", ":")).encode())
+    signing_input = f"{head}.{body}".encode()
+    return f"{head}.{body}.{_b64url((signer or rs256_sign)(signing_input, key_pem))}"
+
+
+def _app_http(method: str, path: str, jwt: str, body: dict | None = None):
+    req = urllib.request.Request(API + path, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Authorization": f"Bearer {jwt}", "Accept": "application/vnd.github+json",
+                                          "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read() or b"null")
+
+
+def mask(value: str, out=None) -> None:
+    """In GitHub Actions, ask the runner to hide `value` in the job log (the command itself is not shown)."""
+    if value and os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::add-mask::{value}", file=out or sys.stdout, flush=True)
+
+
+class AppAuth:
+    """Installation tokens for one org, minted from the App id and private key and kept only in memory. `token()` is
+    what GitHub calls for each request: it mints a new one once the current one is APP_TOKEN_REFRESH_SECONDS old or
+    within ten minutes of its expiry. `login` is the App's bot login, `<slug>[bot]`."""
+
+    def __init__(self, app_id: str, key_pem: str, org: str, http=None, clock=None, signer=None):
+        if not str(app_id).strip().isdigit():
+            raise AppAuthError("COLAB_APP_ID must be the App's number (an Actions secret of the meta repo)")
+        if "PRIVATE KEY" not in (key_pem or ""):
+            raise AppAuthError("COLAB_APP_PRIVATE_KEY must hold the App's .pem private key (an Actions secret of the meta repo)")
+        self.app_id, self._key, self.org = str(app_id).strip(), key_pem, org
+        self.http, self.clock, self.signer = http or _app_http, clock or time.time, signer
+        self._token, self._minted, self._expires = "", 0.0, 0.0
+        self.slug, self.installation = "", None
+
+    @classmethod
+    def from_env(cls, org: str, env=None, **kw) -> "AppAuth":
+        env = os.environ if env is None else env
+        return cls(env.get("COLAB_APP_ID", ""), env.get("COLAB_APP_PRIVATE_KEY", ""), org, **kw)
+
+    @property
+    def login(self) -> str:
+        return app_login(self.slug) if self.slug else ""
+
+    def key_material(self) -> bytes:
+        """A fixed secret derived from the private key (never the key itself), for sealing the bus's private state."""
+        return hashlib.sha256(b"colab-bus-state\0" + self._key.strip().encode()).digest()
+
+    def mint(self) -> str:
+        jwt = app_jwt(self.app_id, self._key, self.clock(), signer=self.signer)
+        try:
+            if not self.slug:
+                self.slug = str((self.http("GET", "/app", jwt) or {}).get("slug") or "").lower()
+            if self.installation is None:
+                inst = self.http("GET", f"/orgs/{self.org}/installation", jwt) or {}
+                self.installation = inst.get("id")
+            if not self.installation:
+                raise AppAuthError(f"the App is not installed on {self.org}")
+            out = self.http("POST", f"/app/installations/{self.installation}/access_tokens", jwt, {}) or {}
+        except urllib.error.HTTPError as err:
+            hint = {401: "the App id or private key is wrong", 404: f"the App is not installed on {self.org}"}.get(err.code, "")
+            raise AppAuthError(f"GitHub refused the App sign-in (HTTP {err.code}{': ' + hint if hint else ''})") from None
+        token = str(out.get("token") or "")
+        if not token:
+            raise AppAuthError("GitHub gave no installation token")
+        mask(token)
+        self._token, self._minted = token, self.clock()
+        try:
+            self._expires = datetime.fromisoformat(str(out.get("expires_at")).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            self._expires = self._minted + 3600
+        return token
+
+    def token(self) -> str:
+        t = self.clock()
+        if not self._token or t - self._minted >= APP_TOKEN_REFRESH_SECONDS or self._expires - t < 600:
+            return self.mint()
+        return self._token
 
 
 def read_token(token_file: Path | None) -> str:
@@ -1013,6 +1171,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             stats["errors"] += 1
         if visibility[repo] is None and is_external(repo):
             stats.setdefault("unreadable", []).append(repo)
+    state["_visibility"] = dict(visibility)  # not saved: which external repos are public, for an Actions bus's own state
     overrides = {s["subscriber"]: s.get("tier") for s in subs if s.get("tier")}
     to_tiers = {r: dest_tier(visibility.get(r), overrides.get(r), declared.get(r)) for r in repos}
 
@@ -1883,6 +2042,13 @@ class StateBranch:
             return None
         return ((commits[0].get("commit") or {}).get("committer") or {}).get("date")
 
+    def file_commit(self, path: str) -> str | None:
+        """The sha of the newest commit, up to the loaded head, that changed `path` (None when none)."""
+        commits = self.gh.get(f"{self.base}/commits?sha={self.head}&path={path}&per_page=1", conditional=False)
+        if not isinstance(commits, list) or not commits or not isinstance(commits[0], dict):
+            return None
+        return commits[0].get("sha")
+
     def read_lease(self) -> dict | None:
         """lease.json, with `renewed_at` replaced by the server-side date of the commit that last wrote it."""
         lease = self.read_json(LEASE_FILE)
@@ -1939,12 +2105,321 @@ class HoldStore:
     hold = True
 
 
+# --------------------------------------------------------------------------- an Actions bus's own state, kept on colab-state
+#
+# A workflow runner is thrown away after each run, so an Actions bus keeps its own state (cursors, ETags, seen envelope
+# ids, scan digests, links checks, its security bookkeeping, contribution records) on colab-state as
+# `bus/<bus id>/state.json`, written in the run's single commit. Members can read colab-state, so the file keeps no item
+# text: response caches and texts waiting for the injection hook are dropped (they are rebuilt or rescanned), the
+# published security state is kept only as its hash, and every entry about a restricted item (a restricted repo, or a
+# flag on an item the bus found restricted) goes into one sealed blob: encrypted and authenticated with keys derived
+# from the App's private key (openssl, AES-256-CBC with PBKDF2, then HMAC-SHA256), so only the App can read it back.
+# When it cannot be sealed or unsealed (no openssl, or the key was rotated), those entries are dropped and the bus's
+# restricted flags live on in the published security state, hashed, and are carried from there (as after a takeover).
+
+BUS_STATE_CAP = 512 * 1024  # bytes
+BUS_STATE_DROP = ("cache", "hook_pending", "security_published")
+BUS_STATE_CAPS = {"seen": 5000, "scanned": 5000, "links_checked": 5000, "display_checked": 2000, "contributions": 2000,
+                  "outsider_flags": 2000, "security_unreviewed": 5000, "security_suppressed": 1000, "etags": 1000,
+                  "stale_reported": 500}
+ITEM_SECTIONS = ("scanned", "links_checked", "contributions", "security", "security_closed", "security_suppressed",
+                 "security_unreviewed")  # keyed by "<repo key>#<n>[:where]"
+SEAL_ALG = "aes-256-cbc-pbkdf2+hmac-sha256"
+
+
+class SealError(RuntimeError):
+    pass
+
+
+def _seal_keys(material: bytes) -> tuple[str, bytes, str]:
+    import hmac
+    return (hmac.new(material, b"colab-bus-state/enc", hashlib.sha256).hexdigest(),
+            hmac.new(material, b"colab-bus-state/mac", hashlib.sha256).digest(),
+            hmac.new(material, b"colab-bus-state/id", hashlib.sha256).hexdigest()[:16])
+
+
+def _openssl_enc(data: bytes, password: str, decrypt: bool) -> bytes:
+    r, w = os.pipe()
+    try:
+        os.write(w, password.encode())
+        os.close(w)
+        w = -1
+        cmd = ["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", "100000", "-pass", f"fd:{r}"] + (["-d"] if decrypt else ["-salt"])
+        proc = subprocess.run(cmd, input=data, capture_output=True, pass_fds=(r,), timeout=60)
+    except (OSError, subprocess.SubprocessError) as err:
+        raise SealError(f"openssl: {err.__class__.__name__}") from None
+    finally:
+        os.close(r)
+        if w >= 0:
+            os.close(w)
+    if proc.returncode != 0:
+        raise SealError("openssl enc failed")
+    return proc.stdout
+
+
+def seal(data: bytes, material: bytes) -> dict:
+    """Encrypt then MAC. Raises SealError."""
+    import hmac
+    password, mac_key, key_id = _seal_keys(material)
+    ct = _openssl_enc(data, password, decrypt=False)
+    return {"alg": SEAL_ALG, "key_id": key_id, "ct": base64.b64encode(ct).decode(),
+            "tag": hmac.new(mac_key, ct, hashlib.sha256).hexdigest()}
+
+
+def unseal(blob: dict, material: bytes) -> bytes:
+    """Check the key id and the MAC, then decrypt. Raises SealError ('key changed' or 'tampered')."""
+    import hmac
+    password, mac_key, key_id = _seal_keys(material)
+    if not isinstance(blob, dict) or blob.get("alg") != SEAL_ALG:
+        raise SealError("tampered: unknown format")
+    if blob.get("key_id") != key_id:
+        raise SealError("key changed")
+    try:
+        ct = base64.b64decode(blob.get("ct") or "", validate=True)
+    except ValueError:
+        raise SealError("tampered: not base64") from None
+    if not hmac.compare_digest(hmac.new(mac_key, ct, hashlib.sha256).hexdigest(), str(blob.get("tag") or "")):
+        raise SealError("tampered: the MAC does not match")
+    return _openssl_enc(ct, password, decrypt=True)
+
+
+class BusStateStore:
+    """Loads and writes an Actions bus's own state as `bus/<bus id>/state.json` on colab-state (see above). `material`
+    is the secret the sealed part is keyed with (AppAuth.key_material()); None: restricted entries are never written."""
+
+    def __init__(self, config: dict, bus_id: str, material: bytes | None, run: str | None = None):
+        self.config, self.bus_id, self.material = config, bus_id, material
+        self.path = bus_state_path(bus_id)
+        if not run and os.environ.get("GITHUB_RUN_ID"):
+            run = f"{os.environ['GITHUB_RUN_ID']}.{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
+        self.run = run or base64.b32encode(os.urandom(5)).decode().lower()  # tells two overlapping runs apart
+        self.adopted_run: str | None = None
+
+    # which entries are about restricted items
+    def _restricted_repos(self, state: dict) -> set[str]:
+        out = {k for k, t in declared_tiers(self.config).items() if t == "restricted"}
+        vis, opt = state.get("_visibility") or {}, lab_opt_in(self.config)
+        for key in repo_spaces(self.config):
+            if is_external(key) and key not in opt and vis.get(key) != "public":
+                out.add(key)
+        return out
+
+    def _ref_repo(self, ref: str) -> str | None:
+        try:
+            return repo_key(str(ref).split("#", 1)[0], self.config["org"]["name"])
+        except Exception:  # noqa: BLE001 - a malformed ref is treated as restricted
+            return None
+
+    def _ref_of(self, key: str) -> str:
+        repo, _, number = key.partition("#")
+        try:
+            return f"{repo_ref(repo, self.config['org']['name'])}#{number.split(':', 1)[0]}".lower()
+        except Exception:  # noqa: BLE001 - a malformed key never stops a save
+            return key.lower()
+
+    def split(self, state: dict) -> tuple[dict, dict]:
+        """(plain, restricted) copies of the state to keep, with caps applied; nothing in BUS_STATE_DROP or `_*`."""
+        data = json.loads(json.dumps({k: v for k, v in state.items() if not k.startswith("_") and k not in BUS_STATE_DROP},
+                                     default=sorted))
+        cache = state.get("cache") or {}
+        data["etags"] = {p: e for p, e in (data.get("etags") or {}).items() if p not in cache}
+        restricted = self._restricted_repos(state)
+        hidden_refs = set()
+        for section in ("security", "security_closed"):
+            for k, v in (data.get(section) or {}).items():
+                if isinstance(v, dict) and (v.get("restricted") or k.split("#", 1)[0] in restricted):
+                    hidden_refs.add(str(v.get("ref") or self._ref_of(k)).lower())
+                    hidden_refs.add(self._ref_of(k))
+        sealed: dict = {}
+
+        def hide_key(section: str, key: str, value) -> bool:
+            if key.split("#", 1)[0] in restricted:
+                return True
+            if section in ("security", "security_closed") and isinstance(value, dict) and value.get("restricted"):
+                return True
+            if section == "security_suppressed" and isinstance(value, list) and any(isinstance(r, dict) and r.get("restricted") for r in value):
+                return True
+            return self._ref_of(key) in hidden_refs  # e.g. the scan digests of an item with a tier:restricted label
+
+        def hide_ref(ref: str) -> bool:
+            return str(ref).lower() in hidden_refs or self._ref_repo(ref) in restricted | {None}
+
+        for section in ITEM_SECTIONS:
+            d = data.get(section)
+            if isinstance(d, dict):
+                for k in [k for k, v in d.items() if hide_key(section, k, v)]:
+                    sealed.setdefault(section, {})[k] = d.pop(k)
+        for section, pick in (("security_hot", lambda k: k), ("outsider_flags", lambda k: k.split("|", 1)[-1])):
+            d = data.get(section)
+            if isinstance(d, dict):
+                for k in [k for k in d if hide_ref(pick(k))]:
+                    sealed.setdefault(section, {})[k] = d.pop(k)
+        clears = (data.get("security_verified") or {}).get("clears")
+        if isinstance(clears, dict):
+            for k in [k for k in clears if hide_ref(k)]:
+                sealed.setdefault("security_verified", {"clears": {}})["clears"][k] = clears.pop(k)
+        if isinstance(data.get("seen"), list):
+            keep = []
+            for env_id in data["seen"]:
+                (sealed.setdefault("seen", []) if str(env_id).split(":", 1)[0] in restricted else keep).append(env_id)
+            data["seen"] = keep
+        etags = data.get("etags") or {}
+        for path in [p for p in etags if p.startswith("/repos/") and self._ref_repo("/".join(p.split("/")[2:4])) in restricted]:
+            sealed.setdefault("etags", {})[path] = etags.pop(path)
+        for part in (data, sealed):
+            for section, cap in BUS_STATE_CAPS.items():
+                part_val = part.get(section)
+                if isinstance(part_val, list) and len(part_val) > cap:
+                    part[section] = part_val[-cap:]
+                elif isinstance(part_val, dict) and len(part_val) > cap:
+                    part[section] = dict(list(part_val.items())[-cap:])
+        return data, sealed
+
+    def _carry_hashed(self, data: dict, sealed: dict) -> None:
+        """Without a seal: keep the restricted flags (and their verified clears) only as hashes, as the published
+        security state lists them, so the gate never loses one."""
+        carried = data.setdefault("security_inherited", {"flags": {}, "clears": {}})
+        carried.setdefault("flags", {})
+        carried.setdefault("clears", {})
+        clears = (sealed.get("security_verified") or {}).get("clears") or {}
+        for section in ("security", "security_closed"):
+            for k, v in (sealed.get(section) or {}).items():
+                if not isinstance(v, dict) or not v.get("flagged_at"):
+                    continue
+                ref = self._ref_of(k)
+                name = hashed_ref(ref)
+                flag = {"at": v["flagged_at"], "cat": _categories(v.get("reason", ""))}
+                if section == "security_closed":
+                    flag["closed"] = 1
+                carried["flags"][name] = flag
+                c = clears.get(ref)
+                if isinstance(c, dict) and str(c.get("at") or "") > flag["at"]:
+                    carried["clears"][name] = c
+
+    def dump(self, state: dict, published: str | None = None, overrides: dict | None = None, audit=None) -> str:
+        data, sealed = self.split({**state, **(overrides or {})})
+        if sealed:
+            try:
+                if self.material is None:
+                    raise SealError("no key to seal with")
+                data["sealed"] = seal(json.dumps(sealed, separators=(",", ":"), sort_keys=True).encode(), self.material)
+            except SealError as err:
+                self._carry_hashed(data, sealed)
+                if audit:
+                    audit({"bus_state_unsealed": str(err)[:200], "dropped_sections": sorted(sealed)})
+        data.update({"v": 1, "bus": self.bus_id, "run": self.run, "saved_at": now()})
+        if published:
+            data["security_published_sha256"] = hashlib.sha256(published.encode()).hexdigest()
+        text = json.dumps(data, separators=(",", ":"), sort_keys=True)
+        trimmable = [k for k in BUS_STATE_CAPS if k != "stale_reported"]
+        while len(text.encode()) > BUS_STATE_CAP:
+            sizes = {k: len(data[k]) for k in trimmable if isinstance(data.get(k), (list, dict)) and len(data[k]) > 1}
+            if not sizes:
+                break
+            k = max(sizes, key=sizes.get)
+            data[k] = data[k][len(data[k]) // 2:] if isinstance(data[k], list) else dict(list(data[k].items())[len(data[k]) // 2:])
+            text = json.dumps(data, separators=(",", ":"), sort_keys=True)
+        return text + "\n"
+
+    def adopt(self, state: dict, store, audit=None) -> str:
+        """Load this bus's state from the store's head into `state` (in place: the GitHub client holds its ETags).
+        Returns what happened: none, loaded, loaded-unsealed (restricted entries dropped), or unreadable."""
+        text = store.read(self.path)
+        if not text:
+            return "none"
+        try:
+            data = json.loads(text)
+        except ValueError:
+            data = None
+        if not isinstance(data, dict) or data.get("v") != 1:
+            if audit:
+                audit({"bus_state_unreadable": self.path})
+            return "unreadable"
+        blob = data.pop("sealed", None)
+        published_sha = data.pop("security_published_sha256", None)
+        self.adopted_run = data.pop("run", None)
+        for k in ("v", "bus", "saved_at"):
+            data.pop(k, None)
+        result = "loaded"
+        if blob is not None:
+            try:
+                hidden = json.loads(unseal(blob, self.material) if self.material else b"")
+            except (SealError, ValueError) as err:
+                hidden, result = {}, "loaded-unsealed"
+                if audit:
+                    audit({"bus_state_sealed_unreadable": str(err)[:200] if self.material else "no key"})
+                if "tampered" in str(err) and audit:
+                    audit({"bus_state_tampered": self.path})
+            for section, value in hidden.items() if isinstance(hidden, dict) else []:
+                if section == "seen" and isinstance(value, list):
+                    data["seen"] = list(data.get("seen") or []) + value
+                elif section == "security_verified" and isinstance(value, dict):
+                    data.setdefault("security_verified", {}).setdefault("clears", {}).update(value.get("clears") or {})
+                elif isinstance(value, dict):
+                    data.setdefault(section, {}).update(value)
+        etags = data.pop("etags", None) or {}
+        state.setdefault("etags", {}).update(etags)
+        state.pop("_seen_index", None)
+        state.update(data)
+        live = store.read(SECURITY_FILE)
+        if result == "loaded-unsealed":
+            # The restricted flags are in the published security state, hashed: carry them from there (a takeover does
+            # the same), so a rotated key never loses one.
+            inherit_state(state, live, self.config, 0, datetime.now(timezone.utc))
+        if published_sha:
+            ok = live is not None and hashlib.sha256(live.encode()).hexdigest() == published_sha
+            state["security_published"] = live if ok else ""
+        last = store.file_commit(self.path)
+        if last:
+            state["state_branch_last"] = last
+        return result
+
+    def changed_since_adopt(self, store) -> bool:
+        """Did another run of this bus write its state since this run loaded it (two runs overlapping)?"""
+        try:
+            data = json.loads(store.read(self.path) or "null")
+        except ValueError:
+            return True
+        return (data or {}).get("run") != self.adopted_run if isinstance(data, dict) else self.adopted_run is not None
+
+
+def create_state_branch(gh, config: dict) -> str | None:
+    """An Actions bus on a meta repo without colab-state: create the orphan branch (a README only), but only when GitHub
+    reports active creation, update, and deletion rules on that name (so it is never writable by every member). Why
+    not, or None when created."""
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    base = f"/repos/{org}/{meta}"
+    try:
+        rules = gh.get(f"{base}/rules/branches/{STATE_BRANCH}", conditional=False)
+    except (urllib.error.URLError, OSError) as err:
+        return f"could not read the rules for {STATE_BRANCH} ({str(err)[:100]})"
+    types = {r.get("type") for r in rules if isinstance(r, dict)} if isinstance(rules, list) else set()
+    missing = [t for t in ("creation", "update", "deletion") if t not in types]
+    if missing:
+        return f"not creating {STATE_BRANCH}: the ruleset is not active on it yet ({', '.join(missing)} missing); apply `colab.py plan` first"
+    try:
+        tree = gh.send("POST", f"{base}/git/trees", {"tree": [{"path": "README.md", "mode": "100644", "type": "blob",
+                                                                "content": state_branch_readme(config)}]})
+        commit = gh.send("POST", f"{base}/git/commits", {"message": f"Start {STATE_BRANCH}: shared state of the Lab Colab bus",
+                                                         "tree": tree["sha"], "parents": []})
+        gh.send("POST", f"{base}/git/refs", {"ref": f"refs/heads/{STATE_BRANCH}", "sha": commit["sha"]})
+    except (urllib.error.URLError, OSError, KeyError, TypeError) as err:
+        return f"could not create {STATE_BRANCH} ({str(err)[:100]})"
+    return None
+
+
 def operator_refusal(gh, org: str, entry: dict, login: str) -> str | None:
     """Why this login may not run bus `entry` (it then stays passive and writes nothing), or None: the token's login
     must be the entry's operator and an active member of the operators team."""
     login = (login or "").lower()
     if not login:
         return "could not read the token's login (GET /user)"
+    if entry.get("kind") == "actions":
+        # An App is in no team: what lets it write colab-state is the ruleset's Integration bypass (by app_id).
+        if login != entry["operator"]:
+            return (f"bus {entry['id']} runs as the App {entry.get('app')} ({entry['operator']}), but this token belongs to "
+                    f"{login}; run it from the colab-bus workflow with --app")
+        return None
     if login != entry["operator"]:
         return f"bus {entry['id']} is declared for operator {entry['operator']}, but this token belongs to {login}"
     try:
@@ -2029,9 +2504,15 @@ def _iso_minus(at: str, minutes: float) -> str | None:
 
 
 def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path, login: str, save=lambda: None,
-          bus_id: str | None = None, bot: str | None = None, now_t: datetime | None = None, poll=None) -> dict:
-    """One bus cycle: who am I ([[buses]]), may I run (operator and team), who holds the lease, then either a full
-    poll (active) or nothing but an occasional heartbeat (passive), and one commit to colab-state.
+          bus_id: str | None = None, bot: str | None = None, now_t: datetime | None = None, poll=None, remote=None) -> dict:
+    """One bus cycle: who am I ([[buses]]), may I run (operator and team, or the App of an Actions bus), who holds the
+    lease, then either a full poll (active) or nothing but an occasional heartbeat (passive), and one commit to
+    colab-state.
+
+    `remote` (a BusStateStore, for an Actions bus) loads the bus's own state from colab-state first and writes it back in
+    the same commit; such a bus needs colab-state (it creates it when the ruleset is already active) and never falls back
+    to Actions variables. Two overlapping runs of one bus cannot both commit: the second sees the first's state file
+    change (compare-and-set on the head), writes nothing, and its deliveries were already deduplicated by their keys.
 
     Without a colab-state branch (a meta repo that has not migrated) it polls as before and writes the deprecated
     variables, for one release. Without [[buses]] it is a single implicit bus run by the token's login."""
@@ -2056,10 +2537,16 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         if refusal:
             _append(audit, {"bus_passive": refusal, "bus": entry["id"], "at": now()})
             return {"passive": True, "bus": entry["id"], "reason": refusal}
-        operators = {b["operator"] for b in entries}
+        operators = {b["operator"] for b in entries}  # people, and the bot login of each Actions bus's App
     else:
-        entry = {"id": (bus_id or "default").lower(), "operator": login, "host": "", "role": "primary", "order": 0}
+        entry = {"id": (bus_id or "default").lower(), "operator": login, "host": "", "role": "primary", "order": 0, "kind": "operator"}
         operators = {login}
+    if remote is not None and entries and entry.get("kind") != "actions":
+        why = f"bus {entry['id']} is run by an operator, not by the App: --app runs only an Actions bus (kind = \"actions\")"
+        _append(audit, {"bus_passive": why, "bus": entry["id"], "at": now()})
+        return {"passive": True, "bus": entry["id"], "reason": why}
+    if remote is not None and remote.bus_id != entry["id"]:
+        remote = type(remote)(remote.config, entry["id"], remote.material, remote.run)
     route_bot = bot if bot is not None else ("" if entries else login)  # operator-run: own deliveries carry the marker
     ident = {"bus": entry["id"], "operator": entry["operator"], "host": entry.get("host", ""), "role": entry["role"]}
     writers = operators
@@ -2088,9 +2575,22 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         return {**ident, "passive": True, "reason": "could not read the colab-state branch this poll", "errors": 1}
     try:
         store.load()
+        if remote is not None and not store.available:
+            why = create_state_branch(gh, config)
+            if why:
+                _append(audit, {"bus_passive": why, "bus": entry["id"], "at": now()})
+                return {**ident, "passive": True, "errors": 1, "reason": f"an Actions bus needs the {STATE_BRANCH} branch: {why}"}
+            _append(audit, {"state_branch_created": True, "at": now()})
+            store.load()
+        if remote is not None and store.available:
+            loaded = remote.adopt(state, store, audit=lambda r: _append(audit, {**r, "at": now()}))
+            if loaded != "loaded":
+                _append(audit, {"bus_state": loaded, "at": now()})
     except (urllib.error.URLError, OSError, StateReadError) as err:
         return keep_role(err)
     state.pop("state_read_failing_since", None)
+    if not store.available and remote is not None:
+        return {**ident, "passive": True, "errors": 1, "reason": f"the {STATE_BRANCH} branch is missing"}
     if not store.available:
         # Migration: one release on the Actions variables, single bus, no lease (variables cannot compare-and-set).
         stats = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, bus_id=entry["id"], operator=entry["operator"],
@@ -2163,6 +2663,14 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
             store.stage(heartbeat_path(entry["id"]), json.dumps({"at": now(), **ident, "active": active, "lease": why,
                                                                  **{k: v for k, v in stats.items() if k not in ident}},
                                                                 indent=2, sort_keys=True) + "\n")
+        if remote is not None and store.staged:
+            # The bus's own state rides in the same commit (what it will be once this commit lands).
+            published = store.staged.get(SECURITY_FILE) or state.get("security_published")
+            overrides = {"bus_mode": mode}
+            if beat_due and not active:
+                overrides["passive_beat_ts"] = now_t.timestamp()
+            store.stage(remote.path, remote.dump({k: v for k, v in state.items()}, published, overrides,
+                                                 audit=lambda r: _append(audit, {**r, "at": now()})))
         try:
             sha = store.commit(f"bus {entry['id']} ({entry['operator']}): {'poll' if active else 'standby'} at {now()}")
         except StateConflict:
@@ -2172,6 +2680,13 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
             except (urllib.error.URLError, OSError, StateReadError) as err:
                 stats["errors"] = stats.get("errors", 0) + 1
                 _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
+                break
+            if remote is not None and remote.changed_since_adopt(store):
+                # Another run of this same bus committed meanwhile: its commit stands, this run writes nothing.
+                store.staged.clear()
+                store._callbacks = []
+                stats.update({"overlap": True, "errors": stats.get("errors", 0) + 1})
+                _append(audit, {"bus_run_overlap": "another run of this bus committed first; this run wrote nothing", "at": now()})
                 break
             continue
         except (urllib.error.URLError, OSError) as err:
@@ -2196,27 +2711,75 @@ def load_json(path: Path, default):
     return json.loads(path.read_text()) if path.exists() else default
 
 
+def _default_meta() -> Path | None:
+    """The meta repo checkout this script sits in (`<meta>/bus/colab_bus.py`), when it has the config."""
+    here = Path(__file__).resolve().parent.parent
+    return here if (here / ".colab" / "config.toml").is_file() else None
+
+
+def _app_signing_key(state_dir: Path) -> None:
+    """An Actions bus with [security] signing = "ssh": the key comes from the optional secret COLAB_SIGNING_KEY (its
+    content, in COLAB_SIGNING_KEY_CONTENT) into a 0600 file in the private run folder; COLAB_SIGNING_KEY then names it."""
+    content = os.environ.pop("COLAB_SIGNING_KEY_CONTENT", "")
+    if not content.strip():
+        return
+    path = state_dir / "signing-key"
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(content.strip() + "\n")
+    os.environ["COLAB_SIGNING_KEY"] = str(path)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--meta", type=Path, required=True, help="local clone of the meta repo (reads .colab/*)")
-    ap.add_argument("--state-dir", type=Path, required=True, help="private group storage for bus state")
+    ap.add_argument("--meta", type=Path, default=None,
+                    help="local clone of the meta repo (reads .colab/*); default: the checkout this script is in")
+    ap.add_argument("--state-dir", type=Path, help="private group storage for bus state (an operator-run bus: required; "
+                                                   "--app: a private temporary folder, since its state lives on colab-state)")
     ap.add_argument("--token-file", type=Path, help="0600 file holding a fine-grained token (preferred)")
+    ap.add_argument("--app", action="store_true",
+                    help="run as the org's GitHub App (an Actions bus): COLAB_APP_ID and COLAB_APP_PRIVATE_KEY from the "
+                         "environment (Actions secrets); the bus's own state is kept on colab-state")
     ap.add_argument("--bot", help="login whose events are ignored (default: the token's own login without [[buses]]; "
                                   "nobody with [[buses]], where the bus runs as a person and its writes carry a marker)")
-    ap.add_argument("--bus-id", default=os.environ.get("COLAB_BUS_ID"),
+    ap.add_argument("--bus-id", default=os.environ.get("COLAB_BUS_ID") or None,
                     help="this bus's [[buses]] id (default: $COLAB_BUS_ID, else the one entry run by the token's login)")
     ap.add_argument("--once", action="store_true", help="poll once and exit")
     args = ap.parse_args(argv)
+    args.meta = args.meta or _default_meta()
+    if args.meta is None:
+        ap.error("--meta is required (no .colab/config.toml next to this script's folder)")
+    if args.state_dir is None:
+        if not args.app:
+            ap.error("--state-dir is required (except with --app)")
+        import tempfile
+        args.state_dir = Path(tempfile.mkdtemp(prefix="colab-bus-"))  # 0700; the runner is thrown away after the run
     args.state_dir.mkdir(parents=True, exist_ok=True)
     stop = {"flag": False}
     for sig in (signal.SIGTERM, signal.SIGUSR1):
         signal.signal(sig, lambda *_: stop.update(flag=True))
-    gh_token = read_token(args.token_file)
+    auth, remote = None, None
+    if args.app:
+        try:
+            with open(args.meta / ".colab" / "config.toml", "rb") as fh:
+                org = tomllib.load(fh)["org"]["name"]
+            auth = AppAuth.from_env(org)
+            os.environ.pop("COLAB_APP_PRIVATE_KEY", None)  # nothing started from here needs the key
+            auth.token()
+        except (AppAuthError, OSError, KeyError, tomllib.TOMLDecodeError, urllib.error.URLError) as err:
+            print(json.dumps({"at": now(), "error": f"App sign-in failed: {err}"[:500]}), flush=True)
+            return 1
+        _app_signing_key(args.state_dir)
+        gh_token = auth.token
+    else:
+        gh_token = read_token(args.token_file)
     backoff, failed = 60, False
     while True:
         try:
-            # Pick up config, subscription, and rollout changes (including reverts) every poll.
-            subprocess.run(["git", "-C", str(args.meta), "pull", "--ff-only", "-q"], capture_output=True)
+            # Pick up config, subscription, and rollout changes (including reverts) every poll. An Actions run has a
+            # fresh checkout, and its token stays out of git.
+            if not args.app:
+                subprocess.run(["git", "-C", str(args.meta), "pull", "--ff-only", "-q"], capture_output=True)
             with open(args.meta / ".colab" / "config.toml", "rb") as fh:
                 config = tomllib.load(fh)
             rollout = load_json(args.meta / ".colab" / "rollout.json", {"spaces": {}})
@@ -2225,7 +2788,12 @@ def main(argv: list[str] | None = None) -> int:
             state_path = args.state_dir / "state.json"
             state = load_json(state_path, {})
             gh = GitHub(gh_token, state)
-            login = (gh.get("/user", conditional=False) or {}).get("login", "")
+            if auth is not None:
+                login = auth.login
+                remote = BusStateStore(config, (args.bus_id or "").lower() or next(
+                    (b["id"] for b in buses(config) if b["operator"] == login), "default"), auth.key_material())
+            else:
+                login = (gh.get("/user", conditional=False) or {}).get("login", "")
 
             def save() -> None:
                 clean = {k: v for k, v in state.items() if not k.startswith("_")}
@@ -2236,13 +2804,20 @@ def main(argv: list[str] | None = None) -> int:
             def poll(*a, **kw):
                 found = poll_once(*a, **kw)
                 found.update(session_stats(gh, config, state, args.state_dir))
-                drift_check(gh, config, state, args.state_dir, found)
+                if auth is None:
+                    drift_check(gh, config, state, args.state_dir, found)
+                else:
+                    # observe needs owner reads (issue types, rulesets' bypass lists, App installations) that the App
+                    # does not have; a partial observation would report false drift. Owners run `colab.py plan`.
+                    found["drift_check"] = "off for an Actions bus"
                 return found
 
             stats = cycle(gh, config, rollout, subs, state, args.state_dir, login, save, bus_id=args.bus_id,
-                          bot=args.bot, poll=poll)
+                          bot=args.bot, poll=poll, remote=remote)
+            if auth is not None:  # the private audit log goes with the runner: say what kinds of lines it had
+                stats["audit"] = audit_summary(args.state_dir / "audit.jsonl")
             print(json.dumps({"at": now(), **stats}), flush=True)
-            backoff, failed = 60, False
+            backoff, failed = 60, bool(auth is not None and stats.get("errors") and not stats.get("active"))
             wait = int(config.get("bus", {}).get("poll_seconds", 300))
         except Exception as err:  # keep the job alive; the watchdog sees a stale heartbeat if this persists
             print(json.dumps({"at": now(), "error": repr(err)[:500]}), flush=True)
@@ -2255,6 +2830,22 @@ def main(argv: list[str] | None = None) -> int:
             if stop["flag"]:
                 return 0
             time.sleep(1)
+
+
+def audit_summary(path: Path) -> dict:
+    """Counts of the audit log's record kinds (the first key of each line): no reasons, spans, or item refs."""
+    out: dict = {}
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        try:
+            first = next(iter(json.loads(line)), "")
+        except (ValueError, StopIteration, TypeError):
+            continue
+        out[first] = out.get(first, 0) + 1
+    return out
 
 
 if __name__ == "__main__":

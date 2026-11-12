@@ -1,0 +1,47 @@
+# colab-bus: the Lab Colab bus, one poll per run, signed in as the org's GitHub App. Lives in the private meta repo
+# as .github/workflows/colab-bus.yml (`colab.py seed --dest <meta clone> --refresh-bus`, then a reviewed PR).
+#
+# It needs two Actions secrets of the meta repo, set by an owner (`colab.py setup --app` checks them):
+#   COLAB_APP_ID           the App's number (its settings page)
+#   COLAB_APP_PRIVATE_KEY  the App's private key: the whole .pem file (gh secret set COLAB_APP_PRIVATE_KEY < key.pem)
+# Optional: secret COLAB_SIGNING_KEY (an ssh private key, with [security] signing = "ssh"); variable COLAB_BUS_ID
+# (this bus's [[buses]] id, when more than one entry runs as this App).
+#
+# The bus mints the App's installation token itself (no marketplace action), keeps it in memory, and masks it in the
+# log. Its own state (cursors, ETags, seen ids) lives on the protected colab-state branch, written once per run, so a
+# fresh runner each time is fine. Runs never overlap: the concurrency group queues a new run behind a running one,
+# and the bus's compare-and-set commit refuses a second writer.
+#
+# GitHub may start scheduled runs late, and turns schedules off after 60 days without repository activity; the
+# rollout's regular PRs keep it on, or re-enable it from the Actions tab. To stop the bus, disable this workflow there.
+name: colab-bus
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # every 10 minutes (GitHub's shortest is 5); change by PR
+  workflow_dispatch:
+concurrency:
+  group: colab-bus
+  cancel-in-progress: false
+permissions: {}
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read  # only to check out this private repo; every write is made with the App's token
+    steps:
+      - name: Check out the meta repo (config and bus code)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: One bus poll as the App
+        env:
+          COLAB_APP_ID: ${{ secrets.COLAB_APP_ID }}
+          COLAB_APP_PRIVATE_KEY: ${{ secrets.COLAB_APP_PRIVATE_KEY }}
+          COLAB_SIGNING_KEY_CONTENT: ${{ secrets.COLAB_SIGNING_KEY }}
+          COLAB_BUS_ID: ${{ vars.COLAB_BUS_ID }}
+        run: python bus/colab_bus.py --once --app
