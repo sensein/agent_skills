@@ -24,8 +24,10 @@ Safety rules enforced here:
     unless [tiers] lab lists it, an unreadable one is skipped (stats["unreadable"]); their labels never
     route; their summaries are delivered quoted, marked [external] and untrusted; nothing is ever written
     there, and subscriptions deliver only to repos in [org] name (others, and malformed entries, are dropped)
-  - new or edited bodies and comments are injection-scanned once per version; a hit sets the Project field
-    Security = flagged and is audited (reason, truncated spans) in private state only
+  - new or edited bodies, comments, and reviews are injection-scanned once per version (capped, time-budgeted); hits
+    are audited (reason, truncated spans) in private state only. The bus publishes COLAB_SECURITY_STATE (flags,
+    verified clears and ignores, repo cursors) as a meta-repo Actions variable: the trust anchor the CLI reads.
+    The Project's Security field is display only and is overwritten where it disagrees
   - repo keys are lower-case; state saved under an older mixed-case key is migrated on the next poll
   - it validates each issue's fenced links block once per body version
 
@@ -138,7 +140,6 @@ def org_members(gh, org: str) -> set[str] | None:
 
 
 BUG = re.compile(r"(?i)\bbug\b")
-FLAG_WATCH_CAP = 50  # flagged items whose Security value is re-read each poll
 HOOK_PENDING_CAP = 200  # texts carried over for the injection hook
 HOOK_TEXT_CAP = 20000
 COMMENT_PAGES = 30  # pages of 100 comments read per repo per poll before the cursor is held back
@@ -345,8 +346,8 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, OUTSIDER_FLAGS_PER_DAY, all_stewards, audit_records,  # noqa: E402
-                   claimants_from, combined_tier, involved_by, item_stewards, verify_clear, declared_tiers, format_contributions,  # noqa: E402
+from colab import (CLEAR_MARKER, CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
+                   all_stewards, cap_text, claimants_from, combined_tier, involved_by, item_stewards, declared_tiers, format_contributions,  # noqa: E402
                    injection_scan, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces)
 
 try:  # shared grammar
@@ -480,17 +481,17 @@ Q_ITEMS = ("query($project: ID!, $after: String) { node(id: $project) { ... on P
            "... on PullRequest { number repository { name owner { login } } labels(first: 50) { nodes { name } } "
            "assignees(first: 20) { nodes { login } } } } "
            "fieldValueByName(name: \"Spaces\") { ... on ProjectV2ItemFieldMultiSelectValue { options { name } } } "
-           "security: fieldValueByName(name: \"Security\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }")
+           "security: fieldValueByName(name: \"Security\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } "
+           "status: fieldValueByName(name: \"Status\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } "
+           "ready: fieldValueByName(name: \"Agent-ready\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }")
 M_ADD = ("mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: {projectId: $project, contentId: $content}) "
          "{ item { id } } }")
 M_SET = ("mutation($project: ID!, $item: ID!, $field: ID!, $options: [String!]!) { updateProjectV2ItemFieldValue("
          "input: {projectId: $project, itemId: $item, fieldId: $field, value: {multiSelectOptionIds: $options}}) "
          "{ projectV2Item { id } } }")
-_CONTENT = ("number repository { name owner { login } } labels(first: 50) { nodes { name } } "
-            "assignees(first: 20) { nodes { login } }")
-Q_ITEM_VALUE = ("query($id: ID!) { node(id: $id) { ... on ProjectV2Item { "
-                "security: fieldValueByName(name: \"Security\") { ... on ProjectV2ItemFieldSingleSelectValue { name } } "
-                f"content {{ __typename ... on Issue {{ {_CONTENT} }} ... on PullRequest {{ {_CONTENT} }} }} }} }} }}")
+Q_AUDIT = ("query($o: String!, $r: String!, $n: Int!, $after: String) { repository(owner: $o, name: $r) { issue(number: $n) { "
+           "comments(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { databaseId createdAt lastEditedAt "
+           "body author { login } editor { login } } } } } }")
 M_TEXT = ("mutation($project: ID!, $item: ID!, $field: ID!, $text: String!) { updateProjectV2ItemFieldValue("
           "input: {projectId: $project, itemId: $item, fieldId: $field, value: {text: $text}}) { projectV2Item { id } } }")
 M_SELECT = ("mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) { updateProjectV2ItemFieldValue("
@@ -522,7 +523,10 @@ class ProjectSync:
         self.interval = bus.get("write_interval_seconds", 1.0)
         self._ids: dict | None = None
         self._noted: set[str] = set()
-        self.on_cleared = None  # set by poll_once: verifies every `cleared` the sweep sees
+        # Set by poll_once: the Security value the bus's state says to show, the hot-item note, and the call budget.
+        self.display_value = self.note_hot = None
+        self.write_budget: dict | None = None
+        self.display_checked: dict = {}
         stats.setdefault("project_writes", 0)
 
     def _fail(self, what: str, err: Exception) -> None:
@@ -635,15 +639,6 @@ class ProjectSync:
     def flag(self, node_id: str, project_item: str | None = None) -> str | None:
         return self.set_security(node_id, project_item, "flagged")
 
-    def item_value(self, project_item: str) -> tuple[str | None, dict | None]:
-        """(Security value or "", the item's content) for one Project item; (None, None) when unreadable."""
-        try:
-            node = self.gh.graphql(Q_ITEM_VALUE, {"id": project_item})["node"] or {}
-        except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
-            self._fail(f"read {project_item}", err)
-            return None, None
-        return str(((node.get("security") or {}).get("name")) or "").lower(), node.get("content") or {}
-
     def sweep_due(self) -> bool:
         """True on the first poll and then every project_sync_every polls."""
         n = self.state.get("project_polls", 0)
@@ -651,7 +646,8 @@ class ProjectSync:
         return self.enabled and n % self.every == 0
 
     def sweep(self) -> None:
-        """Page through every Project item and fix the Spaces value where it differs from the desired one."""
+        """Page through every Project item and fix the Spaces value where it differs from the desired one, and the
+        (display-only) Security value where it disagrees with the bus's state."""
         self._ids = None
         ids = self.ids()
         if not ids or not ids["field"]:
@@ -659,12 +655,13 @@ class ProjectSync:
                 self._fail("sweep", RuntimeError("Spaces field not found on the Project"))
             return
         after = None
+        mismatched: list[tuple[str, str]] = []
         for _ in range(500):
             try:
                 page = self.gh.graphql(Q_ITEMS, {"project": ids["project"], "after": after})["node"]["items"]
             except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
                 self._fail("sweep read", err)
-                return
+                break
             for item in page["nodes"]:
                 content = item.get("content") or {}
                 repo = content.get("repository") or {}
@@ -672,8 +669,13 @@ class ProjectSync:
                 if content.get("__typename") not in ("Issue", "PullRequest") or owner.lower() not in self.owners:
                     continue
                 labels = [x["name"] for x in (content.get("labels") or {}).get("nodes", [])]
-                if str(((item.get("security") or {}).get("name")) or "").lower() == "cleared" and self.on_cleared:
-                    self.on_cleared(item["id"], content)
+                value = str(((item.get("security") or {}).get("name")) or "").lower()
+                if self.note_hot:
+                    self.note_hot(content, str((item.get("status") or {}).get("name") or ""),
+                                  str((item.get("ready") or {}).get("name") or ""))
+                want_display = self.display_value(content, value) if self.display_value else None
+                if want_display and want_display != value:
+                    mismatched.append((item["id"], want_display))
                 want = desired_spaces(repo_key(f"{owner}/{repo['name']}", self.org), labels, self.member_of)
                 have = sorted(o["name"] for o in ((item.get("fieldValueByName") or {}).get("options") or []))
                 if want == have:
@@ -687,8 +689,26 @@ class ProjectSync:
                 elif have:
                     self._write(f"clear Spaces {item['id']}", M_CLEAR, base)
             if not page["pageInfo"]["hasNextPage"]:
-                return
+                break
             after = page["pageInfo"]["endCursor"]
+        self.fix_display(mismatched)
+
+    def fix_display(self, mismatched: list[tuple[str, str]]) -> None:
+        """Overwrite Security values that disagree with the bus's state, on every item the sweep saw, oldest-checked
+        first, within the poll's call budget; the rest wait for the next sweep."""
+        mismatched.sort(key=lambda m: self.display_checked.get(m[0], ""))
+        for item_id, value in mismatched:
+            if self.write_budget is not None:
+                if self.write_budget["left"] <= 0:
+                    self.stats["display_carried"] = self.stats.get("display_carried", 0) + 1
+                    continue
+                self.write_budget["left"] -= 1
+            if self.set_security("", item_id, value):
+                self.display_checked.pop(item_id, None)
+                self.display_checked[item_id] = now()
+                _append(self.state_dir / "audit.jsonl", {"security_display_fixed": item_id, "value": value, "at": now()})
+        while len(self.display_checked) > SEEN_CAP:
+            del self.display_checked[next(iter(self.display_checked))]
 
 
 # --------------------------------------------------------------------------- loop
@@ -1028,36 +1048,199 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
     outsider_limit = int(sec_cfg.get("outsider_flags_per_day", OUTSIDER_FLAGS_PER_DAY))
     outsider_counts = state.setdefault("outsider_flags", {})
     marked = state.setdefault("security_unreviewed", {})
-    audit_cache: dict = {}
+    verified = state.setdefault("security_verified", {"clears": {}, "ignored": {}})  # audit records the bus accepted
+    hot = state.setdefault("security_hot", {})  # refs that are Ready/Agent-ready, in progress, or assigned (from the sweep)
 
-    def records() -> dict:
-        """Audit records on `[security] audit_issue` (ETag-cached), read once per poll."""
-        if "r" not in audit_cache:
-            issue = int(sec_cfg.get("audit_issue") or 0)
-            comments: list = []
-            for page in range(1, 21) if issue else []:
-                try:
-                    batch = gh.get(f"/repos/{org}/{meta_repo}/issues/{issue}/comments?per_page=100&page={page}", cache=True)
-                except urllib.error.URLError as err:
-                    stats["errors"] += 1
-                    _append(state_dir / "audit.jsonl", {"read_failed": "security audit issue", "error": str(err)[:300], "at": now()})
-                    break
-                batch = batch if isinstance(batch, list) else []
-                comments += batch
-                if len(batch) < 100:
-                    break
-            audit_cache["r"] = audit_records(comments)
-        return audit_cache["r"]
+    def ref_of(key: str) -> str:
+        """State key (repo key#n) -> `owner/repo#n`, lower-case: the item ref used in COLAB_SECURITY_STATE."""
+        repo, _, number = key.rpartition("#")
+        return f"{repo_ref(repo, org)}#{number}".lower()
 
-    def ignored(login: str) -> bool:
-        """A steward (per the API's comment author) other than the author recorded an ignore-author for them."""
-        stewards = set(all_stewards(config))
-        return any(r["by"] in stewards and r["by"] != login for r in records()["ignored"].get(login, []))
+    def flagged_by_ref(ref: str) -> tuple[str, dict] | tuple[None, None]:
+        for key, rec in flagged.items():
+            if ref_of(key) == ref:
+                return key, rec
+        return None, None
+
+    def item_people(ref: str) -> tuple[list[str], set[str], set[str]] | None:
+        """(stewards of the item's spaces, assignees, claimants) read now through the API; None if unreadable."""
+        repo_full, _, number = ref.rpartition("#")
+        try:
+            issue = gh.get(f"/repos/{repo_full}/issues/{number}", conditional=False)
+            comments = _pages(gh, f"/repos/{repo_full}/issues/{number}/comments", pages=10)
+        except urllib.error.URLError as err:
+            stats["errors"] += 1
+            _append(state_dir / "audit.jsonl", {"read_failed": f"{ref} people", "error": str(err)[:300], "at": now()})
+            return None
+        if not isinstance(issue, dict):
+            return None
+        key = repo_key(repo_full, org)
+        labels = [lab["name"] if isinstance(lab, dict) else lab for lab in issue.get("labels", [])]
+        stewards = item_stewards(config, desired_spaces(key, labels, member_of))
+        assignees = {str(a.get("login") or "").lower() for a in issue.get("assignees") or []}
+        return stewards, assignees, claimants_from(comments)
+
+    def consider_record(c: dict) -> None:
+        """Accept one audit-issue comment as a clear or ignore record, or audit why not. Records are read through
+        GraphQL: an edited comment (lastEditedAt, or an editor who is not the author) never counts, a comment holds
+        exactly one marker, and the author and time come from the API."""
+        body = c.get("body") or ""
+        clears, ignores = list(CLEAR_MARKER.finditer(body)), list(IGNORE_MARKER.finditer(body))
+        if not clears and not ignores:
+            return
+        author = str((c.get("author") or {}).get("login") or "").lower()
+        editor = str((c.get("editor") or {}).get("login") or "").lower()
+        at, cid = str(c.get("createdAt") or ""), c.get("databaseId")
+
+        def reject(why: str) -> None:
+            stats["records_rejected"] = stats.get("records_rejected", 0) + 1
+            _append(state_dir / "audit.jsonl", {"security_record_rejected": cid, "by": author, "why": why, "at": now()})
+        if c.get("lastEditedAt") or (editor and editor != author):
+            return reject("edited after it was written")
+        if len(clears) + len(ignores) != 1:
+            return reject("more than one marker in one comment")
+        if clears:
+            ref = clears[0]["item"].lower()
+            key, rec = flagged_by_ref(ref)
+            if rec is None:
+                return reject(f"{ref} is not flagged")
+            if at <= str(rec.get("flagged_at") or ""):
+                return reject(f"written before the flag at {rec.get('flagged_at')}")
+            people = item_people(ref)
+            if people is None:
+                return reject(f"could not read {ref}")
+            stewards, assignees, claimants = people
+            if author not in stewards:
+                return reject(f"{author} is not a steward of {ref}'s spaces")
+            if author in assignees | claimants:
+                return reject(f"{author} is {ref}'s assignee or claimant")
+            verified["clears"][ref] = {"by": author, "id": cid, "at": at}
+            _append(state_dir / "audit.jsonl", {"security_clear_verified": ref, "by": author, "id": cid, "at": now()})
+            return
+        login = ignores[0]["login"].lower()
+        mem = member_set()
+        if author not in set(all_stewards(config)) or author == login:
+            return reject(f"{author} may not ignore {login}")
+        if mem is None or login in mem:
+            return reject(f"{login} is a member (or membership is unreadable): members' content always flags")
+        verified["ignored"][login] = {"by": author, "id": cid, "at": at}
+        _append(state_dir / "audit.jsonl", {"security_ignore_verified": login, "by": author, "id": cid, "at": now()})
+
+    def read_audit_records() -> None:
+        """New comments on `[security] audit_issue` since the last one read (GraphQL, paged)."""
+        issue = int(sec_cfg.get("audit_issue") or 0)
+        if not issue or not hasattr(gh, "graphql"):
+            return
+        after = state.get("audit_cursor")
+        for _ in range(20):
+            try:
+                conn = gh.graphql(Q_AUDIT, {"o": org, "r": meta_repo, "n": issue, "after": after})["repository"]["issue"]["comments"]
+            except (urllib.error.URLError, OSError, GraphQLError, KeyError, TypeError) as err:
+                stats["errors"] += 1
+                _append(state_dir / "audit.jsonl", {"read_failed": "security audit issue", "error": str(err)[:300], "at": now()})
+                return
+            for c in conn.get("nodes") or []:
+                consider_record(c)
+            if (conn.get("pageInfo") or {}).get("endCursor"):
+                after = state["audit_cursor"] = conn["pageInfo"]["endCursor"]
+            if not (conn.get("pageInfo") or {}).get("hasNextPage"):
+                return
+
+    def blocked(ref: str) -> bool:
+        key, rec = flagged_by_ref(ref)
+        clear = verified["clears"].get(ref)
+        return rec is not None and not (clear and clear["at"] > str(rec.get("flagged_at") or ""))
+
+    def display_value(content: dict, value: str) -> str | None:
+        """The Security value the Project should show for an item, from the bus's state (display only)."""
+        repo = content.get("repository") or {}
+        owner = (repo.get("owner") or {}).get("login") or ""
+        if not owner or content.get("number") is None:
+            return None
+        ref = f"{owner}/{repo['name']}#{content['number']}".lower()
+        key, rec = flagged_by_ref(ref)
+        if rec is not None:
+            return "flagged" if blocked(ref) else "cleared"
+        return "unreviewed" if value in ("flagged", "cleared") else None
+
+    def note_hot(content: dict, status: str, ready: str) -> None:
+        repo = content.get("repository") or {}
+        owner = (repo.get("owner") or {}).get("login") or ""
+        if not owner or content.get("number") is None:
+            return
+        ref = f"{owner}/{repo['name']}#{content['number']}".lower()
+        assigned = bool((content.get("assignees") or {}).get("nodes"))
+        if (status == "Ready" and ready.lower() == "yes") or status == "In progress" or assigned:
+            hot[ref] = now()
+        else:
+            hot.pop(ref, None)
+
+    project.display_value, project.note_hot, project.write_budget = display_value, note_hot, calls
+    project.display_checked = state.setdefault("display_checked", {})
+
+    def on_hit(repo: str, number, where: str, found: dict, node_id: str, eligible: bool, authors=(), item=None) -> None:
+        key = f"{repo}#{number}"
+        ref = ref_of(key)
+        authors = {str(a).lower() for a in authors if a}
+        mem = member_set()
+        outsiders = authors - mem if mem is not None else set()  # members unreadable: everyone counts as a member
+        claimed = ref in hot or bool((item or {}).get("assignees"))
+        if authors and outsiders == authors and not claimed:
+            # Only non-members wrote it, on an item nobody is working on: an ignored author never flags, and each
+            # outsider flags each item at most outsider_flags_per_day times a day; past that the hit is audit-only.
+            # Members' content, and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags.
+            day = now()[:10]
+            live = [a for a in sorted(authors) if a not in verified["ignored"]]
+            under = [a for a in live if (outsider_counts.get(f"{a}|{ref}") or {}).get("day") != day
+                     or outsider_counts[f"{a}|{ref}"].get("n", 0) < outsider_limit]
+            if not under:
+                stats["flags_suppressed"] = stats.get("flags_suppressed", 0) + 1
+                _append(state_dir / "audit.jsonl", {"security_flag_suppressed": key, "where": where, "authors": sorted(authors),
+                                                    "why": "ignored author" if not live else "outsider daily limit for this item",
+                                                    "reason": found["reason"], "spans": found["spans"][:5], "at": now()})
+                return
+            for a in under:
+                c = outsider_counts.get(f"{a}|{ref}") or {}
+                outsider_counts[f"{a}|{ref}"] = {"day": day, "n": (c.get("n", 0) if c.get("day") == day else 0) + 1}
+            while len(outsider_counts) > SEEN_CAP:
+                del outsider_counts[next(iter(outsider_counts))]
+        stats["flagged"] = stats.get("flagged", 0) + 1
+        item_id = None
+        if eligible and node_id:
+            item_id = project.flag(node_id, (contrib.get(key) or {}).get("project_item") or (flagged.get(key) or {}).get("project_item"))
+        flagged.pop(key, None)
+        flagged[key] = {"flagged_at": now().replace("+00:00", "Z"), "where": where, "reason": found["reason"], "ref": ref,
+                        "node_id": node_id, "project_item": item_id}
+        _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
+                                            "authors": sorted(authors), "spans": found["spans"][:5], "truncated": found.get("truncated", False),
+                                            "project": bool(item_id), "at": now()})
+
+    def run_scan(text: str) -> dict | None:
+        """Rules plus hook on a capped text, charging the rules' time to the poll's scan budget too. None when the
+        budget is spent before the rules run (the caller carries the text over)."""
+        if hook_budget["left"] <= 0:
+            return None
+        capped, truncated = cap_text(text)
+        before, started = hook_budget["left"], time.monotonic()
+        found = injection_scan(capped, config, budget=hook_budget)
+        hook_used = before - hook_budget["left"]
+        hook_budget["left"] -= max(0.0, time.monotonic() - started - hook_used)
+        found["truncated"] = truncated
+        if truncated:
+            stats["texts_truncated"] = stats.get("texts_truncated", 0) + 1
+        return found
+
+    def defer(skey: str, repo: str, number, where: str, text: str, node_id: str, eligible: bool, authors) -> None:
+        hook_pending[:] = [x for x in hook_pending if x["key"] != skey][-(HOOK_PENDING_CAP - 1):]
+        hook_pending.append({"key": skey, "repo": repo, "number": number, "where": where, "text": cap_text(text)[0],
+                             "node_id": node_id, "eligible": eligible, "authors": sorted(a for a in authors if a)})
+        stats["hook_deferred"] = stats.get("hook_deferred", 0) + 1
+        _append(state_dir / "audit.jsonl", {"injection_hook_deferred": skey, "at": now()})
 
     def scan_text_for(repo: str, number, where: str, text: str, item: dict | None, eligible: bool, authors=()) -> None:
-        """Injection-scan one text once per version; on a hit set Security = flagged (when the item may be on the
-        board) and audit the reason and truncated spans here, in private bus state only. A clean issue body marks
-        an item the bus has never flagged as Security = unreviewed (scanned, no finding)."""
+        """Injection-scan one text once per version (capped at 64 KB: head and tail); on a hit flag it. Rule and
+        hook time share `[scan] injection_seconds_per_poll`; past it the text waits for a later poll. A clean issue
+        body marks an item the bus has never flagged as Security = unreviewed (display only)."""
         if not scan_on or not text:
             return
         skey = f"{repo}#{number}:{where}"
@@ -1068,110 +1251,22 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         scanned[skey] = digest
         while len(scanned) > SEEN_CAP:
             del scanned[next(iter(scanned))]
-        found = injection_scan(text, config, budget=hook_budget)
         node_id = (item or {}).get("node_id", "")
-        if found["deferred"] and not found["flag"]:
-            # The hook's time ran out this poll: the rules found nothing; the hook sees the text on a later poll.
-            hook_pending[:] = [x for x in hook_pending if x["key"] != skey][-(HOOK_PENDING_CAP - 1):]
-            hook_pending.append({"key": skey, "repo": repo, "number": number, "where": where, "text": text[:HOOK_TEXT_CAP],
-                                 "node_id": node_id, "eligible": eligible, "authors": sorted(authors)})
-            stats["hook_deferred"] = stats.get("hook_deferred", 0) + 1
-            _append(state_dir / "audit.jsonl", {"injection_hook_deferred": skey, "at": now()})
+        found = run_scan(text)
+        if found is None or (found["deferred"] and not found["flag"]):
+            defer(skey, repo, number, where, text, node_id, eligible, authors)
+            if found is None:
+                return
         if found["flag"]:
-            on_hit(repo, number, where, found, node_id, eligible, authors)
+            on_hit(repo, number, where, found, node_id, eligible, authors, item)
             return
         key = f"{repo}#{number}"
-        if where == "body" and eligible and node_id and key not in flagged and key not in marked:
+        if where == "body" and eligible and node_id and key not in flagged and key not in marked and not found["deferred"]:
             item_id = project.set_security(node_id, (contrib.get(key) or {}).get("project_item"), "unreviewed")
             if item_id:
                 marked[key] = now()
                 while len(marked) > SEEN_CAP:
                     del marked[next(iter(marked))]
-
-    def on_hit(repo: str, number, where: str, found: dict, node_id: str, eligible: bool, authors=()) -> None:
-        key = f"{repo}#{number}"
-        authors = {str(a).lower() for a in authors if a}
-        mem = member_set()
-        outsiders = authors - mem if mem is not None else set()  # members unreadable: everyone counts as a member
-        if authors and outsiders == authors:
-            # Only non-members wrote it: an ignored author never flags, and each outsider flags at most
-            # outsider_flags_per_day times a day; past that the hit is audit-only. Members' content always flags.
-            day = now()[:10]
-            live = [a for a in sorted(authors) if not ignored(a)]
-            under = [a for a in live if (outsider_counts.get(a) or {}).get("day") != day
-                     or outsider_counts[a].get("n", 0) < outsider_limit]
-            if not under:
-                stats["flags_suppressed"] = stats.get("flags_suppressed", 0) + 1
-                _append(state_dir / "audit.jsonl", {"security_flag_suppressed": key, "where": where, "authors": sorted(authors),
-                                                    "why": "ignored author" if not live else "outsider daily limit",
-                                                    "reason": found["reason"], "spans": found["spans"][:5], "at": now()})
-                return
-            for a in under:
-                c = outsider_counts.get(a) or {}
-                outsider_counts[a] = {"day": day, "n": (c.get("n", 0) if c.get("day") == day else 0) + 1}
-        stats["flagged"] = stats.get("flagged", 0) + 1
-        item_id = None
-        if eligible and node_id:
-            item_id = project.flag(node_id, (contrib.get(key) or {}).get("project_item") or (flagged.get(key) or {}).get("project_item"))
-        flagged[key] = {"flagged_at": now().replace("+00:00", "Z"), "where": where, "reason": found["reason"],
-                        "node_id": node_id, "project_item": item_id or (flagged.get(key) or {}).get("project_item"),
-                        "verified": False}
-        _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
-                                            "authors": sorted(authors), "spans": found["spans"][:5],
-                                            "project": bool(item_id), "at": now()})
-
-    def content_info(content: dict) -> tuple[str, dict] | None:
-        """(state key, the fields verify_clear needs) for a Project item's issue or PR content."""
-        repo = content.get("repository") or {}
-        owner = (repo.get("owner") or {}).get("login") or ""
-        if not owner or not repo.get("name") or content.get("number") is None:
-            return None
-        key = repo_key(f"{owner}/{repo['name']}", org)
-        labels = [x["name"] for x in (content.get("labels") or {}).get("nodes", [])]
-        spaces = desired_spaces(key, labels, member_of)
-        return f"{key}#{content['number']}", {
-            "item": f"{owner}/{repo['name']}#{content['number']}", "stewards": item_stewards(config, spaces),
-            "assignees": sorted(str(a.get("login") or "").lower() for a in (content.get("assignees") or {}).get("nodes", []))}
-
-    def check_cleared(project_item: str, value: str, content: dict, rec: dict | None) -> None:
-        """A `cleared` stands only with a valid audit record (verify_clear); any other value on an item the bus
-        flagged is a direct edit. Either way without a record, the bus flags it again (`clear_unverified`)."""
-        found = content_info(content)
-        if found is None:
-            return
-        key, info = found
-        flagged_at = (rec or {}).get("flagged_at")
-        if value == "cleared":
-            owner_repo, _, number = info["item"].rpartition("#")
-            try:
-                comments = _pages(gh, f"/repos/{owner_repo}/issues/{number}/comments", pages=10)
-            except urllib.error.URLError as err:
-                stats["errors"] += 1
-                _append(state_dir / "audit.jsonl", {"read_failed": f"{key} comments", "error": str(err)[:300], "at": now()})
-                return
-            ok, why = verify_clear(info, records(), claimants_from(comments), flagged_at)
-            if ok:
-                flagged[key] = {**(rec or {}), "project_item": project_item, "verified": True, "cleared": why}
-                _append(state_dir / "audit.jsonl", {"security_clear_verified": key, "detail": why, "at": now()})
-                return
-        else:
-            why = f"Security = {value or 'unset'} on a flagged item, with no clear"
-        if project.set_security("", project_item, "flagged"):
-            stats["clears_unverified"] = stats.get("clears_unverified", 0) + 1
-        flagged[key] = {**(rec or {"flagged_at": now().replace("+00:00", "Z"), "where": "clear", "reason": "unverified clear"}),
-                        "project_item": project_item, "verified": False}
-        _append(state_dir / "audit.jsonl", {"clear_unverified": key, "value": value, "why": why, "at": now()})
-
-    def on_cleared(project_item: str, content: dict) -> None:
-        found = content_info(content)
-        if found is None:
-            return
-        rec = flagged.get(found[0])
-        if rec and rec.get("verified"):
-            return
-        check_cleared(project_item, "cleared", content, rec)
-
-    project.on_cleared = on_cleared
 
     def read_since(endpoint: str, since: str) -> tuple[list, str | None]:
         """Every comment updated since the cursor, page by page; (comments, hold). When more remain than
@@ -1196,21 +1291,12 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                        is_external(current["repo"]), current["repo"] in opt_in)
         return kind in project.add_kinds and (tier != "restricted" or restricted_ok(current["repo"]))
 
-    # Items the bus flagged and no one has validly cleared: re-read their Security each poll, so a direct edit
-    # of the field (to cleared without a record, or to anything else) is flagged again at once.
-    if scan_on and project.enabled:
-        for key, rec in [(k, v) for k, v in flagged.items() if not v.get("verified") and v.get("project_item")][:FLAG_WATCH_CAP]:
-            value, content = project.item_value(rec["project_item"])
-            if value is None or value == "flagged":
-                continue
-            check_cleared(rec["project_item"], value, content, rec)
+    read_audit_records()  # new clear and ignore records, verified against the bus's own flag times
 
     # Texts the hook could not see on an earlier poll (out of time): they go first, within this poll's budget.
     for job in list(hook_pending):
-        if hook_budget["left"] <= 0:
-            break
-        found = injection_scan(job["text"], config, budget=hook_budget)
-        if found["deferred"]:
+        found = run_scan(job["text"])
+        if found is None or found["deferred"]:
             break
         hook_pending.remove(job)
         if found["flag"]:
@@ -1284,11 +1370,16 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         for c in review_comments:
             texts.append((_number(c.get("pull_request_url")), f"review_comment:{c.get('id')}", c.get("body") or "",
                           (c.get("user") or {}).get("login")))
+        review_hold = None
         if scan_on:
             for item in items:
                 if "pull_request" in item:
                     try:
-                        reviews = _pages(gh, f"{path(repo)}/pulls/{item.get('number')}/reviews")
+                        reviews = _pages(gh, f"{path(repo)}/pulls/{item.get('number')}/reviews", calls=calls)
+                    except DetailBudget:  # out of API calls: read this PR's reviews on a later poll
+                        review_hold = min(review_hold or item.get("updated_at"), item.get("updated_at") or "")
+                        stats["reviews_carried"] = stats.get("reviews_carried", 0) + 1
+                        continue
                     except urllib.error.URLError as err:
                         stats["errors"] += 1
                         _append(state_dir / "audit.jsonl", {"read_failed": f"{repo}#{item.get('number')} reviews",
@@ -1359,6 +1450,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             new_cursor = carry_cursor  # details carried over: resume from the last item handled
         elif fetched and not (external and not track_all and members.get("set") is None):
             new_cursor = max(i["updated_at"] for i in fetched)  # unreadable members: retry these next poll
+        if new_cursor and review_hold and review_hold <= new_cursor:
+            new_cursor = review_hold  # reviews not read yet: resume from that PR
         if new_cursor and comment_hold and comment_hold < new_cursor:
             new_cursor = comment_hold  # more comments than one poll reads: resume from the last one scanned
             stats["comments_held"] = stats.get("comments_held", 0) + 1
@@ -1370,8 +1463,88 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             project.sweep()
     except Exception as err:  # bookkeeping must never break the poll
         project._fail("sweep", err)
+    publish_security_state(gh, config, state, state_dir, stats)  # the trust anchor the CLI reads
     save()
     return stats
+
+
+SECURITY_VAR = "COLAB_SECURITY_STATE"
+SECURITY_VAR_LIMIT = 45000  # bytes; GitHub caps a variable at 48 KB
+
+
+def _categories(reason: str) -> str:
+    m = re.match(r"rules: ([^;]+)", reason or "")
+    return m.group(1).replace(" ", "") if m else ("model" if "model:" in (reason or "") else "")
+
+
+def security_state_value(config: dict, state: dict, now_t: datetime | None = None) -> tuple[str, int]:
+    """The compact COLAB_SECURITY_STATE JSON and how many cleared entries were dropped to fit.
+
+    flags: every item the bus flagged (ref -> flag time, rule categories); clears and ignored: the audit records the
+    bus verified (steward login, comment id, time); seen: each repo's cursor (everything updated up to it was
+    scanned). Cleared pairs older than `[security] state_keep_days` (default 30) are pruned; if it would still pass
+    the limit, the oldest clears go first and open flags are always kept."""
+    org = config["org"]["name"]
+    now_t = now_t or datetime.now(timezone.utc)
+    keep_days = float((config.get("security") or {}).get("state_keep_days", 30))
+    cutoff = (now_t.timestamp() - keep_days * 86400)
+    verified = state.get("security_verified") or {"clears": {}, "ignored": {}}
+
+    def ref_of(key: str) -> str:
+        repo, _, number = key.rpartition("#")
+        return f"{repo_ref(repo, org)}#{number}".lower()
+    flags = {ref_of(k): {"at": v.get("flagged_at", ""), "cat": _categories(v.get("reason", ""))}
+             for k, v in (state.get("security") or {}).items() if v.get("flagged_at")}
+    clears = {r: c for r, c in (verified.get("clears") or {}).items() if r in flags and c["at"] > flags[r]["at"]}
+
+    def age(at: str) -> float:
+        try:
+            return datetime.fromisoformat(at.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return 0.0
+    for r in [r for r, c in clears.items() if age(c["at"]) < cutoff]:
+        clears.pop(r)
+        flags.pop(r)
+    body = {"v": 1, "seen": dict(sorted((state.get("cursors") or {}).items())), "flags": flags, "clears": clears,
+            "ignored": verified.get("ignored") or {}}
+    dropped = 0
+    while len(json.dumps(body, separators=(",", ":")).encode()) > SECURITY_VAR_LIMIT and clears:
+        oldest = min(clears, key=lambda r: clears[r]["at"])
+        clears.pop(oldest)
+        flags.pop(oldest)
+        dropped += 1
+    return json.dumps(body, separators=(",", ":"), sort_keys=True), dropped
+
+
+def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats: dict) -> None:
+    """Write COLAB_SECURITY_STATE on the meta repo when it changed: the trust anchor the CLI decides from. Repo
+    variables need the Variables permission, which members' agents do not have; the Project's Security field is
+    display only. Never raises."""
+    if not (config.get("bus") or {}).get("injection_scan", True):
+        return
+    value, dropped = security_state_value(config, state)
+    if dropped:
+        _append(state_dir / "audit.jsonl", {"security_state_pruned": dropped, "at": now()})
+    if len(value.encode()) > SECURITY_VAR_LIMIT:
+        stats["errors"] = stats.get("errors", 0) + 1
+        _append(state_dir / "audit.jsonl", {"security_state_overflow": len(value.encode()), "at": now()})
+    if state.get("security_published") == value:
+        return
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    path = f"/repos/{org}/{meta}/actions/variables/{SECURITY_VAR}"
+    try:
+        try:
+            gh.send("PATCH", path, {"name": SECURITY_VAR, "value": value})
+        except urllib.error.HTTPError as err:
+            if err.code != 404:
+                raise
+            gh.send("POST", f"/repos/{org}/{meta}/actions/variables", {"name": SECURITY_VAR, "value": value})
+    except (urllib.error.URLError, OSError) as err:
+        stats["errors"] = stats.get("errors", 0) + 1
+        _append(state_dir / "audit.jsonl", {"security_state_write_failed": str(err)[:300], "at": now()})
+        return
+    state["security_published"] = value
+    stats["security_state_bytes"] = len(value.encode())
 
 
 def heartbeat(gh, org: str, meta: str, stats: dict) -> None:

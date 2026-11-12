@@ -356,11 +356,13 @@ def fetch_sensitivity(ref: dict, project_number: int) -> str | None:
     return None
 
 
-def fetch_gate(config: dict, ref: dict) -> dict:
-    """colab.gate_status for the issue: {"state": ok|flagged|unscanned, "reason"}. Unreadable means unscanned."""
+def fetch_gate(config: dict, ref: dict, acting_for: str | None = None, require_seen: bool = True) -> dict:
+    """colab.gate_status for the issue, decided from the bus's COLAB_SECURITY_STATE: {"state": ok|flagged|unscanned,
+    "reason"}. A clear by `acting_for` does not count for their own run. Unreadable means unscanned."""
     import colab  # noqa: PLC0415
     try:
-        return colab.gate_status(config, f"{ref['owner']}/{ref['repo']}#{ref['n']}")
+        return colab.gate_status(config, f"{ref['owner']}/{ref['repo']}#{ref['n']}", acting_for=acting_for,
+                                 require_seen=require_seen)
     except colab.RepoEntryError as err:
         return {"state": "unscanned", "reason": str(err)}
 
@@ -598,15 +600,21 @@ def cmd_start(args, config: dict) -> int:
         raise RunError("direction must be higher or lower")
     metric = args.metric or form["tokens"].get("metric", "")
     restricted = bool(args.restricted or form["restricted"] or tier == "restricted")
+    claimant = args.claimant or ("" if args.offline else gh_login())
     effective = "restricted" if restricted else tier
     if args.offline:  # no gh: the Security value is asserted, like visibility and labels
+        if gh_login():  # gh works here, so offline would only skip the gate
+            if not args.force_offline or effective == "restricted":
+                raise RunError("gh is authenticated and reachable, so --offline would skip the Security gate; drop --offline"
+                               + ("" if effective == "restricted" else ", or pass --force-offline (never for restricted runs)"))
+            notes.append("WARNING: --force-offline: the Security gate was not read from GitHub; the --security value is "
+                         "your assertion")
         if args.security is None and effective != "public":
             raise RunError("--offline needs --security unreviewed|cleared|flagged (the item's Security value, as you see it)")
         gate = {"state": {"flagged": "flagged", None: "unscanned"}.get(args.security, "ok"), "reason": "asserted with --security"}
     else:
-        gate = fetch_gate(config, ref)
+        gate = fetch_gate(config, ref, acting_for=claimant)
     notes += check_gate(gate["state"], gate["reason"], effective, bool(args.allow_unscanned), args.issue)
-    claimant = args.claimant or ("" if args.offline else gh_login())
     editor = args.editor or (fetched or {}).get("editor") or ""
     if not claimant or not editor or editor.lower() != claimant.lower():
         notes.append(f"WARNING: the issue body was last edited by {editor or 'an unknown person'}, not the claimant "
@@ -770,13 +778,14 @@ def confirm_commands(run_dir: Path, spec: dict, confirm: str | None, config: dic
 # --------------------------------------------------------------------------- step
 
 
-def recheck_gate(spec: dict, config: dict) -> None:
-    """Every step re-reads the Security gate of a run whose start read it online: a flag (or an unverified clear)
-    after start stops the run. Unreadable counts as unscanned, so a run above public stops unless it was
-    started with --allow-unscanned (never for restricted). The batch job needs gh for this."""
-    if not spec.get("security_checked_online"):
+def recheck_gate(spec: dict, config: dict, in_job: bool = False) -> None:
+    """Every step re-reads the Security gate from COLAB_SECURITY_STATE, for runs whose start read it online and
+    always inside a batch job: a flag after start stops the run, and a clear by the person the run acts for does
+    not count. An unreadable state counts as unscanned, so a run above public stops unless it was started with
+    --allow-unscanned (never for restricted). The batch job needs gh for this."""
+    if not (spec.get("security_checked_online") or in_job):
         return
-    gate = fetch_gate(config, spec["issue_ref"])
+    gate = fetch_gate(config, spec["issue_ref"], acting_for=spec.get("acting_for") or None, require_seen=False)
     check_gate(gate["state"], gate["reason"], "restricted" if spec.get("restricted") else spec.get("tier", "restricted"),
                bool(spec.get("allow_unscanned")), spec["issue"])
 
@@ -953,7 +962,7 @@ def cmd_step(args, config: dict, colab_mod=None) -> int:
     spec = load_run(run_dir)
     guard_restricted(spec, args.in_job)
     spec = confirm_commands(run_dir, spec, args.confirm_verify)
-    recheck_gate(spec, config)
+    recheck_gate(spec, config, in_job=bool(args.in_job) or is_batch_job(spec["run_id"]))
     spec = ensure_workspace(run_dir, spec)
     if args.metric_value is not None and not finite_number(args.metric_value):
         raise RunError("--metric-value must be a finite number")
@@ -1282,6 +1291,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--container-digest"); p.add_argument("--restricted", action="store_true"); p.add_argument("--partition")
     p.add_argument("--security", choices=("unreviewed", "cleared", "flagged"),
                    help="with --offline: the item's Security value as you see it (required above the public tier)")
+    p.add_argument("--force-offline", action="store_true",
+                   help="with --offline while gh works: skip reading the gate (warning; never for restricted)")
     p.add_argument("--allow-unscanned", action="store_true",
                    help="run an item above public that has no Security value yet, after reading it (never for restricted)")
     p.add_argument("--comment-every", type=int, help="progress comment every N iterations (0 = off; default [run].comment_every)")

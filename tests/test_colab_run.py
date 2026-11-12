@@ -111,12 +111,19 @@ def start(root: Path, src: Path, *extra: str, body: str = ISSUE, expect: int = 0
     return out
 
 
-def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = None) -> dict:
+def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = None, flags: dict | None = None) -> dict:
     """An environment that looks like a Slurm job, with a fake scontrol on PATH."""
     bin_dir = Path(tempfile.mkdtemp(dir=root, prefix="fakebin-"))
     scontrol = bin_dir / "scontrol"
     scontrol.write_text(f"#!/bin/sh\necho 'JobId=777 JobName=x BatchFlag={1 if batch else 0} Command=/x'\n")
     scontrol.chmod(0o755)
+    # Batch jobs re-check the Security gate online: a stand-in gh serves an empty COLAB_SECURITY_STATE (nothing flagged)
+    # and fails every other call, like an unauthenticated gh would.
+    gh = bin_dir / "gh"
+    state = json.dumps({"value": json.dumps({"v": 1, "seen": {}, "flags": flags or {}, "clears": {}, "ignored": {}})})
+    gh.write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '" + state + "' ;;\n"
+                  "  *) exit 1 ;;\nesac\n")
+    gh.chmod(0o755)
     return dict(os.environ, SLURM_JOB_ID="777", SLURM_JOB_NAME=name or f"colab-run-{run_id}",
                 PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
 
@@ -871,6 +878,57 @@ class TierDetectionTests(unittest.TestCase):
             public = dict(issue, visibility="public")
             out = self._start(root, self._start_args(root, src, body), mock.Mock(return_value=public), gate=unscanned)
             self.assertEqual(out["tier"], "public")  # the public tier does not need a scan
+
+    def test_start_passes_the_claimant_as_acting_for(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            issue = {"body": "x", "labels": [], "visibility": "private", "title": "t", "editor": "alice", "author": "alice"}
+            gate = mock.Mock(return_value={"state": "ok", "reason": ""})
+            import colab
+            out = io.StringIO()
+            with mock.patch.object(run, "fetch_issue", return_value=issue), mock.patch.object(run, "gh_login", return_value="alice"), \
+                    mock.patch.object(run, "fetch_gate", gate), mock.patch.object(run, "fetch_sensitivity", return_value=None), \
+                    contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                run.cmd_start(self._start_args(root, src, body), colab.load_config())
+            self.assertEqual(gate.call_args.kwargs["acting_for"], "alice")  # a clear by alice does not count for her run
+
+    def test_offline_is_refused_while_gh_works(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = make_source(root)
+            body = root / "i.md"
+            body.write_text(ISSUE)
+            import colab
+            base = ["start", "sensein/lab#7", "--offline", "--security", "unreviewed", "--body-file", str(body),
+                    "--root", str(root / "runs"), "--source", str(src), "--claimant", "a", "--editor", "a"]
+            with mock.patch.object(run, "gh_login", return_value="someone"), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(run.RunError) as ctx:
+                    run.cmd_start(run.build_parser().parse_args(base), colab.load_config())
+                self.assertIn("--force-offline", str(ctx.exception))
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    run.cmd_start(run.build_parser().parse_args(base + ["--force-offline"]), colab.load_config())
+                self.assertTrue(any("--force-offline" in w for w in json.loads(out.getvalue())["warnings"]))
+                with self.assertRaises(run.RunError) as ctx:
+                    run.cmd_start(run.build_parser().parse_args(base + ["--force-offline", "--label", "tier:restricted"]),
+                                  colab.load_config())
+                self.assertIn("drop --offline", str(ctx.exception))
+
+    def test_batch_jobs_recheck_the_published_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            r = start(root, make_source(root), "--label", "tier:restricted")
+            flags = {"sensein/lab#7": {"at": "2026-11-10T00:00:00Z", "cat": "override"}}
+            proc = cli("step", "--run-dir", r["run_dir"], "--in-job", "--confirm-verify", r["commands"]["sha256"],
+                       env=batch_env(root, r["run_id"], flags=flags))
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("flagged by the bus", proc.stderr)
+            proc = cli("step", "--run-dir", r["run_dir"], "--in-job", "--confirm-verify", r["commands"]["sha256"],
+                       env=batch_env(root, r["run_id"]))
+            self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_offline_needs_an_asserted_security_value(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

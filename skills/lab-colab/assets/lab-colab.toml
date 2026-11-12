@@ -180,9 +180,9 @@ name = "Contributions"           # kept by the bus for external items: "kabilar:
 type = "TEXT"
 
 [[fields]]
-name = "Security"                # injection-scan gate, kept by the bus: unreviewed = scanned, no finding; flagged = a hit; cleared =
-type = "SINGLE_SELECT"           # a steward who is not the assignee or claimant cleared it, with an audit record (`colab.py security clear`).
-                                 # Empty = not scanned. next lists but marks it; run refuses it above public; a cleared without a record is re-flagged
+name = "Security"                # DISPLAY ONLY: the gate reads COLAB_SECURITY_STATE, an Actions variable only the bus writes. The bus
+type = "SINGLE_SELECT"           # overwrites any value that disagrees with its state: flagged, cleared (a verified two-person clear), or
+                                 # unreviewed (scanned, no finding). Editing the field changes nothing
 options = ["unreviewed", "flagged", "cleared"]
 
 [[fields]]
@@ -311,7 +311,9 @@ drift_check_hours = 24           # read-only observe + plan this often; opens or
 audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear: `security clear`
                                  # and `ignore-author` post their records there, and the bus honours a clear only with a record
                                  # from a steward of the item's spaces who is not its assignee or claimant
-outsider_flags_per_day = 3       # injection-scan flags per non-member author per day; past that, audit-only. Members' content always flags
+outsider_flags_per_day = 3       # injection-scan flags per non-member author per item per day; past that, audit-only. Members' content,
+                                 # and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags
+state_keep_days = 30             # COLAB_SECURITY_STATE keeps verified clears this long (open flags are always kept)
 
 # ---------------------------------------------------------------------------
 # Optional private plugin marketplace: one plugin per skill folder of source_repo, synced into
