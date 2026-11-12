@@ -864,6 +864,20 @@ class DriftCheckTests(unittest.TestCase):
         self.assertTrue(any(a["kind"] == "manual" and "[security] audit_issue" in a["desc"] for a in actions))
         self.assertEqual(CONFIG["security"]["audit_issue"], 0)
 
+    def test_plan_reuses_existing_bookkeeping_issues(self) -> None:
+        snap = {**snapshot(), "meta_issues": {"Security audit": 19, "Session activity": 3}}
+        actions = colab.build_plan(config_with_spaces(), snap, today=date(2026, 11, 11))
+        self.assertFalse([a for a in actions if a["kind"] == "gh" and "issue" in a.get("cmd", []) and "create" in a.get("cmd", [])])
+        notes = [a["desc"] for a in actions if a["kind"] == "manual"]
+        self.assertTrue(any("audit_issue = 19" in n for n in notes))
+        self.assertTrue(any("[sessions] issue = 3" in n for n in notes))
+
+    def test_stale_view_delete_mutation_selects_an_existing_payload_field(self) -> None:
+        # DeleteProjectV2ViewPayload has clientMutationId and projectV2View; deletedViewId does not exist.
+        src = Path(colab.__file__).read_text()
+        self.assertIn("deleteProjectV2View(input: {viewId: $view}) { clientMutationId }", src)
+        self.assertNotIn("deletedViewId", src)
+
     def test_recurring_actions_are_filtered(self) -> None:
         plan = [{"kind": "gate", "desc": "Space x: phase 1 gate"},
                 {"kind": "local", "desc": "Start the bus in dry-run on ORCD"},
