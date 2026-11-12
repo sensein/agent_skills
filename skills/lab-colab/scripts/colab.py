@@ -279,7 +279,9 @@ def state_branch_readme(config: dict) -> str:
             f"- `heartbeat/<bus id>.json`: each bus's last poll\n"
             f"- `{SECURITY_FILE}`: the security state every `/colab` command decides from\n"
             f"- `bus/<bus id>/state.json`: an Actions bus's own cursors and caches between runs (no item text; "
-            "entries about restricted items are sealed)\n\n"
+            "entries about restricted items only under sha256 keys)\n"
+            f"- `audit/<YYYY-MM>.jsonl`: an Actions bus's audit lines, appended (kind, item ref, hashed when restricted, actor, "
+            "comment id, time)\n\n"
             f"Do not edit by hand. Members read it; `colab.py --config <{meta} clone>/.colab/config.toml bus status` "
             "prints it in plain words.\n")
 
@@ -351,7 +353,13 @@ APP_PERMISSIONS = {
 }
 APP_SECRET_ID = "COLAB_APP_ID"
 APP_SECRET_KEY = "COLAB_APP_PRIVATE_KEY"
+APP_SECRET_SIGNING = "COLAB_SIGNING_KEY"  # optional, with [security] signing = "ssh"
+APP_SECRETS = (APP_SECRET_ID, APP_SECRET_KEY, APP_SECRET_SIGNING)
 BUS_WORKFLOW = ".github/workflows/colab-bus.yml"
+# The workflow's job runs in this Actions environment, whose deployment branches are the default branch only, and the
+# three secrets are environment secrets: a workflow on any other branch (anyone with write can push one) never sees them.
+BUS_ENVIRONMENT = "colab-bus"
+BUS_ENV_POLICY = {"protected_branches": False, "custom_branch_policies": True}
 
 
 def actions_buses(config: dict) -> list[dict]:
@@ -396,29 +404,63 @@ def app_manifest_html(config: dict, manifest: dict, state: str) -> str:
 
 
 def app_owner_steps(config: dict, entry: dict) -> list[str]:
-    """The owner's clicks after the App exists: its number, a private key, the secrets, then deleting the key file."""
+    """The owner's clicks after the App exists: its number, a private key, the environment secrets, then deleting the
+    key file."""
     org, meta, slug = config["org"]["name"], config["org"]["meta_repo"], entry["app"]
     return [f"On https://github.com/organizations/{org}/settings/apps/{slug} note the App ID (a number near the top), and put "
             f"it in .colab/config.toml as app_id in this bus's [[buses]] entry (by PR)",
             "Same page, Private keys: click Generate a private key; your browser downloads a .pem file",
-            f"gh secret set {APP_SECRET_ID} --repo {org}/{meta} --body <App ID>",
-            f"gh secret set {APP_SECRET_KEY} --repo {org}/{meta} < <downloaded .pem file>",
+            f"gh secret set {APP_SECRET_ID} --env {BUS_ENVIRONMENT} --repo {org}/{meta} --body <App ID>",
+            f"gh secret set {APP_SECRET_KEY} --env {BUS_ENVIRONMENT} --repo {org}/{meta} < <downloaded .pem file>",
             "Delete the .pem file (rm <downloaded .pem file>); the secret is the only copy. To rotate, generate a new key, "
             "set the secret again, then delete the old key on the App page"]
 
 
-def app_install_note(config: dict) -> str:
+def env_commands(config: dict, branch: str) -> list[str]:
+    """The exact commands that make the bus's environment: default-branch deployments only."""
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
-    repos = sorted({meta.lower()} | {k for k in repo_spaces(config) if not is_external(k)})
-    return (f"Only select repositories: {', '.join(repos)} (the meta repo and every space repo in {org}; add a repo here when "
-            "a space gains one). All repositories also works and needs no upkeep, but lets the App write issues and files in "
-            "every repo of the org")
+    return [f"gh api -X PUT repos/{org}/{meta}/environments/{BUS_ENVIRONMENT} --input - <<< "
+            f"'{json.dumps({'deployment_branch_policy': BUS_ENV_POLICY})}'",
+            f"gh api -X POST repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies -f name={branch} -f type=branch"]
+
+
+def bus_install_repos(config: dict, subscribers=()) -> list[str]:
+    """The repos the App must be installed on, and no others: the meta repo, the space repos in the org, and the
+    subscriber repos in the org (deliveries are opened there). External repos are read without the App's install."""
+    meta = config["org"]["meta_repo"].lower()
+    return sorted({meta} | {k for k in repo_spaces(config) if not is_external(k)}
+                  | {str(x).lower() for x in subscribers if x and "/" not in str(x)})
+
+
+def app_install_note(config: dict, subscribers=()) -> str:
+    org = config["org"]["name"]
+    return (f"Only select repositories: {', '.join(bus_install_repos(config, subscribers))} (the meta repo, and the space "
+            f"and subscriber repos in {org}; add a repo here when a space or subscription gains one). Do not pick All "
+            "repositories: the App would then be able to write issues and files in every repo of the org")
+
+
+def _subscriber_repos(text: str | None, org: str) -> list[str]:
+    try:
+        subs = tomllib.loads(text or "").get("subscribe", [])
+    except tomllib.TOMLDecodeError:
+        return []
+    out = []
+    for sub in subs if isinstance(subs, list) else []:
+        try:
+            key = repo_key(str((sub or {}).get("subscriber") or ""), org)
+        except Exception:  # noqa: BLE001 - malformed entries are the bus's to report
+            continue
+        if key and not is_external(key):
+            out.append(key)
+    return sorted(set(out))
 
 
 def observe_apps(config: dict, gh=None) -> dict:
-    """For each Actions bus: does its App exist (and its id), is it installed on the org (all or selected repos), and,
-    in the meta repo, are the two Actions secrets set (names only) and is the workflow seeded. None = could not tell
-    (these reads need an org owner or a repo admin). Read-only."""
+    """For each Actions bus: does its App exist (and its id), is it installed on the org (all or selected repos); in
+    the meta repo: its default branch, the `colab-bus` environment (deployment branch policy, branch policies,
+    reviewers), the names of its environment secrets and of the repo-level secrets (names only, never values), the
+    subscriber repos, and whether the workflow is seeded. None = could not tell (these reads need an org owner or a repo
+    admin). Read-only."""
     gh = gh or _gh_json
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     entries = actions_buses(config)
@@ -434,16 +476,38 @@ def observe_apps(config: dict, gh=None) -> dict:
                           "id": (info or {}).get("id") if isinstance(info, dict) else (found or {}).get("app_id"),
                           "installed": (found is not None) if listed is not None else None,
                           "selection": (found or {}).get("repository_selection")}
-    secrets = gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])
-    names = sorted(str(x.get("name")) for x in secrets.get("secrets") or [] if isinstance(x, dict)) if isinstance(secrets, dict) else None
+
+    def names(data, key="secrets"):
+        return sorted(str(x.get("name")) for x in data.get(key) or [] if isinstance(x, dict)) if isinstance(data, dict) else None
+    repo = gh(["api", f"repos/{org}/{meta}"])
+    env = gh(["api", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}"])
+    bus_env: dict = {"exists": isinstance(env, dict) and bool(env.get("name"))}
+    if bus_env["exists"]:
+        policies = gh(["api", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies?per_page=100"])
+        bus_env.update(policy=env.get("deployment_branch_policy"),
+                       reviewers=any(isinstance(r, dict) and r.get("type") == "required_reviewers" for r in env.get("protection_rules") or []),
+                       branches=[{"name": x.get("name"), "type": x.get("type") or "branch"}
+                                 for x in (policies or {}).get("branch_policies") or [] if isinstance(x, dict)]
+                       if isinstance(policies, dict) else None,
+                       secrets=names(gh(["api", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/secrets?per_page=100"])))
+    subs = gh(["api", f"repos/{org}/{meta}/contents/.colab/subscriptions.toml"])
+    try:
+        subs_text = base64.b64decode(subs["content"]).decode() if isinstance(subs, dict) and subs.get("content") else ""
+    except (ValueError, UnicodeDecodeError):
+        subs_text = ""
     workflow = gh(["api", f"repos/{org}/{meta}/contents/{BUS_WORKFLOW}"])
-    return {"apps": apps, "meta_secrets": names, "bus_workflow": isinstance(workflow, dict) and bool(workflow.get("name") or workflow.get("content"))}
+    return {"apps": apps, "meta_secrets": names(gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])),
+            "meta_default_branch": (repo or {}).get("default_branch") if isinstance(repo, dict) else None,
+            "bus_env": bus_env, "bus_subscribers": _subscriber_repos(subs_text, org),
+            "bus_workflow": isinstance(workflow, dict) and bool(workflow.get("name") or workflow.get("content"))}
 
 
 def app_actions(config: dict, snapshot: dict) -> list[dict]:
-    """Plan steps for Actions buses, in order: create the App (manifest flow), record its id, install it, store the two
-    secrets in the meta repo, seed the workflow by PR. All are a person's steps (`manual`) except the seeding
-    (`local`, a PR); the ruleset bypass for the App comes with the colab-state ruleset (operator_actions)."""
+    """Plan steps for Actions buses, in order: create the App (manifest flow), record its id, install it on the repos the
+    bus needs only, create the `colab-bus` environment (default branch only; `gh`, run by apply), store the secrets as
+    that environment's secrets, flag same-named repository secrets (exposed to every branch), seed the workflow by PR.
+    Owner steps are `manual`, the environment `gh`, the seeding `local` (a PR); the ruleset bypass for the App comes
+    with the colab-state ruleset (operator_actions)."""
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     out: list[dict] = []
     apps = snapshot.get("apps") or {}
@@ -466,20 +530,63 @@ def app_actions(config: dict, snapshot: dict) -> list[dict]:
         elif have.get("id") and int(have["id"]) != int(b["app_id"]):
             out.append(_action("manual", 0, f"[[buses]] {b['id']} says app_id = {b['app_id']}, but the App '{b['app']}' is number "
                                             f"{have['id']}: fix app_id by PR (the ruleset lets only that App write colab-state)"))
+        subscribers = snapshot.get("bus_subscribers") or ()
         if have.get("installed") is not True:
             out.append(_action("manual", 0, f"An org owner installs the App '{b['app']}' on {org}: on its page click Install App, then "
-                                            f"Install next to {org}. {app_install_note(config)}"
+                                            f"Install next to {org}. {app_install_note(config, subscribers)}"
                                             + (" (could not check the installations: that needs an org owner)" if have.get("installed") is None else ""),
                                link=f"https://github.com/apps/{b['app']}/installations/new"))
-        secrets = snapshot.get("meta_secrets")
-        missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if secrets is None or n not in secrets]
-        if missing:
-            out.append(_action("manual", 0, f"An owner of {org}/{meta} stores the App's number and private key as Actions secrets of the "
-                                            "meta repo (only the workflow can read them; no member or agent holds them): "
-                                            + " / ".join(app_owner_steps(config, b)[1:])
-                                            + (" (could not list the secrets: that needs a repo admin)" if secrets is None else ""),
-                               ["gh", "secret", "set", APP_SECRET_KEY, "--repo", f"{org}/{meta}"],
-                               link=f"https://github.com/{org}/{meta}/settings/secrets/actions"))
+        elif have.get("selection") == "all":
+            out.append(_action("manual", 0, f"The App '{b['app']}' is installed on all repositories of {org}; narrow it to what the bus "
+                                            f"needs (Organization settings > GitHub Apps > {b['app']} > Configure). {app_install_note(config, subscribers)}",
+                               link=f"https://github.com/organizations/{org}/settings/installations"))
+    if not actions_buses(config):
+        return out
+    branch = snapshot.get("meta_default_branch") or "main"
+    env = snapshot.get("bus_env") or {}
+    if not env.get("exists") or env.get("policy") != BUS_ENV_POLICY:
+        desc = (f"Create the Actions environment '{BUS_ENVIRONMENT}' in {org}/{meta} with deployments from selected branches only "
+                f"(the next step allows {branch}, the default branch): the bus's secrets live in it, so a workflow pushed on any "
+                "other branch never sees them")
+        if env.get("exists") and env.get("reviewers"):
+            out.append(_action("manual", 0, desc + ". It exists with required reviewers, which a replace could drop: set "
+                                                   "Deployment branches to 'Selected branches and tags' in Settings > Environments by hand",
+                               link=f"https://github.com/{org}/{meta}/settings/environments"))
+        else:
+            out.append(_action("gh", 0, desc, ["gh", "api", "-X", "PUT", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}",
+                                               "--input", "-"], input=json.dumps({"deployment_branch_policy": BUS_ENV_POLICY})))
+        if not env.get("exists"):
+            out.append(_action("manual", 0, f"Optional, an owner of {org}/{meta}: add required reviewers to the '{BUS_ENVIRONMENT}' "
+                                            "environment (Settings > Environments) so that a manual run waits for one of them. "
+                                            "Scheduled runs then wait too, so pick reviewers who answer quickly, or leave it off",
+                               link=f"https://github.com/{org}/{meta}/settings/environments/new"))
+    have_branches = env.get("branches")
+    if not env.get("exists") or have_branches is None or not any(x.get("name") == branch and x.get("type") == "branch" for x in have_branches):
+        out.append(_action("gh", 0, f"Let only the default branch {branch} deploy to the '{BUS_ENVIRONMENT}' environment",
+                           ["gh", "api", "-X", "POST", f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies",
+                            "-f", f"name={branch}", "-f", "type=branch"]))
+    extra = [x.get("name") for x in have_branches or [] if not (x.get("name") == branch and x.get("type") == "branch")]
+    if extra:
+        out.append(_action("manual", 0, f"The '{BUS_ENVIRONMENT}' environment also lets {', '.join(map(str, extra))} deploy: remove them "
+                                        "(Settings > Environments > colab-bus > Deployment branches); only the default branch may see the "
+                                        "App's key", link=f"https://github.com/{org}/{meta}/settings/environments"))
+    entry = actions_buses(config)[0]
+    env_secrets = env.get("secrets")
+    missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if env_secrets is None or n not in env_secrets]
+    if missing:
+        out.append(_action("manual", 0, f"An owner of {org}/{meta} stores the App's number and private key as secrets of the "
+                                        f"'{BUS_ENVIRONMENT}' environment (only the workflow on the default branch can read them; no member "
+                                        "or agent holds them): " + " / ".join(app_owner_steps(config, entry)[1:])
+                                        + (" (could not list the environment's secrets: that needs a repo admin)" if env.get("exists") and env_secrets is None else ""),
+                           ["gh", "secret", "set", APP_SECRET_KEY, "--env", BUS_ENVIRONMENT, "--repo", f"{org}/{meta}"],
+                           link=f"https://github.com/{org}/{meta}/settings/environments"))
+    exposed = [n for n in APP_SECRETS if n in (snapshot.get("meta_secrets") or [])]
+    if exposed:
+        out.append(_action("manual", 0, f"{org}/{meta} has repository secrets named {', '.join(exposed)}: a workflow on any branch can "
+                                        "read those, so treat the key as exposed. Delete them ("
+                                        + "; ".join(f"gh secret delete {n} --repo {org}/{meta}" for n in exposed)
+                                        + f"), keep only the '{BUS_ENVIRONMENT}' environment's secrets, and rotate the App's key "
+                                        "(runbook: rotating the key)", link=f"https://github.com/{org}/{meta}/settings/secrets/actions"))
     if actions_buses(config) and snapshot.get("bus_workflow") is not True:
         out.append(_action("local", 0, f"Seed the bus workflow ({BUS_WORKFLOW}) and refresh bus/ in the meta repo, then open a PR "
                                        "(the default branch takes reviewed changes only)",
@@ -508,10 +615,15 @@ def cmd_app_manifest(config: dict, out_dir: Path, bus_id: str | None = None, out
     print(f"  1. Press 'Create the App on GitHub'. GitHub opens its 'Create GitHub App' page with the name {entry['app']!r}.", file=out)
     print(f"     (If GitHub says the name is taken, edit it there, and put the new name's slug in [[buses]] app.)", file=out)
     print(f"  2. Click 'Create GitHub App for {org}'. You land on the App's settings page.", file=out)
-    for i, step in enumerate(app_owner_steps(config, entry), start=3):
+    steps = app_owner_steps(config, entry)
+    meta = config["org"]["meta_repo"]
+    steps = steps[:2] + [f"Make the '{BUS_ENVIRONMENT}' environment (default branch only), unless `colab.py apply` already did: "
+                         + " ; ".join(env_commands(config, "<default branch>"))] + steps[2:]
+    for i, step in enumerate(steps, start=3):
         print(f"  {i}. {step}", file=out)
-    print(f"  {3 + len(app_owner_steps(config, entry))}. Install it: https://github.com/apps/{entry['app']}/installations/new "
+    print(f"  {3 + len(steps)}. Install it: https://github.com/apps/{entry['app']}/installations/new "
           f"-> Install next to {org}. {app_install_note(config)}", file=out)
+    print(f"\nNever store these as repository secrets of {org}/{meta}: a workflow on any branch could read them.", file=out)
     print("\nThen re-run `colab.py plan`; `colab.py setup --app` checks each step in plain words.", file=out)
     return 0
 
@@ -2066,7 +2178,8 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
 
 def _app_checks(add, config, org, meta, runner) -> None:
     """`setup --app` (org owners): the Actions bus in [[buses]], its GitHub App, the App's installation on the org, the
-    two Actions secrets of the meta repo (names only, never values), the seeded workflow, the colab-state ruleset letting
+    `colab-bus` environment (default branch only) and its secrets (names only, never values; same-named repository
+    secrets are refused), the seeded workflow, the colab-state ruleset letting
     the App write, and the bus's last heartbeat. Reads only."""
     if config is None:
         add("actions bus", "fail", "Setup needs the lab's settings to check the bus.", "COLAB_CONFIG does not resolve",
@@ -2114,25 +2227,60 @@ def _app_checks(add, config, org, meta, runner) -> None:
                 f"no installation of {slug} in {org}",
                 f"an org owner installs it: Install next to {org}. {app_install_note(config)}",
                 f"https://github.com/apps/{slug}/installations/new")
+        elif found.get("repository_selection") == "all":
+            add("installed", "fail", f"The App {slug} is installed on every repository of {org}, more than the bus needs.",
+                f"installation {found.get('id')}: repository_selection=all",
+                f"an org owner narrows it (Configure on the App's installation): {app_install_note(config)}",
+                f"https://github.com/organizations/{org}/settings/installations")
         else:
-            where = "all repositories" if found.get("repository_selection") == "all" else "selected repositories"
-            add("installed", "ok", f"The App {slug} is installed on {org} ({where}).",
-                f"installation {found.get('id')}, repository_selection={found.get('repository_selection')}"
-                + ("" if where.startswith("all") else "; it needs the meta repo and every space repo in the org selected"))
-    rc, sec = _gh_api_json(runner, f"repos/{org}/{meta}/actions/secrets?per_page=100")
-    names = {str(x.get("name")) for x in (sec or {}).get("secrets") or [] if isinstance(x, dict)} if isinstance(sec, dict) else None
-    if names is None:
-        add("secrets", "info", f"Could not check the meta repo's secrets (only its admins can).", f"GET repos/{org}/{meta}/actions/secrets failed")
+            add("installed", "ok", f"The App {slug} is installed on {org}, on selected repositories.",
+                f"installation {found.get('id')}, repository_selection=selected; it needs: {', '.join(bus_install_repos(config))} "
+                "and the subscriber repos")
+    rc, repo = _gh_api_json(runner, f"repos/{org}/{meta}")
+    branch = (repo or {}).get("default_branch") if isinstance(repo, dict) else None
+    branch = branch or "main"
+    env_link = f"https://github.com/{org}/{meta}/settings/environments"
+    rc, env = _gh_api_json(runner, f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}")
+    if not (isinstance(env, dict) and env.get("name")):
+        add("environment", "fail", f"The meta repo has no '{BUS_ENVIRONMENT}' environment yet, which keeps the App's key away from "
+                                   "workflows on other branches.", f"GET repos/{org}/{meta}/environments/{BUS_ENVIRONMENT} failed",
+            "an owner reviews and applies `colab.py plan` (or runs: " + " ; ".join(env_commands(config, branch)) + ")", env_link)
     else:
-        missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if n not in names]
+        rc, pol = _gh_api_json(runner, f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/deployment-branch-policies?per_page=100")
+        branches = [(x.get("name"), x.get("type") or "branch") for x in (pol or {}).get("branch_policies") or [] if isinstance(x, dict)] \
+            if isinstance(pol, dict) else None
+        if env.get("deployment_branch_policy") != BUS_ENV_POLICY or branches != [(branch, "branch")]:
+            add("environment", "fail", f"The '{BUS_ENVIRONMENT}' environment lets more than the default branch ({branch}) use the App's key.",
+                f"deployment_branch_policy={env.get('deployment_branch_policy')}, branch policies={branches}",
+                f"set Deployment branches to 'Selected branches and tags' with only {branch} (or apply `colab.py plan`)", env_link)
+        else:
+            reviewers = any(isinstance(r, dict) and r.get("type") == "required_reviewers" for r in env.get("protection_rules") or [])
+            add("environment", "ok", f"Only the default branch ({branch}) can use the App's key (the '{BUS_ENVIRONMENT}' environment).",
+                f"custom branch policies: {branch}; required reviewers: {'yes' if reviewers else 'no (optional)'}")
+    rc, esec = _gh_api_json(runner, f"repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/secrets?per_page=100")
+    env_names = {str(x.get("name")) for x in (esec or {}).get("secrets") or [] if isinstance(x, dict)} if isinstance(esec, dict) else None
+    rc, sec = _gh_api_json(runner, f"repos/{org}/{meta}/actions/secrets?per_page=100")
+    repo_names = {str(x.get("name")) for x in (sec or {}).get("secrets") or [] if isinstance(x, dict)} if isinstance(sec, dict) else None
+    exposed = sorted(n for n in APP_SECRETS if repo_names and n in repo_names)
+    if exposed:
+        add("secrets", "fail", "The App's key is stored where a workflow on any branch can read it, so setup refuses it.",
+            f"repository secrets in {org}/{meta}: {', '.join(exposed)} (names only are checked)",
+            "; ".join(f"gh secret delete {n} --repo {org}/{meta}" for n in exposed)
+            + f"; set them on the '{BUS_ENVIRONMENT}' environment instead, and rotate the App's key (runbook: rotating the key)",
+            f"https://github.com/{org}/{meta}/settings/secrets/actions")
+    elif env_names is None:
+        add("secrets", "info", "Could not check the bus's secrets (only the meta repo's admins can).",
+            f"GET repos/{org}/{meta}/environments/{BUS_ENVIRONMENT}/secrets failed")
+    else:
+        missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if n not in env_names]
         if missing:
             steps = app_owner_steps(config, entries[0])
             add("secrets", "fail", "The workflow does not have the App's number and key yet, so it cannot sign in as the App.",
-                f"missing Actions secrets in {org}/{meta}: {', '.join(missing)} (names only are checked)",
-                " ; ".join(steps[1:]), f"https://github.com/{org}/{meta}/settings/secrets/actions")
+                f"missing secrets of the '{BUS_ENVIRONMENT}' environment: {', '.join(missing)} (names only are checked)",
+                " ; ".join(steps[1:]), env_link)
         else:
-            add("secrets", "ok", "The workflow has the App's number and key (only the workflow can read them).",
-                f"{APP_SECRET_ID} and {APP_SECRET_KEY} are set (values are never shown)")
+            add("secrets", "ok", "The workflow has the App's number and key, and only the default branch can read them.",
+                f"{APP_SECRET_ID} and {APP_SECRET_KEY} are secrets of the '{BUS_ENVIRONMENT}' environment (values are never shown)")
     rc, wf = _gh_api_json(runner, f"repos/{org}/{meta}/contents/{BUS_WORKFLOW}")
     if isinstance(wf, dict) and (wf.get("name") or wf.get("content")):
         add("workflow", "ok", "The bus workflow is in the meta repo.", f"{BUS_WORKFLOW} on the default branch")

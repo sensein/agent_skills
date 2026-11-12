@@ -315,7 +315,7 @@ passive_heartbeat_minutes = 30   # a standby writes its heartbeat this often (an
 # Buses. By default the bus runs as a scheduled GitHub Actions workflow in the meta repo (.github/workflows/colab-bus.yml),
 # signed in as the org's own GitHub App (kind = "actions"): no member, and no member's agent, holds its credentials.
 # `colab.py plan` walks an org owner through creating the App (a manifest and a one-button page), installing it, and
-# storing its number and key as Actions secrets of the meta repo; `colab.py setup --app` checks each step. The App's
+# storing its number and key as secrets of the meta repo's `colab-bus` environment (default branch only); `colab.py setup --app` checks each step. The App's
 # writes show as `<app>[bot]`; the colab-state ruleset lets it (by app_id) and the operators team write that branch.
 #
 # A standby (or an org without an App) runs under the GitHub login of the member who starts it, its operator
