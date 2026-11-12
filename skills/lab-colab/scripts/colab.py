@@ -93,6 +93,8 @@ SECURITY_FILE = "security/state.json"
 STATE_README = "README.md"
 BUS_ID_RX = re.compile(r"^[a-z0-9][a-z0-9-]{0,38}\Z")
 BUS_ROLES = ("primary", "standby")
+BUS_KINDS = ("operator", "actions")
+APP_SLUG_RX = re.compile(r"^[a-z0-9][a-z0-9-]{0,33}\Z")
 # Rulesets the plan owns on the meta repo, by name. Any other ruleset is never read for changes or touched.
 RULESET_STATE = "colab-state: operators only"
 RULESET_DEFAULT = "colab meta: reviewed changes only"
@@ -111,14 +113,32 @@ def buses(config: dict) -> list[dict]:
         if not isinstance(raw, dict):
             raise BusConfigError("each [[buses]] entry must be a table")
         bid = str(raw.get("id") or "").strip().lower()
-        operator = str(raw.get("operator") or "").strip().lstrip("@").lower()
+        kind = str(raw.get("kind") or "operator").strip().lower()
         role = str(raw.get("role") or "standby").strip().lower()
         if not BUS_ID_RX.match(bid):
             raise BusConfigError(f"[[buses]] id {raw.get('id')!r}: use lower-case letters, digits, and hyphens")
         if bid in seen:
             raise BusConfigError(f"[[buses]] id {bid!r} appears twice")
-        if not re.match(r"^[a-z0-9](?:[a-z0-9-]{0,38})\Z", operator):
-            raise BusConfigError(f"[[buses]] {bid}: operator {raw.get('operator')!r} is not a GitHub login")
+        if kind not in BUS_KINDS:
+            raise BusConfigError(f"[[buses]] {bid}: kind must be operator or actions, not {kind!r}")
+        app, app_id = "", None
+        if kind == "actions":
+            # Run by the org's GitHub App in a scheduled workflow of the meta repo: its writes are the App's bot login.
+            app = str(raw.get("app") or "").strip().lower()
+            if raw.get("operator"):
+                raise BusConfigError(f"[[buses]] {bid}: an actions bus names its GitHub App (app = \"<slug>\"), not an operator")
+            if not APP_SLUG_RX.match(app):
+                raise BusConfigError(f"[[buses]] {bid}: app {raw.get('app')!r} is not a GitHub App slug")
+            if raw.get("app_id") not in (None, "", 0):
+                try:
+                    app_id = int(raw["app_id"])
+                except (TypeError, ValueError):
+                    raise BusConfigError(f"[[buses]] {bid}: app_id must be the App's number") from None
+            operator = app_login(app)
+        else:
+            operator = str(raw.get("operator") or "").strip().lstrip("@").lower()
+            if not re.match(r"^[a-z0-9](?:[a-z0-9-]{0,38})\Z", operator):
+                raise BusConfigError(f"[[buses]] {bid}: operator {raw.get('operator')!r} is not a GitHub login")
         if role not in BUS_ROLES:
             raise BusConfigError(f"[[buses]] {bid}: role must be primary or standby, not {role!r}")
         try:
@@ -126,22 +146,51 @@ def buses(config: dict) -> list[dict]:
         except (TypeError, ValueError):
             raise BusConfigError(f"[[buses]] {bid}: order must be a number") from None
         seen.add(bid)
-        out.append({"id": bid, "operator": operator, "host": str(raw.get("host") or ""), "role": role, "order": order})
+        entry = {"id": bid, "operator": operator, "host": str(raw.get("host") or ""), "role": role, "order": order, "kind": kind}
+        if kind == "actions":
+            entry.update(app=app, app_id=app_id, host=entry["host"] or "GitHub Actions")
+        out.append(entry)
     if sum(b["role"] == "primary" for b in out) > 1:
         raise BusConfigError("[[buses]] may name only one primary")
     return sorted(out, key=lambda b: (b["role"] != "primary", b["order"], b["id"]))
 
 
 def bus_operators(config: dict) -> list[str]:
+    """The people who run buses (kind = "operator"): the members of the operators team. Never an App's bot."""
+    return sorted({b["operator"] for b in buses(config) if b["kind"] == "operator"})
+
+
+def bus_writers(config: dict) -> list[str]:
+    """Every login a bus writes with: the operators, and the bot login of each Actions bus's App."""
     return sorted({b["operator"] for b in buses(config)})
 
 
+def bus_app_ids(config: dict) -> list[int]:
+    """The App ids of the Actions buses that declare one (the colab-state ruleset lets those Apps write)."""
+    return sorted({b["app_id"] for b in buses(config) if b["kind"] == "actions" and b.get("app_id")})
+
+
+def app_login(slug: str) -> str:
+    """The login GitHub gives a GitHub App's own writes."""
+    return f"{slug}[bot]"
+
+
+ACTIONS_LEASE_MINUTES = 45.0      # scheduled workflows can start 10 to 20 minutes late
+ACTIONS_STATE_MAX_AGE_MINUTES = 60.0
+
+
+def _has_actions_bus(config: dict) -> bool:
+    return any(isinstance(b, dict) and str(b.get("kind") or "").lower() == "actions" for b in config.get("buses") or [])
+
+
 def lease_ttl_minutes(config: dict) -> float:
-    """How long a lease stays fresh without renewal: `[bus] lease_ttl_minutes`, else 3 polls (at least 15 minutes)."""
+    """How long a lease stays fresh without renewal: `[bus] lease_ttl_minutes`, else 3 polls (at least 15 minutes; at
+    least ACTIONS_LEASE_MINUTES when an Actions bus is declared, whose scheduled runs may start late)."""
     bus_cfg = config.get("bus") or {}
     if bus_cfg.get("lease_ttl_minutes"):
         return float(bus_cfg["lease_ttl_minutes"])
-    return max(15.0, 3 * float(bus_cfg.get("poll_seconds", 300) or 300) / 60)
+    floor = ACTIONS_LEASE_MINUTES if _has_actions_bus(config) else 15.0
+    return max(floor, 3 * float(bus_cfg.get("poll_seconds", 300) or 300) / 60)
 
 
 def _parse_time(value) -> datetime | None:
@@ -210,6 +259,11 @@ def heartbeat_path(bus_id: str) -> str:
     return f"heartbeat/{bus_id}.json"
 
 
+def bus_state_path(bus_id: str) -> str:
+    """Where an Actions bus keeps its own state between runs (its runners are thrown away after each run)."""
+    return f"bus/{bus_id}/state.json"
+
+
 def delivery_marker(bus_id: str, operator: str, key: str) -> str:
     """The hidden marker on every delivery: which bus, whose login, and the idempotency key (the envelope id).
     Before creating an issue the bus looks for the key in the subscriber repo, from any bus, so a handover
@@ -219,11 +273,13 @@ def delivery_marker(bus_id: str, operator: str, key: str) -> str:
 
 def state_branch_readme(config: dict) -> str:
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
-    return (f"# {STATE_BRANCH}\n\nShared state of the Lab Colab bus for {org}, written only by the bus operators "
-            f"(team `{OPERATORS_TEAM}`, enforced by a repository ruleset):\n\n"
+    return (f"# {STATE_BRANCH}\n\nShared state of the Lab Colab bus for {org}, written only by the bus's GitHub App and the "
+            f"bus operators (team `{OPERATORS_TEAM}`), enforced by a repository ruleset:\n\n"
             f"- `{LEASE_FILE}`: which bus is active (holder, operator, renewed_at, ttl_minutes)\n"
             f"- `heartbeat/<bus id>.json`: each bus's last poll\n"
-            f"- `{SECURITY_FILE}`: the security state every `/colab` command decides from\n\n"
+            f"- `{SECURITY_FILE}`: the security state every `/colab` command decides from\n"
+            f"- `bus/<bus id>/state.json`: an Actions bus's own cursors and caches between runs (no item text; "
+            "entries about restricted items are sealed)\n\n"
             f"Do not edit by hand. Members read it; `colab.py --config <{meta} clone>/.colab/config.toml bus status` "
             "prints it in plain words.\n")
 
@@ -275,6 +331,189 @@ def assistant_token_steps(org: str) -> list[str]:
                                         for k, v in ASSISTANT_TOKEN_PERMISSIONS.items()),
             "Leave everything else at No access (especially Administration, Variables, Secrets, Workflows)",
             "Click Generate token and copy it"]
+
+
+# --------------------------------------------------------------------------- the Actions bus's GitHub App
+#
+# The default bus runs as a scheduled workflow in the meta repo (`.github/workflows/colab-bus.yml`), authenticated as
+# the org's own GitHub App: no member, and no member's agent, holds its credentials. An App cannot be created through
+# the API, so the plan proposes GitHub's manifest flow: `colab.py app-manifest` writes the manifest and a small local
+# HTML form; an org owner opens the form, presses the button, and GitHub creates the App with exactly these settings.
+# APP_PERMISSIONS is the only place the App's grant is spelled.
+
+APP_PERMISSIONS = {
+    "metadata": "read",                # required by every App
+    "issues": "write",                 # deliveries, the drift report, links notes, the security audit records
+    "contents": "write",               # the colab-state branch only: the meta repo's rulesets stop it anywhere else there
+    "pull_requests": "read",           # PR events and review comments for the injection scan
+    "organization_projects": "write",  # the lab Project: Spaces, Contributions, Security fields
+    "members": "read",                 # who is in the org (outsider rules) and its teams
+}
+APP_SECRET_ID = "COLAB_APP_ID"
+APP_SECRET_KEY = "COLAB_APP_PRIVATE_KEY"
+BUS_WORKFLOW = ".github/workflows/colab-bus.yml"
+
+
+def actions_buses(config: dict) -> list[dict]:
+    try:
+        return [b for b in buses(config) if b["kind"] == "actions"]
+    except BusConfigError:
+        return []
+
+
+def app_manifest(config: dict, entry: dict) -> dict:
+    """The GitHub App manifest for an Actions bus: private, no webhook, no events, only APP_PERMISSIONS."""
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    return {
+        "name": entry["app"],
+        "url": f"https://github.com/{org}/{meta}",
+        "description": (f"Lab Colab bus for {org}: runs as a scheduled workflow in {org}/{meta}, moves events between "
+                        "projects, keeps the lab board current, and publishes the security state on colab-state."),
+        "hook_attributes": {"url": f"https://github.com/{org}/{meta}", "active": False},
+        "redirect_url": f"https://github.com/organizations/{org}/settings/apps/{entry['app']}",
+        "public": False,
+        "default_permissions": dict(APP_PERMISSIONS),
+        "default_events": [],
+    }
+
+
+def app_manifest_html(config: dict, manifest: dict, state: str) -> str:
+    """A one-button local page that posts the manifest to GitHub's 'register a GitHub App' page for the org."""
+    import html as _html
+    org = config["org"]["name"]
+    action = f"https://github.com/organizations/{org}/settings/apps/new?state={state}"
+    perms = "".join(f"<li>{_html.escape(k)}: {_html.escape(v)}</li>" for k, v in manifest["default_permissions"].items())
+    return ("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Create the lab bus App</title></head>\n"
+            "<body style=\"font-family: sans-serif; max-width: 40em; margin: 2em auto; line-height: 1.5\">\n"
+            f"<h1>Create the GitHub App <code>{_html.escape(manifest['name'])}</code> for {_html.escape(org)}</h1>\n"
+            "<p>Press the button while signed in to GitHub as an owner of the organisation. GitHub shows the App's name; "
+            "click <b>Create GitHub App for " + _html.escape(org) + "</b>. Nothing is sent anywhere else.</p>\n"
+            f"<p>It will be private, with no webhook and no events, and only these permissions:</p><ul>{perms}</ul>\n"
+            f"<form action=\"{_html.escape(action)}\" method=\"post\">\n"
+            f"<input type=\"hidden\" name=\"manifest\" value=\"{_html.escape(json.dumps(manifest), quote=True)}\">\n"
+            "<button type=\"submit\" style=\"font-size: 1.2em; padding: .5em 1em\">Create the App on GitHub</button>\n"
+            "</form>\n</body></html>\n")
+
+
+def app_owner_steps(config: dict, entry: dict) -> list[str]:
+    """The owner's clicks after the App exists: its number, a private key, the secrets, then deleting the key file."""
+    org, meta, slug = config["org"]["name"], config["org"]["meta_repo"], entry["app"]
+    return [f"On https://github.com/organizations/{org}/settings/apps/{slug} note the App ID (a number near the top), and put "
+            f"it in .colab/config.toml as app_id in this bus's [[buses]] entry (by PR)",
+            "Same page, Private keys: click Generate a private key; your browser downloads a .pem file",
+            f"gh secret set {APP_SECRET_ID} --repo {org}/{meta} --body <App ID>",
+            f"gh secret set {APP_SECRET_KEY} --repo {org}/{meta} < <downloaded .pem file>",
+            "Delete the .pem file (rm <downloaded .pem file>); the secret is the only copy. To rotate, generate a new key, "
+            "set the secret again, then delete the old key on the App page"]
+
+
+def app_install_note(config: dict) -> str:
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    repos = sorted({meta.lower()} | {k for k in repo_spaces(config) if not is_external(k)})
+    return (f"Only select repositories: {', '.join(repos)} (the meta repo and every space repo in {org}; add a repo here when "
+            "a space gains one). All repositories also works and needs no upkeep, but lets the App write issues and files in "
+            "every repo of the org")
+
+
+def observe_apps(config: dict, gh=None) -> dict:
+    """For each Actions bus: does its App exist (and its id), is it installed on the org (all or selected repos), and,
+    in the meta repo, are the two Actions secrets set (names only) and is the workflow seeded. None = could not tell
+    (these reads need an org owner or a repo admin). Read-only."""
+    gh = gh or _gh_json
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    entries = actions_buses(config)
+    if not entries:
+        return {}
+    installs = gh(["api", f"orgs/{org}/installations?per_page=100"])
+    listed = installs.get("installations") if isinstance(installs, dict) else None
+    apps: dict = {}
+    for b in entries:
+        info = gh(["api", f"apps/{b['app']}"])
+        found = next((i for i in listed or [] if isinstance(i, dict) and str(i.get("app_slug") or "").lower() == b["app"]), None)
+        apps[b["app"]] = {"exists": True if isinstance(info, dict) and info.get("id") else (True if found else None),
+                          "id": (info or {}).get("id") if isinstance(info, dict) else (found or {}).get("app_id"),
+                          "installed": (found is not None) if listed is not None else None,
+                          "selection": (found or {}).get("repository_selection")}
+    secrets = gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])
+    names = sorted(str(x.get("name")) for x in secrets.get("secrets") or [] if isinstance(x, dict)) if isinstance(secrets, dict) else None
+    workflow = gh(["api", f"repos/{org}/{meta}/contents/{BUS_WORKFLOW}"])
+    return {"apps": apps, "meta_secrets": names, "bus_workflow": isinstance(workflow, dict) and bool(workflow.get("name") or workflow.get("content"))}
+
+
+def app_actions(config: dict, snapshot: dict) -> list[dict]:
+    """Plan steps for Actions buses, in order: create the App (manifest flow), record its id, install it, store the two
+    secrets in the meta repo, seed the workflow by PR. All are a person's steps (`manual`) except the seeding
+    (`local`, a PR); the ruleset bypass for the App comes with the colab-state ruleset (operator_actions)."""
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    out: list[dict] = []
+    apps = snapshot.get("apps") or {}
+    for b in actions_buses(config):
+        have = apps.get(b["app"]) or {}
+        if have.get("exists") is not True:
+            out.append(_action("manual", 0, f"An org owner creates the GitHub App '{b['app']}' for the bus (an App cannot be made by API). "
+                                            "Run the command, open the file link it prints in a browser signed in to GitHub, press "
+                                            f"'Create the App on GitHub', then 'Create GitHub App for {org}'. It is private, with no "
+                                            "webhook or events, and only these permissions: "
+                                            + ", ".join(f"{k} {v}" for k, v in APP_PERMISSIONS.items())
+                                            + (" (could not check whether it exists: that needs an org owner)" if have.get("exists") is None and have else ""),
+                               ["python", "colab.py", "app-manifest", "--bus", b["id"], "--out", "<a folder of yours>"],
+                               link=f"https://github.com/organizations/{org}/settings/apps"))
+        if not b.get("app_id"):
+            known = have.get("id")
+            out.append(_action("manual", 0, f"Put the App's number in this bus's [[buses]] entry as app_id = {known or '<App ID>'} (by PR); "
+                                            f"the {RULESET_STATE!r} ruleset then lets the App write colab-state. The number is on "
+                                            f"https://github.com/organizations/{org}/settings/apps/{b['app']}"))
+        elif have.get("id") and int(have["id"]) != int(b["app_id"]):
+            out.append(_action("manual", 0, f"[[buses]] {b['id']} says app_id = {b['app_id']}, but the App '{b['app']}' is number "
+                                            f"{have['id']}: fix app_id by PR (the ruleset lets only that App write colab-state)"))
+        if have.get("installed") is not True:
+            out.append(_action("manual", 0, f"An org owner installs the App '{b['app']}' on {org}: on its page click Install App, then "
+                                            f"Install next to {org}. {app_install_note(config)}"
+                                            + (" (could not check the installations: that needs an org owner)" if have.get("installed") is None else ""),
+                               link=f"https://github.com/apps/{b['app']}/installations/new"))
+        secrets = snapshot.get("meta_secrets")
+        missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if secrets is None or n not in secrets]
+        if missing:
+            out.append(_action("manual", 0, f"An owner of {org}/{meta} stores the App's number and private key as Actions secrets of the "
+                                            "meta repo (only the workflow can read them; no member or agent holds them): "
+                                            + " / ".join(app_owner_steps(config, b)[1:])
+                                            + (" (could not list the secrets: that needs a repo admin)" if secrets is None else ""),
+                               ["gh", "secret", "set", APP_SECRET_KEY, "--repo", f"{org}/{meta}"],
+                               link=f"https://github.com/{org}/{meta}/settings/secrets/actions"))
+    if actions_buses(config) and snapshot.get("bus_workflow") is not True:
+        out.append(_action("local", 0, f"Seed the bus workflow ({BUS_WORKFLOW}) and refresh bus/ in the meta repo, then open a PR "
+                                       "(the default branch takes reviewed changes only)",
+                           ["python", "colab.py", "seed", "--dest", f"<clone of {org}/{meta}>", "--refresh-bus"]))
+    return out
+
+
+def cmd_app_manifest(config: dict, out_dir: Path, bus_id: str | None = None, out=None) -> int:
+    """Write <slug>-manifest.json and <slug>-app.html into out_dir and print the file link and the clicks."""
+    import secrets as _secrets
+    out = out or sys.stdout
+    entries = actions_buses(config)
+    entry = next((b for b in entries if b["id"] == (bus_id or "").lower()), None) if bus_id else (entries[0] if len(entries) == 1 else None)
+    if entry is None:
+        print("app-manifest: declare exactly one Actions bus in [[buses]] (kind = \"actions\", app = \"<slug>\"), or pass --bus <id>",
+              file=sys.stderr)
+        return 2
+    manifest = app_manifest(config, entry)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{entry['app']}-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    page = out_dir / f"{entry['app']}-app.html"
+    page.write_text(app_manifest_html(config, manifest, _secrets.token_urlsafe(16)))
+    org = config["org"]["name"]
+    print(f"Open this in a browser where you are signed in to GitHub as an owner of {org}:\n\n  {page.resolve().as_uri()}\n", file=out)
+    print("Then:", file=out)
+    print(f"  1. Press 'Create the App on GitHub'. GitHub opens its 'Create GitHub App' page with the name {entry['app']!r}.", file=out)
+    print(f"     (If GitHub says the name is taken, edit it there, and put the new name's slug in [[buses]] app.)", file=out)
+    print(f"  2. Click 'Create GitHub App for {org}'. You land on the App's settings page.", file=out)
+    for i, step in enumerate(app_owner_steps(config, entry), start=3):
+        print(f"  {i}. {step}", file=out)
+    print(f"  {3 + len(app_owner_steps(config, entry))}. Install it: https://github.com/apps/{entry['app']}/installations/new "
+          f"-> Install next to {org}. {app_install_note(config)}", file=out)
+    print("\nThen re-run `colab.py plan`; `colab.py setup --app` checks each step in plain words.", file=out)
+    return 0
 
 
 # --------------------------------------------------------------------------- observe
@@ -422,6 +661,7 @@ def observe_operators(config: dict, gh=None) -> dict:
                                     ("id", "name", "target", "enforcement", "conditions", "rules", "bypass_actors")})
         else:
             out["rulesets"].append({"id": r.get("id"), "name": r.get("name"), "foreign": True})
+    out.update(observe_apps(config, gh))
     return out
 
 
@@ -853,8 +1093,14 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
     rollout = snapshot.get("rollout") or empty_rollout()
     bus_seen = any(s.get("bus") for s in rollout.get("spaces", {}).values())
     if spaces and not bus_seen:
-        actions.append(_action("local", 0, "Start the bus in dry-run on ORCD (self-requeuing Slurm job; it logs and never writes)",
-                               ["sbatch", "<rendered colab-bus.sbatch>"]))
+        if actions_buses(config):
+            actions.append(_action("local", 0, "Start the bus in dry-run: once the workflow is merged and the secrets are set it runs by "
+                                               "itself every 10 minutes; start the first run now from the Actions tab (Run workflow) or "
+                                               "with gh (it logs what it would deliver and writes only its own state)",
+                                   ["gh", "workflow", "run", "colab-bus.yml", "--repo", f"{org}/{meta}"]))
+        else:
+            actions.append(_action("local", 0, "Start the bus in dry-run on ORCD (self-requeuing Slurm job; it logs and never writes)",
+                                   ["sbatch", "<rendered colab-bus.sbatch>"]))
 
     actions += marketplace_actions(config, snapshot, repos)
 
@@ -873,17 +1119,19 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
     return actions
 
 
-def desired_rulesets(team_id) -> dict[str, dict]:
+def desired_rulesets(team_id, app_ids=()) -> dict[str, dict]:
     """The two rulesets the plan keeps on the meta repo (REST rulesets API bodies), by name.
 
-    - colab-state: only the operators team (bypass list) may update or delete the branch; nobody force-pushes.
+    - colab-state: only the operators team and the Apps of Actions buses (bypass list; `Integration` actors are App
+      ids) may create, update, or delete the branch; nobody force-pushes.
     - the default branch: changes by reviewed PR only (one approval, no direct pushes), no deletion or force push."""
-    team = {"actor_id": team_id, "actor_type": "Team", "bypass_mode": "always"}
+    team = [{"actor_id": team_id, "actor_type": "Team", "bypass_mode": "always"}]
+    apps = [{"actor_id": int(a), "actor_type": "Integration", "bypass_mode": "always"} for a in app_ids]
     return {
         RULESET_STATE: {"name": RULESET_STATE, "target": "branch", "enforcement": "active",
                         "conditions": {"ref_name": {"include": [f"refs/heads/{STATE_BRANCH}"], "exclude": []}},
                         "rules": [{"type": "creation"}, {"type": "update"}, {"type": "deletion"}, {"type": "non_fast_forward"}],
-                        "bypass_actors": [team]},
+                        "bypass_actors": team + apps},
         RULESET_DEFAULT: {"name": RULESET_DEFAULT, "target": "branch", "enforcement": "active",
                           "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
                           "rules": [{"type": "deletion"}, {"type": "non_fast_forward"},
@@ -954,10 +1202,12 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
     out: list[dict] = []
     operators = bus_operators(config)
     team = snapshot.get("operators_team")
-    if not operators:
-        out.append(_action("manual", 0, "Declare the bus in .colab/config.toml as a [[buses]] entry (id, operator, host, role) by PR: "
-                                        "the bus runs under its operator's GitHub login, and operators form the "
-                                        f"{OPERATORS_TEAM} team"))
+    entries = buses(config)
+    if not entries:
+        out.append(_action("manual", 0, "Declare the bus in .colab/config.toml as a [[buses]] entry by PR: by default "
+                                        "kind = \"actions\" with app = \"<the org's GitHub App>\" (a scheduled workflow in the meta "
+                                        "repo, see the steps below once it is declared); or a standby run by an operator (id, operator, "
+                                        f"host, role), whose operators form the {OPERATORS_TEAM} team"))
     if team is None:
         out.append(_action("gh", 0, f"Create the team {OPERATORS_TEAM} in {org} (empty): its members run the bus and are the only "
                                     f"ones who may update the {STATE_BRANCH} branch",
@@ -976,7 +1226,7 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
                                         f"{STATE_BRANCH}; remove them in the team settings unless they are break-glass operators"))
     team_id = (team or {}).get("id") or TEAM_ID_PLACEHOLDER
     have = {r["name"]: r for r in snapshot.get("rulesets") or [] if not r.get("foreign")}
-    wanted = desired_rulesets(team_id)
+    wanted = desired_rulesets(team_id, bus_app_ids(config))
     for name in (RULESET_DEFAULT, RULESET_STATE):  # the default branch first, then colab-state, then the branch
         want, current = wanted[name], have.get(name)
         if current is None:
@@ -999,12 +1249,18 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
                                ["gh", "api", "-X", "PUT", f"repos/{org}/{meta}/rulesets/{current['id']}", "--input", "-"],
                                input=json.dumps(body)))
     if not snapshot.get("state_branch"):
-        out.append(_action("gh", 0, f"Create the {STATE_BRANCH} branch in {org}/{meta} (an orphan branch with a README), only once "
-                                    f"the '{RULESET_STATE}' ruleset is active on it. A member of {OPERATORS_TEAM} must run this "
-                                    "step (the ruleset restricts creation to the team; apply checks it first). The bus keeps its lease, "
-                                    "heartbeats, and the security state there instead of Actions variables",
-                           ["colab.py", "apply", "(built in: check the ruleset, then create the orphan branch with the Git Data API)"],
-                           fn="state_init"))
+        if any(b["kind"] == "actions" for b in entries):
+            out.append(_action("manual", 0, f"The {STATE_BRANCH} branch is created by the Actions bus on its first run (only once the "
+                                            f"'{RULESET_STATE}' ruleset is active and lets its App write); or by a member of "
+                                            f"{OPERATORS_TEAM} with `colab.py apply`"))
+        else:
+            out.append(_action("gh", 0, f"Create the {STATE_BRANCH} branch in {org}/{meta} (an orphan branch with a README), only once "
+                                        f"the '{RULESET_STATE}' ruleset is active on it. A member of {OPERATORS_TEAM} must run this "
+                                        "step (the ruleset restricts creation to the team; apply checks it first). The bus keeps its lease, "
+                                        "heartbeats, and the security state there instead of Actions variables",
+                               ["colab.py", "apply", "(built in: check the ruleset, then create the orphan branch with the Git Data API)"],
+                               fn="state_init"))
+    out += app_actions(config, snapshot)
     return out
 
 
@@ -1219,16 +1475,23 @@ def cmd_bus(config: dict, action: str, bus_id: str | None = None, gh=None, gh_in
             print(f"✓ The bus is running: {lease['holder']} (operator {lease.get('operator')}), lease renewed "
                   f"{_ago(lease.get('renewed_at'), now)}.", file=out)
         else:
-            names = ", ".join(sorted(({b["operator"] for b in entries} | ({lease.get("operator")} if lease else set())) - {None, ""}))
+            people = {b["operator"] for b in entries if b.get("kind", "operator") == "operator"}
+            if lease and lease.get("operator") and not str(lease["operator"]).endswith("[bot]"):
+                people.add(lease["operator"])
+            names = ", ".join(sorted(people - {None, ""}))
+            workflow = any(b.get("kind") == "actions" for b in entries)
             print(f"✗ No bus is running right now (last lease: {(lease or {}).get('holder') or 'none'}, renewed "
-                  f"{_ago((lease or {}).get('renewed_at'), now)}).\n    Next: contact an operator: {names or 'none listed in [[buses]]'}",
-                  file=out)
+                  f"{_ago((lease or {}).get('renewed_at'), now)}).\n    Next: "
+                  + (f"check the colab-bus workflow in the Actions tab of {org}/{meta} (its last runs, and that it is enabled)"
+                     + ("; or contact an operator: " + names if names else "") if workflow else
+                     f"contact an operator: {names or 'none listed in [[buses]]'}"), file=out)
         for b in entries or [{"id": k, "operator": v.get("operator", "?"), "role": v.get("role", "?"), "host": v.get("host", "")}
                              for k, v in beats.items()]:
             beat = beats.get(b["id"]) or {}
             state = "active" if beat.get("active") else "standing by" if beat else "no heartbeat yet"
-            print(f"  · {b['id']} ({b['role']}, run by {b['operator']}{', ' + b['host'] if b.get('host') else ''}): {state}, "
-                  f"last heard {_ago(beat.get('at'), now)}", file=out)
+            who = (f"GitHub Actions workflow, as the App {b.get('app')}" if b.get("kind") == "actions"
+                   else f"run by {b['operator']}{', ' + b['host'] if b.get('host') else ''}")
+            print(f"  · {b['id']} ({b['role']}, {who}): {state}, last heard {_ago(beat.get('at'), now)}", file=out)
         return 0 if fresh else 1
     if action != "handback":
         print(f"bus: unknown action {action!r}", file=err)
@@ -1238,7 +1501,7 @@ def cmd_bus(config: dict, action: str, bus_id: str | None = None, gh=None, gh_in
         print(f"refused: no [[buses]] entry with id {bus_id!r} (known: {', '.join(b['id'] for b in entries) or 'none'})", file=err)
         return 2
     login = (login_fn or gh_login)().lower()
-    if login not in {b["operator"] for b in entries}:
+    if login not in set(bus_operators(config)):
         print(f"refused: only bus operators ({', '.join(bus_operators(config))}) can hand the lease over; you are {login or 'unknown'}",
               file=err)
         return 2
@@ -1313,11 +1576,13 @@ def cmd_render_forms(config: dict, dest: Path) -> list[Path]:
     return written
 
 
-def cmd_seed(dest: Path, config_path: Path | None) -> list[Path]:
-    """Starter files for the meta repo checkout. Never overwrites existing files.
+def cmd_seed(dest: Path, config_path: Path | None, refresh_bus: bool = False) -> list[Path]:
+    """Starter files for the meta repo checkout. Never overwrites existing files, except, with refresh_bus, the bus
+    code in bus/ (colab_bus.py and colab.py, from this skill) and the bus workflow, so an update is one reviewed PR.
 
-    The sbatch goes in as a template; the filled copy (real paths) lives in the
-    bus state directory, outside git, so the meta repo keeps scanning clean.
+    The bus workflow (.github/workflows/colab-bus.yml) runs the bus as the org's GitHub App. The sbatch goes in as a
+    template for a standby run by an operator; the filled copy (real paths) lives in the bus state directory, outside
+    git, so the meta repo keeps scanning clean.
     """
     colab = dest / ".colab"
     colab.mkdir(parents=True, exist_ok=True)
@@ -1326,21 +1591,22 @@ def cmd_seed(dest: Path, config_path: Path | None) -> list[Path]:
         colab / "rollout.json": json.dumps(empty_rollout(), indent=2) + "\n",
         colab / "subscriptions.toml": (TEMPLATES / "subscriptions.toml").read_text(),
         dest / ".github" / "workflows" / "colab-watchdog.yml": (TEMPLATES / "colab-watchdog.yml").read_text(),
+        dest / BUS_WORKFLOW: (TEMPLATES / "colab-bus.yml").read_text(),
         dest / "bus" / "colab-bus.sbatch.template": (TEMPLATES / "colab-bus.sbatch").read_text(),
         dest / ".gitignore": "bus/*.local.sbatch\n",
     }
     written = []
     for path, text in plan.items():
-        if path.exists():
+        if path.exists() and not (refresh_bus and path == dest / BUS_WORKFLOW and path.read_text() != text):
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         written.append(path)
     scripts_dir = dest / "bus"
     for name in ("colab_bus.py", "colab.py"):
-        target = scripts_dir / name
-        if not target.exists():
-            shutil.copy2(Path(__file__).with_name(name), target)
+        target, source = scripts_dir / name, Path(__file__).with_name(name)
+        if not target.exists() or (refresh_bus and target.read_bytes() != source.read_bytes()):
+            shutil.copy2(source, target)
             written.append(target)
     return written
 
@@ -1632,7 +1898,7 @@ def _gh_api_json(runner, path: str) -> tuple[int, object]:
 
 def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None = None, env=None,
               runner=None, which=shutil.which, skill_dir: Path = SKILL_DIR, operator: bool = False, clone: bool = False,
-              token_reader=None, http=None) -> tuple[list[dict], int]:
+              token_reader=None, http=None, app: bool = False) -> tuple[list[dict], int]:
     """Onboarding check for members (and, with operator=True, bus operators). Returns (checks, exit code).
 
     Each check: name, status (ok|fail|info), say (a plain sentence), step (the one next step, for a failure),
@@ -1793,7 +2059,114 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
     if operator:
         _operator_checks(add, config, org, meta, login, env, home, settings_path, settings, settings_err, runner,
                          token_reader, http, cfg_abs, python, skill_dir)
+    if app:
+        _app_checks(add, config, org, meta, runner)
     return checks, 1 if any(c["status"] == "fail" for c in checks) else 0
+
+
+def _app_checks(add, config, org, meta, runner) -> None:
+    """`setup --app` (org owners): the Actions bus in [[buses]], its GitHub App, the App's installation on the org, the
+    two Actions secrets of the meta repo (names only, never values), the seeded workflow, the colab-state ruleset letting
+    the App write, and the bus's last heartbeat. Reads only."""
+    if config is None:
+        add("actions bus", "fail", "Setup needs the lab's settings to check the bus.", "COLAB_CONFIG does not resolve",
+            "fix the COLAB_CONFIG line above first")
+        return
+    try:
+        entries = [b for b in buses(config) if b["kind"] == "actions"]
+    except BusConfigError as err:
+        add("actions bus", "fail", "The lab's list of buses has a mistake.", str(err), "fix [[buses]] in .colab/config.toml by PR")
+        return
+    cfg_link = f"https://github.com/{org}/{meta}/blob/HEAD/.colab/config.toml"
+    if not entries:
+        add("actions bus", "fail", "The lab's settings do not list a bus that runs on GitHub Actions yet.",
+            "no [[buses]] entry with kind = \"actions\"",
+            'add one by PR to .colab/config.toml: [[buses]] id = "actions", kind = "actions", app = "colab-bus", role = "primary"',
+            cfg_link)
+        return
+    for b in entries:
+        slug = b["app"]
+        add("actions bus", "ok", f"The lab's settings list the bus '{b['id']}', which runs on GitHub Actions as the App {slug}.",
+            f"[[buses]] id={b['id']} kind=actions app={slug} app_id={b.get('app_id') or 'missing'}")
+        rc, info = _gh_api_json(runner, f"apps/{slug}")
+        app_id = info.get("id") if isinstance(info, dict) else None
+        if app_id:
+            add("the App", "ok", f"The GitHub App {slug} exists.", f"apps/{slug}: id {app_id}")
+        else:
+            add("the App", "fail", f"The GitHub App {slug} does not exist yet (or you cannot see it).",
+                f"GET apps/{slug} failed",
+                f"an org owner creates it: colab.py app-manifest --out <a folder>, open the file it prints, press the button",
+                f"https://github.com/organizations/{org}/settings/apps")
+        if not b.get("app_id"):
+            add("App number", "fail", "The lab's settings do not have the App's number yet, so it cannot be allowed to write the bus's state.",
+                f"[[buses]] {b['id']}: app_id missing" + (f" (the App is number {app_id})" if app_id else ""),
+                f"add app_id = {app_id or '<App ID>'} to the entry by PR", cfg_link)
+        elif app_id and int(app_id) != int(b["app_id"]):
+            add("App number", "fail", "The App's number in the lab's settings is wrong.", f"app_id {b['app_id']} != {app_id}",
+                f"set app_id = {app_id} by PR", cfg_link)
+        rc, inst = _gh_api_json(runner, f"orgs/{org}/installations?per_page=100")
+        listed = inst.get("installations") if isinstance(inst, dict) else None
+        found = next((i for i in listed or [] if isinstance(i, dict) and str(i.get("app_slug") or "").lower() == slug), None)
+        if listed is None:
+            add("installed", "info", f"Could not check where {slug} is installed (only org owners can).", f"GET orgs/{org}/installations failed")
+        elif found is None:
+            add("installed", "fail", f"The App {slug} is not installed on {org} yet, so it cannot do anything.",
+                f"no installation of {slug} in {org}",
+                f"an org owner installs it: Install next to {org}. {app_install_note(config)}",
+                f"https://github.com/apps/{slug}/installations/new")
+        else:
+            where = "all repositories" if found.get("repository_selection") == "all" else "selected repositories"
+            add("installed", "ok", f"The App {slug} is installed on {org} ({where}).",
+                f"installation {found.get('id')}, repository_selection={found.get('repository_selection')}"
+                + ("" if where.startswith("all") else "; it needs the meta repo and every space repo in the org selected"))
+    rc, sec = _gh_api_json(runner, f"repos/{org}/{meta}/actions/secrets?per_page=100")
+    names = {str(x.get("name")) for x in (sec or {}).get("secrets") or [] if isinstance(x, dict)} if isinstance(sec, dict) else None
+    if names is None:
+        add("secrets", "info", f"Could not check the meta repo's secrets (only its admins can).", f"GET repos/{org}/{meta}/actions/secrets failed")
+    else:
+        missing = [n for n in (APP_SECRET_ID, APP_SECRET_KEY) if n not in names]
+        if missing:
+            steps = app_owner_steps(config, entries[0])
+            add("secrets", "fail", "The workflow does not have the App's number and key yet, so it cannot sign in as the App.",
+                f"missing Actions secrets in {org}/{meta}: {', '.join(missing)} (names only are checked)",
+                " ; ".join(steps[1:]), f"https://github.com/{org}/{meta}/settings/secrets/actions")
+        else:
+            add("secrets", "ok", "The workflow has the App's number and key (only the workflow can read them).",
+                f"{APP_SECRET_ID} and {APP_SECRET_KEY} are set (values are never shown)")
+    rc, wf = _gh_api_json(runner, f"repos/{org}/{meta}/contents/{BUS_WORKFLOW}")
+    if isinstance(wf, dict) and (wf.get("name") or wf.get("content")):
+        add("workflow", "ok", "The bus workflow is in the meta repo.", f"{BUS_WORKFLOW} on the default branch")
+    else:
+        add("workflow", "fail", "The bus workflow is not in the meta repo yet.", f"{BUS_WORKFLOW} not found",
+            f"seed it by PR: colab.py seed --dest <clone of {org}/{meta}> --refresh-bus, scan, open the PR")
+    rc, rulesets = _gh_api_json(runner, f"repos/{org}/{meta}/rulesets?includes_parents=false&per_page=100")
+    rid = next((r.get("id") for r in rulesets or [] if isinstance(r, dict) and r.get("name") == RULESET_STATE), None) \
+        if isinstance(rulesets, list) else None
+    rc, rs = _gh_api_json(runner, f"repos/{org}/{meta}/rulesets/{rid}") if rid else (1, None)
+    bypass = rs.get("bypass_actors") if isinstance(rs, dict) else None
+    want = {b["app_id"] for b in entries if b.get("app_id")}
+    if bypass is None:
+        add("may write state", "info", "Could not check that the App may write the bus's shared state (only admins can see it).",
+            f"ruleset {RULESET_STATE!r} " + ("not found" if not rid else "bypass list not visible"))
+    elif want and all(any(isinstance(x, dict) and x.get("actor_type") == "Integration" and x.get("actor_id") == a for x in bypass) for a in want):
+        add("may write state", "ok", "The App may write the bus's shared state (the colab-state branch), and nobody else but the operators.",
+            f"ruleset {RULESET_STATE!r} lets Integration {', '.join(map(str, sorted(want)))} bypass")
+    else:
+        add("may write state", "fail", "The App may not write the bus's shared state yet.",
+            f"ruleset {RULESET_STATE!r} has no Integration bypass for app_id {', '.join(map(str, sorted(want))) or '(app_id missing)'}",
+            "add app_id to [[buses]] by PR, then an org owner reviews and applies `colab.py plan`")
+    for b in entries:
+        rc, blob = _gh_api_json(runner, f"repos/{org}/{meta}/contents/{heartbeat_path(b['id'])}?ref={STATE_BRANCH}")
+        try:
+            beat = json.loads(base64.b64decode(blob["content"]).decode()) if isinstance(blob, dict) else None
+        except (KeyError, ValueError, UnicodeDecodeError, TypeError):
+            beat = None
+        if isinstance(beat, dict) and beat.get("at"):
+            add("last run", "info", f"The bus '{b['id']}' was last heard {_ago(beat.get('at'), datetime.now(timezone.utc))} "
+                                    f"({'active' if beat.get('active') else 'standing by'}).", f"{heartbeat_path(b['id'])} on {STATE_BRANCH}")
+        else:
+            add("last run", "info", f"The bus '{b['id']}' has not run yet. Once everything above has a ✓, start it from the Actions tab "
+                                    "(colab-bus, Run workflow).", f"no {heartbeat_path(b['id'])} on {STATE_BRANCH}")
 
 
 def _operator_checks(add, config, org, meta, login, env, home, settings_path, settings, settings_err, runner,
@@ -2776,12 +3149,20 @@ FORBIDDEN_STATE = (f"you cannot read the meta repo's security state (HTTP 403 on
 STATE_SOURCE = {"source": ""}  # where load_security_state read the state from, for `security status`
 
 
-def state_rules_refusal(config: dict, gh=None) -> str | None:
+def state_rules_refusal(config: dict, gh=None, app_ids=None) -> str | None:
     """Why colab-state cannot be trusted as protected, or None. GitHub's own view of the branch's active rules
     (`rules/branches/colab-state`, readable by members) must include `creation`, `update` (only bypass actors may
-    create or push) and `deletion`; and when the ruleset behind `update` shows its bypass list to this login, every bypass actor must be
-    the operators team. This is the trust anchor for the branch; the commit author is only a secondary hint."""
+    create or push) and `deletion`; and when the ruleset behind `update` shows its bypass list to this login, every bypass
+    actor must be the operators team or the App of an Actions bus (`Integration`, by the `app_id` in [[buses]]; `app_ids`
+    from the meta repo's config, else this config). This is the trust anchor for the branch; the commit author is only a
+    secondary hint."""
     gh = gh or _gh_json
+    if app_ids is None:
+        try:
+            app_ids = bus_app_ids(config)
+        except BusConfigError:
+            app_ids = []
+    apps = {int(a) for a in app_ids}
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     rules = gh(["api", f"repos/{org}/{meta}/rules/branches/{STATE_BRANCH}"])
     if not isinstance(rules, list):
@@ -2796,10 +3177,16 @@ def state_rules_refusal(config: dict, gh=None) -> str | None:
     if isinstance(ruleset, dict) and isinstance(ruleset.get("bypass_actors"), list):
         team = gh(["api", f"orgs/{org}/teams/{OPERATORS_TEAM}"])
         team_id = team.get("id") if isinstance(team, dict) else None
-        bad = [b for b in ruleset["bypass_actors"] if not isinstance(b, dict) or b.get("actor_type") != "Team"
-               or (team_id is not None and b.get("actor_id") != team_id)]
+
+        def allowed(b) -> bool:
+            if not isinstance(b, dict):
+                return False
+            if b.get("actor_type") == "Integration":
+                return b.get("actor_id") in apps
+            return b.get("actor_type") == "Team" and (team_id is None or b.get("actor_id") == team_id)
+        bad = [b for b in ruleset["bypass_actors"] if not allowed(b)]
         if bad:
-            return (f"the ruleset that restricts updates of {STATE_BRANCH} lets others than {OPERATORS_TEAM} push: "
+            return (f"the ruleset that restricts updates of {STATE_BRANCH} lets others than {OPERATORS_TEAM} and the bus's App push: "
                     + ", ".join(f"{b.get('actor_type')} {b.get('actor_id')}" for b in bad if isinstance(b, dict)))
     return None
 
@@ -2814,7 +3201,7 @@ def state_writer_refusal(config: dict, operators: list[str], gh=None) -> str | N
         return f"could not read who last wrote {SECURITY_FILE} on {STATE_BRANCH}"
     c = commits[0] if isinstance(commits[0], dict) else {}
     who = str(((c.get("author") or {}).get("login")) or ((c.get("committer") or {}).get("login")) or "").lower()
-    if who not in {o.lower() for o in operators}:
+    if who not in {o.lower() for o in operators}:  # operators and, for an Actions bus, its App's bot login
         return (f"{SECURITY_FILE} on {STATE_BRANCH} was last written by {who or 'an unknown author'}, who runs no bus in "
                 "[[buses]]; the gate fails closed until a registered bus re-asserts it")
     return None
@@ -2881,16 +3268,18 @@ def meta_security_settings(config: dict, gh=None) -> dict | None:
 
     def max_age(cfg_sec: dict, cfg: dict) -> float:
         poll = float((cfg.get("bus") or {}).get("poll_seconds", 300) or 300)
-        return float(cfg_sec.get("state_max_age_minutes") or max(STATE_MAX_AGE_MINUTES, 3 * poll / 60))
+        floor = ACTIONS_STATE_MAX_AGE_MINUTES if _has_actions_bus(cfg) else STATE_MAX_AGE_MINUTES
+        return float(cfg_sec.get("state_max_age_minutes") or max(floor, 3 * poll / 60))
     meta_signs = str(meta_sec.get("signing") or "").lower() == "ssh"
     local_signs = str(local_sec.get("signing") or "").lower() == "ssh"
     signer = (meta_sec if meta_signs else local_sec).get("signer") or "colab-bus"
     try:
-        operators = bus_operators(meta)
+        operators, app_ids = bus_writers(meta), bus_app_ids(meta)  # people and Apps' bot logins; Apps' ids for the ruleset
     except BusConfigError:
-        operators = []
+        operators, app_ids = [], []
     return {"signing": meta_signs or local_signs, "signer": str(signer),
-            "max_age_minutes": min(max_age(local_sec, config), max_age(meta_sec, meta)), "operators": operators}
+            "max_age_minutes": min(max_age(local_sec, config), max_age(meta_sec, meta)), "operators": operators,
+            "app_ids": app_ids}
 
 
 def load_security_state(config: dict, gh=None, now: datetime | None = None) -> tuple[dict | None, str]:
@@ -2916,7 +3305,7 @@ def load_security_state(config: dict, gh=None, now: datetime | None = None) -> t
             raw = base64.b64decode(blob["content"]).decode()
         except (ValueError, UnicodeDecodeError):
             return None, f"{SECURITY_FILE} on {STATE_BRANCH} is unreadable"
-        why = state_rules_refusal(config, gh)
+        why = state_rules_refusal(config, gh, settings.get("app_ids"))
         if why:
             return None, why
         if settings.get("operators"):  # a secondary hint: an author can be set by whoever pushes
@@ -3392,12 +3781,17 @@ def _main(argv: list[str] | None = None) -> int:
         if name == "apply":
             p.add_argument("--yes", action="store_true")
     p = sub.add_parser("seed"); p.add_argument("--dest", type=Path, required=True)
+    p.add_argument("--refresh-bus", action="store_true", help="also replace bus/colab_bus.py, bus/colab.py, and the bus workflow")
+    p = sub.add_parser("app-manifest", help="write the bus's GitHub App manifest and a one-button page to create it")
+    p.add_argument("--out", type=Path, default=Path("."), help="folder for <app>-manifest.json and <app>-app.html")
+    p.add_argument("--bus", help="the Actions bus's [[buses]] id (when there is more than one)")
     p = sub.add_parser("render-forms"); p.add_argument("--dest", type=Path, required=True)
     p = sub.add_parser("seed-marketplace"); p.add_argument("--dest", type=Path, required=True)
     p = sub.add_parser("setup", help="check (and fix what it can of) a member's setup, in plain words")
     p.add_argument("--install-hooks", action="store_true", help="add the heartbeat hooks to ~/.claude/settings.json")
     p.add_argument("--clone", action="store_true", help="copy the lab's meta repo to the default place if missing")
     p.add_argument("--operator", action="store_true", help="bus operators: the bus entry, the team, and the lesser assistant token")
+    p.add_argument("--app", action="store_true", help="org owners: the Actions bus's App, its install, the secrets, the workflow")
     p.add_argument("--token-stdin", action="store_true", help="with --operator: read the pasted token from stdin")
     p.add_argument("--json", action="store_true", help="machine-readable checks, for agents")
     def context_flags(p):
@@ -3451,7 +3845,8 @@ def _main(argv: list[str] | None = None) -> int:
                     print("If you have made the lesser token, paste it now (it will not show), or press Enter to skip.",
                           file=sys.stderr)
                     return getpass.getpass("Token: ")
-        checks, rc = cmd_setup(args.config, args.install_hooks, operator=args.operator, clone=args.clone, token_reader=reader)
+        checks, rc = cmd_setup(args.config, args.install_hooks, operator=args.operator, clone=args.clone, token_reader=reader,
+                               app=args.app)
         print_setup(checks, args.json)
         return rc
     config = load_config(args.config or (Path(env_cfg) if env_cfg else None))
@@ -3468,9 +3863,11 @@ def _main(argv: list[str] | None = None) -> int:
             return 0
         return apply(actions, args.yes, config.get("bus", {}).get("write_interval_seconds", 1.0), org, config)
     if args.cmd == "seed":
-        for path in cmd_seed(args.dest, args.config):
+        for path in cmd_seed(args.dest, args.config, refresh_bus=args.refresh_bus):
             print(path)
         return 0
+    if args.cmd == "app-manifest":
+        return cmd_app_manifest(config, args.out, args.bus)
     if args.cmd == "seed-marketplace":
         for path in cmd_seed_marketplace(config, args.dest):
             print(path)

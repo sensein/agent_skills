@@ -1,5 +1,5 @@
-# Alerts the lab when no colab-bus holds a fresh lease (e.g. ORCD maintenance, a long queue wait), naming the
-# operators to contact, or when the active bus reports a security problem: someone else edited the security state,
+# Alerts the lab when no colab-bus holds a fresh lease (the colab-bus workflow failing or disabled, ORCD maintenance,
+# a long queue wait), naming the operators to contact, or when the active bus reports a security problem: someone else edited the security state,
 # the state overflowed, or audit records were rejected. Lives in the private meta repo.
 # Reads the protected colab-state branch: lease.json, heartbeat/<bus id>.json, and [[buses]] in .colab/config.toml.
 # While a meta repo has no colab-state branch yet, it falls back to the deprecated COLAB_BUS_HEARTBEAT variable.
@@ -65,6 +65,7 @@ jobs:
           except (OSError, tomllib.TOMLDecodeError):
               buses = []
           operators = sorted({str(b.get("operator", "")).lstrip("@") for b in buses if isinstance(b, dict)} - {""})
+          apps = sorted({str(b.get("app", "")) for b in buses if isinstance(b, dict) and b.get("kind") == "actions"} - {""})
           on_branch = open("branch.txt").read().strip() == "colab-state" if os.path.exists("branch.txt") else False
           if on_branch:
               lease = load("lease.json") or {}
@@ -76,7 +77,8 @@ jobs:
               stale = renewed is None or now - renewed > dt.timedelta(minutes=ttl) or renewed - now > dt.timedelta(minutes=2)
               holder = lease.get("holder")
               beat = beats.get(holder or "", {})
-              contacts = ", ".join(f"@{o}" for o in sorted(set(operators) | ({lease["operator"]} if lease.get("operator") else set())))
+              people = set(operators) | ({lease["operator"]} if lease.get("operator") else set())
+              contacts = ", ".join(f"@{o}" for o in sorted(p for p in people if not p.endswith("[bot]")))
               last = renewed.isoformat() if renewed else "never"
           else:  # deprecated: the variable heartbeat of a meta repo that has not moved to colab-state yet
               try:
@@ -89,8 +91,10 @@ jobs:
           security = [f"{k}={beat[k]}" for k in ("security_foreign_edits", "security_state_overflow", "records_rejected")
                       if beat.get(k)]
           if stale:
-              msg = (f"No colab-bus holds a fresh lease (last: {holder or 'none'}, renewed {last}). Is the Slurm job queued, "
-                     f"or is the cluster down? Operators to contact: {contacts or 'none listed in [[buses]]'}. "
+              where = (f"Check the colab-bus workflow's last runs in the Actions tab (App {', '.join(apps)}): is it enabled, "
+                       "and are its secrets set? " if apps else "")
+              msg = (f"No colab-bus holds a fresh lease (last: {holder or 'none'}, renewed {last}). {where}"
+                     f"Is a Slurm job queued, or is the cluster down? Operators to contact: {contacts or 'none listed in [[buses]]'}. "
                      "`colab.py bus status` shows every bus.")
           else:
               msg = (f"colab-bus {holder} reports a security problem: " + ", ".join(security) +

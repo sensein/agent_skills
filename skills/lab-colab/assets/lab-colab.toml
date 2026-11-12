@@ -306,30 +306,37 @@ external_detail_per_poll = 50    # external items whose comments/reviews/timelin
 external_calls_per_poll = 300    # and at most this many API calls for those details per poll; over budget, the rest carry over
 injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
-lease_ttl_minutes = 15           # a bus's lease (lease.json on colab-state) is stale this long after its last renewal (renewed every poll)
+lease_ttl_minutes = 0            # a bus's lease (lease.json on colab-state) is stale this long after its last renewal (renewed every poll).
+                                 # 0 = three polls, at least 15 minutes, or 45 with an Actions bus (scheduled runs can start late)
 takeover_lookback_minutes = 60   # a bus taking over starts each repo this long before the previous holder's cursor (delivery keys stop duplicates)
 passive_heartbeat_minutes = 30   # a standby writes its heartbeat this often (and whenever it changes between active and standby)
 
 # ---------------------------------------------------------------------------
-# Buses. Each bus runs under the GitHub login of the member who starts it, its operator: no machine account.
-# Operators are the org team `colab-bus-operators` (`colab.py plan` proposes the team with these operators as
-# members, the protected `colab-state` branch, and the rulesets). One bus is active at a time: it holds the lease
-# on colab-state, renewed every poll. Standbys (possibly at other institutions) take over in `order` only when the
-# lease is stale; a returning primary stays standing by until `colab.py bus handback <id>`. A bus whose login is not
-# its entry's operator, or not in the team, stays passive and writes nothing. A GitHub App could still run a bus
-# (operator = the app's bot login) if a lab prefers one; nothing here requires it.
+# Buses. By default the bus runs as a scheduled GitHub Actions workflow in the meta repo (.github/workflows/colab-bus.yml),
+# signed in as the org's own GitHub App (kind = "actions"): no member, and no member's agent, holds its credentials.
+# `colab.py plan` walks an org owner through creating the App (a manifest and a one-button page), installing it, and
+# storing its number and key as Actions secrets of the meta repo; `colab.py setup --app` checks each step. The App's
+# writes show as `<app>[bot]`; the colab-state ruleset lets it (by app_id) and the operators team write that branch.
+#
+# A standby (or an org without an App) runs under the GitHub login of the member who starts it, its operator
+# (kind = "operator", the default; operators are the org team `colab-bus-operators`, which the plan proposes). One bus
+# is active at a time: it holds the lease on colab-state, renewed every poll. Standbys (possibly at other institutions)
+# take over in `order` only when the lease is stale; a returning primary stays standing by until
+# `colab.py bus handback <id>`. A bus whose login is not its entry's operator (or App), or an operator not in the team,
+# stays passive and writes nothing.
 # ---------------------------------------------------------------------------
 # [[buses]]
-# id = "handle-orcd"               # short, unique in the org: lower-case letters, digits, hyphens
-# operator = "handle"              # the member who runs it; its writes are made with their login
-# host = "MIT ORCD, pi partition"  # where it runs, in words
+# id = "actions"                   # short, unique in the org: lower-case letters, digits, hyphens
+# kind = "actions"                 # the scheduled workflow, as the org's GitHub App
+# app = "colab-bus"                # the App's slug (its name in the URL github.com/apps/<slug>)
+# app_id = 0                       # the App's number, from its settings page (lets the ruleset allow it); 0 = not yet
 # role = "primary"                 # primary (one) or standby
-# order = 0                        # among standbys: lower takes over first
+# order = 0
 #
 # [[buses]]
-# id = "partner-hpc"
-# operator = "handle-b"
-# host = "Partner University HPC"
+# id = "handle-orcd"               # a standby run by a member on a cluster (colab-bus.sbatch)
+# operator = "handle"              # the member who runs it; its writes are made with their login
+# host = "MIT ORCD, pi partition"  # where it runs, in words
 # role = "standby"
 # order = 1
 
@@ -343,7 +350,8 @@ state_keep_days = 30             # the security state keeps verified clears this
 outsider_open_flags_per_repo = 50  # open flags from non-members per repo; past that, audit-only (kept per item and flagged
                                    # as soon as the item is Ready/Agent-ready, in progress, or assigned)
 closed_flag_days = 30            # flags of closed items stay in the security state (marked closed) this long
-state_max_age_minutes = 30       # the CLI rejects a security state issued longer ago (stale bus or replay); fail closed
+state_max_age_minutes = 0        # the CLI rejects a security state issued longer ago (stale bus or replay); fail closed.
+                                 # 0 = three polls, at least 30 minutes, or 60 with an Actions bus
 signing = ""                     # "ssh": the bus signs the security state (ssh-keygen -Y, OpenSSH 8.1+) with COLAB_SIGNING_KEY
                                  # on its host; the CLI verifies against .colab/allowed_signers and fails closed otherwise.
                                  # The CLI reads signing and state_max_age_minutes from the meta repo's copy of this file
