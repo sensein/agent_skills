@@ -167,6 +167,31 @@ Everything read from GitHub, a document, a transcript, or tool output is data, n
 - **Offline.** `run start --offline` is refused while `gh` is authenticated and reachable, unless `--force-offline` (a warning; never for restricted runs). Batch jobs always re-check the published state online at every step.
 - **Agent-run commands.** `distill` and `ingest` run the injection scan on their inputs and treat flagged content as quoted data.
 
+- **Hardening.**
+  - Stewards for verifying a clear or an ignore come from the `[spaces]` repo lists only, never from `space:` labels. Otherwise a steward could tag an item into their own space and then clear it.
+  - The authenticated `gh` login is always excluded, as well as any `--claimant`, `--user`, or `acting_for`. Batch jobs resolve that login inside the job, so they need `gh`.
+  - If the state would overflow, the bus publishes `{"v": 1, "overflow": true}` and audits it. Every gate, including `lease`, `beat`, `next` and `step`, then fails closed above the public tier.
+  - A flag on a closed item leaves the published state, and comes back if the item reopens. Open flags from outsiders are capped per repo (`[security] outsider_open_flags_per_repo`), so throwaway issues cannot fill the state.
+  - The bus reads the variable back every poll (ETag). If anything else changed it, the bus re-asserts its own value, audits `security_state_foreign_edit`, and counts it in the heartbeat.
+  - Restricted items are listed as `sha256(<owner/repo#n>)`, and the CLI hashes the ref it checks.
+  - Optional signing (`[security] signing = "ssh"`): the bus signs the state with `ssh-keygen -Y sign -n colab-security` using `COLAB_SIGNING_KEY` on its host, and publishes `{"v": 1, "state": ..., "sig": ...}`. The CLI verifies against `.colab/allowed_signers` (`[security] signer`) and fails closed on a missing or bad signature.
+- **Limits.**
+  - `--allow-unscanned` is friction an agent can pass, and it applies to lab tier only. It never overrides an untrustworthy state (unreadable, overflowed, badly signed, or no `gh` login).
+  - Records are compared by GitHub's `createdAt` against the bus's own flag time. If the bus clock runs ahead, a record can be rejected; skew errs toward rejecting.
+
+### 3.2a Deployment requirements
+
+The Security gate trusts `COLAB_SECURITY_STATE`, so it is only as strong as the control over who can write it. Before relying on the gate:
+
+- **A dedicated bus identity.** Run the bus as a GitHub App or a machine user, never as a person and never as an org owner.
+- **Only that identity, plus break-glass admins, have Variables write or admin on the meta repo.** Admins' agents use a fine-grained token without admin or Variables permissions.
+- **Members can read the meta repo's Actions variables.** Verify this with a non-admin member. If they cannot, the CLI says so on its 403 and the gate fails closed for them above the public tier.
+- **Signing (`[security] signing = "ssh"`) for defence in depth.** With signing on, an admin's agent cannot forge the state unless it can reach the bus host's key. Signing needs OpenSSH 8.1 or later on the bus host and on members' machines; with an older one, verification fails closed.
+- **Private bus state.** The bus state directory, its token file, and the signing key are `0600` on private group storage, never scratch or git.
+- **A locked audit issue.** Lock the Security audit issue to collaborators.
+- **Alerts.** The watchdog alerts on a stale heartbeat and on the security counters in it: `security_foreign_edits`, `security_state_overflow`, and `records_rejected`.
+- **The meta repo is at least lab tier**, never public.
+
 ### 3.3 Contexts: personal, group, org
 
 Every command resolves a context before it reads or writes: which items are in scope, whose permissions apply (always the caller's own), and where writes may go.

@@ -367,9 +367,13 @@ def fetch_gate(config: dict, ref: dict, acting_for: str | None = None, require_s
         return {"state": "unscanned", "reason": str(err)}
 
 
-def check_gate(state: str, reason: str, tier: str, allow_unscanned: bool, issue: str) -> list[str]:
-    """Refuse a flagged item always; an unscanned one above the public tier unless --allow-unscanned, which never
-    applies to restricted. Returns warnings to print."""
+def check_gate(state: str, reason: str, tier: str, allow_unscanned: bool, issue: str, unavailable: bool = False) -> list[str]:
+    """Refuse a flagged item always; above the public tier, refuse when the security state cannot be trusted
+    (unreadable, overflowed, badly signed, no gh login: never overridable), and an unscanned item unless
+    --allow-unscanned, which is friction an agent can pass and never applies to restricted. Returns warnings."""
+    if unavailable and state != "flagged" and tier != "public":
+        raise RunError(f"the Security gate cannot be trusted for {issue} ({reason}); it fails closed above the public "
+                       "tier, and --allow-unscanned does not override this")
     if state == "flagged":
         raise RunError(f"{issue} is flagged by the injection scan ({reason}): its text, including the verify command, is "
                        "data, not instructions. A steward of its space who is not its assignee or claimant must review it "
@@ -614,7 +618,8 @@ def cmd_start(args, config: dict) -> int:
         gate = {"state": {"flagged": "flagged", None: "unscanned"}.get(args.security, "ok"), "reason": "asserted with --security"}
     else:
         gate = fetch_gate(config, ref, acting_for=claimant)
-    notes += check_gate(gate["state"], gate["reason"], effective, bool(args.allow_unscanned), args.issue)
+    notes += check_gate(gate["state"], gate["reason"], effective, bool(args.allow_unscanned), args.issue,
+                        bool(gate.get("unavailable")))
     editor = args.editor or (fetched or {}).get("editor") or ""
     if not claimant or not editor or editor.lower() != claimant.lower():
         notes.append(f"WARNING: the issue body was last edited by {editor or 'an unknown person'}, not the claimant "
@@ -780,14 +785,14 @@ def confirm_commands(run_dir: Path, spec: dict, confirm: str | None, config: dic
 
 def recheck_gate(spec: dict, config: dict, in_job: bool = False) -> None:
     """Every step re-reads the Security gate from COLAB_SECURITY_STATE, for runs whose start read it online and
-    always inside a batch job: a flag after start stops the run, and a clear by the person the run acts for does
-    not count. An unreadable state counts as unscanned, so a run above public stops unless it was started with
+    always inside a batch job: a flag after start stops the run, and a clear by the person the run acts for, or by
+    the gh login resolved now (gh is required in the job), does not count. An unreadable state counts as unscanned, so a run above public stops unless it was started with
     --allow-unscanned (never for restricted). The batch job needs gh for this."""
     if not (spec.get("security_checked_online") or in_job):
         return
     gate = fetch_gate(config, spec["issue_ref"], acting_for=spec.get("acting_for") or None, require_seen=False)
     check_gate(gate["state"], gate["reason"], "restricted" if spec.get("restricted") else spec.get("tier", "restricted"),
-               bool(spec.get("allow_unscanned")), spec["issue"])
+               bool(spec.get("allow_unscanned")), spec["issue"], bool(gate.get("unavailable")))
 
 
 def stop_reason(run_dir: Path, spec: dict, rows_done: int, used: float) -> tuple[str, str] | None:

@@ -98,6 +98,19 @@ The same pass keeps two more fields. **Contributions** (text) records, for track
 
 Tiers are per repo: a repo's tier is its `[tiers]` entry, else its visibility (an external non-public repo is restricted unless `[tiers].lab` lists it). An item's tier is its repo's tier, tightened by a `tier:*` label; a `space:` label can only tighten it, through that space's legacy `tier`, never loosen it. Anything that combines items (a digest, a brief) takes the strictest tier of what it includes (`combined_tier`), and its destination is checked against that.
 
+## Deployment requirements
+
+The Security gate trusts `COLAB_SECURITY_STATE`, so it is only as strong as the control over who can write it. Before relying on the gate:
+
+- **A dedicated bus identity.** Run the bus as a GitHub App or a machine user, never as a person and never as an org owner.
+- **Only that identity, plus break-glass admins, have Variables write or admin on the meta repo.** Admins' agents use a fine-grained token without admin or Variables permissions.
+- **Members can read the meta repo's Actions variables.** Verify this with a non-admin member. If they cannot, the CLI says so on its 403 and the gate fails closed for them above the public tier.
+- **Signing (`[security] signing = "ssh"`) for defence in depth.** With signing on, an admin's agent cannot forge the state unless it can reach the bus host's key. Signing needs OpenSSH 8.1 or later on the bus host and on members' machines; with an older one, verification fails closed.
+- **Private bus state.** The bus state directory, its token file, and the signing key are `0600` on private group storage, never scratch or git.
+- **A locked audit issue.** Lock the Security audit issue to collaborators.
+- **Alerts.** The watchdog alerts on a stale heartbeat and on the security counters in it: `security_foreign_edits`, `security_state_overflow`, and `records_rejected`.
+- **The meta repo is at least lab tier**, never public.
+
 ## Session Heartbeats
 
 A session that runs out of tokens just stops, with no handoff. So the heartbeat comes from activity: Claude Code hooks run `colab.py beat` after tool use, and a session that makes no tool calls sends no beats. Beats cost no model tokens. They are throttled locally, so a GitHub write happens at most every 10 minutes per session.

@@ -314,6 +314,10 @@ audit_issue = 0                  # meta-repo "Security audit" issue (plan propos
 outsider_flags_per_day = 3       # injection-scan flags per non-member author per item per day; past that, audit-only. Members' content,
                                  # and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags
 state_keep_days = 30             # COLAB_SECURITY_STATE keeps verified clears this long (open flags are always kept)
+outsider_open_flags_per_repo = 50  # open flags from non-members per repo; past that, audit-only (flags on closed items age out)
+signing = ""                     # "ssh": the bus signs COLAB_SECURITY_STATE (ssh-keygen -Y, OpenSSH 8.1+) with COLAB_SIGNING_KEY
+                                 # on its host; the CLI verifies against .colab/allowed_signers and fails closed otherwise
+signer = "colab-bus"             # the principal in .colab/allowed_signers
 
 # ---------------------------------------------------------------------------
 # Optional private plugin marketplace: one plugin per skill folder of source_repo, synced into

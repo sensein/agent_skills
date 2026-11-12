@@ -1,5 +1,7 @@
 # Alerts the lab when the colab-bus heartbeat goes stale (e.g. ORCD maintenance,
-# a long queue wait). Lives in the private meta repo.
+# a long queue wait), or when it reports a security problem: someone else edited
+# COLAB_SECURITY_STATE, the state overflowed, or audit records were rejected.
+# Lives in the private meta repo.
 # Needs: repo variable COLAB_BUS_HEARTBEAT (written by the bus); optional variable
 # COLAB_STALE_MINUTES (default 30); optional secret SLACK_WEBHOOK_URL. Without the
 # secret it opens an issue instead.
@@ -30,9 +32,18 @@ jobs:
               seen = dt.datetime.fromisoformat(at) if at else None
           except (ValueError, TypeError, AttributeError):
               seen = None
+          try:
+              beat = json.loads(os.environ.get("HEARTBEAT") or "{}")
+          except ValueError:
+              beat = {}
           stale = seen is None or dt.datetime.now(dt.timezone.utc) - seen > dt.timedelta(minutes=int(os.environ["STALE_MINUTES"]))
           last = seen.isoformat() if seen else "never"
-          msg = f"colab-bus heartbeat is stale (last: {last}). Is the Slurm job queued, or is ORCD down?"
+          security = [f"{k}={beat[k]}" for k in ("security_foreign_edits", "security_state_overflow", "records_rejected")
+                      if beat.get(k)]
+          msg = (f"colab-bus heartbeat is stale (last: {last}). Is the Slurm job queued, or is ORCD down?" if stale else
+                 "colab-bus reports a security problem: " + ", ".join(security) +
+                 ". Check the bus audit log and who can write the meta repo's Actions variables.")
+          stale = stale or bool(security)
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"stale={'true' if stale else 'false'}\n")
           with open("alert.txt", "w") as fh:

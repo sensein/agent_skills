@@ -117,12 +117,12 @@ def batch_env(root: Path, run_id: str, batch: bool = True, name: str | None = No
     scontrol = bin_dir / "scontrol"
     scontrol.write_text(f"#!/bin/sh\necho 'JobId=777 JobName=x BatchFlag={1 if batch else 0} Command=/x'\n")
     scontrol.chmod(0o755)
-    # Batch jobs re-check the Security gate online: a stand-in gh serves an empty COLAB_SECURITY_STATE (nothing flagged)
-    # and fails every other call, like an unauthenticated gh would.
+    # Batch jobs re-check the Security gate online: a stand-in gh serves COLAB_SECURITY_STATE and the job's login,
+    # and fails every other call.
     gh = bin_dir / "gh"
     state = json.dumps({"value": json.dumps({"v": 1, "seen": {}, "flags": flags or {}, "clears": {}, "ignored": {}})})
     gh.write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '" + state + "' ;;\n"
-                  "  *) exit 1 ;;\nesac\n")
+                  "  user) echo '{\"login\": \"jobuser\"}' ;;\n  *) exit 1 ;;\nesac\n")
     gh.chmod(0o755)
     return dict(os.environ, SLURM_JOB_ID="777", SLURM_JOB_NAME=name or f"colab-run-{run_id}",
                 PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}")

@@ -347,6 +347,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from colab import (CLEAR_MARKER, CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
+                   OUTSIDER_OPEN_FLAGS_PER_REPO, SECURITY_SIG_NAMESPACE, hashed_ref,
                    all_stewards, cap_text, claimants_from, combined_tier, involved_by, item_stewards, declared_tiers, format_contributions,  # noqa: E402
                    injection_scan, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces)
 
@@ -1046,6 +1047,25 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
 
     sec_cfg = config.get("security") or {}
     outsider_limit = int(sec_cfg.get("outsider_flags_per_day", OUTSIDER_FLAGS_PER_DAY))
+    outsider_repo_cap = int(sec_cfg.get("outsider_open_flags_per_repo", OUTSIDER_OPEN_FLAGS_PER_REPO))
+    closed_flags = state.setdefault("security_closed", {})  # flags on closed items: out of the published state
+
+    def tier_for(item: dict | None, repo: str) -> str:
+        labels = [lab["name"] if isinstance(lab, dict) else lab for lab in (item or {}).get("labels", [])]
+        return tier_of(visibility.get(repo), labels, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)),
+                       is_external(repo), repo in opt_in)
+
+    def track_open_state(repo: str, item: dict) -> None:
+        """A closed item's flag leaves the published state (so throwaway issues age out); reopening restores it."""
+        key = f"{repo}#{item.get('number')}"
+        if item.get("state") == "closed" and key in flagged:
+            closed_flags[key] = flagged.pop(key)
+            _append(state_dir / "audit.jsonl", {"security_flag_closed": key, "at": now()})
+        elif item.get("state") != "closed" and key in closed_flags:
+            flagged[key] = closed_flags.pop(key)
+            _append(state_dir / "audit.jsonl", {"security_flag_reopened": key, "at": now()})
+        while len(closed_flags) > SEEN_CAP:
+            del closed_flags[next(iter(closed_flags))]
     outsider_counts = state.setdefault("outsider_flags", {})
     marked = state.setdefault("security_unreviewed", {})
     verified = state.setdefault("security_verified", {"clears": {}, "ignored": {}})  # audit records the bus accepted
@@ -1075,8 +1095,8 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         if not isinstance(issue, dict):
             return None
         key = repo_key(repo_full, org)
-        labels = [lab["name"] if isinstance(lab, dict) else lab for lab in issue.get("labels", [])]
-        stewards = item_stewards(config, desired_spaces(key, labels, member_of))
+        # Stewards come from the config's repo lists only: a space: label could put an item in a steward's own space.
+        stewards = item_stewards(config, member_of.get(key, []))
         assignees = {str(a.get("login") or "").lower() for a in issue.get("assignees") or []}
         return stewards, assignees, claimants_from(comments)
 
@@ -1185,7 +1205,16 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         mem = member_set()
         outsiders = authors - mem if mem is not None else set()  # members unreadable: everyone counts as a member
         claimed = ref in hot or bool((item or {}).get("assignees"))
-        if authors and outsiders == authors and not claimed:
+        outsider_only = bool(authors) and outsiders == authors
+        if outsider_only and not claimed and sum(1 for k, v in flagged.items()
+                                                 if v.get("outsider") and k.rpartition("#")[0] == repo) >= outsider_repo_cap:
+            # Outsiders cannot fill COLAB_SECURITY_STATE with throwaway issues: past the cap the hit is audit-only.
+            stats["flags_suppressed"] = stats.get("flags_suppressed", 0) + 1
+            _append(state_dir / "audit.jsonl", {"security_flag_suppressed": key, "where": where, "authors": sorted(authors),
+                                                "why": "outsider open-flag cap for this repo", "reason": found["reason"],
+                                                "spans": found["spans"][:5], "at": now()})
+            return
+        if outsider_only and not claimed:
             # Only non-members wrote it, on an item nobody is working on: an ignored author never flags, and each
             # outsider flags each item at most outsider_flags_per_day times a day; past that the hit is audit-only.
             # Members' content, and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags.
@@ -1210,7 +1239,10 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             item_id = project.flag(node_id, (contrib.get(key) or {}).get("project_item") or (flagged.get(key) or {}).get("project_item"))
         flagged.pop(key, None)
         flagged[key] = {"flagged_at": now().replace("+00:00", "Z"), "where": where, "reason": found["reason"], "ref": ref,
-                        "node_id": node_id, "project_item": item_id}
+                        "node_id": node_id, "project_item": item_id, "outsider": outsider_only and not claimed,
+                        "restricted": tier_for(item, repo) == "restricted"}
+        if (item or {}).get("state") == "closed":  # a hit on a closed item waits out of the published state
+            closed_flags[key] = flagged.pop(key)
         _append(state_dir / "audit.jsonl", {"security_flagged": key, "where": where, "reason": found["reason"],
                                             "authors": sorted(authors), "spans": found["spans"][:5], "truncated": found.get("truncated", False),
                                             "project": bool(item_id), "at": now()})
@@ -1362,6 +1394,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
                                        bool(base) and (item.get("created_at") or "") >= base)
             scan_text_for(repo, item.get("number"), "body", f"{item.get('title') or ''}\n{item.get('body') or ''}", item, on_board,
                           {(item.get("user") or {}).get("login")})
+            track_open_state(repo, item)
         # Comments, PR review bodies, and inline review comments: each one, and per item their concatenation
         # (so text split across several comments is scanned whole too).
         texts: list[tuple[int | None, str, str]] = []
@@ -1470,6 +1503,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
 
 SECURITY_VAR = "COLAB_SECURITY_STATE"
 SECURITY_VAR_LIMIT = 45000  # bytes; GitHub caps a variable at 48 KB
+SIGNATURE_ROOM = 1500  # bytes kept free for the ssh signature and the wrapper
 
 
 def _categories(reason: str) -> str:
@@ -1477,25 +1511,34 @@ def _categories(reason: str) -> str:
     return m.group(1).replace(" ", "") if m else ("model" if "model:" in (reason or "") else "")
 
 
-def security_state_value(config: dict, state: dict, now_t: datetime | None = None) -> tuple[str, int]:
-    """The compact COLAB_SECURITY_STATE JSON and how many cleared entries were dropped to fit.
+def security_state_value(config: dict, state: dict, now_t: datetime | None = None, sign=None) -> tuple[str, int, bool]:
+    """(the COLAB_SECURITY_STATE value, cleared entries dropped to fit, overflowed).
 
-    flags: every item the bus flagged (ref -> flag time, rule categories); clears and ignored: the audit records the
-    bus verified (steward login, comment id, time); seen: each repo's cursor (everything updated up to it was
-    scanned). Cleared pairs older than `[security] state_keep_days` (default 30) are pruned; if it would still pass
-    the limit, the oldest clears go first and open flags are always kept."""
+    flags: every open item the bus flagged (ref -> flag time, rule categories; restricted items by hashed_ref);
+    clears and ignored: the audit records the bus verified (steward login, comment id, time); seen: each repo's
+    cursor. Cleared pairs older than `[security] state_keep_days` (default 30) are pruned; past the limit the oldest
+    clears go first, and if open flags alone do not fit, the value is {"v": 1, "overflow": true, "at": ...}, which
+    every gate treats as untrustworthy. With `sign` (signing on), the value is {"v": 1, "state": <json>, "sig": ...}."""
     org = config["org"]["name"]
     now_t = now_t or datetime.now(timezone.utc)
     keep_days = float((config.get("security") or {}).get("state_keep_days", 30))
     cutoff = (now_t.timestamp() - keep_days * 86400)
     verified = state.get("security_verified") or {"clears": {}, "ignored": {}}
+    limit = SECURITY_VAR_LIMIT - (SIGNATURE_ROOM if sign else 0)
 
     def ref_of(key: str) -> str:
         repo, _, number = key.rpartition("#")
         return f"{repo_ref(repo, org)}#{number}".lower()
-    flags = {ref_of(k): {"at": v.get("flagged_at", ""), "cat": _categories(v.get("reason", ""))}
-             for k, v in (state.get("security") or {}).items() if v.get("flagged_at")}
-    clears = {r: c for r, c in (verified.get("clears") or {}).items() if r in flags and c["at"] > flags[r]["at"]}
+    flags, names = {}, {}
+    for k, v in (state.get("security") or {}).items():
+        if not v.get("flagged_at"):
+            continue
+        ref = ref_of(k)
+        name = hashed_ref(ref) if v.get("restricted") else ref
+        names[ref] = name
+        flags[name] = {"at": v["flagged_at"], "cat": _categories(v.get("reason", ""))}
+    clears = {names[r]: c for r, c in (verified.get("clears") or {}).items()
+              if r in names and c["at"] > flags[names[r]]["at"]}
 
     def age(at: str) -> float:
         try:
@@ -1508,30 +1551,73 @@ def security_state_value(config: dict, state: dict, now_t: datetime | None = Non
     body = {"v": 1, "seen": dict(sorted((state.get("cursors") or {}).items())), "flags": flags, "clears": clears,
             "ignored": verified.get("ignored") or {}}
     dropped = 0
-    while len(json.dumps(body, separators=(",", ":")).encode()) > SECURITY_VAR_LIMIT and clears:
+    while len(json.dumps(body, separators=(",", ":")).encode()) > limit and clears:
         oldest = min(clears, key=lambda r: clears[r]["at"])
         clears.pop(oldest)
         flags.pop(oldest)
         dropped += 1
-    return json.dumps(body, separators=(",", ":"), sort_keys=True), dropped
+    value = json.dumps(body, separators=(",", ":"), sort_keys=True)
+    if len(value.encode()) > limit:
+        return json.dumps({"v": 1, "overflow": True, "at": now_t.isoformat(timespec="seconds")}, separators=(",", ":")), dropped, True
+    if sign:
+        return json.dumps({"v": 1, "state": value, "sig": sign(value)}, separators=(",", ":")), dropped, False
+    return value, dropped, False
+
+
+def ssh_sign(key_path: str, data: str) -> str:
+    """`ssh-keygen -Y sign -n colab-security` over the state, with the bus host's key. Raises on failure."""
+    proc = subprocess.run(["ssh-keygen", "-Y", "sign", "-f", key_path, "-n", SECURITY_SIG_NAMESPACE], input=data,
+                          capture_output=True, text=True, timeout=60)
+    if proc.returncode != 0 or "BEGIN SSH SIGNATURE" not in proc.stdout:
+        raise RuntimeError(f"ssh-keygen -Y sign failed: {(proc.stderr or '').strip()[:200]}")
+    return proc.stdout
 
 
 def publish_security_state(gh, config: dict, state: dict, state_dir: Path, stats: dict) -> None:
-    """Write COLAB_SECURITY_STATE on the meta repo when it changed: the trust anchor the CLI decides from. Repo
+    """Keep COLAB_SECURITY_STATE on the meta repo equal to the bus's state: the trust anchor the CLI reads. Repo
     variables need the Variables permission, which members' agents do not have; the Project's Security field is
-    display only. Never raises."""
+    display only. Each poll it reads the variable back (ETag) and re-asserts its own value when anything else
+    changed it (`security_state_foreign_edit`, counted in the heartbeat). Never raises."""
     if not (config.get("bus") or {}).get("injection_scan", True):
         return
-    value, dropped = security_state_value(config, state)
+    sec = config.get("security") or {}
+    sign = None
+    if str(sec.get("signing") or "").lower() == "ssh":
+        key = os.environ.get("COLAB_SIGNING_KEY", "")
+        if not key or not Path(key).is_file():
+            stats["errors"] = stats.get("errors", 0) + 1
+            _append(state_dir / "audit.jsonl", {"security_state_unsigned": "COLAB_SIGNING_KEY is not set or missing", "at": now()})
+            return
+        sign = lambda data: ssh_sign(key, data)  # noqa: E731
+    try:
+        value, dropped, overflow = security_state_value(config, state, sign=sign)
+    except (OSError, RuntimeError, subprocess.SubprocessError) as err:
+        stats["errors"] = stats.get("errors", 0) + 1
+        _append(state_dir / "audit.jsonl", {"security_state_unsigned": str(err)[:300], "at": now()})
+        return
     if dropped:
         _append(state_dir / "audit.jsonl", {"security_state_pruned": dropped, "at": now()})
-    if len(value.encode()) > SECURITY_VAR_LIMIT:
+    if overflow:
+        stats["security_state_overflow"] = True
         stats["errors"] = stats.get("errors", 0) + 1
-        _append(state_dir / "audit.jsonl", {"security_state_overflow": len(value.encode()), "at": now()})
-    if state.get("security_published") == value:
-        return
+        _append(state_dir / "audit.jsonl", {"security_state_overflow": True, "open_flags": len(state.get("security") or {}),
+                                            "at": now()})
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     path = f"/repos/{org}/{meta}/actions/variables/{SECURITY_VAR}"
+    published = state.get("security_published")
+    try:
+        current = gh.get(path, cache=True)
+    except (urllib.error.URLError, OSError) as err:
+        current = None
+        _append(state_dir / "audit.jsonl", {"security_state_read_failed": str(err)[:300], "at": now()})
+    live = current.get("value") if isinstance(current, dict) else None
+    if published is not None and live is not None and live != published:
+        stats["security_foreign_edits"] = stats.get("security_foreign_edits", 0) + 1
+        _append(state_dir / "audit.jsonl", {"security_state_foreign_edit": True, "at": now()})
+    if live == value and published == value:
+        return
+    if overflow and published is not None and json.loads(published).get("overflow") and live == published:
+        return  # still overflowing: keep the first marker rather than rewriting its time every poll
     try:
         try:
             gh.send("PATCH", path, {"name": SECURITY_VAR, "value": value})

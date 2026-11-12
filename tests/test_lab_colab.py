@@ -334,6 +334,8 @@ class FakeGH:
 
     def get(self, path, cache=False, **kw):
         name = path.rsplit("/", 1)[-1]
+        if "/actions/variables/" in path:
+            return {"name": name, "value": self.variables[name]} if name in self.variables else None
         if path.count("/") == 3 and name in self.visibility:
             return {"visibility": self.visibility[name]}
         if "/issues?" in path and "/proj/" in path:
@@ -343,6 +345,7 @@ class FakeGH:
     def send(self, method, path, body):
         if "/actions/variables" in path:
             self.variables[body["name"]] = body["value"]
+            self.variable_writes = getattr(self, "variable_writes", 0) + 1
             return {}
         self.sent.append((method, path, body))
         return {}
@@ -2168,7 +2171,8 @@ class FakeGhJson:
     org membership, and mutations (recorded in order)."""
 
     def __init__(self, pages=None, comments=(), members=("a", "b"), fail_post=False, state="default",
-                 updated="2026-11-10T12:00:00Z"):
+                 updated="2026-11-10T12:00:00Z", login="caller", visibility="private"):
+        self.login, self.visibility = login, visibility
         self.pages = pages if pages is not None else sec_reply()
         self.comments, self.members, self.fail_post, self.updated = list(comments), set(members), fail_post, updated
         self.state = anchor(flags=FLAG) if state == "default" else state
@@ -2177,6 +2181,10 @@ class FakeGhJson:
     def __call__(self, args):
         self.calls.append(args)
         text = " ".join(args)
+        if args == ["api", "user"]:
+            return {"login": self.login} if self.login else None
+        if args == ["api", "repos/sensein/proj"] or args == ["api", "repos/pi-lab/tool"]:
+            return {"visibility": self.visibility}
         if "actions/variables/COLAB_SECURITY_STATE" in text:
             return None if self.state is None else {"name": "COLAB_SECURITY_STATE", "value": json.dumps(self.state)}
         if "organization(login: $org) { projectV2(number: $n) { id } }" in text:
@@ -2312,15 +2320,21 @@ class SecurityCommandTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "items.json"
             path.write_text(json.dumps(items))
-            for st, want in ((state, [(2, "ok"), (3, "ok")]), (None, [(1, "unscanned"), (2, "unscanned"), (3, "unscanned")])):
-                def fake(args, st=st):
+            # an unreadable state fails closed above public (re-review 3): private items vanish, public ones are marked
+            for st, vis, want in ((state, "private", [(2, "ok"), (3, "ok")]), (None, "private", []),
+                                  (None, "public", [(1, "unscanned"), (2, "unscanned"), (3, "unscanned")])):
+                def fake(args, st=st, vis=vis):
                     if args == ["api", "user"]:
                         return {"login": "me"}
+                    if args == ["api", "repos/sensein/proj"]:
+                        return {"visibility": vis}
                     if "COLAB_SECURITY_STATE" in " ".join(args):
                         return None if st is None else {"value": json.dumps(st)}
                     return []
                 out = io.StringIO()
-                with mock.patch.object(colab, "_gh_json", side_effect=fake), contextlib.redirect_stdout(out):
+                with mock.patch.object(colab, "_gh_json", side_effect=fake), \
+                        mock.patch.object(colab, "_gh_api_strict", side_effect=lambda path, f=fake: f(["api", path])), \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
                     self.assertEqual(colab.main(["next", "--items", str(path), "--me"]), 0)
                 self.assertEqual([(c["number"], c["security"]) for c in json.loads(out.getvalue())], want)
 
@@ -2405,8 +2419,9 @@ class SecurityAnchorBusTests(unittest.TestCase):
         self.assertTrue(any(a.get("security_clear_verified") == "sensein/proj#5" for a in audit))
         self.assertEqual(colab.state_decision(pub, "sensein/proj#5")[0], "ok")
         again = AuditGH()
+        again.variables = dict(gh.variables)  # what GitHub holds now
         self.poll(again, state=state)
-        self.assertEqual(again.variables, {})  # unchanged: not rewritten
+        self.assertEqual(getattr(again, "variable_writes", 0), 0)  # unchanged: not rewritten
         self.assertEqual(state["audit_cursor"], "E1")  # records are read once
 
     def test_forged_or_invalid_records_never_count(self) -> None:
@@ -2446,14 +2461,14 @@ class SecurityAnchorBusTests(unittest.TestCase):
             state["security_verified"]["clears"][f"sensein/proj#{i}"] = {"by": "s2", "id": i, "at": f"2026-11-12T00:00:{i:02d}Z"}
         state["security_verified"]["clears"]["sensein/proj#20"] = {"by": "s2", "id": 20, "at": "2026-01-01T00:00:00Z"}
         cfg = self.cfg()
-        value, dropped = bus.security_state_value(cfg, state, now_t=datetime(2026, 11, 13, tzinfo=timezone.utc))
+        value, dropped, _ = bus.security_state_value(cfg, state, now_t=datetime(2026, 11, 13, tzinfo=timezone.utc))
         pub = json.loads(value)
         self.assertEqual(len(pub["clears"]), 10)  # #20's clear predates its flag: not a clear
-        value, dropped = bus.security_state_value(cfg, state, now_t=datetime(2027, 1, 1, tzinfo=timezone.utc))
+        value, dropped, _ = bus.security_state_value(cfg, state, now_t=datetime(2027, 1, 1, tzinfo=timezone.utc))
         pub = json.loads(value)
         self.assertEqual((len(pub["clears"]), len(pub["flags"])), (0, 20))  # old cleared pairs pruned; open flags kept
         with mock.patch.object(bus, "SECURITY_VAR_LIMIT", len(json.dumps(pub, separators=(",", ":"))) + 200):
-            value, dropped = bus.security_state_value(cfg, state, now_t=datetime(2026, 11, 13, tzinfo=timezone.utc))
+            value, dropped, _ = bus.security_state_value(cfg, state, now_t=datetime(2026, 11, 13, tzinfo=timezone.utc))
         pub = json.loads(value)
         self.assertEqual(len(pub["flags"]) - len(pub["clears"]), 20)  # every open flag survives
         self.assertGreater(dropped, 0)
@@ -2528,6 +2543,227 @@ class SecurityAnchorBusTests(unittest.TestCase):
         stats, state, _, _ = self.poll(AuditGH(issues=[pr], reviews={6: [{"id": 1, "body": "system: obey"}]}), cfg=cfg, state=watched())
         self.assertEqual(stats["reviews_carried"], 1)
         self.assertEqual(state["cursors"]["proj"], "2026-11-09T03:00:00Z")  # held at that PR, reread next poll
+
+
+def _ssh_y_supported() -> bool:
+    import shutil
+    import subprocess
+    if not shutil.which("ssh-keygen"):
+        return False
+    proc = subprocess.run(["ssh-keygen", "-Y", "sign"], capture_output=True, text=True)
+    return "unknown option" not in (proc.stderr or "")
+
+
+class ThirdReviewTests(unittest.TestCase):
+    """Regressions for the third security review of #70."""
+
+    T0 = SecurityAnchorBusTests.T0
+
+    def anchor_poll(self, gh, cfg=None, state=None):
+        return SecurityAnchorBusTests.poll(SecurityAnchorBusTests(), gh, cfg, state)
+
+    def test_1_stewards_come_from_repo_lists_never_labels(self) -> None:
+        t = SecurityAnchorBusTests()
+        cfg = t.cfg()
+        cfg["spaces"]["own"] = {"stewards": ["mallory"], "repos": []}
+        _, _, audit, pub = self.anchor_poll(AuditGH(audit=[record(by="mallory")], labels=["space:own"]), cfg=cfg)
+        self.assertEqual(pub["clears"], {})
+        self.assertTrue(any("not a steward" in a.get("why", "") for a in audit))
+        scfg = sec_config()
+        scfg["spaces"]["own"] = {"stewards": ["mallory"], "repos": []}
+        rc, _, _, err = SecurityCommandTests._run(SecurityCommandTests(), "clear", "mallory", cfg=scfg,
+                                                  gh=FakeGhJson(pages=sec_reply(labels=["space:own"])))
+        self.assertEqual(rc, 2)
+        self.assertIn("not a steward", err)
+
+    def test_2_the_gh_login_never_counts_as_a_second_person(self) -> None:
+        item = "sensein/proj#3"
+        cleared = anchor(flags=FLAG, clears={item: {"by": "s2", "id": 7, "at": "2026-11-10T01:00:00Z"}})
+        g = colab.gate_status(sec_config(), item, FakeGhJson(state=cleared, login="S2"), acting_for="alice")
+        self.assertEqual(g["state"], "flagged")  # passing someone else as --claimant does not help
+        g = colab.gate_status(sec_config(), item, FakeGhJson(state=cleared, login=None))
+        self.assertEqual((g["state"], g["unavailable"]), ("unscanned", True))  # no login: fail closed
+        self.assertIn("gh is required", g["reason"])
+
+    def test_2_batch_steps_resolve_the_login_in_the_job(self) -> None:
+        run = _load("colab_run", "scripts/colab_run.py")
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = root / "src"
+            src.mkdir()
+            (src / "verify.py").write_text("print(1)\n")
+            body = root / "i.md"
+            body.write_text("### Hypothesis\n\nh\n")
+            out = subprocess.run([sys.executable, str(SKILL / "scripts" / "colab_run.py"), "start", "sensein/lab#7", "--offline",
+                                  "--security", "unreviewed", "--force-offline", "--body-file", str(body), "--root", str(root / "runs"),
+                                  "--source", str(src), "--verify", "python3 verify.py", "--iterations", "2", "--wall", "1h",
+                                  "--claimant", "alice", "--editor", "alice", "--restricted"], capture_output=True, text=True)
+            r = json.loads(out.stdout)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = {"v": 1, "seen": {}, "ignored": {}, "flags": {colab.hashed_ref("sensein/lab#7"): {"at": self.T0, "cat": "x"}},
+                     "clears": {colab.hashed_ref("sensein/lab#7"): {"by": "jobuser", "id": 1, "at": "2026-11-10T01:00:00Z"}}}
+            (bin_dir / "gh").write_text("#!/bin/sh\ncase \"$2\" in\n  */actions/variables/COLAB_SECURITY_STATE) echo '"
+                                        + json.dumps({"value": json.dumps(state)}) + "' ;;\n  user) echo '{\"login\": \"jobuser\"}' ;;\n"
+                                        "  *) exit 1 ;;\nesac\n")
+            (bin_dir / "gh").chmod(0o755)
+            (bin_dir / "scontrol").write_text("#!/bin/sh\necho 'BatchFlag=1'\n")
+            (bin_dir / "scontrol").chmod(0o755)
+            import os
+            env = dict(os.environ, SLURM_JOB_ID="1", SLURM_JOB_NAME=f"colab-run-{r['run_id']}", PATH=f"{bin_dir}:{os.environ['PATH']}")
+            proc = subprocess.run([sys.executable, str(SKILL / "scripts" / "colab_run.py"), "step", "--run-dir", r["run_dir"],
+                                   "--in-job", "--confirm-verify", r["commands"]["sha256"]], capture_output=True, text=True, env=env)
+            self.assertEqual(proc.returncode, 2, proc.stderr)
+            self.assertIn("the person this acts for", proc.stderr)  # the job's own login cleared it: no self-clear
+        del run
+
+    def test_3_overflow_fails_closed_everywhere(self) -> None:
+        from unittest import mock
+        state = {"cursors": {}, "security": {f"proj#{i}": {"flagged_at": self.T0, "reason": "rules: hidden"} for i in range(50)}}
+        with mock.patch.object(bus, "SECURITY_VAR_LIMIT", 500):
+            value, _, overflow = bus.security_state_value(project_config(), state)
+        self.assertTrue(overflow)
+        self.assertEqual(json.loads(value)["overflow"], True)
+        over = {"v": 1, "overflow": True, "at": "x"}
+        st, why = colab.load_security_state(sec_config(), FakeGhJson(state=over))
+        self.assertIsNone(st)
+        self.assertIn("overflowed", why)
+        self.assertIn("fail closed", colab.lease_refusal(sec_config(), "sensein/proj#3", gh=FakeGhJson(state=over)))
+        self.assertIsNone(colab.lease_refusal(sec_config(), "sensein/proj#3", gh=FakeGhJson(state=over, visibility="public")))
+        run = _load("colab_run", "scripts/colab_run.py")
+        with self.assertRaises(run.RunError) as ctx:
+            run.check_gate("unscanned", why, "lab", True, "sensein/proj#3", unavailable=True)
+        self.assertIn("does not override", str(ctx.exception))
+        self.assertEqual(run.check_gate("unscanned", why, "public", False, "sensein/proj#3", unavailable=True), [])
+        with tempfile.TemporaryDirectory() as tmp:
+            gh = FakeGH()
+            stats = {"errors": 0}
+            with mock.patch.object(bus, "SECURITY_VAR_LIMIT", 500):
+                bus.publish_security_state(gh, project_config(), state, Path(tmp), stats)
+            audit = (Path(tmp) / "audit.jsonl").read_text()
+        self.assertIn("security_state_overflow", audit)
+        self.assertTrue(stats["security_state_overflow"])
+        self.assertTrue(json.loads(gh.variables["COLAB_SECURITY_STATE"])["overflow"])
+
+    def test_3_closed_items_leave_the_state_and_outsiders_are_capped_per_repo(self) -> None:
+        t = SecurityAnchorBusTests()
+        closed = {**SecurityFlagBusTests.BAD, "number": 5, "node_id": "I_5", "body": "fine", "state": "closed"}
+        _, state, audit, pub = self.anchor_poll(AuditGH(issues=[closed]))
+        self.assertEqual(pub["flags"], {})
+        self.assertIn("proj#5", state["security_closed"])
+        reopened = {**closed, "state": "open", "updated_at": "2026-11-09T05:00:00Z"}
+        state["cursors"]["proj"] = "2026-11-08T00:00:00Z"
+        _, state, _, pub = self.anchor_poll(AuditGH(issues=[reopened]), state=state)
+        self.assertIn("sensein/proj#5", pub["flags"])  # reopening brings the flag back
+        cfg = t.cfg(outsider_open_flags_per_repo=2)
+        bads = [t.bad(n, "zed") for n in range(1, 5)]
+        stats, state, audit, pub = self.anchor_poll(AuditGH(issues=bads), cfg=cfg, state=watched())
+        self.assertEqual(len(pub["flags"]), 2)
+        self.assertTrue(any(a.get("why") == "outsider open-flag cap for this repo" for a in audit))
+
+    def test_4_foreign_edits_are_reasserted_and_counted(self) -> None:
+        gh = AuditGH()
+        _, state, _, pub = self.anchor_poll(gh)
+        ours = gh.variables["COLAB_SECURITY_STATE"]
+        tampered = AuditGH()
+        tampered.variables = {"COLAB_SECURITY_STATE": json.dumps({"v": 1, "seen": {}, "flags": {}, "clears": {}, "ignored": {}})}
+        stats, state, audit, _ = self.anchor_poll(tampered, state=state)
+        self.assertEqual(stats["security_foreign_edits"], 1)
+        self.assertTrue(any(a.get("security_state_foreign_edit") for a in audit))
+        self.assertEqual(tampered.variables["COLAB_SECURITY_STATE"], ours)  # our state is back
+
+    def test_5_restricted_items_are_listed_by_hash(self) -> None:
+        state = {"cursors": {}, "security": {"proj#9": {"flagged_at": self.T0, "reason": "rules: override", "restricted": True}}}
+        pub = json.loads(bus.security_state_value(project_config(), state)[0])
+        self.assertEqual(list(pub["flags"]), [colab.hashed_ref("sensein/proj#9")])
+        self.assertNotIn("proj#9", json.dumps(pub))
+        self.assertEqual(colab.state_decision(pub, "Sensein/Proj#9")[0], "flagged")
+        self.assertEqual(colab.state_decision(pub, "sensein/proj#8")[0], "ok")
+
+    @unittest.skipUnless(_ssh_y_supported(), "ssh-keygen without -Y (OpenSSH < 8.1)")
+    def test_6_signed_state_verifies_and_tampering_fails_closed(self) -> None:
+        import base64
+        import os
+        import subprocess
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            key = Path(tmp) / "k"
+            subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+            signers = "colab-bus " + (Path(tmp) / "k.pub").read_text().split(" ", 2)[0] + " " + \
+                (Path(tmp) / "k.pub").read_text().split(" ", 2)[1] + "\n"
+            cfg = sec_config()
+            cfg["security"]["signing"] = "ssh"
+            state = {"cursors": {}, "security": {"proj#3": {"flagged_at": self.T0, "reason": "rules: override"}}}
+            value, _, _ = bus.security_state_value(cfg, state, sign=lambda d: bus.ssh_sign(str(key), d))
+            wrapped = json.loads(value)
+
+            class Signed(FakeGhJson):
+                def __call__(self, args):
+                    if args[-1].endswith("contents/.colab/allowed_signers"):
+                        return {"content": base64.b64encode(signers.encode()).decode()}
+                    return super().__call__(args)
+            st, why = colab.load_security_state(cfg, Signed(state=wrapped))
+            self.assertEqual((why, colab.state_decision(st, "sensein/proj#3")[0]), ("", "flagged"))
+            forged = {**wrapped, "state": wrapped["state"].replace('"flags":{"sensein/proj#3"', '"flags":{"sensein/proj#0"')}
+            self.assertIn("does not verify", colab.load_security_state(cfg, Signed(state=forged))[1])
+            self.assertIn("not signed", colab.load_security_state(cfg, Signed(state=json.loads(wrapped["state"])))[1])
+            with mock.patch.dict(os.environ, {"COLAB_SIGNING_KEY": ""}):
+                gh, stats = FakeGH(), {"errors": 0}
+                bus.publish_security_state(gh, cfg, state, Path(tmp), stats)
+            self.assertEqual(gh.variables, {})  # signing on, no key: nothing unsigned is published
+            self.assertIn("security_state_unsigned", (Path(tmp) / "audit.jsonl").read_text())
+
+    def test_6_signing_plumbing_with_a_stand_in_ssh_keygen(self) -> None:
+        """Runs everywhere (the cluster's OpenSSH 8.0 has no -Y): checks the arguments, namespace, signer, and
+        that a failed verification fails closed. The real round trip is test_6_signed_state_... above."""
+        import base64
+        import os
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            bin_dir, log = Path(tmp) / "bin", Path(tmp) / "calls.log"
+            bin_dir.mkdir()
+            (bin_dir / "ssh-keygen").write_text(
+                "#!/bin/sh\n" f"echo \"$@\" >> {log}\n" "data=$(cat)\n"
+                "case \"$2\" in\n"
+                "  sign) printf -- '-----BEGIN SSH SIGNATURE-----\\nSIG:%s\\n-----END SSH SIGNATURE-----\\n' \"$(printf %s \"$data\" | cksum | cut -d' ' -f1)\" ;;\n"
+                "  verify) sigfile=$(echo \"$@\" | sed 's/.*-s //'); want=$(printf %s \"$data\" | cksum | cut -d' ' -f1);"
+                " grep -q \"SIG:$want\" \"$sigfile\" ;;\n"
+                "esac\n")
+            (bin_dir / "ssh-keygen").chmod(0o755)
+            cfg = sec_config()
+            cfg["security"]["signing"] = "ssh"
+            state = {"cursors": {}, "security": {"proj#3": {"flagged_at": self.T0, "reason": "rules: override"}}}
+            key = Path(tmp) / "key"
+            key.write_text("k")
+            with mock.patch.dict(os.environ, {"PATH": f"{bin_dir}:{os.environ['PATH']}", "COLAB_SIGNING_KEY": str(key)}):
+                gh, stats = FakeGH(), {"errors": 0}
+                bus.publish_security_state(gh, cfg, state, Path(tmp), stats)
+                wrapped = json.loads(gh.variables["COLAB_SECURITY_STATE"])
+
+                class Signed(FakeGhJson):
+                    def __call__(self, args):
+                        if args[-1].endswith("contents/.colab/allowed_signers"):
+                            return {"content": base64.b64encode(b"colab-bus ssh-ed25519 AAAA\n").decode()}
+                        return super().__call__(args)
+                st, why = colab.load_security_state(cfg, Signed(state=wrapped))
+                self.assertEqual((why, colab.state_decision(st, "sensein/proj#3")[0]), ("", "flagged"))
+                forged = {**wrapped, "state": wrapped["state"].replace("override", "hidden")}
+                self.assertIn("does not verify", colab.load_security_state(cfg, Signed(state=forged))[1])
+            calls = log.read_text()
+        self.assertIn("-Y sign -f " + str(key) + " -n colab-security", calls)
+        self.assertIn("-I colab-bus -n colab-security", calls)
+
+    def test_7_a_403_says_members_need_variable_read_access(self) -> None:
+        class Forbidden(FakeGhJson):
+            def __call__(self, args):
+                if "COLAB_SECURITY_STATE" in " ".join(args):
+                    raise colab.GhForbidden("403")
+                return super().__call__(args)
+        st, why = colab.load_security_state(sec_config(), Forbidden())
+        self.assertIsNone(st)
+        self.assertIn("Members need read access", why)
+        self.assertIn("fails closed", why)
 
 
 class ContextTests(unittest.TestCase):
@@ -2614,7 +2850,9 @@ class ContextTests(unittest.TestCase):
                 return {"login": "satra"} if args == ["api", "user"] else []
             for flags, want in ((["--me"], [1]), (["--org", "pi-lab"], [2]), (["--org", "sensein"], [1])):
                 out = io.StringIO()
-                with mock.patch.object(colab, "_gh_json", side_effect=fake_json), contextlib.redirect_stdout(out):
+                with mock.patch.object(colab, "_gh_json", side_effect=fake_json), \
+                        mock.patch.object(colab, "_gh_api_strict", return_value={"value": json.dumps(anchor())}), \
+                        contextlib.redirect_stdout(out):
                     self.assertEqual(colab.main(["--config", str(cfg_path), "next", "--items", str(path), *flags]), 0)
                 self.assertEqual([c["number"] for c in json.loads(out.getvalue())], want, flags)
             err = io.StringIO()
