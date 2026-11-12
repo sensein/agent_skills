@@ -5,8 +5,8 @@ By default it runs as a scheduled GitHub Actions workflow in the meta repo (asse
 per run (`--once --app`), signed in as the org's GitHub App: it mints the App's installation token itself from the
 COLAB_APP_ID and COLAB_APP_PRIVATE_KEY secrets (openssl, or the `cryptography` package, signs the JWT), keeps the
 token in memory only, and keeps its own state (cursors, ETags, seen ids, scan digests, security bookkeeping) on
-colab-state as bus/<bus id>/state.json, in the run's single commit; entries about restricted items are sealed there
-with a key derived from the App's private key. A standby (or an org without an App) runs the same code as a light
+colab-state as bus/<bus id>/state.json, in the run's single commit (no item text; restricted entries only under
+sha256 keys), and appends its audit lines to audit/<YYYY-MM>.jsonl there. A standby (or an org without an App) runs the same code as a light
 self-requeuing Slurm job under an operator's login (assets/templates/colab-bus.sbatch). Either way it polls instead
 of receiving webhooks. Stdlib only, Python 3.11+.
 
@@ -56,8 +56,9 @@ items that differ.
   - one envelope per item transition (opened, closed, published), not per edit
 
 State lives in --state-dir (private group storage, not scratch); with --app, in a private temporary folder for the
-run, plus bus/<bus id>/state.json on colab-state. The audit log of an Actions run is not kept: the run's log prints
-only how many lines of each kind it had.
+run, plus bus/<bus id>/state.json on colab-state. An Actions run's audit lines are appended to audit/<YYYY-MM>.jsonl on
+colab-state (kind, item ref hashed when restricted, actor, comment id, time; no spans or reasons), and the run's log
+prints how many lines of each kind it had.
 """
 from __future__ import annotations
 
@@ -395,7 +396,7 @@ def remember(state: dict, env_id: str) -> bool:
     """Record an envelope id; False if already seen. Trims oldest first."""
     seen: list = state.setdefault("seen", [])
     index = state.setdefault("_seen_index", set(seen))
-    if env_id in index:
+    if env_id in index or hashed_key(env_id) in index:  # an Actions bus keeps restricted ids hashed
         return False
     seen.append(env_id)
     index.add(env_id)
@@ -590,10 +591,6 @@ class AppAuth:
     @property
     def login(self) -> str:
         return app_login(self.slug) if self.slug else ""
-
-    def key_material(self) -> bytes:
-        """A fixed secret derived from the private key (never the key itself), for sealing the bus's private state."""
-        return hashlib.sha256(b"colab-bus-state\0" + self._key.strip().encode()).digest()
 
     def mint(self) -> str:
         jwt = app_jwt(self.app_id, self._key, self.clock(), signer=self.signer)
@@ -1201,7 +1198,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             return
         digest = hashlib.sha256(body.encode()).hexdigest()[:16]
         key = f"{repo}#{item.get('number')}"
-        if checked.get(key) == digest:
+        if checked.get(key) == digest or checked.get(hashed_key(key)) == digest:
             return
         checked[key] = digest
         edges, errors = parse_links(body)
@@ -1333,6 +1330,25 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
         for key, rec in flagged.items():
             if ref_of(key) == ref:
                 return key, rec
+        # A restricted flag kept only by hash (taken over, or an Actions bus's saved state): pick it up again by ref,
+        # so it can be cleared and shown like any other.
+        carried = state.get("security_inherited") or {}
+        name = hashed_ref(ref)
+        f = (carried.get("flags") or {}).get(name)
+        if isinstance(f, dict) and f.get("at") and not f.get("closed"):
+            repo_full, _, number = ref.rpartition("#")
+            try:
+                key = f"{repo_key(repo_full, org)}#{number}"
+            except Exception:  # noqa: BLE001 - a malformed ref never stops the poll
+                return None, None
+            rec = {"flagged_at": f["at"], "where": "inherited", "reason": f"rules: {f.get('cat') or 'inherited'}",
+                   "ref": ref, "restricted": True}
+            flagged[key] = rec
+            carried["flags"].pop(name, None)
+            clear = (carried.get("clears") or {}).pop(name, None)
+            if isinstance(clear, dict) and clear.get("at"):
+                verified.setdefault("clears", {}).setdefault(ref, clear)
+            return key, rec
         return None, None
 
     def item_people(ref: str) -> tuple[list[str], set[str], set[str]] | None:
@@ -1534,7 +1550,7 @@ def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, st
             return
         skey = f"{repo}#{number}:{where}"
         digest = hashlib.sha256(text.encode()).hexdigest()[:16]
-        if scanned.get(skey) == digest:
+        if scanned.get(skey) == digest or scanned.get(hashed_key(skey)) == digest:
             return
         scanned.pop(skey, None)
         scanned[skey] = digest
@@ -2110,12 +2126,12 @@ class HoldStore:
 # A workflow runner is thrown away after each run, so an Actions bus keeps its own state (cursors, ETags, seen envelope
 # ids, scan digests, links checks, its security bookkeeping, contribution records) on colab-state as
 # `bus/<bus id>/state.json`, written in the run's single commit. Members can read colab-state, so the file keeps no item
-# text: response caches and texts waiting for the injection hook are dropped (they are rebuilt or rescanned), the
-# published security state is kept only as its hash, and every entry about a restricted item (a restricted repo, or a
-# flag on an item the bus found restricted) goes into one sealed blob: encrypted and authenticated with keys derived
-# from the App's private key (openssl, AES-256-CBC with PBKDF2, then HMAC-SHA256), so only the App can read it back.
-# When it cannot be sealed or unsealed (no openssl, or the key was rotated), those entries are dropped and the bus's
-# restricted flags live on in the published security state, hashed, and are carried from there (as after a takeover).
+# text: response caches and texts waiting for the injection hook are dropped (they are rebuilt or rescanned), flag
+# reasons are reduced to their rule categories, and the published security state is kept only as its hash. Entries
+# about restricted items (a restricted repo, or a flag on an item the bus found restricted) are kept only under
+# sha256 keys with no text: flags and their verified clears as the published security state lists them
+# (`security_inherited`, picked up again by ref when the item is seen or cleared), seen ids, scan digests, and links
+# checks under hashed keys; everything else about them is dropped and rebuilt.
 
 BUS_STATE_CAP = 512 * 1024  # bytes
 BUS_STATE_DROP = ("cache", "hook_pending", "security_published")
@@ -2124,71 +2140,34 @@ BUS_STATE_CAPS = {"seen": 5000, "scanned": 5000, "links_checked": 5000, "display
                   "stale_reported": 500}
 ITEM_SECTIONS = ("scanned", "links_checked", "contributions", "security", "security_closed", "security_suppressed",
                  "security_unreviewed")  # keyed by "<repo key>#<n>[:where]"
-SEAL_ALG = "aes-256-cbc-pbkdf2+hmac-sha256"
+HASHED_SECTIONS = ("scanned", "links_checked")  # restricted keys kept as sha256 (value: a digest, no text)
+AUDIT_FILE_CAP = 1024 * 1024  # bytes per audit/<YYYY-MM>.jsonl on colab-state
+AUDIT_ACTOR_KEYS = ("by", "author", "authors", "user", "login", "from_operator", "operator")
+LOGIN_OR_BOT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\[bot\])?\Z")
+_ITEM_KEY = re.compile(r"^(?P<repo>[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)#(?P<n>\d+)(?::.*)?\Z")
+_ENV_ID = re.compile(r"^(?P<repo>[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?):(?:issue|pull_request|release):(?P<n>[^:\s]+):\S+\Z")
 
 
-class SealError(RuntimeError):
-    pass
+def hashed_key(key: str) -> str:
+    """How a restricted entry's key is kept in an Actions bus's state: never the plain ref."""
+    return "sha256:" + hashlib.sha256(str(key).strip().lower().encode()).hexdigest()
 
 
-def _seal_keys(material: bytes) -> tuple[str, bytes, str]:
-    import hmac
-    return (hmac.new(material, b"colab-bus-state/enc", hashlib.sha256).hexdigest(),
-            hmac.new(material, b"colab-bus-state/mac", hashlib.sha256).digest(),
-            hmac.new(material, b"colab-bus-state/id", hashlib.sha256).hexdigest()[:16])
-
-
-def _openssl_enc(data: bytes, password: str, decrypt: bool) -> bytes:
-    r, w = os.pipe()
-    try:
-        os.write(w, password.encode())
-        os.close(w)
-        w = -1
-        cmd = ["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", "100000", "-pass", f"fd:{r}"] + (["-d"] if decrypt else ["-salt"])
-        proc = subprocess.run(cmd, input=data, capture_output=True, pass_fds=(r,), timeout=60)
-    except (OSError, subprocess.SubprocessError) as err:
-        raise SealError(f"openssl: {err.__class__.__name__}") from None
-    finally:
-        os.close(r)
-        if w >= 0:
-            os.close(w)
-    if proc.returncode != 0:
-        raise SealError("openssl enc failed")
-    return proc.stdout
-
-
-def seal(data: bytes, material: bytes) -> dict:
-    """Encrypt then MAC. Raises SealError."""
-    import hmac
-    password, mac_key, key_id = _seal_keys(material)
-    ct = _openssl_enc(data, password, decrypt=False)
-    return {"alg": SEAL_ALG, "key_id": key_id, "ct": base64.b64encode(ct).decode(),
-            "tag": hmac.new(mac_key, ct, hashlib.sha256).hexdigest()}
-
-
-def unseal(blob: dict, material: bytes) -> bytes:
-    """Check the key id and the MAC, then decrypt. Raises SealError ('key changed' or 'tampered')."""
-    import hmac
-    password, mac_key, key_id = _seal_keys(material)
-    if not isinstance(blob, dict) or blob.get("alg") != SEAL_ALG:
-        raise SealError("tampered: unknown format")
-    if blob.get("key_id") != key_id:
-        raise SealError("key changed")
-    try:
-        ct = base64.b64decode(blob.get("ct") or "", validate=True)
-    except ValueError:
-        raise SealError("tampered: not base64") from None
-    if not hmac.compare_digest(hmac.new(mac_key, ct, hashlib.sha256).hexdigest(), str(blob.get("tag") or "")):
-        raise SealError("tampered: the MAC does not match")
-    return _openssl_enc(ct, password, decrypt=True)
+def safe_reason(reason: str) -> str:
+    """A flag's reason reduced to its rule categories (and whether the model hook flagged): never the hook's free text."""
+    cats = _categories(reason or "")
+    parts = [f"rules: {cats.replace(',', ', ')}"] if cats and cats != "model" else []
+    if "model:" in (reason or ""):
+        parts.append("model: flagged")
+    return "; ".join(parts) or "rules: inherited"
 
 
 class BusStateStore:
-    """Loads and writes an Actions bus's own state as `bus/<bus id>/state.json` on colab-state (see above). `material`
-    is the secret the sealed part is keyed with (AppAuth.key_material()); None: restricted entries are never written."""
+    """Loads and writes an Actions bus's own state as `bus/<bus id>/state.json` on colab-state (see above), and appends
+    its audit lines to `audit/<YYYY-MM>.jsonl` there in the same commit."""
 
-    def __init__(self, config: dict, bus_id: str, material: bytes | None, run: str | None = None):
-        self.config, self.bus_id, self.material = config, bus_id, material
+    def __init__(self, config: dict, bus_id: str, run: str | None = None):
+        self.config, self.bus_id = config, bus_id
         self.path = bus_state_path(bus_id)
         if not run and os.environ.get("GITHUB_RUN_ID"):
             run = f"{os.environ['GITHUB_RUN_ID']}.{os.environ.get('GITHUB_RUN_ATTEMPT', '1')}"
@@ -2217,6 +2196,15 @@ class BusStateStore:
         except Exception:  # noqa: BLE001 - a malformed key never stops a save
             return key.lower()
 
+    def _hidden_refs(self, state: dict, restricted: set[str]) -> set[str]:
+        out = set()
+        for section in ("security", "security_closed"):
+            for k, v in (state.get(section) or {}).items():
+                if isinstance(v, dict) and (v.get("restricted") or k.split("#", 1)[0] in restricted):
+                    out.add(str(v.get("ref") or self._ref_of(k)).lower())
+                    out.add(self._ref_of(k))
+        return out
+
     def split(self, state: dict) -> tuple[dict, dict]:
         """(plain, restricted) copies of the state to keep, with caps applied; nothing in BUS_STATE_DROP or `_*`."""
         data = json.loads(json.dumps({k: v for k, v in state.items() if not k.startswith("_") and k not in BUS_STATE_DROP},
@@ -2224,15 +2212,12 @@ class BusStateStore:
         cache = state.get("cache") or {}
         data["etags"] = {p: e for p, e in (data.get("etags") or {}).items() if p not in cache}
         restricted = self._restricted_repos(state)
-        hidden_refs = set()
-        for section in ("security", "security_closed"):
-            for k, v in (data.get(section) or {}).items():
-                if isinstance(v, dict) and (v.get("restricted") or k.split("#", 1)[0] in restricted):
-                    hidden_refs.add(str(v.get("ref") or self._ref_of(k)).lower())
-                    hidden_refs.add(self._ref_of(k))
-        sealed: dict = {}
+        hidden_refs = self._hidden_refs(data, restricted)
+        hidden: dict = {}
 
         def hide_key(section: str, key: str, value) -> bool:
+            if key.startswith("sha256:"):
+                return False  # already hashed
             if key.split("#", 1)[0] in restricted:
                 return True
             if section in ("security", "security_closed") and isinstance(value, dict) and value.get("restricted"):
@@ -2248,42 +2233,51 @@ class BusStateStore:
             d = data.get(section)
             if isinstance(d, dict):
                 for k in [k for k, v in d.items() if hide_key(section, k, v)]:
-                    sealed.setdefault(section, {})[k] = d.pop(k)
+                    hidden.setdefault(section, {})[k] = d.pop(k)
         for section, pick in (("security_hot", lambda k: k), ("outsider_flags", lambda k: k.split("|", 1)[-1])):
             d = data.get(section)
             if isinstance(d, dict):
                 for k in [k for k in d if hide_ref(pick(k))]:
-                    sealed.setdefault(section, {})[k] = d.pop(k)
+                    hidden.setdefault(section, {})[k] = d.pop(k)
         clears = (data.get("security_verified") or {}).get("clears")
         if isinstance(clears, dict):
             for k in [k for k in clears if hide_ref(k)]:
-                sealed.setdefault("security_verified", {"clears": {}})["clears"][k] = clears.pop(k)
+                hidden.setdefault("security_verified", {"clears": {}})["clears"][k] = clears.pop(k)
         if isinstance(data.get("seen"), list):
             keep = []
             for env_id in data["seen"]:
-                (sealed.setdefault("seen", []) if str(env_id).split(":", 1)[0] in restricted else keep).append(env_id)
+                (hidden.setdefault("seen", []) if str(env_id).split(":", 1)[0] in restricted else keep).append(env_id)
             data["seen"] = keep
         etags = data.get("etags") or {}
         for path in [p for p in etags if p.startswith("/repos/") and self._ref_repo("/".join(p.split("/")[2:4])) in restricted]:
-            sealed.setdefault("etags", {})[path] = etags.pop(path)
-        for part in (data, sealed):
+            hidden.setdefault("etags", {})[path] = etags.pop(path)
+        # Plain flags keep only their rule categories, never the hook's free-text reason.
+        for section in ("security", "security_closed"):
+            for v in (data.get(section) or {}).values():
+                if isinstance(v, dict) and "reason" in v:
+                    v["reason"] = safe_reason(v["reason"])
+        for rows in (data.get("security_suppressed") or {}).values():
+            for r in rows if isinstance(rows, list) else []:
+                if isinstance(r, dict) and "reason" in r:
+                    r["reason"] = safe_reason(r["reason"])
+        for part in (data, hidden):
             for section, cap in BUS_STATE_CAPS.items():
                 part_val = part.get(section)
                 if isinstance(part_val, list) and len(part_val) > cap:
                     part[section] = part_val[-cap:]
                 elif isinstance(part_val, dict) and len(part_val) > cap:
                     part[section] = dict(list(part_val.items())[-cap:])
-        return data, sealed
+        return data, hidden
 
-    def _carry_hashed(self, data: dict, sealed: dict) -> None:
-        """Without a seal: keep the restricted flags (and their verified clears) only as hashes, as the published
-        security state lists them, so the gate never loses one."""
+    def _carry_hashed(self, data: dict, hidden: dict) -> None:
+        """Keep the restricted flags (and their verified clears) only as hashes, as the published security state lists
+        them, so the gate never loses one; the bus picks one up again by ref when it sees or clears the item."""
         carried = data.setdefault("security_inherited", {"flags": {}, "clears": {}})
         carried.setdefault("flags", {})
         carried.setdefault("clears", {})
-        clears = (sealed.get("security_verified") or {}).get("clears") or {}
+        clears = (hidden.get("security_verified") or {}).get("clears") or {}
         for section in ("security", "security_closed"):
-            for k, v in (sealed.get(section) or {}).items():
+            for k, v in (hidden.get(section) or {}).items():
                 if not isinstance(v, dict) or not v.get("flagged_at"):
                     continue
                 ref = self._ref_of(k)
@@ -2294,19 +2288,16 @@ class BusStateStore:
                 carried["flags"][name] = flag
                 c = clears.get(ref)
                 if isinstance(c, dict) and str(c.get("at") or "") > flag["at"]:
-                    carried["clears"][name] = c
+                    carried["clears"][name] = {k2: c[k2] for k2 in ("by", "id", "at") if k2 in c}
 
-    def dump(self, state: dict, published: str | None = None, overrides: dict | None = None, audit=None) -> str:
-        data, sealed = self.split({**state, **(overrides or {})})
-        if sealed:
-            try:
-                if self.material is None:
-                    raise SealError("no key to seal with")
-                data["sealed"] = seal(json.dumps(sealed, separators=(",", ":"), sort_keys=True).encode(), self.material)
-            except SealError as err:
-                self._carry_hashed(data, sealed)
-                if audit:
-                    audit({"bus_state_unsealed": str(err)[:200], "dropped_sections": sorted(sealed)})
+    def dump(self, state: dict, published: str | None = None, overrides: dict | None = None) -> str:
+        data, hidden = self.split({**state, **(overrides or {})})
+        self._carry_hashed(data, hidden)
+        for section in HASHED_SECTIONS:
+            for k, v in (hidden.get(section) or {}).items():
+                data.setdefault(section, {})[hashed_key(k)] = v
+        if hidden.get("seen"):
+            data["seen"] = [hashed_key(x) for x in hidden["seen"]] + list(data.get("seen") or [])
         data.update({"v": 1, "bus": self.bus_id, "run": self.run, "saved_at": now()})
         if published:
             data["security_published_sha256"] = hashlib.sha256(published.encode()).hexdigest()
@@ -2323,7 +2314,7 @@ class BusStateStore:
 
     def adopt(self, state: dict, store, audit=None) -> str:
         """Load this bus's state from the store's head into `state` (in place: the GitHub client holds its ETags).
-        Returns what happened: none, loaded, loaded-unsealed (restricted entries dropped), or unreadable."""
+        Returns what happened: none, loaded, or unreadable."""
         text = store.read(self.path)
         if not text:
             return "none"
@@ -2335,44 +2326,93 @@ class BusStateStore:
             if audit:
                 audit({"bus_state_unreadable": self.path})
             return "unreadable"
-        blob = data.pop("sealed", None)
         published_sha = data.pop("security_published_sha256", None)
         self.adopted_run = data.pop("run", None)
-        for k in ("v", "bus", "saved_at"):
+        for k in ("v", "bus", "saved_at", "sealed"):  # "sealed": an earlier draft of this format; its entries are rebuilt
             data.pop(k, None)
-        result = "loaded"
-        if blob is not None:
-            try:
-                hidden = json.loads(unseal(blob, self.material) if self.material else b"")
-            except (SealError, ValueError) as err:
-                hidden, result = {}, "loaded-unsealed"
-                if audit:
-                    audit({"bus_state_sealed_unreadable": str(err)[:200] if self.material else "no key"})
-                if "tampered" in str(err) and audit:
-                    audit({"bus_state_tampered": self.path})
-            for section, value in hidden.items() if isinstance(hidden, dict) else []:
-                if section == "seen" and isinstance(value, list):
-                    data["seen"] = list(data.get("seen") or []) + value
-                elif section == "security_verified" and isinstance(value, dict):
-                    data.setdefault("security_verified", {}).setdefault("clears", {}).update(value.get("clears") or {})
-                elif isinstance(value, dict):
-                    data.setdefault(section, {}).update(value)
         etags = data.pop("etags", None) or {}
         state.setdefault("etags", {}).update(etags)
         state.pop("_seen_index", None)
         state.update(data)
         live = store.read(SECURITY_FILE)
-        if result == "loaded-unsealed":
-            # The restricted flags are in the published security state, hashed: carry them from there (a takeover does
-            # the same), so a rotated key never loses one.
-            inherit_state(state, live, self.config, 0, datetime.now(timezone.utc))
         if published_sha:
             ok = live is not None and hashlib.sha256(live.encode()).hexdigest() == published_sha
             state["security_published"] = live if ok else ""
         last = store.file_commit(self.path)
         if last:
             state["state_branch_last"] = last
-        return result
+        return "loaded"
+
+    # the audit log, append-only on colab-state
+    def audit_path(self, now_t: datetime) -> str:
+        return f"audit/{now_t.astimezone(timezone.utc):%Y-%m}.jsonl"
+
+    def audit_record(self, record: dict, state: dict, restricted: set[str], hidden_refs: set[str]) -> dict | None:
+        """One audit line as kept on colab-state: its kind, the item ref (hashed when restricted), the actor(s), the
+        comment id, the bus, and the time. No spans, reasons, errors, or other text."""
+        if not isinstance(record, dict) or not record:
+            return None
+        kind = next(iter(record))
+        if not re.match(r"^[a-z_]+\Z", str(kind)):
+            return None
+        out: dict = {"kind": kind, "bus": self.bus_id}
+        value = record[kind]
+        ref = None
+        if isinstance(value, str):
+            m = _ITEM_KEY.match(value) or _ENV_ID.match(value)
+            if m:
+                ref = self._ref_of(f"{m['repo']}#{m['n']}")
+        elif isinstance(value, (bool, int)) and not isinstance(value, float):
+            out["value"] = value
+        if kind == "security_record_rejected" and isinstance(value, int):
+            out["comment"] = value
+        if ref:
+            out["ref"] = hashed_ref(ref) if (ref in hidden_refs or self._ref_repo(ref) in restricted | {None}) else ref
+        actors = []
+        for k in AUDIT_ACTOR_KEYS:
+            v = record.get(k)
+            for a in (v if isinstance(v, list) else [v]):
+                if isinstance(a, str) and LOGIN_OR_BOT.match(a):
+                    actors.append(a.lower())
+        if kind in ("security_ignore_verified",) and isinstance(value, str) and LOGIN_OR_BOT.match(value):
+            out["login"] = value.lower()
+        if actors:
+            out["actor"] = sorted(set(actors))
+        if isinstance(record.get("id"), int):
+            out["comment"] = record["id"]
+        at = record.get("at")
+        out["at"] = str(at)[:40] if at else now()
+        return out
+
+    def audit_text(self, store, state: dict, records: list[dict], now_t: datetime) -> tuple[str | None, int]:
+        """(the month's audit file with this run's lines appended, lines dropped because the file is full). Existing
+        lines are never changed: the new text always starts with the file as read at the head."""
+        records = [r for r in records if isinstance(r, dict)]
+        if not records:
+            return None, 0
+        restricted = self._restricted_repos(state)
+        hidden_refs = self._hidden_refs(state, restricted)
+        base = store.read(self.audit_path(now_t)) or ""
+        if base and not base.endswith("\n"):
+            base += "\n"
+        lines, dropped, size = [], 0, len(base.encode())
+        full = base.rstrip("\n").endswith('"kind":"audit_file_full"}')
+        for r in records:
+            rec = self.audit_record(r, state, restricted, hidden_refs)
+            if rec is None:
+                continue
+            line = json.dumps(rec, separators=(",", ":"), sort_keys=True) + "\n"
+            if full or size + len(line.encode()) > AUDIT_FILE_CAP - 200:
+                dropped += 1
+                continue
+            lines.append(line)
+            size += len(line.encode())
+        if dropped and not full:
+            lines.append(json.dumps({"at": now(), "bus": self.bus_id, "kind": "audit_file_full"}, separators=(",", ":"),
+                                    sort_keys=True) + "\n")
+        if not lines:
+            return None, dropped
+        return base + "".join(lines), dropped
 
     def changed_since_adopt(self, store) -> bool:
         """Did another run of this bus write its state since this run loaded it (two runs overlapping)?"""
@@ -2381,6 +2421,20 @@ class BusStateStore:
         except ValueError:
             return True
         return (data or {}).get("run") != self.adopted_run if isinstance(data, dict) else self.adopted_run is not None
+
+
+def _read_audit(path: Path) -> list[dict]:
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    return out
 
 
 def create_state_branch(gh, config: dict) -> str | None:
@@ -2546,7 +2600,7 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         _append(audit, {"bus_passive": why, "bus": entry["id"], "at": now()})
         return {"passive": True, "bus": entry["id"], "reason": why}
     if remote is not None and remote.bus_id != entry["id"]:
-        remote = type(remote)(remote.config, entry["id"], remote.material, remote.run)
+        remote = type(remote)(remote.config, entry["id"], remote.run)
     route_bot = bot if bot is not None else ("" if entries else login)  # operator-run: own deliveries carry the marker
     ident = {"bus": entry["id"], "operator": entry["operator"], "host": entry.get("host", ""), "role": entry["role"]}
     writers = operators
@@ -2669,8 +2723,13 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
             overrides = {"bus_mode": mode}
             if beat_due and not active:
                 overrides["passive_beat_ts"] = now_t.timestamp()
-            store.stage(remote.path, remote.dump({k: v for k, v in state.items()}, published, overrides,
-                                                 audit=lambda r: _append(audit, {**r, "at": now()})))
+            store.stage(remote.path, remote.dump({k: v for k, v in state.items()}, published, overrides))
+            # This run's audit lines, appended to the month's file in the same commit (kinds, refs, actors, times only).
+            text, dropped = remote.audit_text(store, state, _read_audit(audit), now_t)
+            if text is not None:
+                store.stage(remote.audit_path(now_t), text)
+            if dropped:
+                stats["audit_dropped"] = dropped
         try:
             sha = store.commit(f"bus {entry['id']} ({entry['operator']}): {'poll' if active else 'standby'} at {now()}")
         except StateConflict:
@@ -2791,7 +2850,7 @@ def main(argv: list[str] | None = None) -> int:
             if auth is not None:
                 login = auth.login
                 remote = BusStateStore(config, (args.bus_id or "").lower() or next(
-                    (b["id"] for b in buses(config) if b["operator"] == login), "default"), auth.key_material())
+                    (b["id"] for b in buses(config) if b["operator"] == login), "default"))
             else:
                 login = (gh.get("/user", conditional=False) or {}).get("login", "")
 
