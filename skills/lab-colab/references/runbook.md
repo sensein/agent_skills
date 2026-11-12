@@ -6,7 +6,7 @@ Step-by-step operation of a Lab Colab Space. The plan is the source of truth: ev
 
 Do these in order. Each step is safe to repeat.
 
-1. **Member check.** Every person who will run the skill runs `python3.11 "$COLAB/colab.py" setup`. It checks `gh` auth and scopes (`repo`, `read:org`, `project`; `admin:org` only for org owners), a Python 3.11+ interpreter, `COLAB_CONFIG`, where the skill is installed, and the heartbeat hooks, with an exact fix for each failure.
+1. **Member check.** Members who use the Claude app need nothing here ([getting-started.md](./getting-started.md)). Members with a terminal run `python3.11 "$COLAB/colab.py" setup`: one plain line per check (gh sign-in and scopes, org membership, the meta clone and `COLAB_CONFIG`, Python 3.11+, the skill, the heartbeat hooks), with one next step and link for each failure.
 2. **Config.** Start from the bundled `assets/lab-colab.toml`. Set `[org] name`, `meta_repo`, `project_title`. Leave `[spaces]` empty for now.
 3. **Observe and plan.** `colab.py --config <cfg> status > status.json`, then `colab.py --config <cfg> plan --snapshot status.json`. Read every action.
 4. **Apply the `gh` actions.** `colab.py --config <cfg> apply --snapshot status.json --yes`. An org owner is needed for issue types. Re-run `status` and `plan`, because new objects (the Project number) unlock later actions.
@@ -14,7 +14,7 @@ Do these in order. Each step is safe to repeat.
 6. **Spaces.** Declare `[spaces]` (stewards, repos, optional tier) in the meta-repo config, by PR. Re-plan: the Spaces field options and the `Space: <name>` views appear.
 7. **Org-wide forms.** `colab.py render-forms --dest <clone of the forms repo>/.github/ISSUE_TEMPLATE`, scan, PR.
 8. **Marketplace (optional).** Set `[marketplace] repo`, `source_repo`, `name` (and `exclude`). Re-plan: it creates the private repo, sets its Actions workflow permissions to read and write with PR approval allowed, and adds a `local` step `colab.py seed-marketplace --dest <clone>`. Seed, scan, PR. Then an org owner does the two `manual` steps: install the Claude GitHub App on the repo, and in claude.ai go to Organization settings > Plugins & skills > Marketplaces > Add plugins > Sync from GitHub. `check_marketplace.py` in the new repo enforces the claude.ai rules in CI (see section 5).
-9. **Bus.** Follow "Starting the bus" in `SKILL.md`, then section 4 below. It starts in dry-run.
+9. **Bus.** Add a `[[buses]]` entry for the operator by PR; re-plan and apply (team `colab-bus-operators`, the `colab-state` branch, the rulesets). The operator runs `colab.py setup --operator` and follows [operators.md](./operators.md). It starts in dry-run.
 10. **Hooks.** Each member runs `colab.py setup --install-hooks`.
 11. **Gates.** Record each space's gates with evidence, one PR each (`colab.py gate ...`).
 
@@ -42,7 +42,9 @@ Re-applying is not always harmless. Know these before you press `--yes`.
 
 The bus is a Slurm job that polls GitHub. Its job file is the filled copy of `bus/colab-bus.sbatch.template`, kept in the bus state directory outside git. Never work on it from a clone of the meta repo.
 
-- **Check it.** `squeue -u $USER -n colab-bus`; the newest `colab-bus-<jobid>.out` in the state directory; and the `COLAB_BUS_HEARTBEAT` variable on the meta repo. The `colab-watchdog` workflow alerts when the heartbeat is stale. `audit.jsonl` holds failures, drops, stale sessions, and drift-check failures.
+- **Check it.** `colab.py bus status` (which bus holds the lease, and each bus's last heartbeat); `squeue -u $USER -n colab-bus`; the newest `colab-bus-<jobid>.out` in the state directory. The `colab-watchdog` workflow alerts when no bus holds a fresh lease, naming the operators.
+- **Hand over.** A standby takes over by itself when the primary's lease goes stale. When the primary is back, an operator runs `colab.py bus handback <primary id>`; the standby stands by at its next poll. To move the bus for good, change `role`/`order` in `[[buses]]` by PR and hand back.
+- **Migrating a meta repo from the Actions variables.** Re-plan: create the team and add the operators, create `colab-state`, add the two rulesets; add the `[[buses]]` entry; restart the bus with `--bus-id` (the new sbatch template). The bus moves to the branch on its next poll and stops writing the variables; delete `COLAB_SECURITY_STATE` and `COLAB_BUS_HEARTBEAT` once `colab.py security status` shows `state_source: colab-state:...` and the watchdog is quiet. `audit.jsonl` holds failures, drops, stale sessions, and drift-check failures.
 - **Code changes need a restart.** The bus imports `colab_bus.py` and `colab.py` once, at start. After the meta repo's `bus/` files change (they are pulled each poll but not reloaded), run `scontrol requeue <jobid>` or cancel and resubmit. Config, subscription, and rollout changes need nothing: they are re-read every poll.
 - **Job-file changes need cancel and resubmit.** Slurm reuses the batch script exactly as it was first submitted when it requeues a job. Editing the job file and then requeuing runs the old script. After editing it, `scancel <jobid>`, then `sbatch` the edited file.
 - **The drift check.** Every `drift_check_hours` the bus runs `observe` and `build_plan`, read-only, with the config it loaded. `observe` calls `gh`, which must be on the bus job's PATH and logged in as someone who can read the org. If it cannot, the failure goes to `audit.jsonl` as `drift_check_failed`, the poll goes on, and the check retries within the hour. The result is the `drift_actions` count in the heartbeat and in `state.json`. Set `drift_check_hours = 0` to turn it off.
