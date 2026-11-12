@@ -21,7 +21,7 @@ The bus is a small job that polls GitHub every few minutes, moves events between
    order = 0
    ```
 
-2. **Ask an org owner to add you to the team.** Once your entry is merged by a reviewed PR, `colab.py plan` shows a manual step with the exact command to add you to `colab-bus-operators`; an owner runs it by hand (apply never adds members). The first time, the plan also creates, in order, the protected default branch, the team, the `colab-state` ruleset, and then the branch.
+2. **Ask an org owner to add you to the team.** Once your entry is merged by a reviewed PR, `colab.py plan` shows a manual step with the exact command to add you to `colab-bus-operators`; an owner runs it by hand (apply never adds members). The first time, the plan also creates, in order, the protected default branch, the team, and the `colab-state` ruleset; once you are in the team, you run the plan's last step yourself to create the branch (only operators may create it).
 
 3. **Give your assistant a lesser token.** Your assistant's everyday GitHub calls should not use your full login, because your login can change the bus's state. Run:
 

@@ -357,7 +357,7 @@ def route(env: dict, subscriptions: list[dict], to_tiers: dict[str, str], bot_lo
 
 # colab.py sits next to this file in the skill and in the meta repo; repo naming is shared and required.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import (CLEAR_MARKER, LEASE_FILE, OPERATORS_TEAM, SECURITY_FILE, STATE_BRANCH, BusConfigError,  # noqa: E402
+from colab import (CLEAR_MARKER, LEASE_FILE, LEASE_SKEW_SECONDS, _parse_time, OPERATORS_TEAM, SECURITY_FILE, STATE_BRANCH, BusConfigError,  # noqa: E402
                    buses, compose_bus_lease, delivery_marker, heartbeat_path, lease_decision, lease_ttl_minutes,
                    CONTRIB_KINDS, HOOK_SECONDS_PER_POLL, IGNORE_MARKER, OUTSIDER_FLAGS_PER_DAY,  # noqa: E402
                    OUTSIDER_OPEN_FLAGS_PER_REPO, SECURITY_SIG_NAMESPACE, hashed_ref,
@@ -2065,11 +2065,22 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
     writers = operators
     store = StateBranch(gh, org, meta)
 
+    ttl = lease_ttl_minutes(config)
+
     def keep_role(err) -> dict:
         """A transient read failure never counts as "no lease": the bus keeps the role it had for this poll. An
         active bus keeps delivering (delivery keys stop duplicates) but writes nothing to colab-state; a standby
-        stays standing by."""
+        stays standing by. Reads failing for longer than one lease period: an active bus can no longer know it
+        still holds the lease (a standby may have taken over), so it stops delivering until a read succeeds."""
         _append(audit, {"state_branch_read_failed": str(err)[:300], "kept_role": state.get("bus_mode") or "passive", "at": now()})
+        since = state.setdefault("state_read_failing_since", now_t.timestamp())
+        if state.get("bus_mode") == "active" and now_t.timestamp() - float(since) > ttl * 60:
+            state["bus_mode"] = "passive"
+            _append(audit, {"lease_read_failing": f"colab-state unreadable for over {ttl:.0f} min; standing by", "at": now()})
+            save()
+            return {**ident, "passive": True, "lease_read_failing": True, "errors": 1,
+                    "reason": "colab-state has been unreadable for longer than the lease; standing by until a read succeeds"}
+        save()
         if state.get("bus_mode") == "active":
             found = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, store=HoldStore(),
                          bus_id=entry["id"], operator=entry["operator"], writers=writers)
@@ -2079,6 +2090,7 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
         store.load()
     except (urllib.error.URLError, OSError, StateReadError) as err:
         return keep_role(err)
+    state.pop("state_read_failing_since", None)
     if not store.available:
         # Migration: one release on the Actions variables, single bus, no lease (variables cannot compare-and-set).
         stats = poll(gh, config, rollout, subs, state, state_dir, route_bot, save, bus_id=entry["id"], operator=entry["operator"],
@@ -2100,7 +2112,6 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
             stats["state_branch_foreign"] = author or "unknown"
             _append(audit, {"state_branch_foreign_edit": store.head, "author": author or "unknown", "at": now()})
             state["security_published"] = None  # re-assert our own state on this commit
-    ttl = lease_ttl_minutes(config)
     lookback = float((config.get("bus") or {}).get("takeover_lookback_minutes", 60))
     passive_every = float((config.get("bus") or {}).get("passive_heartbeat_minutes", 30))
     was_active = False
@@ -2113,6 +2124,13 @@ def cycle(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_
             stats["errors"] = stats.get("errors", 0) + 1
             _append(audit, {"state_branch_read_failed": str(err)[:300], "at": now()})
             break
+        if attempt == 0:
+            state.pop("state_read_failing_since", None)
+        served = _parse_time((lease or {}).get("renewed_at"))
+        if served is not None and (served - now_t).total_seconds() > LEASE_SKEW_SECONDS:
+            # A commit dated in the future cannot prove a fresh lease: it counts as stale.
+            _append(audit, {"lease_future_date": (lease or {}).get("renewed_at"), "holder": (lease or {}).get("holder"), "at": now()})
+            stats["lease_future_date"] = (lease or {}).get("renewed_at")
         mode, why = lease_decision(lease, entry, entries or [entry], now_t, ttl)
         if attempt == 0:
             if mode == "active":

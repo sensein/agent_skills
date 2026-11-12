@@ -446,6 +446,39 @@ class CycleTests(unittest.TestCase):
             self.assertTrue(stats["passive"])  # a stale lease it cannot read is not "no lease"
             self.assertEqual(calls, [])
 
+    def test_a_future_dated_lease_is_stale_and_audited(self) -> None:
+        git = FakeGit()
+        git.clock = T0 + timedelta(minutes=10)  # beyond the 2-minute skew allowance
+        git.push("kabilar", {"lease.json": json.dumps({"holder": "kab-hpc", "operator": "kabilar", "ttl_minutes": 15})})
+        with tempfile.TemporaryDirectory() as tmp:
+            gh = FakeBusGH(git, "satra")
+            stats = bus.cycle(gh, cfg(), {"spaces": {}}, [], {}, Path(tmp), "satra", bus_id="satra-orcd", now_t=T0,
+                              poll=stub_poll([]))
+            self.assertTrue(any("lease_future_date" in a for a in audit_lines(tmp)))
+        self.assertTrue(stats["active"])
+        self.assertEqual(stats["took_over_from"], "kab-hpc")
+        near = {"holder": "kab-hpc", "renewed_at": colab._iso(T0 + timedelta(seconds=60)), "ttl_minutes": 15}
+        self.assertTrue(colab.lease_fresh(near, T0))  # small skew is tolerated
+        self.assertFalse(colab.lease_fresh({**near, "renewed_at": colab._iso(T0 + timedelta(minutes=5))}, T0))
+
+    def test_reads_failing_longer_than_the_lease_stop_deliveries(self) -> None:
+        git = FakeGit()
+        gh, state = FakeBusGH(git, "satra"), {}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_cycle(gh, cfg(), state, tmp, "satra-orcd")
+            gh.fail = ("/git/commits/",)
+            calls = []
+            first = run_cycle(gh, cfg(), state, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=5), calls=calls)
+            self.assertTrue(first["active"] and len(calls) == 1)
+            later = run_cycle(gh, cfg(), state, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=21), calls=calls)
+            self.assertTrue(later["passive"] and later["lease_read_failing"])
+            self.assertEqual(len(calls), 1)  # no poll, no deliveries
+            self.assertTrue(any("lease_read_failing" in a for a in audit_lines(tmp)))
+            gh.fail = ()
+            back = run_cycle(gh, cfg(), state, tmp, "satra-orcd", now_t=T0 + timedelta(minutes=22), calls=calls)
+            self.assertTrue(back["active"])  # a read succeeds: its own fresh-enough lease, back to work
+            self.assertNotIn("state_read_failing_since", state)
+
     def test_deliveries_count_only_registered_operators(self) -> None:
         calls = []
         with tempfile.TemporaryDirectory() as tmp:
@@ -599,7 +632,7 @@ class MissingProjectFieldTests(unittest.TestCase):
 class FakeCli:
     """Stands in for colab._gh_json: the meta config, colab-state files, and who wrote them."""
 
-    PROTECTED = [{"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11}]
+    PROTECTED = [{"type": "creation", "ruleset_id": 11}, {"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11}]
 
     def __init__(self, state=None, writer="satra", meta_buses=True, variable=None, rules="protected"):
         self.state, self.writer, self.variable = state, writer, variable
@@ -757,11 +790,12 @@ class OperatorPlanTests(unittest.TestCase):
         rulesets = [a for a in acts if "rulesets" in " ".join(a["cmd"] or [])]
         self.assertEqual([json.loads(a["input"])["name"] for a in rulesets], [colab.RULESET_DEFAULT, colab.RULESET_STATE])
         [branch] = [a for a in acts if a.get("fn") == "state_init"]
+        self.assertIn("A member of colab-bus-operators must run this", branch["desc"])
         self.assertEqual(acts[-1], branch)  # the branch comes after both rulesets
         self.assertLess(acts.index(rulesets[1]), acts.index(branch))
         state_rs = json.loads(rulesets[1]["input"])
         self.assertEqual(state_rs["conditions"]["ref_name"]["include"], ["refs/heads/colab-state"])
-        self.assertEqual({r["type"] for r in state_rs["rules"]}, {"update", "deletion", "non_fast_forward"})
+        self.assertEqual({r["type"] for r in state_rs["rules"]}, {"creation", "update", "deletion", "non_fast_forward"})
         self.assertEqual(state_rs["bypass_actors"], [{"actor_id": colab.TEAM_ID_PLACEHOLDER, "actor_type": "Team", "bypass_mode": "always"}])
         default_rs = json.loads(rulesets[0]["input"])
         self.assertEqual(default_rs["conditions"]["ref_name"]["include"], ["~DEFAULT_BRANCH"])
@@ -794,7 +828,7 @@ class OperatorPlanTests(unittest.TestCase):
         body = json.loads(act["input"])
         types = [r["type"] for r in body["rules"]]
         self.assertEqual(types[:2], ["update", "required_linear_history"])  # existing rules kept, in place
-        self.assertEqual(set(types), {"update", "required_linear_history", "deletion", "non_fast_forward"})
+        self.assertEqual(set(types), {"update", "required_linear_history", "creation", "deletion", "non_fast_forward"})
         self.assertEqual(body["conditions"]["ref_name"]["exclude"], ["refs/heads/keep"])
         self.assertEqual(body["bypass_actors"], want[colab.RULESET_STATE]["bypass_actors"])
 
@@ -871,9 +905,13 @@ class OperatorPlanTests(unittest.TestCase):
         self.assertEqual(posted[1]["bypass_actors"][0]["actor_id"], 42)
         self.assertFalse(any("memberships" in " ".join(c) for kind, c, i in order if c))
 
-    def rules_gh(self, rules, bypass=None):
+    def rules_gh(self, rules, bypass=None, login="satra", member=True):
         def gh(args):
             path = args[1]
+            if args == ["api", "user"]:
+                return {"login": login}
+            if path == f"orgs/sensein/teams/colab-bus-operators/memberships/{login}":
+                return {"state": "active"} if member else None
             if path == "repos/sensein/lab-colab/rules/branches/colab-state":
                 return rules
             if path == "repos/sensein/lab-colab/rulesets/11":
@@ -883,7 +921,8 @@ class OperatorPlanTests(unittest.TestCase):
             return None
         return gh
 
-    PROTECTED = [{"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11}, {"type": "non_fast_forward", "ruleset_id": 11}]
+    PROTECTED = [{"type": "creation", "ruleset_id": 11}, {"type": "update", "ruleset_id": 11}, {"type": "deletion", "ruleset_id": 11},
+                 {"type": "non_fast_forward", "ruleset_id": 11}]
 
     def test_state_init_refuses_until_the_ruleset_is_active(self) -> None:
         calls = []
@@ -895,6 +934,10 @@ class OperatorPlanTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("ruleset first", why)
         self.assertEqual(calls, [])
+        ok, why = colab.state_init(cfg(), gh_input, gh=self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"}], member=False))
+        self.assertFalse(ok)  # creation is restricted to the team: only an operator runs this step
+        self.assertIn("active member of colab-bus-operators", why)
+        self.assertEqual(calls, [])
         ok, _ = colab.state_init(cfg(), gh_input, gh=self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"}]))
         self.assertTrue(ok)
         self.assertEqual([c[0] for c in calls], ["repos/sensein/lab-colab/git/trees", "repos/sensein/lab-colab/git/commits",
@@ -905,7 +948,8 @@ class OperatorPlanTests(unittest.TestCase):
     def test_rules_refusal(self) -> None:
         self.assertIsNone(colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED)))  # bypass list not visible: rules suffice
         self.assertIsNone(colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"}])))
-        self.assertIn("deletion", colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED[:1])))
+        self.assertIn("deletion", colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED[:2])))
+        self.assertIn("creation", colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED[1:])))
         self.assertIn("could not read", colab.state_rules_refusal(cfg(), self.rules_gh(None)))
         why = colab.state_rules_refusal(cfg(), self.rules_gh(self.PROTECTED, [{"actor_id": 42, "actor_type": "Team"},
                                                                               {"actor_id": 1, "actor_type": "RepositoryRole"}]))
@@ -1186,6 +1230,12 @@ class TemplateTests(unittest.TestCase):
                                         "beats/satra-orcd.json": json.dumps({"security_foreign_edits": 1})})
         self.assertIn("stale=true", out)
         self.assertIn("security_foreign_edits=1", alert)
+
+    def test_watchdog_treats_a_future_dated_lease_as_stale(self) -> None:
+        now = datetime.now(timezone.utc)
+        future = {"holder": "satra-orcd", "operator": "satra", "renewed_at": colab._iso(now + timedelta(hours=1)), "ttl_minutes": 15}
+        out, _ = self.run_watchdog({"branch.txt": "colab-state\n", "config.toml": "", "lease.json": json.dumps(future)})
+        self.assertIn("stale=true", out)
 
     def test_watchdog_falls_back_to_the_variable(self) -> None:
         beat = json.dumps({"at": datetime.now(timezone.utc).isoformat()})

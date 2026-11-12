@@ -72,7 +72,8 @@ jobs:
               served = open("lease_date.txt").read().strip() if os.path.exists("lease_date.txt") else ""
               renewed = when(served) if served else when(lease.get("renewed_at"))
               ttl = float(os.environ.get("STALE_MINUTES") or lease.get("ttl_minutes") or 30)
-              stale = renewed is None or now - renewed > dt.timedelta(minutes=ttl)
+              # a lease dated more than 2 minutes in the future proves nothing: stale
+              stale = renewed is None or now - renewed > dt.timedelta(minutes=ttl) or renewed - now > dt.timedelta(minutes=2)
               holder = lease.get("holder")
               beat = beats.get(holder or "", {})
               contacts = ", ".join(f"@{o}" for o in sorted(set(operators) | ({lease["operator"]} if lease.get("operator") else set())))

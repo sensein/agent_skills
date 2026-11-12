@@ -152,10 +152,16 @@ def _parse_time(value) -> datetime | None:
     return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
 
 
+LEASE_SKEW_SECONDS = 120  # a lease dated further in the future than this is invalid (counts as stale)
+
+
 def lease_age_minutes(lease: dict | None, now: datetime) -> float | None:
-    """Minutes since the lease was renewed (None when there is no readable lease)."""
+    """Minutes since the lease was renewed. None when there is no readable date, or when the date lies more than
+    LEASE_SKEW_SECONDS in the future: a future-dated lease never counts as fresh."""
     renewed = _parse_time((lease or {}).get("renewed_at"))
-    return None if renewed is None else (now - renewed).total_seconds() / 60
+    if renewed is None or (renewed - now).total_seconds() > LEASE_SKEW_SECONDS:
+        return None
+    return (now - renewed).total_seconds() / 60
 
 
 def lease_fresh(lease: dict | None, now: datetime, ttl: float | None = None) -> bool:
@@ -876,7 +882,7 @@ def desired_rulesets(team_id) -> dict[str, dict]:
     return {
         RULESET_STATE: {"name": RULESET_STATE, "target": "branch", "enforcement": "active",
                         "conditions": {"ref_name": {"include": [f"refs/heads/{STATE_BRANCH}"], "exclude": []}},
-                        "rules": [{"type": "update"}, {"type": "deletion"}, {"type": "non_fast_forward"}],
+                        "rules": [{"type": "creation"}, {"type": "update"}, {"type": "deletion"}, {"type": "non_fast_forward"}],
                         "bypass_actors": [team]},
         RULESET_DEFAULT: {"name": RULESET_DEFAULT, "target": "branch", "enforcement": "active",
                           "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
@@ -975,7 +981,7 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
         want, current = wanted[name], have.get(name)
         if current is None:
             desc = (f"Create the ruleset '{name}' on {org}/{meta}: "
-                    + (f"only {OPERATORS_TEAM} may update or delete {STATE_BRANCH} (created before the branch)" if name == RULESET_STATE
+                    + (f"only {OPERATORS_TEAM} may create, update, or delete {STATE_BRANCH} (created before the branch)" if name == RULESET_STATE
                        else "the default branch changes only by a reviewed PR (no direct pushes)"))
             out.append(_action("gh", 0, desc, ["gh", "api", "-X", "POST", f"repos/{org}/{meta}/rulesets", "--input", "-"],
                                input=json.dumps(want)))
@@ -994,8 +1000,9 @@ def operator_actions(config: dict, snapshot: dict) -> list[dict]:
                                input=json.dumps(body)))
     if not snapshot.get("state_branch"):
         out.append(_action("gh", 0, f"Create the {STATE_BRANCH} branch in {org}/{meta} (an orphan branch with a README), only once "
-                                    f"the '{RULESET_STATE}' ruleset is active on it: the bus keeps its lease, heartbeats, and the "
-                                    "security state there instead of Actions variables",
+                                    f"the '{RULESET_STATE}' ruleset is active on it. A member of {OPERATORS_TEAM} must run this "
+                                    "step (the ruleset restricts creation to the team; apply checks it first). The bus keeps its lease, "
+                                    "heartbeats, and the security state there instead of Actions variables",
                            ["colab.py", "apply", "(built in: check the ruleset, then create the orphan branch with the Git Data API)"],
                            fn="state_init"))
     return out
@@ -1129,6 +1136,13 @@ def state_init(config: dict, gh_input=None, gh=None) -> tuple[bool, str]:
     why = state_rules_refusal(config, gh)
     if why:
         return False, f"not creating {STATE_BRANCH} yet: {why} (apply the '{RULESET_STATE}' ruleset first)"
+    gh_ = gh or _gh_json
+    me = gh_(["api", "user"])
+    login = str(me.get("login") or "").lower() if isinstance(me, dict) else ""
+    member = gh_(["api", f"orgs/{org}/teams/{OPERATORS_TEAM}/memberships/{login}"]) if login else None
+    if not (isinstance(member, dict) and member.get("state") == "active"):
+        return False, (f"not creating {STATE_BRANCH}: {login or 'you'} must be an active member of {OPERATORS_TEAM} (the ruleset "
+                       "restricts creating the branch to that team); an operator runs this apply step")
     base = f"repos/{org}/{meta}/git"
     tree = gh_input(["api", "-X", "POST", f"{base}/trees"],
                     {"tree": [{"path": STATE_README, "mode": "100644", "type": "blob", "content": state_branch_readme(config)}]})
@@ -2764,8 +2778,8 @@ STATE_SOURCE = {"source": ""}  # where load_security_state read the state from, 
 
 def state_rules_refusal(config: dict, gh=None) -> str | None:
     """Why colab-state cannot be trusted as protected, or None. GitHub's own view of the branch's active rules
-    (`rules/branches/colab-state`, readable by members) must include `update` (only bypass actors may push) and
-    `deletion`; and when the ruleset behind `update` shows its bypass list to this login, every bypass actor must be
+    (`rules/branches/colab-state`, readable by members) must include `creation`, `update` (only bypass actors may
+    create or push) and `deletion`; and when the ruleset behind `update` shows its bypass list to this login, every bypass actor must be
     the operators team. This is the trust anchor for the branch; the commit author is only a secondary hint."""
     gh = gh or _gh_json
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
@@ -2773,7 +2787,7 @@ def state_rules_refusal(config: dict, gh=None) -> str | None:
     if not isinstance(rules, list):
         return f"could not read the rules that protect {STATE_BRANCH}"
     by_type = {r.get("type"): r for r in rules if isinstance(r, dict)}
-    missing = [t for t in ("update", "deletion") if t not in by_type]
+    missing = [t for t in ("creation", "update", "deletion") if t not in by_type]
     if missing:
         return (f"{STATE_BRANCH} is not protected by active rules ({', '.join(missing)} missing), so anyone with write access "
                 f"could change it; `colab.py plan` proposes the '{RULESET_STATE}' ruleset")
