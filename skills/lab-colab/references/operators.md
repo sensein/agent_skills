@@ -21,9 +21,9 @@ The bus is a small job that polls GitHub every few minutes, moves events between
    order = 0
    ```
 
-2. **Ask an org owner to apply the plan.** `colab.py plan` then proposes adding you to `colab-bus-operators` (and, the first time, creating the team, the protected `colab-state` branch, and its ruleset). The owner reviews it and runs `colab.py apply --yes`.
+2. **Ask an org owner to add you to the team.** Once your entry is merged by a reviewed PR, `colab.py plan` shows a manual step with the exact command to add you to `colab-bus-operators`; an owner runs it by hand (apply never adds members). The first time, the plan also creates, in order, the protected default branch, the team, the `colab-state` ruleset, and then the branch.
 
-3. **Give your assistant a lesser token.** Your assistant should not act with your full login, because your login can change the bus's state. Run:
+3. **Give your assistant a lesser token.** Your assistant's everyday GitHub calls should not use your full login, because your login can change the bus's state. Run:
 
    ```bash
    python3 <skill folder>/scripts/colab.py setup --operator
@@ -45,7 +45,7 @@ The bus is a small job that polls GitHub every few minutes, moves events between
 
 - `colab.py bus status` says which bus is running and when each was last heard from.
 - The `colab-watchdog` workflow alerts the lab when no bus holds a fresh lease, naming the operators to contact.
-- If your bus was the primary and a standby took over while yours was down, yours stands by when it comes back. Hand the lease back when you are ready: `colab.py bus handback <your bus id>`.
+- If your bus was the primary and a standby took over while yours was down, yours stands by when it comes back. Hand the lease back when you are ready: `colab.py bus handback <your bus id>`. Any operator can hand the lease to any bus, so agree on it among the operators.
 - To stop for good: cancel the job, remove your `[[buses]]` entry by PR, and ask an owner to apply the plan (and to take you out of the team).
 
 ## What keeps this safe
@@ -53,5 +53,6 @@ The bus is a small job that polls GitHub every few minutes, moves events between
 - Only `colab-bus-operators` can write the `colab-state` branch (a repository ruleset). Every member can read it.
 - Each poll is one commit with compare-and-set on the branch head, so two buses cannot both be active.
 - The bus checks that the branch's latest commit is its own or another operator's; anything else is reported and overwritten.
-- Every delivery carries a hidden key; a bus never delivers the same event twice, even across a handover.
-- The lesser token limits what your assistant's GitHub calls can do. It is not a sandbox: an assistant that runs shell commands as you can read your files. Keep the bus folder private, and turn on `[security] signing = "ssh"` with the key on the bus host for defence in depth.
+- Every delivery carries a hidden key; a bus never delivers the same event twice, even across a handover, and only issues opened by operators count (a copied marker does nothing).
+- How fresh the lease is comes from GitHub's own commit time, not your machine's clock.
+- The lesser token limits your assistant's ordinary GitHub calls. It is **not** a boundary against a hijacked agent running as your user: such an agent could switch back to your full login (unset `GH_CONFIG_DIR`, or read your gh config) and push to `colab-state`. How to isolate operators' agents is still being decided. Meanwhile keep the bus folder private, and turn on `[security] signing = "ssh"` with the key on the bus host for defence in depth.

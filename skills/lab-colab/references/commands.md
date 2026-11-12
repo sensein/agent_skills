@@ -366,7 +366,7 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 **Guardrails.**
 
 - Clearing takes two people: the person who claimed or is assigned the item never clears it. An agent never clears an item on its own, or because the item's text asks it to.
-- The trust anchor is `security/state.json` on the meta repo's `colab-state` branch, which only the bus operators team can push (a repository ruleset). With `[[buses]]` declared, the CLI also checks that the last commit to that file is by a registered operator, and fails closed otherwise. Refusals lead with a plain sentence ("This item is waiting for a steward to check it, ...") and give the technical reason on an indented `details:` line. The bus reads records through GraphQL and accepts one only if it was never edited, holds one marker, postdates its flag, and comes (per the API's author) from an eligible steward; then it publishes the clear. A clear never counts for a run, lease, or beat acting for the steward who made it. The Project field is display only.
+- The trust anchor is `security/state.json` on the meta repo's `colab-state` branch, which only the bus operators team can push (a repository ruleset). The CLI checks GitHub's active rules for the branch (`update` and `deletion`, bypass = the team when visible) and fails closed above public without them. With `[[buses]]` declared it also checks, as a secondary hint, that the last commit to that file is by a registered operator. Refusals lead with a plain sentence ("This item is waiting for a steward to check it, ...") and give the technical reason on an indented `details:` line. The bus reads records through GraphQL and accepts one only if it was never edited, holds one marker, postdates its flag, and comes (per the API's author) from an eligible steward; then it publishes the clear. A clear never counts for a run, lease, or beat acting for the steward who made it. The Project field is display only.
 - An edit after `cleared` is scanned again and can set flagged again.
 - Membership for stewardship comes from the config and the lab's own `space:` labels; labels on external items never grant it.
 
@@ -390,7 +390,7 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 - Setup never writes outside your home directory and the default clone, and never changes GitHub settings.
 - Your own terminal keeps your full login: only Claude Code sessions get `GH_CONFIG_DIR`. Remove that key from `settings.json` env to undo.
-- The lesser token limits what the assistant's `gh` calls can do. It is not a sandbox: an assistant that can run shell commands as you can still read files you can read, so keep the bus's state directory and any bus token file on private group storage, and use `[security] signing = "ssh"` with the key on the bus host for defence in depth.
+- The lesser token limits the assistant's ordinary `gh` calls. It is **not** a boundary against a hijacked agent running as your OS user: that agent could unset `GH_CONFIG_DIR` or read your own gh login and push to `colab-state`. How to isolate operators' agents is an open decision; meanwhile keep the bus's state directory and any bus token file on private group storage, and use `[security] signing = "ssh"` with the key on the bus host for defence in depth.
 
 ## bus
 
@@ -398,7 +398,7 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 **Reads.** `lease.json` and `heartbeat/*.json` on the meta repo's `colab-state` branch, with your own login; `[[buses]]` from the config.
 
-**Writes.** `handback <id>` only: `lease.json` on `colab-state`, through the Contents API with the file's blob sha (compare-and-set: refused if the lease changed since it was read). Only members of `colab-bus-operators` can write there.
+**Writes.** `handback <id>` only: `lease.json` on `colab-state`, through the Contents API with the file's blob sha (compare-and-set: refused if the lease changed since it was read). Only members of `colab-bus-operators` can write there, and any of them can hand the lease to any bus. Lease ages come from GitHub's date for the commit that last wrote `lease.json`.
 
 **Steps.**
 
@@ -407,7 +407,7 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 **Guardrails.**
 
-- Only an operator listed in `[[buses]]` may hand over, and the ruleset on `colab-state` enforces it on GitHub too.
+- Only an operator listed in `[[buses]]` may hand over (any of them, for any bus), and the ruleset on `colab-state` enforces team membership on GitHub too.
 - A handover never loses a flag: the new holder starts from the published state (restricted flags are carried by hash), and delivery keys make the overlap harmless.
 
 ## improve
