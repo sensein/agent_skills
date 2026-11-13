@@ -16,10 +16,11 @@ Do these in order. Each step is safe to repeat.
 6. **Spaces.** Declare `[spaces]` (stewards, repos, optional tier) in the meta-repo config, by PR. Re-plan: the Spaces field options and the `Space: <name>` views appear.
 7. **Org-wide forms.** `colab.py render-forms --dest <clone of the forms repo>/.github/ISSUE_TEMPLATE`, scan, PR.
 8. **Marketplace (optional).** Set `[marketplace] repo`, `source_repo`, `name` (and `exclude`). Re-plan: it creates the private repo, sets its Actions workflow permissions to read and write with PR approval allowed, and adds a `local` step `colab.py seed-marketplace --dest <clone>`. Seed, scan, PR. Then an org owner does the two `manual` steps: install the Claude GitHub App on the repo, and in claude.ai go to Organization settings > Plugins & skills > Marketplaces > Add plugins > Sync from GitHub. `check_marketplace.py` in the new repo enforces the claude.ai rules in CI (see section 6).
-9. **The board.** Members' agents keep it current with their own logins: `colab.py sync` (and the cheap sync at the start of `next` and `inbox`) adds what each person can read and sets Spaces and their own Contributions. A first `colab.py sync --dry-run` by a steward shows what it would add. A member who wants the board fresher can run `colab.py sync` on a personal schedule, under their own login.
-10. **Hooks.** Each member runs `colab.py setup --install-hooks`.
-11. **Optional relay.** Only if the org wants push-style delivery issues: set `[bus] enabled = true` and follow section 4.
-12. **Gates.** Record each space's gates with evidence, one PR each (`colab.py gate ...`).
+9. **Before relying on clears.** Apply the default-branch ruleset (step 4 proposes it), set `[security] audit_issue` by PR, make sure every member can read the meta repo, and seed CODEOWNERS (`colab.py seed` adds `/.colab/` and `/.github/workflows/` lines; owners are `[security] code_owners`, else the stewards).
+10. **The board.** Members' agents keep it current with their own logins: `colab.py sync` (and the cheap sync at the start of `next` and `inbox`) adds what each person can read and sets Spaces and their own Contributions. A first `colab.py sync --dry-run` by a steward shows what it would add. A member who wants the board fresher can run `colab.py sync` on a personal schedule, under their own login.
+11. **Hooks.** Each member runs `colab.py setup --install-hooks`.
+12. **Optional relay.** Only if the org wants push-style delivery issues: set `[bus] enabled = true` and follow section 4.
+13. **Gates.** Record each space's gates with evidence, one PR each (`colab.py gate ...`).
 
 ## 2. Recovering from an accidental change
 

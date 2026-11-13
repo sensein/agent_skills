@@ -21,7 +21,7 @@ Your assistant proposes new items; a steward of the area accepts them. Anything 
 
 When you ask "what's new?" or "what can I pick up?", your assistant first brings the board up to date with what you can see (a few seconds), then reads what changed since you last looked. Nobody sends you notification issues; you get the news when you ask.
 
-Before an assistant claims or runs an item, it reads the item's text and comments for anything that looks like instructions aimed at an assistant. If it says an item "has text that looks like instructions to an assistant", a steward of that area needs to read the item and clear it before any assistant works on it: that is a safety check, not an error. Stewards clear an item with one command; the clear counts until someone changes the item again.
+Before an assistant claims or runs an item, it reads the item's text and comments for anything that looks like instructions aimed at an assistant. If it says an item "has text that looks like instructions to an assistant", a steward of that area needs to read the item and clear it before any assistant works on it: that is a safety check, not an error. Stewards clear an item themselves, in their own terminal (`colab.py security clear <item> --reason "..."`, then type the item back when asked); an assistant cannot do it for them. The clear counts until someone changes the item again.
 
 ## If you write code (Claude Code and a terminal)
 
