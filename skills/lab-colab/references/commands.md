@@ -27,7 +27,8 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | scan | Nothing | No | Fix findings |
 | security | An audit record on `[security] audit_issue`, then the Security field (clear) | No | A second person, a steward, reviews the item |
 | improve | Self-improve PR | No | Lead approves scanner, tier, or bus changes |
-| setup | Your own `~/.claude/settings.json` (hooks; the assistant token profile for operators), a meta clone with `--clone` | No | Follow each "Next" step |
+| setup | Your own `~/.claude/settings.json` (hooks; the assistant token profile for operators), a meta clone with `--clone`; `--app` writes nothing | No | Follow each "Next" step |
+| app-manifest | Two local files: the bus App's manifest and a one-button page | No | An org owner presses the button on GitHub |
 | bus | `status`: nothing. `handback`: `lease.json` on `colab-state` | No | An operator decides to hand back |
 
 ## distill
@@ -372,9 +373,9 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 ## setup
 
-**Purpose.** Get a member, or a bus operator, ready, in plain words. Most members never run it: in the Claude app with the GitHub connector there is nothing to install (see [getting-started.md](./getting-started.md)).
+**Purpose.** Get a member, a bus operator, or (with `--app`) an org owner setting up the Actions bus, ready, in plain words. Most members never run it: in the Claude app with the GitHub connector there is nothing to install (see [getting-started.md](./getting-started.md)).
 
-**Reads.** `gh auth status`, your org membership (`user/memberships/orgs/<org>`), `COLAB_CONFIG` (else `--config`, `settings.json` env, else the default clone at `${XDG_DATA_HOME:-~/.local/share}/lab-colab/<org>/<meta repo>`), a Python 3.11+, where the skill is installed, and `~/.claude/settings.json`. With `--operator`: your `[[buses]]` entry, your membership in `colab-bus-operators`, and the assistant token.
+**Reads.** `gh auth status`, your org membership (`user/memberships/orgs/<org>`), `COLAB_CONFIG` (else `--config`, `settings.json` env, else the default clone at `${XDG_DATA_HOME:-~/.local/share}/lab-colab/<org>/<meta repo>`), a Python 3.11+, where the skill is installed, and `~/.claude/settings.json`. With `--operator`: your `[[buses]]` entry, your membership in `colab-bus-operators`, and the assistant token. With `--app`: the `kind = "actions"` entry and its `app_id`, whether the App exists (`apps/<slug>`), its installation on the org (`orgs/<org>/installations`, owners only; all repositories is a ✗), the `colab-bus` environment and its deployment branches (the default branch only), the names of that environment's secrets and of the repository's secrets (never their values; a repository secret named `COLAB_APP_ID`, `COLAB_APP_PRIVATE_KEY`, or `COLAB_SIGNING_KEY` is refused: any branch's workflow can read it), the workflow file, the `colab-state` ruleset's `Integration` bypass, and the bus's last heartbeat. What only an owner or admin can see is reported as "could not check", not as a failure.
 
 **Writes.** Only with a flag: `--install-hooks` merges the heartbeat hooks into `settings.json` (backup first); `--clone` runs `gh repo clone <org>/<meta repo>` into the default place. With `--operator` and a pasted token that passes the checks: the token at `${XDG_CONFIG_HOME:-~/.config}/lab-colab/assistant-token` (0600, in a 0700 folder), a gh profile `gh-assistant/hosts.yml` next to it (0600), and `env.GH_CONFIG_DIR` pointing at that profile in `settings.json` (backup first).
 
@@ -382,7 +383,8 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 1. `colab.py setup`. Each line is a check: `✓` or `✗` and a sentence ("Your assistant can read and comment on lab projects"). Each `✗` has exactly one `Next:` step and, where there is one, a `Link:`; GitHub terms appear only on the indented `details` line. `--json` prints every check (name, status, say, step, link, details) for agents.
 2. The usual fixes: `gh auth login --web -s repo,read:org,project` (a browser sign-in) or `gh auth refresh -s repo,read:org,project`; accept the org invitation at `https://github.com/orgs/<org>/invitation`; `colab.py setup --clone` and add the printed `export COLAB_CONFIG=...` line to your shell profile; `colab.py setup --install-hooks`.
-3. Operators: `colab.py setup --operator`. Without a token it shows a pre-filled GitHub link for a fine-grained token (name, owner, 90-day expiry, and the permissions below already set). Click Generate token, copy it, run `setup --operator` again and paste it when asked (it does not echo; `--token-stdin` reads it from stdin for scripts). Setup verifies it without writing anything and only then stores it and switches your assistant to it. It also prints the steps to start your bus.
+3. Org owners, for the Actions bus: `colab.py setup --app`; for each ✗ the step is one of the plan's owner steps (`colab.py app-manifest`, install, the environment, `gh secret set --env colab-bus`, seed the workflow by PR).
+4. Operators: `colab.py setup --operator`. Without a token it shows a pre-filled GitHub link for a fine-grained token (name, owner, 90-day expiry, and the permissions below already set). Click Generate token, copy it, run `setup --operator` again and paste it when asked (it does not echo; `--token-stdin` reads it from stdin for scripts). Setup verifies it without writing anything and only then stores it and switches your assistant to it. It also prints the steps to start your bus.
 
 **The assistant token.** Fine-grained, owner = the org, permissions (the one mapping is `ASSISTANT_TOKEN_PERMISSIONS` in `colab.py`): Metadata read, Issues write, Pull requests write, Contents read, Discussions write, Projects (organisation) write, Members (organisation) read. Never Administration, Variables, Secrets, or Workflows, and never Contents write. Verification: `GET /user` is you and the token is fine-grained (`github_pat_`); it can read the meta repo's issues and the org's Projects; `GET .../actions/variables` and `GET .../keys` are refused (no Variables, no admin); and a ref update of `colab-state` to an all-zero commit id is refused with 403/404 (no Contents write). That last request cannot change anything: GitHub rejects the missing commit before any update, so a 422 instead of a 403 is how a token with push rights shows itself.
 
@@ -391,6 +393,25 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 - Setup never writes outside your home directory and the default clone, and never changes GitHub settings.
 - Your own terminal keeps your full login: only Claude Code sessions get `GH_CONFIG_DIR`. Remove that key from `settings.json` env to undo.
 - The lesser token limits the assistant's ordinary `gh` calls. It is **not** a boundary against a hijacked agent running as your OS user: that agent could unset `GH_CONFIG_DIR` or read your own gh login and push to `colab-state`. How to isolate operators' agents is an open decision; meanwhile keep the bus's state directory and any bus token file on private group storage, and use `[security] signing = "ssh"` with the key on the bus host for defence in depth.
+
+## app-manifest
+
+**Purpose.** Create the org's GitHub App for the Actions bus without typing its settings: an App cannot be made through the API, so GitHub's manifest flow does it from a form an owner submits.
+
+**Reads.** The `kind = "actions"` entry in `[[buses]]` (`--bus <id>` when there is more than one).
+
+**Writes.** `<out>/<app>-manifest.json` and `<out>/<app>-app.html` (nothing secret; the page holds only the manifest and a random `state`).
+
+**Steps.**
+
+1. `colab.py app-manifest --out <folder>` prints the page's `file://` link and the clicks.
+2. Open it in a browser signed in as an org owner; press **Create the App on GitHub**; on GitHub's page, check the name and click **Create GitHub App for `<org>`**. (A taken name: change it there, and put the new slug in `[[buses]] app`.)
+3. On the App's page: note the App ID into `[[buses]] app_id` by PR; **Generate a private key** (a `.pem` downloads). Make the `colab-bus` environment if `apply` has not (the printed `gh api` commands: deployments from the default branch only), then `gh secret set COLAB_APP_ID --env colab-bus --repo <org>/<meta> --body <App ID>`; `gh secret set COLAB_APP_PRIVATE_KEY --env colab-bus --repo <org>/<meta> < <file>.pem`; delete the file. Never as repository secrets.
+4. Install it: `https://github.com/apps/<app>/installations/new`, **Install** next to the org, only the meta repo and the space and subscriber repos it prints.
+
+**The manifest.** Private (`public: false`), webhook inactive, no events, `redirect_url` = the App's settings page, and only `APP_PERMISSIONS` from `colab.py`: metadata read, issues write, contents write (for `colab-state`; the meta repo's rulesets stop it elsewhere there), pull requests read, organization projects write, members read.
+
+**Guardrails.** It changes nothing on GitHub; the owner's button press does. The key is never written by the skill: GitHub's download goes straight into the secret and is deleted.
 
 ## bus
 
@@ -402,12 +423,12 @@ Built-in categories: `secret`, `path`, and `participant_id`. The `participant_id
 
 **Steps.**
 
-1. `colab.py bus status` prints "The bus is running: <id> (operator <login>) ..." or "No bus is running right now ... contact an operator: ...", then one line per bus (role, operator, host, active or standing by, last heard). Exit 1 when no bus holds a fresh lease. `--json` for agents.
+1. `colab.py bus status` prints "The bus is running: <id> (operator <login>) ..." or "No bus is running right now ..." with what to check (the workflow's runs in the Actions tab, for an Actions bus) and the operators to contact, then one line per bus (role, operator and host, or "GitHub Actions workflow, as the App <slug>", active or standing by, last heard). Exit 1 when no bus holds a fresh lease. `--json` for agents.
 2. `colab.py bus handback <id> [--dry-run]` writes a lease naming bus `<id>` (with `handed_by` and `handed_from`). At its next poll the current holder sees another bus's fresh lease and stands by; bus `<id>` finds itself the holder, takes over, and starts from the published security state and cursors.
 
 **Guardrails.**
 
-- Only an operator listed in `[[buses]]` may hand over (any of them, for any bus), and the ruleset on `colab-state` enforces team membership on GitHub too.
+- Only an operator listed in `[[buses]]` may hand over (any of them, for any bus, including to the Actions bus), and the ruleset on `colab-state` enforces team membership on GitHub too.
 - A handover never loses a flag: the new holder starts from the published state (restricted flags are carried by hash), and delivery keys make the overlap harmless.
 
 ## improve

@@ -42,4 +42,4 @@ Lines with ✗ always say what to do next ("Next:") and, where useful, a page to
 
 ## Running a bus
 
-A few members run the lab's bus, the small background job that moves news between projects. That needs one more step: see [operators.md](./operators.md).
+The lab's bus, the small background job that moves news between projects, runs by itself on GitHub Actions; an org owner sets it up once ([runbook.md](./runbook.md), section 4). A few members also run a standby on a cluster, in case it stops: see [operators.md](./operators.md).
