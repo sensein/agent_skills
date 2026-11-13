@@ -1782,7 +1782,7 @@ def cmd_seed(dest: Path, config_path: Path | None, refresh_bus: bool = False) ->
             owners_path.write_text(have + ("\n" if have and not have.endswith("\n") else "") + head + "\n".join(new) + "\n")
             written.append(owners_path)
     scripts_dir = dest / "bus"
-    for name in ("colab_bus.py", "colab.py"):
+    for name in ("colab_bus.py", "colab.py", "colab_sync.py"):
         target, source = scripts_dir / name, Path(__file__).with_name(name)
         if not target.exists() or (refresh_bus and target.read_bytes() != source.read_bytes()):
             shutil.copy2(source, target)
