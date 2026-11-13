@@ -1,6 +1,6 @@
 interface:
   display_name: "Lab Colab Space"
-  short_description: "Roll out and run the lab's GitHub work graph and pub/sub bus"
+  short_description: "Roll out and run the lab's GitHub work graph, through each member's own login"
   default_prompt: "Use $lab-colab to check the rollout state of our GitHub org and propose the next steps as a dry run."
 
 policy:
