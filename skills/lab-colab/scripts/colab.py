@@ -361,7 +361,7 @@ BUS_WORKFLOW = ".github/workflows/colab-bus.yml"
 BUS_ENVIRONMENT = "colab-bus"
 CODEOWNERS = ".github/CODEOWNERS"
 CODEOWNED = ("/.github/workflows/", "/bus/")  # the bus's workflow and code: their changes need a code owner's review
-CODEOWNED_CORE = ("/.colab/", "/.github/workflows/")  # the config (stewards, audit issue) and workflows, relay or not
+CODEOWNED_CORE = ("/.colab/", "/.github/workflows/", "/.github/CODEOWNERS")  # the config (stewards, audit issue) and workflows, relay or not
 _OWNER_RX = re.compile(r"^@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9_.-]+)?\Z")
 BUS_ENV_POLICY = {"protected_branches": False, "custom_branch_policies": True}
 

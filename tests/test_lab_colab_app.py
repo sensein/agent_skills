@@ -786,7 +786,7 @@ class CodeOwnersTests(unittest.TestCase):
             self.assertIn("/.colab/ @sensein/colab-bus-operators", text)
             self.assertEqual(text.count("/bus/"), 1)
         cfg = {"org": {"name": "sensein"}, "bus": {"enabled": True, "code_owners": ["@sensein/admins", "not an owner", "@satra"]}}
-        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @sensein/admins @satra", "/.github/workflows/ @sensein/admins @satra",
+        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @sensein/admins @satra", "/.github/workflows/ @sensein/admins @satra", "/.github/CODEOWNERS @sensein/admins @satra",
                                                        "/bus/ @sensein/admins @satra"])
         self.assertEqual(colab.codeowners_missing("# c\n/bus/ @x\n"), ["/.github/workflows/"])
 

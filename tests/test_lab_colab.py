@@ -621,6 +621,16 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertEqual(adds, ["I_issue"])
         self.assertEqual(bus.ProjectSync(fake, project_config(), {}, Path("."), {"errors": 0}, {}).add_kinds, {"issue"})
 
+    def test_relay_keeps_non_public_external_items_off_the_board_by_default(self) -> None:
+        fake = FakeProjectGH()
+        sync = bus.ProjectSync(fake, project_config(), {}, Path("."), {"errors": 0}, {})
+        sync.enabled = True
+        env = {"node_id": "I_1", "kind": "issue", "id": "dandi/x:issue:1:opened", "tier": "restricted", "external": True, "spaces": ["dandi"]}
+        entry: dict = {}
+        sync.ids = lambda: (_ for _ in ()).throw(AssertionError("must not touch the Project"))
+        sync.track_external(env, {"satra": ["comment"]}, entry, True, True)
+        self.assertNotIn("project_item", entry)
+
     def test_project_add_can_include_pull_requests_or_nothing(self) -> None:
         both = project_config(project_add=["issue", "pull_request"])
         fake, _, _ = self._poll([self._opened(5, "I_issue"), self._opened(6, "PR_pr", kind="pull_request")], both)

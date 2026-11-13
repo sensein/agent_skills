@@ -460,7 +460,7 @@ class PlanWithoutTheBusTests(unittest.TestCase):
     def test_codeowners_cover_the_config_without_the_relay(self) -> None:
         cfg = pcfg()
         self.assertEqual(colab.code_owners(cfg), ["@a", "@me"])  # the stewards, when nobody else is named
-        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @a @me", "/.github/workflows/ @a @me"])
+        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @a @me", "/.github/workflows/ @a @me", "/.github/CODEOWNERS @a @me"])
         cfg["security"] = {"code_owners": ["@sensein/admins"]}
         self.assertEqual(colab.code_owners(cfg), ["@sensein/admins"])
         with tempfile.TemporaryDirectory() as tmp:

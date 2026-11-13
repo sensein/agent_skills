@@ -341,6 +341,9 @@ class ProjectSync:
             print(f"colab-bus: ignoring unknown [bus] project_add kind {k!r} (use \"issue\" or \"pull_request\")", file=sys.stderr)
             _append(state_dir / "audit.jsonl", {"project_add_unknown_kind": str(k), "at": now()})
         self.interval = bus.get("write_interval_seconds", 1.0)
+        # Non-public external items stay off the shared Project unless [sync] external_private = "board",
+        # the same rule members' own sync follows (they see them live in next --me / inbox).
+        self.external_private_board = str((config.get("sync") or {}).get("external_private", "personal")) == "board"
         self._ids: dict | None = None
         self._noted: set[str] = set()
         # Set by poll_once: the Security value the bus's state says to show, the hot-item note, and the call budget.
@@ -417,6 +420,8 @@ class ProjectSync:
         `entry` is the item's record in bus state; it remembers the Project item id and the last text written."""
         if not self.enabled or not env.get("node_id") or env["kind"] not in self.add_kinds:
             return
+        if env.get("tier") == "restricted" and not self.external_private_board:
+            return  # a non-public external repo: off the shared board ([sync] external_private = "personal")
         ids = self.ids()
         if not ids:
             return
