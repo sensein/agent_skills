@@ -700,9 +700,14 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
         repos = sorted({repo_key(r, org) for r in space_repos(config)[space]})
     else:
         repos = sorted(member_of)
+    resume = state.get("resume_repo")
+    if resume in repos:  # the last run ran out of budget here: start from it, so later repos never starve
+        repos = repos[repos.index(resume):] + repos[:repos.index(resume)]
     declared, opt_in = declared_tiers(config), lab_opt_in(config)
     cursors = state.setdefault("cursors", {})
     items_state = state.setdefault("items", {})
+    seen_vis = state.setdefault("visibility", {})
+    current = {"repo": None, "resume": None}
     cache: dict = {}
     default_since = (now_t - timedelta(days=int(settings["lookback_days"]))).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -727,9 +732,16 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
             state["project_ids"] = {"number": number, "at": now_t.isoformat(), "ids": ids}
             report["notes"] += [f"the Project has no {m} field (run plan/apply); it is skipped" for m in missing if m == "Contributions"]
         for repo in repos:
+            current["repo"] = repo
             external = is_external(repo)
             ref = repo_ref(repo, org)
-            vis = _repo_vis(gh, ref, budget)
+            known = seen_vis.get(repo) or {}
+            if known.get("v") and known.get("at", "") >= (now_t - timedelta(days=1)).isoformat():
+                vis = known["v"]  # visibility read within a day: no call
+            else:
+                vis = _repo_vis(gh, ref, budget)
+                if vis:
+                    seen_vis[repo] = {"v": vis, "at": now_t.isoformat()}
             if vis is None:
                 report["unreadable"].append(repo)
                 continue
@@ -820,10 +832,13 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
                 last = item.get("updated_at")
             if carried or not complete:
                 report["carried"].append(repo)
+                if carried and current["resume"] is None:
+                    current["resume"] = repo
             if last and not dry_run and since is None:
                 cursors[repo] = last
     except DetailBudget:
         report["notes"].append("the call budget for this run is spent; the next run continues from here")
+        current["resume"] = current["resume"] or current["repo"]
     except ProjectLookupError as err:
         report["notes"].append(f"could not read the Project ({err.what}); nothing was written")
     except (urllib.error.URLError, OSError, GraphQLError) as err:
@@ -831,6 +846,10 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
     report["calls_used"] = budget.used
     if not dry_run:
         state["last_sync"] = now_t.isoformat()
+        if current["resume"]:
+            state["resume_repo"] = current["resume"]
+        else:
+            state.pop("resume_repo", None)
     return report
 
 

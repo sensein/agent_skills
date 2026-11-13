@@ -179,6 +179,19 @@ class SyncTests(unittest.TestCase):
         report, state, _ = self.run_sync(FakeSyncGH(issues=gh.issues), state=state)
         self.assertNotIn("sensein/proj#1", report["added"])  # resumes, does not start over
 
+    def test_a_short_budget_rotates_so_later_repos_never_starve(self) -> None:
+        cfg = pcfg()
+        cfg["spaces"] = {"many": {"stewards": ["a"], "repos": [f"r{i}" for i in range(6)]}}
+        repos = {f"sensein/r{i}": "private" for i in range(6)}
+        state: dict = {}
+        report, state, _ = self.run_sync(FakeSyncGH(repos=repos), state=state, cfg=cfg, budget_calls=4 + 6)
+        self.assertEqual(state["resume_repo"], "r3")  # ids (4), then two calls per repo: r0..r2 read, r3 not
+        gh = FakeSyncGH(repos=repos)
+        report, state, _ = self.run_sync(gh, state=state, cfg=cfg, budget_calls=20)
+        self.assertTrue(gh.gets[0].startswith("/repos/sensein/r3"))  # starts where the last run stopped
+        self.assertNotIn("resume_repo", state)  # finished: the next run starts at the top again
+        self.assertFalse(any(g == "/repos/sensein/r0" for g in gh.gets))  # visibility read within a day is reused
+
     def test_modes_unreadable_repos_and_tiers(self) -> None:
         gh = FakeSyncGH(repos={"sensein/proj": "private", "up/lib": None, "up/private-lib": "private", "sensein/tools": "private"},
                         issues={"sensein/proj": [issue(1, by="kab"), issue(2, by="me"), issue(3, by="kab", labels=["tier:restricted"])],
