@@ -39,7 +39,7 @@ def acfg(**extra) -> dict:
     c = {"org": {"name": "sensein", "meta_repo": "lab-colab"},
          "spaces": {"proj": {"repos": ["proj", "secret-repo", "partner/private-tool"], "stewards": ["satra"]}},
          "tiers": {"restricted": ["secret-repo"]},
-         "bus": {"write_interval_seconds": 0, "poll_seconds": 600}, "buses": [dict(ACTIONS), dict(STANDBY)]}
+         "bus": {"enabled": True, "write_interval_seconds": 0, "poll_seconds": 600}, "buses": [dict(ACTIONS), dict(STANDBY)]}
     c.update(extra)
     return c
 
@@ -124,7 +124,7 @@ class ActionsBusConfigTests(unittest.TestCase):
 
     def test_bundled_config_shows_an_actions_bus_first(self) -> None:
         text = (SKILL / "assets" / "lab-colab.toml").read_text()
-        block = text[text.index("# Buses."):text.index("[security]")]
+        block = text[text.index("# Buses:"):text.index("[security]")]
         self.assertLess(block.index('# kind = "actions"'), block.index('# operator = "handle"'))
         self.assertIn('# app = "colab-bus"', block)
         self.assertEqual(colab.buses(colab.load_config()), [])
@@ -619,42 +619,6 @@ class ActionsCycleTests(unittest.TestCase):
         self.assertFalse(bus.already_delivered(gh, "/repos/sensein/sub", "proj:issue:3:opened", "2026-11-12T00:00:00Z", {"satra"}))
 
 
-# --------------------------------------------------------------------------- members' gate: who may write colab-state
-
-
-class GateTrustTests(unittest.TestCase):
-    CFG = {"org": {"name": "sensein", "meta_repo": "lab-colab"}}
-
-    def cli(self, bypass, app_id="4242", writer=BOT):
-        meta = ('[[buses]]\nid = "actions"\nkind = "actions"\napp = "colab-bus"\n' + (f"app_id = {app_id}\n" if app_id else "")
-                + 'role = "primary"\n')
-        cli = ops.FakeCli(state=ops.fresh_state(), writer=writer)
-        cli.meta = {"content": base64.b64encode(meta.encode()).decode()}
-        inner = cli.__call__
-
-        def call(args):
-            path = args[1] if len(args) > 1 else ""
-            if path == "repos/sensein/lab-colab/rulesets/11":
-                return {"bypass_actors": bypass}
-            if path == "orgs/sensein/teams/colab-bus-operators":
-                return {"id": 99}
-            return inner(args)
-        return call
-
-    def test_the_apps_bot_and_its_integration_bypass_are_trusted(self) -> None:
-        both = [{"actor_type": "Team", "actor_id": 99}, {"actor_type": "Integration", "actor_id": 4242}]
-        value, why = colab.load_security_state(self.CFG, self.cli(both))
-        self.assertEqual(why, "")
-        self.assertIsNotNone(value)
-
-    def test_another_app_or_a_missing_app_id_fails_closed(self) -> None:
-        other = [{"actor_type": "Integration", "actor_id": 777}]
-        self.assertIn("Integration 777", colab.load_security_state(self.CFG, self.cli(other))[1])
-        mine = [{"actor_type": "Integration", "actor_id": 4242}]
-        self.assertIn("Integration 4242", colab.load_security_state(self.CFG, self.cli(mine, app_id=None))[1])
-        self.assertIn("mallory", colab.load_security_state(self.CFG, self.cli(mine, writer="mallory"))[1])
-
-
 # --------------------------------------------------------------------------- plan and apply
 
 
@@ -783,6 +747,13 @@ class AppPlanTests(unittest.TestCase):
         self.assertEqual(colab.observe_apps(ops.cfg(), gh), {})  # no Actions bus: nothing read
 
 
+def relay_config(tmp: Path) -> Path:
+    """The bundled config with the optional relay switched on."""
+    path = tmp / "relay.toml"
+    path.write_text(re.sub(r"(?m)^enabled = false", "enabled = true", (SKILL / "assets" / "lab-colab.toml").read_text(), count=1))
+    return path
+
+
 class CodeOwnersTests(unittest.TestCase):
     def test_observe_marks_any_protection_rule_as_protected(self) -> None:
         for env in ({"protection_rules": [{"type": "wait_timer", "wait_timer": 5}]},
@@ -796,14 +767,17 @@ class CodeOwnersTests(unittest.TestCase):
 
     def test_seed_adds_codeowners_lines_and_never_changes_existing_ones(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            dest = Path(tmp)
-            colab.cmd_seed(dest, None)
+            dest = Path(tmp) / "meta"
+            cfg_path = relay_config(Path(tmp))
+            colab.cmd_seed(Path(tmp) / "plain", None)
+            self.assertFalse((Path(tmp) / "plain" / ".github").exists())  # relay off: no CODEOWNERS for its files
+            colab.cmd_seed(dest, cfg_path)
             text = (dest / ".github" / "CODEOWNERS").read_text()
             self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
             self.assertIn("/bus/ @sensein/colab-bus-operators", text)
             (dest / ".github" / "CODEOWNERS").write_text("* @sensein/admins\n/bus/ @someone\n")
-            self.assertNotIn(dest / ".github" / "CODEOWNERS", colab.cmd_seed(dest, None))  # without --refresh-bus: untouched
-            colab.cmd_seed(dest, None, refresh_bus=True)
+            self.assertNotIn(dest / ".github" / "CODEOWNERS", colab.cmd_seed(dest, cfg_path))  # without --refresh-bus: untouched
+            colab.cmd_seed(dest, cfg_path, refresh_bus=True)
             text = (dest / ".github" / "CODEOWNERS").read_text()
             self.assertTrue(text.startswith("* @sensein/admins\n/bus/ @someone\n"))  # nothing changed, one line added
             self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
@@ -1002,13 +976,18 @@ class WorkflowTemplateTests(unittest.TestCase):
 
     def test_seed_adds_it_and_refresh_replaces_only_the_bus_code(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            dest = Path(tmp)
-            written = colab.cmd_seed(dest, None)
+            plain = Path(tmp) / "plain"
+            written = colab.cmd_seed(plain, None)  # the bundled config: [bus] enabled = false, so no relay files
+            self.assertEqual(sorted(p.name for p in written), ["config.toml", "rollout.json", "subscriptions.toml"])
+            dest = Path(tmp) / "meta"
+            cfg_path = relay_config(Path(tmp))
+            written = colab.cmd_seed(dest, cfg_path)
             self.assertIn(dest / ".github/workflows/colab-bus.yml", written)
+            self.assertIn(dest / "bus" / "colab_sync.py", written)
             (dest / "bus" / "colab_bus.py").write_text("old\n")
             (dest / ".colab" / "config.toml").write_text("# the lab's own\n")
-            self.assertEqual(colab.cmd_seed(dest, None), [])
-            again = colab.cmd_seed(dest, None, refresh_bus=True)
+            self.assertEqual(colab.cmd_seed(dest, cfg_path), [])
+            again = colab.cmd_seed(dest, cfg_path, refresh_bus=True)
             self.assertEqual(again, [dest / "bus" / "colab_bus.py"])
             self.assertEqual((dest / ".colab" / "config.toml").read_text(), "# the lab's own\n")
 

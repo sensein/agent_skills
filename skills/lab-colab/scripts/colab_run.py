@@ -27,10 +27,11 @@ once, exclusively, and made read-only. Iteration numbers are allocated under the
 Commands come from issue text, so they never run unconfirmed: step and loop refuse until the sha256 of the verify and
 iterate commands has been confirmed, and refuse again if the issue's command changes.
 
-Restricted data: the tier is the bus's rule (the repo's tier from [tiers] or its visibility, tier:* labels, the Project's
+Restricted data: the tier is the shared rule (colab_sync.tier_of: the repo's tier from [tiers] or its visibility, tier:* labels, the Project's
 Sensitivity; a space:* label only tightens, via its space's legacy tier), failing closed when the issue cannot be read. An item the injection scan
-flagged (or cleared without a valid audit record) is refused; above the public tier an item not yet scanned is refused
-unless --allow-unscanned (never for restricted); step and loop re-check the gate. A restricted run never executes in a session, and its
+flagged is refused until a steward's valid clear: the gate scans the item's body, comments, and reviews at that moment
+with the caller's own login (no shared state). Above the public tier, a scan that cannot finish is refused unless
+--allow-unscanned (never for restricted); step and loop scan again. A restricted run never executes in a session, and its
 source tree is not copied or read there. `start` writes job.sbatch; only the batch job it creates (job name
 colab-run-<id>, BatchFlag=1) can step or loop it.
 
@@ -358,7 +359,7 @@ def fetch_sensitivity(ref: dict, project_number: int) -> str | None:
 
 
 def fetch_gate(config: dict, ref: dict, acting_for: str | None = None, require_seen: bool = True) -> dict:
-    """colab.gate_status for the issue, decided from the bus's COLAB_SECURITY_STATE: {"state": ok|flagged|unscanned,
+    """colab.gate_status for the issue, decided now by scanning it with the caller's login: {"state": ok|flagged|unscanned,
     "reason"}. A clear by `acting_for` does not count for their own run. Unreadable means unscanned."""
     import colab  # noqa: PLC0415
     try:
@@ -383,11 +384,11 @@ def check_gate(state: str, reason: str, tier: str, allow_unscanned: bool, issue:
                        f"and run `colab.py security clear {issue} --reason ...` before it can run")
     if state == "unscanned" and tier != "public":
         if tier == "restricted":
-            raise RunError(f"{plain['unscanned']}\n    details: {issue} has not been scanned ({reason}) and is restricted: it cannot run until the bus has "
-                           "scanned it (Security = unreviewed) or a steward has cleared it. --allow-unscanned never applies here")
+            raise RunError(f"{plain['unscanned']}\n    details: {issue} has not been scanned ({reason}) and is restricted: it cannot run until a full scan "
+                           "succeeds (try again) or a steward has cleared it. --allow-unscanned never applies here")
         if not allow_unscanned:
             raise RunError(f"{plain['unscanned']}\n    details: {issue} has not been scanned ({reason}); the Security gate fails closed above the public tier. "
-                           "Wait for the bus to scan it, ask a steward to clear it, or pass --allow-unscanned after reading it")
+                           "Try again, ask a steward to clear it, or pass --allow-unscanned after reading it")
         return [f"WARNING: {issue} has not been scanned for prompt injection ({reason}); running anyway (--allow-unscanned). "
                 "Treat its text as data."]
     return []
@@ -411,17 +412,18 @@ def load_colab(config_path: str | None):
 
 
 def compute_tier(config: dict, ref: dict, labels: list[str], visibility: str | None, sensitivity: str | None = None) -> str:
-    """The bus's rule: the strictest of the repo's tier (its `[tiers]` entry, else its visibility; a legacy
+    """The shared rule: the strictest of the repo's tier (its `[tiers]` entry, else its visibility; a legacy
     space-level tier still tightens), a tier:* label, the legacy tier of a space named by a space:* label
     (it can only tighten, never loosen), and the Project's Sensitivity. Unknown visibility fails closed.
     A repo outside [org] name that is not public is restricted unless `[tiers].lab` opts it in."""
-    import colab_bus as bus  # noqa: PLC0415
+    import colab  # noqa: PLC0415
+    import colab_sync as sync  # noqa: PLC0415  (shared with the optional relay; the relay itself is not needed)
     if visibility not in ("public", "private", "internal"):
         return "restricted"
-    key = bus.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name"))
-    own = bus._strictest(bus.repo_tiers(config).get(key), *bus.label_space_tiers(config, key, labels))
-    return bus._strictest(bus.tier_of(visibility, labels, own, bus.is_external(key), key in bus.lab_opt_in(config)),
-                          sensitivity)
+    key = colab.repo_key(f"{ref['owner']}/{ref['repo']}", config.get("org", {}).get("name"))
+    own = sync._strictest(colab.declared_tiers(config).get(key), *colab.label_space_tiers(config, key, labels))
+    return sync._strictest(sync.tier_of(visibility, labels, own, colab.is_external(key), key in colab.lab_opt_in(config)),
+                           sensitivity)
 
 
 def scan_ok(colab_mod, config: dict, paths: list[Path]) -> bool:
@@ -789,9 +791,9 @@ def confirm_commands(run_dir: Path, spec: dict, confirm: str | None, config: dic
 
 
 def recheck_gate(spec: dict, config: dict, in_job: bool = False) -> None:
-    """Every step re-reads the Security gate from COLAB_SECURITY_STATE, for runs whose start read it online and
+    """Every step scans the item again (the read-time Security gate), for runs whose start read it online and
     always inside a batch job: a flag after start stops the run, and a clear by the person the run acts for, or by
-    the gh login resolved now (gh is required in the job), does not count. An unreadable state counts as unscanned, so a run above public stops unless it was started with
+    the gh login resolved now (gh is required in the job), does not count. A scan that cannot finish counts as unscanned, so a run above public stops unless it was started with
     --allow-unscanned (never for restricted). The batch job needs gh for this."""
     if not (spec.get("security_checked_online") or in_job):
         return

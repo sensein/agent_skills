@@ -86,9 +86,10 @@ from colab_sync import (API, GRAPHQL_URL, RANK, DELIVERY_MARKER, MARKED, M_ADD, 
                         Q_AUDIT, Q_ITEMS, Q_PROJECT, Q_PROJECT_FIELDS, TITLE_MAX, UNTRUSTED, BUG, CLOSING, DetailBudget,
                         GitHub, GraphQLError, _number, _pages, _strictest, closes, contributions_from, delivery_text,
                         delivery_title, desired_spaces, dest_tier, envelopes_for, fetch_contributions, involves, is_bug,
-                        is_delivery, matches, may_deliver, merge_contributions, org_members, project_field_ids, ProjectLookupError,
+                        is_delivery, matches, may_deliver, merge_contributions, normalise_subscriptions, org_members,
+                        project_field_ids, ProjectLookupError, running_jobs, SUB_KINDS, SUB_SCHEMES, DELIVERY_KEY,
+                        already_delivered,
                         quote_within, tier_of)
-DELIVERY_KEY = re.compile(r"<!-- colab-delivery bus=\S+ operator=\S+ key=(?P<key>\S+) -->")
 SEEN_CAP = 20000
 
 
@@ -143,18 +144,6 @@ try:  # shared grammar
 except ImportError:  # pragma: no cover
     parse_links = validate_links = parse_sessions = session_state = None
     build_plan = is_recurring = observe = None
-
-
-def running_jobs(ids: set[str]) -> set[str]:
-    """Which of these Slurm job ids are still pending or running (the bus runs on the cluster)."""
-    if not ids:
-        return set()
-    try:
-        out = subprocess.run(["squeue", "-h", "-j", ",".join(sorted(ids)), "-o", "%i"],
-                             capture_output=True, text=True, timeout=30).stdout
-    except (OSError, subprocess.TimeoutExpired):
-        return set()
-    return {line.strip() for line in out.splitlines() if line.strip()}
 
 
 def remember(state: dict, env_id: str) -> bool:
@@ -672,37 +661,16 @@ def drift_check(gh, config: dict, state: dict, state_dir: Path, stats: dict, now
     state["drift_actions"] = stats["drift_actions"] = len(remaining)
 
 
-SUB_SCHEMES = ("repo", "label", "space")
-SUB_KINDS = ("issue", "pull_request", "release")
 
 
 def valid_subscriptions(subs, org: str, state_dir: Path, stats: dict) -> list[dict]:
-    """Normalise each [[subscribe]] entry (repo names like [spaces] entries; bare = [org] name).
-
-    A malformed entry is dropped and audited (`subscription_invalid`), so one bad entry never stops a
+    """Normalise each [[subscribe]] entry (colab_sync.normalise_subscriptions: repo names like [spaces] entries; bare =
+    [org] name). A malformed entry is dropped and audited (`subscription_invalid`), so one bad entry never stops a
     poll. A subscriber in another org stays qualified, and route() drops every delivery to it."""
-    out = []
-    for i, s in enumerate(subs if isinstance(subs, list) else []):
-        try:
-            if not isinstance(s, dict):
-                raise ValueError("not a table")
-            scheme, _, value = str(s.get("topic", "")).partition(":")
-            if scheme not in SUB_SCHEMES or not value:
-                raise ValueError(f"topic must be one of {', '.join(f'{x}:<value>' for x in SUB_SCHEMES)}")
-            if not isinstance(s.get("subscriber"), str):
-                raise ValueError("subscriber must be a repo name")
-            events = s.get("events")
-            if events is not None and (not isinstance(events, list) or any(e not in SUB_KINDS for e in events)):
-                raise ValueError(f"events must be a list of {', '.join(SUB_KINDS)}")
-            if s.get("tier") is not None and s.get("tier") not in RANK:
-                raise ValueError(f"tier must be one of {', '.join(RANK)}")
-            if s.get("deliver", "issue") != "issue":
-                raise ValueError("deliver must be issue")
-            topic = f"repo:{repo_key(value, org)}" if scheme == "repo" else f"{scheme}:{value}"
-            out.append({**s, "topic": topic, "subscriber": repo_key(s["subscriber"], org)})
-        except (ValueError, TypeError) as err:  # includes RepoEntryError from repo_key
-            stats["errors"] += 1
-            _append(state_dir / "audit.jsonl", {"subscription_invalid": i, "entry": repr(s)[:300], "error": str(err)[:300], "at": now()})
+    out, bad = normalise_subscriptions(subs, org)
+    for i, entry, why in bad:
+        stats["errors"] += 1
+        _append(state_dir / "audit.jsonl", {"subscription_invalid": i, "entry": entry, "error": why, "at": now()})
     return out
 
 
@@ -729,29 +697,6 @@ def migrate_case(state: dict, keys: set[str]) -> None:
         state.pop("_seen_index", None)
     if state.get("links_checked"):
         state["links_checked"] = {fix(k): v for k, v in state["links_checked"].items()}
-
-
-def already_delivered(gh, repo_path: str, key: str, since: str, writers: set[str] | frozenset = frozenset()) -> bool:
-    """Is there already a delivery with this idempotency key (the envelope id) in the subscriber repo, opened by a
-    bus? Only issues whose author is in `writers` (the registered operators, or the bus's own login without
-    [[buses]]) count: envelope ids are predictable, so an issue anyone else opens with the marker must never
-    suppress a delivery. Reads the repo's issues updated since the event (one page, newest first). A failed read
-    counts as not found."""
-    writers = {w.lower() for w in writers if w}
-    if not writers:
-        return False
-    try:
-        issues = gh.get(f"{repo_path}/issues?state=all&sort=created&direction=desc&per_page=100&since={since}",
-                        conditional=False) or []
-    except (urllib.error.URLError, OSError):
-        return False
-    for issue in issues if isinstance(issues, list) else []:
-        if str(((issue or {}).get("user") or {}).get("login") or "").lower() not in writers:
-            continue
-        for m in DELIVERY_KEY.finditer((issue or {}).get("body") or ""):
-            if m["key"] == key:
-                return True
-    return False
 
 
 def poll_once(gh, config: dict, rollout: dict, subs: list[dict], state: dict, state_dir: Path,

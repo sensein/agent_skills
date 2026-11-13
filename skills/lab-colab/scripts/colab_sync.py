@@ -17,13 +17,14 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from colab import CONTRIB_KINDS, is_external  # noqa: E402
+from colab import CONTRIB_KINDS, Q_AUDIT, is_external  # noqa: E402,F401  (Q_AUDIT: shared with the read-time gate)
 
 API = "https://api.github.com"
 GRAPHQL_URL = "https://api.github.com/graphql"
 RANK = {"public": 0, "lab": 1, "restricted": 2}
 DELIVERY_MARKER = "<!-- colab-delivery -->"  # every relay or delivery write carries it; deliveries add delivery_marker(...)
 MARKED = re.compile(r"<!-- colab-delivery(?: [^>]*)? -->")
+DELIVERY_KEY = re.compile(r"<!-- colab-delivery bus=\S+ operator=\S+ key=(?P<key>\S+) -->")
 
 def _strictest(*tiers: str | None) -> str:
     return max([t for t in tiers if t in RANK] or ["public"], key=RANK.__getitem__)
@@ -348,6 +349,29 @@ class GraphQLError(RuntimeError):
     pass
 
 
+def already_delivered(gh, repo_path: str, key: str, since: str, writers: set[str] | frozenset = frozenset()) -> bool:
+    """Is there already a delivery with this idempotency key (the envelope id) in the subscriber repo, opened by a
+    bus? Only issues whose author is in `writers` (the registered operators, or the bus's own login without
+    [[buses]]) count: envelope ids are predictable, so an issue anyone else opens with the marker must never
+    suppress a delivery. Reads the repo's issues updated since the event (one page, newest first). A failed read
+    counts as not found."""
+    writers = {w.lower() for w in writers if w}
+    if not writers:
+        return False
+    try:
+        issues = gh.get(f"{repo_path}/issues?state=all&sort=created&direction=desc&per_page=100&since={since}",
+                        conditional=False) or []
+    except (urllib.error.URLError, OSError):
+        return False
+    for issue in issues if isinstance(issues, list) else []:
+        if str(((issue or {}).get("user") or {}).get("login") or "").lower() not in writers:
+            continue
+        for m in DELIVERY_KEY.finditer((issue or {}).get("body") or ""):
+            if m["key"] == key:
+                return True
+    return False
+
+
 # --------------------------------------------------------------------------- Project fields
 
 # The Project lookup asks for each field in its own query: GitHub fails a whole query (NOT_FOUND "Could not resolve
@@ -378,9 +402,6 @@ M_ADD = ("mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: {
 M_SET = ("mutation($project: ID!, $item: ID!, $field: ID!, $options: [String!]!) { updateProjectV2ItemFieldValue("
          "input: {projectId: $project, itemId: $item, fieldId: $field, value: {multiSelectOptionIds: $options}}) "
          "{ projectV2Item { id } } }")
-Q_AUDIT = ("query($o: String!, $r: String!, $n: Int!, $after: String) { repository(owner: $o, name: $r) { issue(number: $n) { "
-           "comments(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { databaseId createdAt lastEditedAt "
-           "body author { login } editor { login } } } } } }")
 M_TEXT = ("mutation($project: ID!, $item: ID!, $field: ID!, $text: String!) { updateProjectV2ItemFieldValue("
           "input: {projectId: $project, itemId: $item, fieldId: $field, value: {text: $text}}) { projectV2Item { id } } }")
 M_SELECT = ("mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) { updateProjectV2ItemFieldValue("
@@ -426,3 +447,463 @@ def project_field_ids(gh, org: str, number: int) -> tuple[dict, list[str]]:
              "contributions": found["Contributions"].get("id"),
              "security": security.get("id"),
              "security_options": {o["name"].lower(): o["id"] for o in security.get("options") or []}}, missing)
+
+
+# --------------------------------------------------------------------------- subscriptions
+
+SUB_SCHEMES = ("repo", "label", "space")
+SUB_KINDS = ("issue", "pull_request", "release")
+
+
+def normalise_subscriptions(subs, org: str, require_subscriber: bool = True) -> tuple[list[dict], list[tuple[int, str, str]]]:
+    """([valid entries], [(index, entry, why)]). Repo names follow the [spaces] grammar (bare = [org] name). A
+    personal subscription (an inbox topic) needs no subscriber; a lab one does."""
+    from colab import repo_key  # noqa: PLC0415
+    out, bad = [], []
+    for i, s in enumerate(subs if isinstance(subs, list) else []):
+        try:
+            if not isinstance(s, dict):
+                raise ValueError("not a table")
+            scheme, _, value = str(s.get("topic", "")).partition(":")
+            if scheme not in SUB_SCHEMES or not value:
+                raise ValueError(f"topic must be one of {', '.join(f'{x}:<value>' for x in SUB_SCHEMES)}")
+            if require_subscriber and not isinstance(s.get("subscriber"), str):
+                raise ValueError("subscriber must be a repo name")
+            if not require_subscriber and s.get("subscriber") is not None and not isinstance(s.get("subscriber"), str):
+                raise ValueError("subscriber must be a repo name")
+            events = s.get("events")
+            if events is not None and (not isinstance(events, list) or any(e not in SUB_KINDS for e in events)):
+                raise ValueError(f"events must be a list of {', '.join(SUB_KINDS)}")
+            if s.get("tier") is not None and s.get("tier") not in RANK:
+                raise ValueError(f"tier must be one of {', '.join(RANK)}")
+            if s.get("deliver", "issue") != "issue":
+                raise ValueError("deliver must be issue")
+            topic = f"repo:{repo_key(value, org)}" if scheme == "repo" else f"{scheme}:{value}"
+            entry = {**s, "topic": topic}
+            if isinstance(s.get("subscriber"), str):
+                entry["subscriber"] = repo_key(s["subscriber"], org)
+            out.append(entry)
+        except (ValueError, TypeError) as err:  # includes RepoEntryError from repo_key
+            bad.append((i, repr(s)[:300], str(err)[:300]))
+    return out, bad
+
+
+def running_jobs(ids: set[str]) -> set[str]:
+    """Which of these Slurm job ids are still pending or running (empty where there is no squeue)."""
+    import subprocess  # noqa: PLC0415
+    if not ids:
+        return set()
+    try:
+        out = subprocess.run(["squeue", "-h", "-j", ",".join(sorted(ids)), "-o", "%i"],
+                             capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return set()
+    return {line.strip() for line in out.splitlines() if line.strip()}
+
+
+# --------------------------------------------------------------------------- people-first: sync and inbox
+#
+# Everything below runs under the caller's own gh login, when the caller (or their agent) acts. There is no service
+# identity: GitHub shows each person what they can read, and redacts Project items from repos a viewer cannot read.
+# State is local to the person: cursors and Project item ids under ${XDG_STATE_HOME:-~/.local/state}/lab-colab/, 0600,
+# never any item text. Nothing here comments, delivers, or writes outside the org's Project, except inbox
+# --file-issue, which files exactly one issue the person chose.
+
+SYNC_DEFAULTS = {"budget_calls": 200, "auto_budget_calls": 40, "auto_min_minutes": 10, "lookback_days": 14,
+                 "write_interval_seconds": 1.0, "item_cap": 5000}
+INBOX_LOOKBACK_DAYS = 7
+SYNC_PAGES = 10  # pages of 100 items per repo per run
+
+Q_SYNC_PARTS = ("comments(first: 100) { nodes { author { login } } } "
+                "projectItems(first: 20) { nodes { id project { id } "
+                "spaces: fieldValueByName(name: \"Spaces\") { ... on ProjectV2ItemFieldMultiSelectValue { options { name } } } "
+                "contributions: fieldValueByName(name: \"Contributions\") { ... on ProjectV2ItemFieldTextValue { text } } } }")
+Q_SYNC_ITEM = ("query($id: ID!) { node(id: $id) { __typename "
+               f"... on Issue {{ {Q_SYNC_PARTS} timelineItems(first: 50, itemTypes: [CROSS_REFERENCED_EVENT]) {{ nodes {{ "
+               "... on CrossReferencedEvent { source { __typename ... on PullRequest { title body author { login } "
+               "repository { nameWithOwner } } } } } } } "
+               f"... on PullRequest {{ {Q_SYNC_PARTS} reviews(first: 100) {{ nodes {{ author {{ login }} }} }} }} }} }}")
+
+
+class Budget:
+    """API calls left for this run ({"left": n}); spend() raises DetailBudget when none is left."""
+
+    def __init__(self, calls: int):
+        self.left = max(0, int(calls))
+        self.used = 0
+
+    def spend(self, n: int = 1) -> None:
+        if self.left < n:
+            raise DetailBudget("budget")
+        self.left -= n
+        self.used += n
+
+
+def member_token() -> str:
+    """The caller's own GitHub token: GH_TOKEN or GITHUB_TOKEN when set, else `gh auth token` (their gh login)."""
+    import os  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+    for name in ("GH_TOKEN", "GITHUB_TOKEN"):
+        if os.environ.get(name):
+            return os.environ[name]
+    proc = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise RuntimeError("no GitHub login: run `gh auth login` (or connect GitHub in the Claude app)")
+    return proc.stdout.strip()
+
+
+def state_path(kind: str, org: str, login: str) -> Path:
+    """${XDG_STATE_HOME:-~/.local/state}/lab-colab/<kind>/<org>-<login>.json: local to this person, never shared."""
+    import os  # noqa: PLC0415
+    base = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state"))
+    safe = re.sub(r"[^A-Za-z0-9._-]", "-", f"{org}-{login}".lower())[:120]
+    return base / "lab-colab" / kind / f"{safe}.json"
+
+
+def load_state(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(path: Path, state: dict) -> None:
+    import os  # noqa: PLC0415
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(json.dumps(state, indent=1, sort_keys=True))
+    os.replace(tmp, path)
+
+
+def sync_settings(config: dict) -> dict:
+    return {**SYNC_DEFAULTS, **{k: v for k, v in (config.get("sync") or {}).items() if k in SYNC_DEFAULTS}}
+
+
+def parse_since(value: str | None, now_t) -> str | None:
+    """An ISO date or time, or a span like 30d / 12h, as GitHub's `since` (UTC, Z)."""
+    from datetime import datetime, timedelta, timezone  # noqa: PLC0415
+    if not value:
+        return None
+    m = re.fullmatch(r"(\d+)([dh])", value.strip())
+    if m:
+        delta = timedelta(days=int(m[1])) if m[2] == "d" else timedelta(hours=int(m[1]))
+        return (now_t - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        t = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError(f"--since needs an ISO date/time or a span like 30d or 12h, got {value!r}") from None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _labels(item: dict) -> list[str]:
+    return [lab["name"] if isinstance(lab, dict) else str(lab) for lab in item.get("labels", [])]
+
+
+def _logins(nodes) -> list[dict]:
+    return [{"user": {"login": ((n or {}).get("author") or {}).get("login")}} for n in nodes or [] if isinstance(n, dict)]
+
+
+def item_parts(node: dict) -> tuple[list, list, list]:
+    """A Q_SYNC_ITEM node as the REST-shaped (comments, reviews, timeline) that contributions_from takes."""
+    comments = _logins(((node.get("comments") or {}).get("nodes")))
+    reviews = _logins(((node.get("reviews") or {}).get("nodes")))
+    timeline = []
+    for ev in ((node.get("timelineItems") or {}).get("nodes") or []):
+        src = (ev or {}).get("source") or {}
+        if src.get("__typename") == "PullRequest":
+            timeline.append({"event": "cross-referenced", "source": {"issue": {
+                "title": src.get("title") or "", "body": src.get("body") or "", "pull_request": {},
+                "user": {"login": (src.get("author") or {}).get("login")},
+                "repository_url": f"{API}/repos/{(src.get('repository') or {}).get('nameWithOwner') or ''}"}}})
+    return comments, reviews, timeline
+
+
+def _repo_vis(gh, ref: str, budget: Budget) -> str | None:
+    budget.spend()
+    try:
+        meta = gh.get(f"/repos/{ref}", conditional=False)
+    except urllib.error.HTTPError as err:
+        if err.code in (401, 403, 404):
+            return None
+        raise
+    return str(meta.get("visibility") or "").lower() or None if isinstance(meta, dict) else None
+
+
+def _list_items(gh, ref: str, since: str, budget: Budget) -> tuple[list[dict], bool]:
+    """Issues and PRs updated since `since`, oldest first; (items, complete)."""
+    out: list = []
+    for page in range(1, SYNC_PAGES + 1):
+        budget.spend()
+        batch = gh.get(f"/repos/{ref}/issues?state=all&sort=updated&direction=asc&per_page=100&since={since}&page={page}",
+                       conditional=False)
+        batch = batch if isinstance(batch, list) else []
+        out += batch
+        if len(batch) < 100:
+            return out, True
+    return out, False
+
+
+def restricted_switch(gh, config: dict, cache: dict) -> dict:
+    """The rollout's per-space switches, read once from the meta repo (.colab/rollout.json). {} when unreadable."""
+    import base64  # noqa: PLC0415
+    if "rollout" not in cache:
+        org, meta = config["org"]["name"], config["org"]["meta_repo"]
+        try:
+            blob = gh.get(f"/repos/{org}/{meta}/contents/.colab/rollout.json", conditional=False)
+            cache["rollout"] = json.loads(base64.b64decode(blob["content"])) if isinstance(blob, dict) else {}
+        except (urllib.error.URLError, OSError, KeyError, TypeError, ValueError):
+            cache["rollout"] = {}
+    return (cache["rollout"] or {}).get("spaces") or {}
+
+
+def sync_once(gh, config: dict, login: str, state: dict, space: str | None = None, mode: str = "lab",
+              members: set[str] | None = None, since: str | None = None, budget_calls: int | None = None,
+              dry_run: bool = False, sleep=None, now_t=None) -> dict:
+    """One sync under the caller's login: for each space repo in scope that the caller can read, list items updated
+    since the caller's cursor, add the ones that belong on the Project ([bus] project_add kinds; external repos only
+    when they involve the group, or every item with [bus] external_track = "all"), and set their Spaces and the caller's
+    own Contributions. `mode` is "lab" (internal items all; external items involving `members`, default the org's
+    members), "me" (only items the caller is involved in), or "group" (only items `members` are involved in).
+    Idempotent; writes are throttled; reads and writes spend one budget; cursors are kept per person in `state`.
+    Never comments, delivers, or prints item text. Returns a report (refs and counts only)."""
+    import time  # noqa: PLC0415
+    from datetime import datetime, timedelta, timezone  # noqa: PLC0415
+    from colab import (declared_tiers, format_contributions, involved_by, is_external, lab_opt_in, label_space_tiers,  # noqa: PLC0415
+                       parse_contributions, repo_key, repo_ref, repo_spaces, space_repos)
+    sleep = sleep or time.sleep
+    now_t = now_t or datetime.now(timezone.utc)
+    settings = sync_settings(config)
+    budget = Budget(settings["budget_calls"] if budget_calls is None else budget_calls)
+    interval = float(settings["write_interval_seconds"])
+    org = config["org"]["name"]
+    number = int(config["org"].get("project_number") or 0)
+    bus_cfg = config.get("bus") or {}
+    wanted = bus_cfg.get("project_add", ["issue"])
+    wanted = [wanted] if isinstance(wanted, str) else list(wanted or [])
+    kinds = {k for k in wanted if k in ("issue", "pull_request")}
+    track_all = bus_cfg.get("external_track", "involved") == "all"
+    login = login.lower()
+    report = {"login": login, "dry_run": dry_run, "mode": mode, "space": space, "repos": 0, "items_seen": 0, "added": [],
+              "spaces_set": [], "contributions_set": [], "unreadable": [], "carried": [], "notes": [], "writes": 0}
+    if not number:
+        report["notes"].append("[org] project_number is not set: nothing to sync (run the bootstrap plan)")
+        return report
+    member_of = repo_spaces(config)
+    if space:
+        if space not in (config.get("spaces") or {}):
+            raise ValueError(f"unknown space {space!r}; [spaces] has: {', '.join(config.get('spaces') or {}) or 'none'}")
+        repos = sorted({repo_key(r, org) for r in space_repos(config)[space]})
+    else:
+        repos = sorted(member_of)
+    declared, opt_in = declared_tiers(config), lab_opt_in(config)
+    cursors = state.setdefault("cursors", {})
+    items_state = state.setdefault("items", {})
+    cache: dict = {}
+    default_since = (now_t - timedelta(days=int(settings["lookback_days"]))).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def write(what: str, query: str, variables: dict):
+        if dry_run:
+            return "dry-run"
+        budget.spend()
+        reply = gh.graphql(query, variables)
+        report["writes"] += 1
+        sleep(interval)
+        item = ((reply or {}).get("addProjectV2ItemById") or {}).get("item") or {}
+        return item.get("id") or True
+
+    try:
+        ids = None
+        cached = state.get("project_ids") or {}
+        if cached.get("number") == number and cached.get("at", "") >= (now_t - timedelta(days=1)).isoformat():
+            ids = cached.get("ids")
+        if ids is None:
+            budget.spend(4)
+            ids, missing = project_field_ids(gh, org, number)
+            state["project_ids"] = {"number": number, "at": now_t.isoformat(), "ids": ids}
+            report["notes"] += [f"the Project has no {m} field (run plan/apply); it is skipped" for m in missing if m == "Contributions"]
+        for repo in repos:
+            external = is_external(repo)
+            ref = repo_ref(repo, org)
+            vis = _repo_vis(gh, ref, budget)
+            if vis is None:
+                report["unreadable"].append(repo)
+                continue
+            report["repos"] += 1
+            start = since or cursors.get(repo) or default_since
+            items, complete = _list_items(gh, ref, start, budget)
+            if external and mode == "lab" and not track_all and members is None:
+                if "members" not in cache:
+                    budget.spend()
+                    cache["members"] = org_members(gh, org)
+                group = cache["members"]
+                if group is None:
+                    report["notes"].append(f"{repo}: the org's member list is unreadable with your login; its items are skipped")
+                    continue
+            else:
+                group = members
+            last = None
+            carried = False
+            for item in sorted(items, key=lambda i: i.get("updated_at") or ""):
+                kind = "pull_request" if "pull_request" in item else "issue"
+                key = f"{repo}#{item.get('number')}"
+                if kind not in kinds or is_delivery(item) or not item.get("node_id"):
+                    last = item.get("updated_at")
+                    continue
+                report["items_seen"] += 1
+                labels = _labels(item)
+                tier = tier_of(vis, labels, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)),
+                               external, repo in opt_in)
+                if tier == "restricted" and not external:
+                    names = member_of.get(repo, [])
+                    switches = restricted_switch(gh, config, cache)
+                    if not (names and all((switches.get(n) or {}).get("switches", {}).get("restricted") for n in names)):
+                        last = item.get("updated_at")
+                        continue  # restricted items in the lab's repos join the board only with the restricted switch
+                seen = items_state.get(key) or {}
+                if seen.get("updated_at") == item.get("updated_at") and seen.get("project_item") and since is None:
+                    last = item.get("updated_at")
+                    continue  # unchanged since this person last synced it
+                if budget.left < 4:
+                    carried = True
+                    break
+                budget.spend()
+                node = (gh.graphql(Q_SYNC_ITEM, {"id": item["node_id"]}) or {}).get("node") or {}
+                comments, reviews, timeline = item_parts(node)
+                who = set(group or ()) | {login}
+                by = contributions_from(item, comments, reviews, timeline, who, ref)
+                assigned = login in {str((a or {}).get("login") or "").lower() for a in item.get("assignees") or []}
+                if mode == "me":
+                    involved = involved_by({login: by.get(login, [])}) or assigned
+                elif mode == "group":
+                    involved = involved_by({k: v for k, v in by.items() if k in (group or set())})
+                else:
+                    involved = not external or track_all or involved_by({k: v for k, v in by.items() if k in (group or set())})
+                if not involved:
+                    last = item.get("updated_at")
+                    continue
+                pitem = next((p for p in ((node.get("projectItems") or {}).get("nodes") or [])
+                              if ((p or {}).get("project") or {}).get("id") == ids["project"]), None)
+                item_id = (pitem or {}).get("id")
+                if not item_id:
+                    item_id = write(f"add {key}", M_ADD, {"project": ids["project"], "content": item["node_id"]})
+                    report["added"].append(f"{ref}#{item.get('number')}")
+                    if not isinstance(item_id, str):
+                        last = item.get("updated_at")
+                        continue
+                want = [n for n in desired_spaces(repo, labels, member_of) if n in ids["options"]]
+                have = sorted(o.get("name") for o in (((pitem or {}).get("spaces") or {}).get("options") or []))
+                if ids.get("field") and want != have and (want or have):
+                    base = {"project": ids["project"], "item": item_id, "field": ids["field"]}
+                    if want:
+                        write(f"set Spaces {key}", M_SET, {**base, "options": [ids["options"][n] for n in want]})
+                    else:
+                        write(f"clear Spaces {key}", M_CLEAR, base)
+                    report["spaces_set"].append(f"{ref}#{item.get('number')}")
+                mine = by.get(login) or []
+                if mine and ids.get("contributions"):
+                    existing = parse_contributions(((pitem or {}).get("contributions") or {}).get("text"))
+                    merged = {**existing, login: sorted(set(existing.get(login, [])) | set(mine))}
+                    if format_contributions(merged) != format_contributions(existing):
+                        write(f"set Contributions {key}", M_TEXT, {"project": ids["project"], "item": item_id,
+                                                                   "field": ids["contributions"], "text": format_contributions(merged)})
+                        report["contributions_set"].append(f"{ref}#{item.get('number')}")
+                if not dry_run and isinstance(item_id, str):
+                    items_state.pop(key, None)
+                    items_state[key] = {"updated_at": item.get("updated_at"), "project_item": item_id}
+                    while len(items_state) > int(settings["item_cap"]):
+                        del items_state[next(iter(items_state))]
+                last = item.get("updated_at")
+            if carried or not complete:
+                report["carried"].append(repo)
+            if last and not dry_run and since is None:
+                cursors[repo] = last
+    except DetailBudget:
+        report["notes"].append("the call budget for this run is spent; the next run continues from here")
+    except ProjectLookupError as err:
+        report["notes"].append(f"could not read the Project ({err.what}); nothing was written")
+    except (urllib.error.URLError, OSError, GraphQLError) as err:
+        report["notes"].append(f"stopped early: {str(err)[:200]}")
+    report["calls_used"] = budget.used
+    if not dry_run:
+        state["last_sync"] = now_t.isoformat()
+    return report
+
+
+def inbox_topics(config: dict, login: str, space: str | None, lab_subs: list[dict], personal: list[dict]) -> list[dict]:
+    """The topics an inbox looks at. A space: that space, plus every lab subscription delivered to one of its repos.
+    Personal (default): the person's own subscriptions, plus the spaces they steward."""
+    from colab import item_stewards, repo_key, space_repos  # noqa: PLC0415
+    if space:
+        repos = {repo_key(r, config["org"]["name"]) for r in space_repos(config).get(space) or []}
+        return [{"topic": f"space:{space}"}] + [s for s in lab_subs if s.get("subscriber") in repos]
+    mine = [name for name in (config.get("spaces") or {}) if login.lower() in item_stewards(config, [name])]
+    return list(personal) + [{"topic": f"space:{name}"} for name in mine]
+
+
+def inbox_events(gh, config: dict, topics: list[dict], since: str, budget_calls: int = 200) -> dict:
+    """What happened since `since` for these topics, read now from GitHub: one entry per item transition (opened,
+    closed, published). Summaries of restricted items are never included; external ones are quoted and marked
+    untrusted. Nothing is written. {"events": [...], "unreadable": [...], "notes": [...]}."""
+    from colab import (declared_tiers, is_external, lab_opt_in, label_space_tiers, repo_key, repo_ref, repo_spaces,  # noqa: PLC0415
+                       space_repos)
+    org = config["org"]["name"]
+    member_of = repo_spaces(config)
+    declared, opt_in = declared_tiers(config), lab_opt_in(config)
+    budget = Budget(budget_calls)
+    sources: set[str] = set()
+    for t in topics:
+        scheme, _, value = t["topic"].partition(":")
+        if scheme == "repo":
+            sources.add(value)
+        elif scheme == "space":
+            sources |= {repo_key(r, org) for r in space_repos(config).get(value) or []}
+        elif scheme == "label":
+            sources |= {k for k in member_of if not is_external(k)}  # labels on other orgs' items never count
+    out = {"events": [], "unreadable": [], "notes": [], "since": since}
+    try:
+        for repo in sorted(sources):
+            ref = repo_ref(repo, org)
+            vis = _repo_vis(gh, ref, budget)
+            if vis is None:
+                out["unreadable"].append(repo)
+                continue
+            items, complete = _list_items(gh, ref, since, budget)
+            if not complete:
+                out["notes"].append(f"{repo}: more than {SYNC_PAGES * 100} items changed; showing the oldest")
+            budget.spend()
+            releases = gh.get(f"/repos/{ref}/releases?per_page=20", conditional=False) or []
+            envs = []
+            for item in items:
+                if is_delivery(item):
+                    continue
+                kind = "pull_request" if "pull_request" in item else "issue"
+                labels = _labels(item)
+                envs += envelopes_for(kind, repo, vis, item, _strictest(declared.get(repo), *label_space_tiers(config, repo, labels)),
+                                      member_of.get(repo), repo in opt_in)
+            for rel in releases if isinstance(releases, list) else []:
+                envs += envelopes_for("release", repo, vis, rel, declared.get(repo), member_of.get(repo), repo in opt_in)
+            for env in envs:
+                if not env["at"] or env["at"] < since:
+                    continue
+                hit = [t["topic"] for t in topics if matches(t, env)]
+                if not hit:
+                    continue
+                summary = env["summary"]
+                if summary and env["external"]:
+                    summary = quote_within(summary, 200)
+                out["events"].append({"id": env["id"], "kind": env["kind"], "transition": env["transition"], "repo": env["repo"],
+                                      "source": env["source"], "tier": env["tier"], "at": env["at"], "topics": sorted(set(hit)),
+                                      "summary": summary, "untrusted": bool(env["external"]),
+                                      "_env": env})
+    except DetailBudget:
+        out["notes"].append("the call budget ran out; the oldest events are shown, run again for the rest")
+    except (urllib.error.URLError, OSError) as err:
+        out["notes"].append(f"stopped early: {str(err)[:200]}")
+    out["events"].sort(key=lambda e: (e["at"], e["id"]))
+    out["calls_used"] = budget.used
+    return out
