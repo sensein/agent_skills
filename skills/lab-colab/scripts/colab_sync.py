@@ -510,7 +510,7 @@ def running_jobs(ids: set[str]) -> set[str]:
 # --file-issue, which files exactly one issue the person chose.
 
 SYNC_DEFAULTS = {"budget_calls": 200, "auto_budget_calls": 40, "auto_min_minutes": 10, "lookback_days": 14,
-                 "write_interval_seconds": 1.0, "item_cap": 5000}
+                 "write_interval_seconds": 1.0, "item_cap": 5000, "external_private": "personal"}
 INBOX_LOOKBACK_DAYS = 7
 SYNC_PAGES = 10  # pages of 100 items per repo per run
 
@@ -673,8 +673,8 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
     Never comments, delivers, or prints item text. Returns a report (refs and counts only)."""
     import time  # noqa: PLC0415
     from datetime import datetime, timedelta, timezone  # noqa: PLC0415
-    from colab import (declared_tiers, format_contributions, involved_by, is_external, lab_opt_in, label_space_tiers,  # noqa: PLC0415
-                       parse_contributions, repo_key, repo_ref, repo_spaces, space_repos)
+    from colab import (LOGIN_RX, declared_tiers, format_contributions, involved_by, is_external, lab_opt_in,  # noqa: PLC0415
+                       label_space_tiers, parse_contributions, repo_key, repo_ref, repo_spaces, space_repos)
     sleep = sleep or time.sleep
     now_t = now_t or datetime.now(timezone.utc)
     settings = sync_settings(config)
@@ -689,7 +689,7 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
     track_all = bus_cfg.get("external_track", "involved") == "all"
     login = login.lower()
     report = {"login": login, "dry_run": dry_run, "mode": mode, "space": space, "repos": 0, "items_seen": 0, "added": [],
-              "spaces_set": [], "contributions_set": [], "unreadable": [], "carried": [], "notes": [], "writes": 0}
+              "spaces_set": [], "contributions_set": [], "unreadable": [], "personal_only": [], "carried": [], "notes": [], "writes": 0}
     if not number:
         report["notes"].append("[org] project_number is not set: nothing to sync (run the bootstrap plan)")
         return report
@@ -744,6 +744,10 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
                     seen_vis[repo] = {"v": vis, "at": now_t.isoformat()}
             if vis is None:
                 report["unreadable"].append(repo)
+                continue
+            private_ext = external and vis != "public"
+            if private_ext and str(settings["external_private"]) != "board":
+                report["personal_only"].append(repo)  # never on the shared board; read live by `next --me` and `inbox`
                 continue
             report["repos"] += 1
             start = since or cursors.get(repo) or default_since
@@ -817,8 +821,9 @@ def sync_once(gh, config: dict, login: str, state: dict, space: str | None = Non
                         write(f"clear Spaces {key}", M_CLEAR, base)
                     report["spaces_set"].append(f"{ref}#{item.get('number')}")
                 mine = by.get(login) or []
-                if mine and ids.get("contributions"):
-                    existing = parse_contributions(((pitem or {}).get("contributions") or {}).get("text"))
+                if mine and ids.get("contributions") and not private_ext:  # "board" mode: Spaces only, no Contributions
+                    existing = {k: v for k, v in parse_contributions(((pitem or {}).get("contributions") or {}).get("text")).items()
+                                if LOGIN_RX.match(k) and v}  # only valid logins and known kinds survive a merge
                     merged = {**existing, login: sorted(set(existing.get(login, [])) | set(mine))}
                     if format_contributions(merged) != format_contributions(existing):
                         write(f"set Contributions {key}", M_TEXT, {"project": ids["project"], "item": item_id,

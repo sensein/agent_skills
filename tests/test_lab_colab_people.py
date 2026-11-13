@@ -199,14 +199,49 @@ class SyncTests(unittest.TestCase):
         report, _, _ = self.run_sync(gh, mode="me")
         self.assertEqual(report["unreadable"], ["up/lib"])  # one you cannot read is skipped
         # --me: only items the caller is involved in; a restricted item in a lab repo needs the space's restricted switch;
-        # a private external repo's items are added (GitHub redacts them for viewers without access)
-        self.assertEqual(report["added"], ["sensein/proj#2", "up/private-lib#20"])
+        # a private external repo's items never go on the shared board by default ([sync] external_private = "personal")
+        self.assertEqual(report["added"], ["sensein/proj#2"])
+        self.assertEqual(report["personal_only"], ["up/private-lib"])
         gh = FakeSyncGH(issues={"sensein/tools": [issue(4, by="kab")]})
         report, _, _ = self.run_sync(gh, space="infra")
         self.assertEqual(report["added"], ["sensein/tools#4"])
         self.assertTrue(all("/repos/sensein/proj" not in g for g in gh.gets))  # --space reads only that space's repos
         with self.assertRaises(ValueError):
             self.run_sync(gh, space="nope")
+
+    def test_private_external_board_mode_sets_spaces_only(self) -> None:
+        cfg = pcfg()
+        cfg["sync"]["external_private"] = "board"
+        gh = FakeSyncGH(issues={"up/private-lib": [issue(20, by="me", comments=1)]}, nodes={"I_20": node(comments=["me"])})
+        report, _, _ = self.run_sync(gh, cfg=cfg)
+        self.assertEqual(report["added"], ["up/private-lib#20"])
+        self.assertEqual(gh.kinds(), ["add", "set"])  # Spaces only: no Contributions on a redacted item
+        self.assertEqual(report["contributions_set"], [])
+
+    def test_contributions_merge_drops_malformed_entries(self) -> None:
+        gh = FakeSyncGH(issues={"sensein/proj": [issue(3, by="kab", comments=1)]},
+                        nodes={"I_3": node(comments=["me"], on_board="PVTI_3", spaces=["proj"],
+                                           contributions="kab: request, bogus; <script>: fix; -bad-: review; ok-user: hacked")})
+        self.run_sync(gh)
+        texts = [v["text"] for _, v in gh.writes if "text" in v]
+        self.assertEqual(texts, ["kab: request; me: comment"])
+
+    def test_private_external_items_are_listed_live_without_titles(self) -> None:
+        calls = []
+
+        def gh(args):
+            calls.append(args[1])
+            if args[1] == "repos/up/private-lib":
+                return {"visibility": "private"}
+            if args[1] == "repos/up/lib":
+                return {"visibility": "public"}
+            if args[1].startswith("search/issues?q=repo:up/private-lib+is:open+involves:me"):
+                return {"items": [{"number": 20, "html_url": "https://github.com/up/private-lib/issues/20", "title": "secret"}]}
+            return None
+        out = colab.private_external_items(pcfg(), "me", gh=gh)
+        self.assertEqual([(x["repo"], x["number"], x["title"], x["claimable"], x["board"]) for x in out],
+                         [("up/private-lib", 20, "", False, False)])
+        self.assertFalse(any(c.startswith("search/issues?q=repo:up/lib") for c in calls))  # public ones are on the board
 
     def test_external_all_and_a_missing_project_number(self) -> None:
         gh = FakeSyncGH(issues={"up/lib": [issue(10, by="outsider")]})
@@ -422,10 +457,29 @@ class PlanWithoutTheBusTests(unittest.TestCase):
         self.assertTrue(acts[0]["desc"].startswith("Create the team colab-bus-operators"))
         self.assertFalse(any("optional relay" in a["desc"] for a in acts))
 
+    def test_codeowners_cover_the_config_without_the_relay(self) -> None:
+        cfg = pcfg()
+        self.assertEqual(colab.code_owners(cfg), ["@a", "@me"])  # the stewards, when nobody else is named
+        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @a @me", "/.github/workflows/ @a @me"])
+        cfg["security"] = {"code_owners": ["@sensein/admins"]}
+        self.assertEqual(colab.code_owners(cfg), ["@sensein/admins"])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "c.toml"
+            text = (ops.SKILL / "assets" / "lab-colab.toml").read_text().replace(
+                "[spaces]\n", '[spaces]\nproj = { stewards = ["a"], repos = ["proj"] }\n', 1)
+            path.write_text(text)
+            colab.cmd_seed(Path(tmp) / "meta", path)
+            owners = (Path(tmp) / "meta" / ".github" / "CODEOWNERS").read_text()
+            self.assertIn("/.colab/ @a", owners)
+            self.assertNotIn("/bus/", owners)
+        acts = self.plan(colab.load_config(), codeowners_core_missing=["/.colab/"])
+        self.assertTrue(any(a["kind"] == "local" and "/.colab/" in a["desc"] and "default-branch ruleset" in a["desc"] for a in acts))
+
     def test_bundled_config_turns_the_relay_off(self) -> None:
         cfg = colab.load_config()
         self.assertFalse(colab.bus_enabled(cfg))
         self.assertEqual(cfg["sync"]["auto_budget_calls"], 40)
+        self.assertEqual(cfg["sync"]["external_private"], "personal")
         self.assertIn("read_scan_seconds", cfg["security"])
 
 

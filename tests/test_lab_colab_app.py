@@ -776,14 +776,18 @@ class CodeOwnersTests(unittest.TestCase):
             self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
             self.assertIn("/bus/ @sensein/colab-bus-operators", text)
             (dest / ".github" / "CODEOWNERS").write_text("* @sensein/admins\n/bus/ @someone\n")
-            self.assertNotIn(dest / ".github" / "CODEOWNERS", colab.cmd_seed(dest, cfg_path))  # without --refresh-bus: untouched
+            self.assertIn("/.colab/ @sensein/colab-bus-operators", text)  # the config the Security gate trusts
+            (dest / ".github" / "CODEOWNERS").write_text("* @sensein/admins\n/bus/ @someone\n")
+            colab.cmd_seed(dest, cfg_path)  # without --refresh-bus: the config and workflow lines are added, nothing changed
             colab.cmd_seed(dest, cfg_path, refresh_bus=True)
             text = (dest / ".github" / "CODEOWNERS").read_text()
-            self.assertTrue(text.startswith("* @sensein/admins\n/bus/ @someone\n"))  # nothing changed, one line added
+            self.assertTrue(text.startswith("* @sensein/admins\n/bus/ @someone\n"))  # nothing changed, lines only added
             self.assertIn("/.github/workflows/ @sensein/colab-bus-operators", text)
+            self.assertIn("/.colab/ @sensein/colab-bus-operators", text)
             self.assertEqual(text.count("/bus/"), 1)
-        cfg = {"org": {"name": "sensein"}, "bus": {"code_owners": ["@sensein/admins", "not an owner", "@satra"]}}
-        self.assertEqual(colab.codeowners_lines(cfg), ["/.github/workflows/ @sensein/admins @satra", "/bus/ @sensein/admins @satra"])
+        cfg = {"org": {"name": "sensein"}, "bus": {"enabled": True, "code_owners": ["@sensein/admins", "not an owner", "@satra"]}}
+        self.assertEqual(colab.codeowners_lines(cfg), ["/.colab/ @sensein/admins @satra", "/.github/workflows/ @sensein/admins @satra",
+                                                       "/bus/ @sensein/admins @satra"])
         self.assertEqual(colab.codeowners_missing("# c\n/bus/ @x\n"), ["/.github/workflows/"])
 
     def test_plan_seeds_codeowners_and_the_ruleset_requires_code_owner_review(self) -> None:

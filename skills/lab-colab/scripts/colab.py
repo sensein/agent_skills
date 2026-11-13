@@ -361,6 +361,7 @@ BUS_WORKFLOW = ".github/workflows/colab-bus.yml"
 BUS_ENVIRONMENT = "colab-bus"
 CODEOWNERS = ".github/CODEOWNERS"
 CODEOWNED = ("/.github/workflows/", "/bus/")  # the bus's workflow and code: their changes need a code owner's review
+CODEOWNED_CORE = ("/.colab/", "/.github/workflows/")  # the config (stewards, audit issue) and workflows, relay or not
 _OWNER_RX = re.compile(r"^@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9_.-]+)?\Z")
 BUS_ENV_POLICY = {"protected_branches": False, "custom_branch_policies": True}
 
@@ -435,22 +436,33 @@ def env_commands(config: dict, branch: str) -> list[str]:
 
 
 def code_owners(config: dict) -> list[str]:
-    """Who must review changes to the bus's workflow and code: `[bus] code_owners` ("@org/team" or "@login"), else the
-    operators team. Malformed entries are skipped."""
+    """Who must review changes to the meta repo's config (`.colab/`: stewards and the audit issue the Security gate
+    trusts), its workflows, and the relay's code: `[security] code_owners`, else `[bus] code_owners`, else, with the
+    relay on, the operators team, else the stewards of every space (`@login`). Malformed entries are skipped; [] when
+    nobody can be named."""
     org = config["org"]["name"]
-    raw = (config.get("bus") or {}).get("code_owners") or [f"@{org}/{OPERATORS_TEAM}"]
-    return [str(o) for o in raw if _OWNER_RX.match(str(o))] or [f"@{org}/{OPERATORS_TEAM}"]
+    for raw in ((config.get("security") or {}).get("code_owners"), (config.get("bus") or {}).get("code_owners")):
+        good = [str(o) for o in raw or [] if _OWNER_RX.match(str(o))]
+        if good:
+            return good
+    if bus_enabled(config):
+        return [f"@{org}/{OPERATORS_TEAM}"]
+    return [f"@{x}" for x in all_stewards(config) if _OWNER_RX.match(f"@{x}")]
+
+
+def codeowned_paths(config: dict) -> tuple[str, ...]:
+    return CODEOWNED_CORE + (("/bus/",) if bus_enabled(config) else ())
 
 
 def codeowners_lines(config: dict) -> list[str]:
     owners = " ".join(code_owners(config))
-    return [f"{path} {owners}" for path in CODEOWNED]
+    return [f"{path} {owners}" for path in codeowned_paths(config)] if owners else []
 
 
-def codeowners_missing(text: str | None) -> list[str]:
-    """The bus paths that have no line in a CODEOWNERS text (a line for the path with any owners counts)."""
+def codeowners_missing(text: str | None, paths=CODEOWNED) -> list[str]:
+    """The paths that have no line in a CODEOWNERS text (a line for the path with any owners counts)."""
     have = {line.split()[0] for line in (text or "").splitlines() if line.strip() and not line.lstrip().startswith("#")}
-    return [p for p in CODEOWNED if p not in have]
+    return [p for p in paths if p not in have]
 
 
 def bus_install_repos(config: dict, subscribers=()) -> list[str]:
@@ -536,7 +548,8 @@ def observe_apps(config: dict, gh=None) -> dict:
         owners_text = base64.b64decode(owners["content"]).decode() if isinstance(owners, dict) and owners.get("content") else ""
     except (ValueError, UnicodeDecodeError):
         owners_text = ""
-    return {"bus_codeowners": not codeowners_missing(owners_text), "apps": apps, "meta_secrets": names(gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])),
+    return {"bus_codeowners": not codeowners_missing(owners_text), "codeowners_core_missing": codeowners_missing(owners_text, CODEOWNED_CORE),
+            "apps": apps, "meta_secrets": names(gh(["api", f"repos/{org}/{meta}/actions/secrets?per_page=100"])),
             "meta_default_branch": (repo or {}).get("default_branch") if isinstance(repo, dict) else None,
             "bus_env": bus_env, "bus_subscribers": _subscriber_repos(subs_text, org),
             "bus_workflow": isinstance(workflow, dict) and bool(workflow.get("name") or workflow.get("content"))}
@@ -1262,6 +1275,14 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
 
     if snapshot.get("meta_repo_exists") and "operators_team" in snapshot:
         actions += operator_actions(config, snapshot)
+    if snapshot.get("meta_repo_exists") and snapshot.get("codeowners_core_missing"):
+        owners = code_owners(config)
+        actions.append(_action("local", 0, f"Add {CODEOWNERS} lines to {org}/{meta} so changes to "
+                                           f"{' and '.join(snapshot['codeowners_core_missing'])} need a review by "
+                                           f"{', '.join(owners) or '[security] code_owners (set it: no stewards are listed)'}. "
+                                           "`.colab/config.toml` names the stewards and the audit issue the Security gate trusts; apply the "
+                                           "default-branch ruleset (it requires code owner review) before relying on clears",
+                               ["python", "colab.py", "seed", "--dest", f"<clone of {org}/{meta}>"]))
 
     rollout = snapshot.get("rollout") or empty_rollout()
     bus_seen = any(s.get("bus") for s in rollout.get("spaces", {}).values())
@@ -1855,19 +1876,20 @@ def cmd_seed(dest: Path, config_path: Path | None, refresh_bus: bool = False) ->
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         written.append(path)
+    # CODEOWNERS: the config (.colab/), workflows, and with the relay its code (bus/) need their owners' review (the
+    # default-branch ruleset requires code owner review). Missing lines are added; none is changed.
+    owners_path = dest / CODEOWNERS
+    have = owners_path.read_text() if owners_path.exists() else ""
+    paths = CODEOWNED_CORE + (("/bus/",) if with_bus and (refresh_bus or not owners_path.exists()) else ())
+    owners = " ".join(code_owners(cfg))
+    new = [f"{path} {owners}" for path in codeowners_missing(have, paths)] if owners else []
+    if new:
+        head = "" if have else "# Lab Colab: changes to the config, workflows, and bus code need a review by their owners (colab.py seed).\n"
+        owners_path.parent.mkdir(parents=True, exist_ok=True)
+        owners_path.write_text(have + ("\n" if have and not have.endswith("\n") else "") + head + "\n".join(new) + "\n")
+        written.append(owners_path)
     if not with_bus:
         return written
-    # CODEOWNERS: the bus's workflow and code need their owners' review. Missing lines are added; none is changed.
-    owners_path = dest / CODEOWNERS
-    if not owners_path.exists() or refresh_bus:
-        have = owners_path.read_text() if owners_path.exists() else ""
-        missing = codeowners_missing(have)
-        if missing:
-            new = [line for line in codeowners_lines(cfg) if line.split()[0] in missing]
-            head = "" if have else "# Lab Colab: changes to the bus's workflow and code need a review by their owners (colab.py seed).\n"
-            owners_path.parent.mkdir(parents=True, exist_ok=True)
-            owners_path.write_text(have + ("\n" if have and not have.endswith("\n") else "") + head + "\n".join(new) + "\n")
-            written.append(owners_path)
     scripts_dir = dest / "bus"
     for name in ("colab_bus.py", "colab.py", "colab_sync.py"):
         target, source = scripts_dir / name, Path(__file__).with_name(name)
@@ -3564,7 +3586,13 @@ Q_GATE_COMMENTS = ("query($o: String!, $r: String!, $n: Int!, $after: String) { 
 Q_AUDIT = ("query($o: String!, $r: String!, $n: Int!, $after: String) { repository(owner: $o, name: $r) { issue(number: $n) { "
            "comments(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes { databaseId createdAt lastEditedAt "
            "body author { login } editor { login } } } } } }")
-AUDIT_PAGES = 20
+Q_AUDIT_NEWEST = ("query($o: String!, $r: String!, $n: Int!, $before: String) { repository(owner: $o, name: $r) { issue(number: $n) { "
+                  "comments(last: 100, before: $before) { pageInfo { hasPreviousPage startCursor } nodes { databaseId createdAt "
+                  "lastEditedAt body author { login } editor { login } } } } } }")
+AUDIT_PAGES = 50
+SCAN_WINDOW = 64 * 1024          # read-time scan: each text, and the comments joined, in overlapping windows of this size
+SCAN_OVERLAP = 4 * 1024          # ... overlapping by this much, so a payload across a window edge is still seen whole
+GATE_WINDOWS = 256               # windows per item (about 15 MB of text); past it the scan is incomplete and blocks
 
 
 def _changed_at(node: dict) -> str:
@@ -3642,29 +3670,49 @@ def read_item_texts(item: str, gh=None) -> dict | None:
             "texts": texts, "complete": complete}
 
 
-def scan_texts(config: dict, texts: list[dict], seconds: float | None = None) -> dict:
-    """Injection-scan each text (capped at 64 KB, head and tail), and the comments joined (text split across several
-    comments). Rules always run; the optional model hook shares `seconds` for the whole item. Hits carry where, the
-    rule categories, and when that text last changed: never the text or the matched span."""
+def text_windows(text: str, size: int = SCAN_WINDOW, overlap: int = SCAN_OVERLAP) -> list[str]:
+    """`text` as overlapping windows of `size` characters (every character is in at least one window, and any span of
+    up to `overlap` characters lies whole inside one)."""
+    text = text or ""
+    if len(text) <= size:
+        return [text]
+    step = size - overlap
+    return [text[i:i + size] for i in range(0, len(text) - overlap, step)]
+
+
+def scan_texts(config: dict, texts: list[dict], seconds: float | None = None, max_windows: int | None = None) -> dict:
+    """Injection-scan each text, and the comments joined (text split across several comments), in overlapping 64 KB
+    windows: nothing is skipped. Rules always run; the optional model hook shares `seconds` for the whole item, and at
+    most `max_windows` windows are scanned per item. Past either budget the scan is incomplete (`complete` False), which
+    blocks. Hits carry where, the rule categories, and when that text last changed: never the text or the span."""
     seconds = float(seconds if seconds is not None else (config.get("security") or {}).get("read_scan_seconds", GATE_SECONDS))
-    budget = {"left": seconds}
+    budget = {"left": seconds, "windows": GATE_WINDOWS if max_windows is None else max_windows}
     hits, complete = [], True
 
     def one(text: str) -> tuple[list[str], bool]:
-        found = injection_scan(cap_text(text)[0], config, budget=budget)
-        cats = [c for c, n in found["counts"].items() if n] + (["model"] if (found.get("model") or {}).get("flag") else [])
-        return cats, bool(found.get("deferred")) and not cats
+        cats: set[str] = set()
+        for window in text_windows(text):
+            if budget["windows"] <= 0:
+                return sorted(cats), False
+            budget["windows"] -= 1
+            found = injection_scan(window, config, budget=budget)
+            cats |= {c for c, n in found["counts"].items() if n}
+            if (found.get("model") or {}).get("flag"):
+                cats.add("model")
+            if found.get("deferred"):
+                return sorted(cats), False
+        return sorted(cats), True
     for t in texts:
         if not t["text"]:
             continue
-        cats, deferred = one(t["text"])
-        complete = complete and not deferred
+        cats, done = one(t["text"])
+        complete = complete and done
         if cats:
             hits.append({"where": t["where"], "categories": cats, "at": t["at"], "author": t["author"]})
     parts = [t for t in texts if t.get("comment") and t["text"]]
     if len(parts) > 1 and not any(h["where"] != "body" for h in hits):
-        cats, deferred = one("\n".join(t["text"] for t in parts))
-        complete = complete and not deferred
+        cats, done = one("\n".join(t["text"] for t in parts))
+        complete = complete and done
         if cats:  # only the combination flags: any of its parts may be what changed
             hits.append({"where": "joined", "categories": cats, "at": max(t["at"] for t in parts),
                          "author": ",".join(sorted({t["author"] for t in parts}))})
@@ -3689,25 +3737,28 @@ def meta_config(config: dict, gh=None, cache: dict | None = None) -> dict | None
     return meta
 
 
-def audit_records(config: dict, meta: dict | None, gh=None, cache: dict | None = None) -> list[dict]:
-    """Clear records on the meta repo's `[security] audit_issue` (from the meta repo's config), read through GraphQL:
-    a comment counts only when it was never edited (lastEditedAt is null, and no editor other than its author) and holds
-    exactly one marker. Author and time come from the API. [{"item", "by", "at", "id"}]."""
+def audit_records(config: dict, meta: dict | None, gh=None, cache: dict | None = None, newer_than: str = "") -> list[dict]:
+    """Clear records on the meta repo's `[security] audit_issue` (from the meta repo's config), read through GraphQL
+    newest first (`last: 100`, paging back), so a new clear is always seen however long the issue grows; reading stops
+    at the first page whose oldest comment is not newer than `newer_than` (the item's latest flagged change: an older
+    clear could not count). A comment counts only when it was never edited (lastEditedAt is null, and no editor other
+    than its author) and holds exactly one marker. Author and time come from the API. [{"item", "by", "at", "id"}]."""
     gh = gh or _gh_json
     issue = int(((meta or {}).get("security") or {}).get("audit_issue") or 0)
     if not issue:
         return []
-    key = ("audit", config["org"]["name"], issue)
+    key = ("audit", config["org"]["name"], issue, newer_than)
     if cache is not None and key in cache:
         return cache[key]
-    out, after = [], None
+    out, before = [], None
     for _ in range(AUDIT_PAGES):
-        data = _graphql(gh, Q_AUDIT, o=config["org"]["name"], r=config["org"]["meta_repo"], n=issue, after=after)
+        data = _graphql(gh, Q_AUDIT_NEWEST, o=config["org"]["name"], r=config["org"]["meta_repo"], n=issue, before=before)
         conn = (((data or {}).get("repository") or {}).get("issue") or {}).get("comments")
         if not isinstance(conn, dict):
             break
-        for c in conn.get("nodes") or []:
-            body = (c or {}).get("body") or ""
+        nodes = [c for c in conn.get("nodes") or [] if isinstance(c, dict)]
+        for c in nodes:
+            body = c.get("body") or ""
             clears, ignores = list(CLEAR_MARKER.finditer(body)), list(IGNORE_MARKER.finditer(body))
             author = str(((c.get("author") or {}).get("login")) or "").lower()
             editor = str(((c.get("editor") or {}).get("login")) or "").lower()
@@ -3716,9 +3767,10 @@ def audit_records(config: dict, meta: dict | None, gh=None, cache: dict | None =
             out.append({"item": clears[0]["item"].lower(), "by": author, "at": str(c.get("createdAt") or ""),
                         "id": c.get("databaseId")})
         info = conn.get("pageInfo") or {}
-        if not info.get("hasNextPage"):
+        oldest = min((str(c.get("createdAt") or "") for c in nodes), default="")
+        if not info.get("hasPreviousPage") or (newer_than and oldest and oldest <= newer_than):
             break
-        after = info.get("endCursor")
+        before = info.get("startCursor")
     if cache is not None:
         cache[key] = out
     return out
@@ -3753,10 +3805,12 @@ def gate_status(config: dict, item: str, gh=None, acting_for: str | None = None,
     claimants = claimants_from(comments)
     base = {"hits": scan["hits"], "scanned": scan["scanned"], "visibility": info["visibility"], "item_state": info["state"],
             "item": info["item"], "assignees": info["assignees"], "claimants": sorted(claimants)}
+    if not (scan["complete"] and info["complete"]):  # blocks at every tier, whatever was found or cleared
+        found = f"; findings so far: {_hit_words(scan['hits'])}" if scan["hits"] else ""
+        return {**base, "state": "unscanned", "unavailable": True,
+                "reason": f"the scan of {item} could not finish (more text than the page or window caps, a read error, or the "
+                          f"model hook ran out of time){found}"}
     if not scan["hits"]:
-        if not (scan["complete"] and info["complete"]):
-            return {**base, "state": "unscanned", "unavailable": True,
-                    "reason": f"the scan of {item} could not finish (more text than the caps, or the model hook ran out of time)"}
         return {**base, "state": "ok", "unavailable": False, "reason": f"scanned just now: no finding in {scan['scanned']} texts"}
     flag_at = max(h["at"] for h in scan["hits"])
     flagged = {**base, "state": "flagged", "unavailable": False, "flag_at": flag_at}
@@ -3769,7 +3823,8 @@ def gate_status(config: dict, item: str, gh=None, acting_for: str | None = None,
     excluded = set(info["assignees"]) | claimants | {str(x).lower() for x in (acting_for, login) if x}
     ref = info["item"].lower()
     notes = []
-    for r in sorted((r for r in audit_records(config, meta, gh, cache) if r["item"] == ref), key=lambda r: r["at"], reverse=True):
+    for r in sorted((r for r in audit_records(config, meta, gh, cache, newer_than=flag_at) if r["item"] == ref),
+                    key=lambda r: r["at"], reverse=True):
         if r["by"] not in stewards:
             notes.append(f"a clear by {r['by']} does not count: not a steward of its spaces")
         elif r["by"] in excluded:
@@ -3786,8 +3841,8 @@ def gate_status(config: dict, item: str, gh=None, acting_for: str | None = None,
 # Plain words first, for people who do not think in GitHub terms; the technical reason follows as "details".
 GATE_PLAIN = {
     "flagged": "Some text on this item looks like instructions to an assistant, so no assistant may work on it until a steward checks it.",
-    "unavailable": "The safety check could not finish just now, so only public items can be worked on.",
-    "unscanned": "The safety check could not read all of this item just now; try again, or ask a steward to look at it.",
+    "unavailable": "The safety check could not read all of this item just now, so no assistant may work on it; try again, or ask a steward to look at it.",
+    "unscanned": "The safety check could not read all of this item just now, so no assistant may work on it; try again, or ask a steward to look at it.",
     "external": "This item belongs to another organisation: the lab follows it but never claims it.",
 }
 
@@ -3802,14 +3857,12 @@ def plain_message(kind: str, details: str, step: str = "") -> str:
 
 
 def gate_blocks(gate: dict, item: str, gh=None) -> str | None:
-    """For lease, beat, and next: why the gate blocks, or None. Flagged always blocks; an untrustworthy state
-    blocks above the public tier (fail closed); a merely unscanned item does not block claiming."""
+    """For lease and beat: why the gate blocks, or None. Flagged blocks; so does a scan that could not finish (a page or
+    time cap, a read error, no gh login), at every tier, public included: fail closed."""
     if gate["state"] == "flagged":
         return gate["reason"]
-    if gate.get("unavailable"):
-        m = ITEM.match(item.strip())
-        if not (m and repo_is_public(m["repo"], gh)):
-            return f"{gate['reason']} (fail closed above the public tier)"
+    if gate.get("unavailable") or gate["state"] == "unscanned":
+        return f"{gate['reason']} (not fully scanned: fail closed at every tier)"
     return None
 
 
@@ -3875,8 +3928,19 @@ def security_summary(gate: dict, item: str, login: str, may_clear: bool) -> list
     return lines + [f"    details: {gate['reason']}"]
 
 
+def terminal_confirm(prompt: str) -> str | None:
+    """What a person typed at a terminal, or None when stdin or stdout is not a TTY (an agent's shell, a pipe, a hook).
+    Friction an agent's ordinary tool calls cannot pass; it is not a boundary against a process that fakes a TTY."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    try:
+        return input(prompt)
+    except (EOFError, KeyboardInterrupt):
+        return None
+
+
 def cmd_security(config: dict, action: str, item: str, reason: str = "", gh=None, login_fn=None,
-                 now: datetime | None = None, out=None, err=None) -> int:
+                 now: datetime | None = None, out=None, err=None, confirm=None) -> int:
     """`security status <item>`, `security clear <item> --reason ...`, `security ignore-author <login> --reason ...`.
     Status scans the item now (gate_status) and explains in plain words. Clearing takes two people: a steward of the
     item's spaces (from the meta repo's config) who is not its assignee or claimant posts an unedited audit record on
@@ -3944,6 +4008,10 @@ def cmd_security(config: dict, action: str, item: str, reason: str = "", gh=None
                           "assignees": sorted(info.get("assignees") or []), "claimants": sorted(claimants), "you": login,
                           "you_can_clear": may_clear and gate["state"] == "flagged", "summary": summary}, indent=2), file=out)
         return 0
+    if gate.get("unavailable"):
+        print(f"security: {item} could not be fully scanned ({gate['reason']}); a clear would not unblock it, so nothing "
+              "was posted. Try again later", file=err)
+        return 1
     if gate["state"] != "flagged":
         print(f"security: {item} has no open finding right now ({gate['reason']}); there is nothing to clear", file=err)
         return 2
@@ -3960,6 +4028,16 @@ def cmd_security(config: dict, action: str, item: str, reason: str = "", gh=None
         print("refused: set [security] audit_issue (plan proposes creating the issue); a clear counts only with its record", file=err)
         return 2
     ref = info.get("item") or item
+    # A person, in a terminal, types the item back: an agent's tool calls have no TTY, and there is no --yes.
+    typed = (confirm or terminal_confirm)(f"You are clearing {ref} for every assistant in the lab. Read its flagged text "
+                                          f"yourself first. Type {ref} to confirm: ")
+    if typed is None:
+        print("refused: `security clear` needs a person at a terminal (stdin and stdout must be a TTY). Stewards run it "
+              "themselves; an assistant must never run it for them", file=err)
+        return 2
+    if typed.strip().lower() != ref.lower():
+        print(f"refused: you typed {typed.strip()!r}, not {ref}; nothing was posted", file=err)
+        return 2
     text = (f"Security cleared on {ref} by @{login} at {at}.\n\n"
             f"Reason: {reason or '(none given)'}\n\n<!-- colab-security-clear item={ref} -->")
     if not _post_audit(audit_cfg, text, gh, err):  # the record is what counts: each member's CLI verifies it when acting
@@ -4336,6 +4414,24 @@ def pick_next(cands: list[dict], comments: dict[str, list[str]], blocked: dict[s
     return out
 
 
+def private_external_items(config: dict, login: str, gh=None, per_repo: int = 20) -> list[dict]:
+    """Open items in non-public external space repos that involve `login`, read live with their own login (GitHub's
+    search only returns what they can read). They are never put on the shared Project ([sync] external_private =
+    "personal"), and their titles are never printed: refs and links only, read-only, not claimable."""
+    gh = gh or _gh_json
+    out = []
+    for key in sorted(k for k in repo_spaces(config) if is_external(k)):
+        meta = gh(["api", f"repos/{key}"])
+        if not isinstance(meta, dict) or str(meta.get("visibility") or "public").lower() == "public":
+            continue
+        found = gh(["api", f"search/issues?q=repo:{key}+is:open+involves:{login}&per_page={per_repo}"])
+        for it in (found or {}).get("items") or [] if isinstance(found, dict) else []:
+            out.append({"repo": key, "number": it.get("number"), "url": it.get("html_url", ""), "title": "",
+                        "context": "personal", "read_only": True, "board": False, "security": "not checked",
+                        "claimable": False, "note": "private external item, read live with your login; never on the shared board"})
+    return out
+
+
 def cmd_next(config: dict, items_path: Path | None, limit: int, me: bool = False, group: str | None = None,
              org: str | None = None, login_fn=None, fetch=None, no_sync: bool = False, gh=None, client=None,
              err=None) -> int:
@@ -4384,7 +4480,11 @@ def cmd_next(config: dict, items_path: Path | None, limit: int, me: bool = False
         gate = gate_status(config, f"{c['repo']}#{c['number']}", gh, acting_for=login or None, cache=cache)
         c["security"] = "unscanned" if gate.get("unavailable") else gate["state"]
         c["security_reason"] = gate["reason"]
-        c["claimable"] = c["security"] == "ok" or (c["security"] == "unscanned" and repo_is_public(c["repo"], gh))
+        if c["security"] == "unscanned":
+            c["security_note"] = "not fully scanned"
+        c["claimable"] = c["security"] == "ok"
+    if live and login and str((config.get("sync") or {}).get("external_private", "personal")) != "board":
+        picks += private_external_items(config, login)
     print(json.dumps(picks, indent=2))
     flagged = sum(1 for c in picks if c["security"] == "flagged")
     if flagged:

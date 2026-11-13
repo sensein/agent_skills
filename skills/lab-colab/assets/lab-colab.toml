@@ -300,6 +300,10 @@ auto_budget_calls = 40           # the short budget of the sync at the start of 
 auto_min_minutes = 10            # ... which runs at most this often per person
 lookback_days = 14               # how far back a person's first sync looks (later runs start from their own cursor)
 write_interval_seconds = 1.0     # pause after each Project write
+external_private = "personal"    # items of non-public external space repos: "personal" = never on the shared Project; each
+                                 # member sees theirs live in `next --me` and `inbox` (refs and links only). "board" = add them
+                                 # with Spaces only (no Contributions), relying on GitHub hiding a redacted item's field values
+                                 # from members who cannot read the repo: unverified; check with such a member before using it
 
 # ---------------------------------------------------------------------------
 # The bus: an OPTIONAL relay for push-style deliveries (delivery issues in subscriber repos). Nothing depends on it:
@@ -369,6 +373,9 @@ code_owners = []                 # who must review changes to the bus workflow a
 audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear (`security clear`);
                                  # read from the meta repo's copy of this file, never from a local one
 read_scan_seconds = 30           # the optional model hook's total time per item at read time (the rules always run)
+code_owners = []                 # who must review changes to .colab/ and .github/workflows/ in the meta repo (seeded CODEOWNERS;
+                                 # the default-branch ruleset requires code owner review): "@org/team" or "@login".
+                                 # [] = [bus] code_owners, else the stewards of every space
 # The rest of [security] configures the optional relay's own published state:
 outsider_flags_per_day = 3       # injection-scan flags per non-member author per item per day; past that, audit-only. Members' content,
                                  # and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags
