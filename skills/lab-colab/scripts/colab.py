@@ -345,6 +345,9 @@ def observe_external(config: dict) -> tuple[dict, list[str]]:
     return out, notes
 
 
+BOOKKEEPING_ISSUES = ("Session activity", "Security audit")
+
+
 def observe(config: dict) -> dict:
     """Collect what exists in the org. Read-only.
 
@@ -396,6 +399,11 @@ def observe(config: dict) -> dict:
 
             snapshot["rollout"] = json.loads(base64.b64decode(blob["content"]))
         snapshot.update(observe_operators(config))
+        # Bookkeeping issues the plan would otherwise create again: open issues in the meta repo by exact title.
+        found = _gh_json(["issue", "list", "--repo", f"{org}/{meta_repo}", "--state", "open", "--limit", "100",
+                          "--json", "number,title"]) or []
+        snapshot["meta_issues"] = {i["title"]: i["number"] for i in found if isinstance(i, dict)
+                                   and i.get("title") in BOOKKEEPING_ISSUES}
     return snapshot
 
 
@@ -773,7 +781,7 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
             continue
         actions.append(_action("gh", 0, f"Delete Project view '{view['name']}': space '{view['space']}' is no longer in [spaces]",
                                ["gh", "api", "graphql", "-f",
-                                "query=mutation($view: ID!) { deleteProjectV2View(input: {viewId: $view}) { deletedViewId } }",
+                                "query=mutation($view: ID!) { deleteProjectV2View(input: {viewId: $view}) { clientMutationId } }",
                                 "-f", f"view={view['id']}"]))
 
     if not spaces:
@@ -831,13 +839,20 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
                                "These space repos have their own issue templates, so the org-wide forms do not show there: "
                                f"{', '.join(own)}. Add colab forms to one only if its maintainers want them."))
 
-    if snapshot.get("meta_repo_exists") and not config.get("sessions", {}).get("issue"):
+    existing = snapshot.get("meta_issues") or {}
+    if snapshot.get("meta_repo_exists") and not config.get("sessions", {}).get("issue") and "Session activity" in existing:
+        actions.append(_action("manual", 0, f"The 'Session activity' issue exists ({org}/{meta}#{existing['Session activity']}): "
+                                            f"set [sessions] issue = {existing['Session activity']} in .colab/config.toml (by PR)"))
+    elif snapshot.get("meta_repo_exists") and not config.get("sessions", {}).get("issue"):
         actions.append(_action("gh", 0, f"Create the 'Session activity' issue in {org}/{meta} for session heartbeats",
                                ["gh", "issue", "create", "--repo", f"{org}/{meta}", "--title", "Session activity",
                                 "--body", "Each agent session keeps one comment here, refreshed by `colab.py beat`. "
                                           "The bus reads them to tell active, waiting, and stale sessions apart."]))
         actions.append(_action("manual", 0, "Put that issue's number in .colab/config.toml as [sessions] issue = N (by PR)"))
-    if snapshot.get("meta_repo_exists") and not (config.get("security") or {}).get("audit_issue"):
+    if snapshot.get("meta_repo_exists") and not (config.get("security") or {}).get("audit_issue") and "Security audit" in existing:
+        actions.append(_action("manual", 0, f"The 'Security audit' issue exists ({org}/{meta}#{existing['Security audit']}): "
+                                            f"set [security] audit_issue = {existing['Security audit']} in .colab/config.toml (by PR)"))
+    elif snapshot.get("meta_repo_exists") and not (config.get("security") or {}).get("audit_issue"):
         actions.append(_action("gh", 0, f"Create the 'Security audit' issue in {org}/{meta}: `colab.py security clear` and "
                                         "`ignore-author` post their records there, and the bus honours a clear only with one",
                                ["gh", "issue", "create", "--repo", f"{org}/{meta}", "--title", "Security audit",
