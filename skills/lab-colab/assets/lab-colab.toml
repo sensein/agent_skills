@@ -140,9 +140,10 @@ color = "5319e7"                 # for space:<name> labels, created on first use
 
 # Project v2 fields. gh creates TEXT, SINGLE_SELECT, DATE, NUMBER; the plan creates
 # MULTI_SELECT and ITERATION through GraphQL (2-week cycles from next Monday, 4 of them).
-# Spaces is multi-select and its options come from [spaces] at plan time: the bus keeps
-# each item's value (repo membership plus space:<name> labels) and every `Space: <name>`
-# view filters on it, because a view filter cannot OR "repo is X" with "label is Y".
+# Spaces is multi-select and its options come from [spaces] at plan time: each member's
+# `colab.py sync` keeps the value of the items it touches (repo membership plus space:<name>
+# labels), and every `Space: <name>` view filters on it, because a view filter cannot OR
+# "repo is X" with "label is Y".
 [[fields]]
 name = "Status"
 type = "SINGLE_SELECT"
@@ -176,13 +177,13 @@ name = "KG link"
 type = "TEXT"
 
 [[fields]]
-name = "Contributions"           # kept by the bus for external items: "kabilar: fix, review; satra: comment"
+name = "Contributions"           # "kabilar: fix, review; satra: comment": each member's sync adds their own kinds, never removes others
 type = "TEXT"
 
 [[fields]]
-name = "Security"                # DISPLAY ONLY: the gate reads security/state.json on the colab-state branch, which only bus operators can push. The bus
-type = "SINGLE_SELECT"           # overwrites any value that disagrees with its state: flagged, cleared (a verified two-person clear), or
-                                 # unreviewed (scanned, no finding). Editing the field changes nothing
+name = "Security"                # DISPLAY ONLY: the gate scans the item itself when someone claims or runs it, and checks clears on
+type = "SINGLE_SELECT"           # the Security audit issue through the API. `security clear` sets "cleared" here for people reading the
+                                 # board; editing the field changes nothing
 options = ["unreviewed", "flagged", "cleared"]
 
 [[fields]]
@@ -194,7 +195,7 @@ name = "Iteration"
 type = "ITERATION"
 
 # ---------------------------------------------------------------------------
-# Spaces: membership by repo list (the bus writes the Spaces field). Empty here on purpose; the bootstrap proposes
+# Spaces: membership by repo list (members' `colab.py sync` writes the Spaces field). Empty here on purpose; the bootstrap proposes
 # one per active repo and the lab edits the list in the meta-repo copy.
 # ---------------------------------------------------------------------------
 [spaces]
@@ -207,10 +208,11 @@ type = "ITERATION"
 # example-space = { stewards = ["handle-a", "handle-b"], repos = ["repo-a", "repo-b"] }
 #
 # External repos the group contributes to may be listed as "owner/name" (bare names stay in [org] name).
-# They are tracked read-only: the bus adds their items to the Project (see [bus] external_track) and
-# never writes there. A non-public external repo counts as restricted unless [tiers] lab lists it;
-# one you or the bus cannot read is skipped. Their labels never drive routing or Spaces. Keep the
-# Project private: adding an external issue shows an "added to project" event on that issue.
+# They are tracked read-only: each member's `colab.py sync` adds the items that member can read (see [bus]
+# external_track) and never writes there; GitHub redacts them on the board for anyone who cannot read the repo.
+# A non-public external repo counts as restricted (no summaries or text outside GitHub) unless [tiers] lab
+# lists it; one you cannot read is skipped. Their labels never drive routing or Spaces. Keep the Project
+# private: adding an external issue shows an "added to project" event on that issue.
 # example-upstream = { stewards = ["handle-a"], repos = ["repo-a", "upstream-org/library"] }
 
 # ---------------------------------------------------------------------------
@@ -241,7 +243,7 @@ lab = { members = "org:sensein" }
 [[phases]]
 id = 0
 name = "Foundation"
-gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space's repos are covered by the Spaces field and its Space: <name> view, and show the org-wide colab forms or keep their own templates (labels are created on first use, never up front); bus runs in dry-run with a fresh heartbeat."
+gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space's repos are covered by the Spaces field and its Space: <name> view (members' `colab.py sync` keeps it), and show the org-wide colab forms or keep their own templates (labels are created on first use, never up front)."
 
 [[phases]]
 id = 1
@@ -291,20 +293,40 @@ mode = "auto"                    # workspace: auto (git worktree when the source
 comment_every = 5                # compact progress comment every N iterations; 0 = off
 comment_every_seconds = 0        # or every N seconds (0 = off)
 
+[sync]
+# `colab.py sync` (and its cheap run at the start of `next` and `inbox`): under each member's own gh login.
+budget_calls = 200               # API calls per `colab.py sync` run; past it the next run continues from the same place
+auto_budget_calls = 40           # the short budget of the sync at the start of `next` and `inbox`
+auto_min_minutes = 10            # ... which runs at most this often per person
+lookback_days = 14               # how far back a person's first sync looks (later runs start from their own cursor)
+write_interval_seconds = 1.0     # pause after each Project write
+external_private = "personal"    # items of non-public external space repos: "personal" = never on the shared Project; each
+                                 # member sees theirs live in `next --me` and `inbox` (refs and links only). "board" = add them
+                                 # with Spaces only (no Contributions), relying on GitHub hiding a redacted item's field values
+                                 # from members who cannot read the repo: unverified; check with such a member before using it
+
+# ---------------------------------------------------------------------------
+# The bus: an OPTIONAL relay for push-style deliveries (delivery issues in subscriber repos). Nothing depends on it:
+# the board, subscriptions (`colab.py inbox`), the Security gate, contributions, and sessions all work through each
+# member's own credentials. With enabled = false (the default) the plan proposes none of the relay's parts (App,
+# environment, colab-state branch and ruleset, operators team, workflow) and lists manual steps to retire any that
+# exist. project_add and external_track below are also read by `colab.py sync`.
+# ---------------------------------------------------------------------------
 [bus]
+enabled = false                  # true = run the optional relay (see SKILL.md, "The optional relay")
 poll_seconds = 300
 write_interval_seconds = 1.0     # stay under GitHub's content-creation limits
 fanout_digest_threshold = 20     # above this many subscribers, write one digest issue
 heartbeat_stale_minutes = 30
 project_sync = true              # keep the org Project's Spaces field current (board bookkeeping, runs in dry-run spaces too)
 project_sync_every = 6           # full Project sweep every N polls; newly opened items are added immediately
-project_add = ["issue"]          # kinds the bus adds to the Project when opened: "issue", "pull_request". Issues only keeps PRs off the board
+project_add = ["issue"]          # kinds `colab.py sync` (and the relay) adds to the Project: "issue", "pull_request". Issues only keeps PRs off the board
 external_track = "involved"     # external space repos: "involved" = items an org member opened, commented on, reviewed, or fixed
                                  # (a closing PR; assignment or a bare mention does not count); "all" = every item
 external_detail_per_poll = 50    # external items whose comments/reviews/timeline are read per poll (only items updated since
                                  # the cursor); the rest carry over to the next poll
 external_calls_per_poll = 300    # and at most this many API calls for those details per poll; over budget, the rest carry over
-injection_scan = true            # scan new or edited bodies and comments; a hit sets the Project field Security = flagged
+injection_scan = true            # the relay's own scan (display only); the gate scans at read time regardless
 drift_check_hours = 24           # read-only observe + plan this often; opens or updates one "Drift report" issue in the meta repo when the org no longer matches this config. 0 = off. Never applies anything
 lease_ttl_minutes = 0            # a bus's lease (lease.json on colab-state) is stale this long after its last renewal (renewed every poll).
                                  # 0 = three polls, at least 15 minutes, or 45 with an Actions bus (scheduled runs can start late)
@@ -314,7 +336,8 @@ code_owners = []                 # who must review changes to the bus workflow a
                                  # branch ruleset requires code owner review): "@org/team" or "@login". [] = @<org>/colab-bus-operators
 
 # ---------------------------------------------------------------------------
-# Buses. By default the bus runs as a scheduled GitHub Actions workflow in the meta repo (.github/workflows/colab-bus.yml),
+# Buses: the optional relay only, read when [bus] enabled = true. The relay runs as a scheduled GitHub Actions
+# workflow in the meta repo (.github/workflows/colab-bus.yml),
 # signed in as the org's own GitHub App (kind = "actions"): no member, and no member's agent, holds its credentials.
 # `colab.py plan` walks an org owner through creating the App (a manifest and a one-button page), installing it, and
 # storing its number and key as secrets of the meta repo's `colab-bus` environment (default branch only); `colab.py setup --app` checks each step. The App's
@@ -343,9 +366,17 @@ code_owners = []                 # who must review changes to the bus workflow a
 # order = 1
 
 [security]
-audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear: `security clear`
-                                 # and `ignore-author` post their records there, and the bus honours a clear only with a record
-                                 # from a steward of the item's spaces who is not its assignee or claimant
+# The gate is read-time: `claim`/`lease`, `run start/step/loop`, `beat`, and `next` (which only marks) scan the item's
+# body, comments, and PR reviews when they act. A hit blocks until a steward of the item's spaces (repo lists in the meta
+# repo's copy of this file) who is not its claimant, an assignee, or the person acting posts an unedited clear record on
+# audit_issue after the item's latest flagged change. No shared state: the colab-state security file is not read.
+audit_issue = 0                  # meta-repo "Security audit" issue (plan proposes creating it). Required to clear (`security clear`);
+                                 # read from the meta repo's copy of this file, never from a local one
+read_scan_seconds = 30           # the optional model hook's total time per item at read time (the rules always run)
+code_owners = []                 # who must review changes to .colab/ and .github/workflows/ in the meta repo (seeded CODEOWNERS;
+                                 # the default-branch ruleset requires code owner review): "@org/team" or "@login".
+                                 # [] = [bus] code_owners, else the stewards of every space
+# The rest of [security] configures the optional relay's own published state:
 outsider_flags_per_day = 3       # injection-scan flags per non-member author per item per day; past that, audit-only. Members' content,
                                  # and any hit on a Ready/Agent-ready, in-progress, or assigned item, always flags
 state_keep_days = 30             # the security state keeps verified clears this long (open flags are always kept)

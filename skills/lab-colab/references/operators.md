@@ -1,8 +1,10 @@
-# Running a standby bus (operators)
+# Running a standby bus (operators): optional relay
 
-The bus is a small job that polls GitHub every few minutes, moves events between projects, keeps the board current, and publishes the security state every assistant checks before working on an item.
+> **Optional relay.** Since 2026-11-13 the lab works through each member's own credentials: the board (`colab.py sync`), the news (`colab.py inbox`), the Security gate (each `claim` and `run` scans the item itself), contributions, and sessions need no bus. The bus is kept only as an optional relay for push-style delivery issues, turned on with `[bus] enabled = true`. If your org does not set that, you do not need this page; `colab.py plan` lists the steps to retire an existing bus.
 
-The lab's main bus runs by itself on GitHub Actions, signed in as the lab's GitHub App, so nobody has to keep it running and nobody holds its key (an org owner sets it up: [runbook.md](./runbook.md), section 4). This page is for a **standby**: a second bus on a cluster such as ORCD that takes over if the Actions bus stops (or the only bus, in an org without an App). A standby runs under **your** GitHub login: you are its operator.
+The bus is a small job that polls GitHub every few minutes and files delivery issues in subscriber repos. It may also keep the board current and publish its own security state, but nothing reads that state any more.
+
+When an org runs it, the main bus runs by itself on GitHub Actions, signed in as the lab's GitHub App, so nobody has to keep it running and nobody holds its key (an org owner sets it up: [runbook.md](./runbook.md), section 4). This page is for a **standby**: a second bus on a cluster such as ORCD that takes over if the Actions bus stops (or the only bus, in an org without an App). A standby runs under **your** GitHub login: you are its operator.
 
 ## Who can run one
 
@@ -51,6 +53,8 @@ The lab's main bus runs by itself on GitHub Actions, signed in as the lab's GitH
 - To stop for good: cancel the job, remove your `[[buses]]` entry by PR, and ask an owner to apply the plan (and to take you out of the team).
 
 ## What keeps this safe
+
+The Security gate does not depend on any of this: every member's CLI scans an item when it acts and checks clears on the audit issue itself. What follows protects the relay's own state.
 
 - Only the lab's App and `colab-bus-operators` can write the `colab-state` branch (a repository ruleset). Every member can read it.
 - Each poll is one commit with compare-and-set on the branch head, so two buses cannot both be active.

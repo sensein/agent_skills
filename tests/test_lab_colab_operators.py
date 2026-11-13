@@ -63,7 +63,7 @@ BUSES = [{"id": "satra-orcd", "operator": "satra", "host": "MIT ORCD", "role": "
 
 def cfg(**extra) -> dict:
     c = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "spaces": {"proj": {"repos": ["proj"]}},
-         "bus": {"write_interval_seconds": 0, "poll_seconds": 300}, "buses": [dict(b) for b in BUSES]}
+         "bus": {"enabled": True, "write_interval_seconds": 0, "poll_seconds": 300}, "buses": [dict(b) for b in BUSES]}
     c.update(extra)
     return c
 
@@ -662,40 +662,17 @@ def fresh_state(**kw) -> dict:
             "seen": {}, "flags": {}, "clears": {}, "ignored": {}, **kw}
 
 
-class CliStateTests(unittest.TestCase):
-    CFG = {"org": {"name": "sensein", "meta_repo": "lab-colab"}}
+class ReadTimeGateTests(unittest.TestCase):
+    """The gate no longer reads colab-state or the Actions variable (people-first revision): it scans the item now."""
 
-    def test_reads_the_branch_first(self) -> None:
-        value, why = colab.load_security_state(self.CFG, FakeCli(state=fresh_state(), variable=fresh_state(flags={"x": {}})))
-        self.assertEqual((value["flags"], why), ({}, ""))
-        self.assertTrue(colab.STATE_SOURCE["source"].startswith("colab-state"))
-
-    def test_a_writer_who_runs_no_bus_fails_closed(self) -> None:
-        value, why = colab.load_security_state(self.CFG, FakeCli(state=fresh_state(), writer="mallory"))
-        self.assertIsNone(value)
-        self.assertIn("mallory", why)
-
-    def test_an_unprotected_branch_fails_closed(self) -> None:
-        for rules in ([], [{"type": "update"}], None):
-            value, why = colab.load_security_state(self.CFG, FakeCli(state=fresh_state(), rules=rules))
-            self.assertIsNone(value)
-            self.assertTrue("not protected" in why or "could not read" in why, why)
-        sec_cfg = {"org": {"name": "sensein", "meta_repo": "lab-colab"}, "spaces": {"p": {"repos": ["proj"]}}}
-        cli = FakeCli(state=fresh_state(), rules=[])
-        gate = colab.gate_status(sec_cfg, "sensein/proj#3", gh=lambda a: {"login": "me"} if a == ["api", "user"] else cli(a))
-        self.assertTrue(gate["unavailable"])  # fails closed above public
-
-    def test_falls_back_to_the_variable_marked_deprecated(self) -> None:
-        value, why = colab.load_security_state(self.CFG, FakeCli(state=None, variable=fresh_state()))
-        self.assertEqual(why, "")
-        self.assertIn("deprecated", colab.STATE_SOURCE["source"])
-        value, why = colab.load_security_state(self.CFG, FakeCli(state=None, variable=None))
-        self.assertIsNone(value)
-        self.assertIn("unreadable", why)
-
-    def test_stale_branch_state_still_fails_closed(self) -> None:
-        old = fresh_state(issued_at="2026-01-01T00:00:00Z")
-        self.assertIn("minutes old", colab.load_security_state(self.CFG, FakeCli(state=old))[1])
+    def test_the_gate_never_reads_shared_state(self) -> None:
+        import test_lab_colab as lc
+        cli = lc.FakeGhJson(comments=[])
+        gate = colab.gate_status(lc.sec_config(), "sensein/proj#3", gh=cli)
+        self.assertEqual(gate["state"], "ok")
+        text = json.dumps(cli.calls)
+        for shared in ("colab-state", "COLAB_SECURITY_STATE", "security/state.json", "rules/branches"):
+            self.assertNotIn(shared, text)
 
 
 class PlainGateMessageTests(unittest.TestCase):
@@ -860,8 +837,13 @@ class OperatorPlanTests(unittest.TestCase):
         for k in ("operators_team", "state_branch", "rulesets"):
             old.pop(k)
         self.assertFalse(any("colab-bus-operators" in a["desc"] for a in colab.build_plan(base, old)))
-        self.assertTrue(any("colab-bus-operators" in a["desc"] for a in colab.build_plan(base, op_snapshot())))
-        self.assertTrue(any(a["kind"] == "manual" and "[[buses]]" in a["desc"] for a in colab.build_plan(base, op_snapshot())))
+        # [bus] enabled = false (the default): only the default-branch ruleset, never the relay's team or branch
+        plain = colab.build_plan(base, op_snapshot())
+        self.assertFalse(any("colab-bus-operators" in a["desc"] for a in plain))
+        self.assertTrue(any(colab.RULESET_DEFAULT in a["desc"] for a in plain))
+        relay = {**base, "bus": {**base["bus"], "enabled": True}}
+        self.assertTrue(any("colab-bus-operators" in a["desc"] for a in colab.build_plan(relay, op_snapshot())))
+        self.assertTrue(any(a["kind"] == "manual" and "[[buses]]" in a["desc"] for a in colab.build_plan(relay, op_snapshot())))
 
     def test_observe_operators_reads_only_our_rulesets(self) -> None:
         calls = []
