@@ -695,7 +695,10 @@ def _gh_json(args: list[str]) -> object | None:
     if proc.returncode != 0:
         return None
     out = proc.stdout.strip()
-    return json.loads(out) if out else None
+    try:
+        return json.loads(out) if out else None
+    except ValueError:  # malformed output counts as unavailable, so callers fail closed instead of crashing
+        return None
 
 
 GQL_INFO = (

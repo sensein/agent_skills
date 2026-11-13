@@ -2766,9 +2766,9 @@ class ThirdReviewTests(unittest.TestCase):
                 "renames": {"nodes": []}, "comments": {"pageInfo": {"hasNextPage": False}, "nodes": [gate_comment()]}},
                 "issue": {"comments": {"pageInfo": {"hasNextPage": False},
                                        "nodes": [audit_comment(item="sensein/lab#7", by="jobuser")]}}}}}
-            (bin_dir / "gh").write_text("#!/bin/sh\ncase \"$2\" in\n  graphql) echo '" + json.dumps(reply).replace("'", "")
-                                        + "' ;;\n  user) echo '{\"login\": \"jobuser\"}' ;;\n"
-                                        "  */contents/.colab/config.toml) echo '" + json.dumps(meta) + "' ;;\n"
+            (bin_dir / "gh").write_text("#!/bin/sh\ncase \"$2\" in\n  graphql) printf '%s\\n' '" + json.dumps(reply).replace("'", "")
+                                        + "' ;;\n  user) printf '%s\\n' '{\"login\": \"jobuser\"}' ;;\n"
+                                        "  */contents/.colab/config.toml) printf '%s\\n' '" + json.dumps(meta) + "' ;;\n"
                                         "  *) exit 1 ;;\nesac\n")
             (bin_dir / "gh").chmod(0o755)
             (bin_dir / "scontrol").write_text("#!/bin/sh\necho 'BatchFlag=1'\n")

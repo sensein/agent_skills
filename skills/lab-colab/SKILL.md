@@ -2,7 +2,7 @@
 name: lab-colab
 description: >-
   Bootstrap, roll out, and operate a Lab Colab Space: GitHub issues, Projects, and
-  repos used as a typed work graph with pull-based subscriptions for a research group,
+  repos used as a typed work graph with pull-based subscriptions for a lab,
   mixing public and private repos, run entirely through each member's own GitHub login. Re-entrant: each run observes the org, diffs it against
   the config and the rollout phase, and proposes the next steps as a dry run.
   Also runs the day-to-day /colab commands (sync, inbox, distill, next, claim, handoff, capture,
