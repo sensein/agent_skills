@@ -60,6 +60,17 @@ def _s(v: Any) -> str:
     return "" if v is None else (v if isinstance(v, str) else str(v))
 
 
+def _group_summary(v: Any) -> str:
+    """Text of a per-group summary. In the model it is a GroupSummary object
+    (aggregate_finding, caveats, ...), not a string; str() of it would print
+    the raw dict into the manuscript."""
+    if isinstance(v, dict):
+        finding = _s(v.get("aggregate_finding")).strip()
+        caveats = _s(v.get("caveats")).strip()
+        return f"{finding} Caveats: {caveats}" if finding and caveats else finding or caveats
+    return _s(v).strip()
+
+
 def _words(text: str) -> int:
     return len(re.findall(r"[A-Za-z0-9][\w'’-]*", text))
 
@@ -524,7 +535,7 @@ class Manuscript:
         if not lead and pga.get("groups"):
             self.gate("warning", "groups-lead", "per-group blocks without a lead comparing the groups")
         for g in pga.get("groups") or []:
-            self.lines += [f"**{_s(g.get('label'))}** (n = {g.get('n_studies', 0)}). {_s(g.get('summary')).strip()}", ""]
+            self.lines += [f"**{_s(g.get('label'))}** (n = {g.get('n_studies', 0)}). {_group_summary(g.get('summary'))}", ""]
             for qa in g.get("answers") or []:
                 q = _s(qa.get("question") if isinstance(qa, dict) else "")
                 a = _s(qa.get("answer") if isinstance(qa, dict) else qa)

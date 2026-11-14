@@ -1,7 +1,7 @@
 # synthscholar
 
 An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills)
-for setting up, running, and querying SynthScholar systematic reviews. Three
+for setting up, running, and querying SynthScholar systematic reviews. Four
 modes:
 
 1. **Guided protocol intake** — draft a complete `ReviewProtocol` from minimal
@@ -20,11 +20,21 @@ modes:
    Scholar), then through their institutional EZproxy session for whatever is
    still paywalled — so the review reads the paper instead of its abstract, and
    records which route got each one.
+4. **Search-to-review** — the user has a question but no papers. A
+   reproducible, MeSH-grounded PubMed search is built from the question (closure
+   mode: the host model only marks where each concept sits in the question; the
+   vocabulary comes from the local MeSH index, so the query is the same across
+   runs and models), every record is fetched, titles and abstracts are screened
+   against the protocol, and the kept records go through the Mode 3 review. The
+   search strategy and every count are recorded as provenance. Under Claude Code
+   or Codex no API key is needed: the agent answers the model prompts itself.
 
 ## What you can use it for
 
 | Capability | How | Notes |
 | --- | --- | --- |
+| **Search PubMed for the review** | `generate_search_strategy.py` | A deterministic, MeSH-grounded boolean query from the question, with its hash, hit count and every record (date-sliced past PubMed's 9,999 limit). The MeSH index downloads and builds itself on first use. Writes `search_provenance.json`. |
+| **Screen search results on title/abstract** | `screen_records.py` | The agent (or parallel subagents) decides include / exclude / unsure per record against the protocol's criteria; every decision and reason is logged, the kept records become `corpus.json`, and the counts go into the provenance. |
 | **Scope a review protocol** from a one-line research question | `validate_protocol.py` | Drafts the whole `ReviewProtocol` (PICO, eligibility, databases, risk-of-bias tool, charting questions, per-group analysis, registration); you're asked only the pivotal decisions. Gated for completeness before anything is spent. |
 | **Review PDFs you already have** | `build_corpus.py` → `run_local_review.py` | Screening → data charting → critical appraisal → synthesis → per-group analysis, the same pipeline the application runs. |
 | **Get the PDFs you don't have, from a DOI** | `fetch_ezproxy.py` | Open access first (Unpaywall → OpenAlex → Semantic Scholar, no credentials), then your own institutional EZproxy session for what's still paywalled. |
@@ -42,9 +52,9 @@ modes:
 | **Interrogate a finished review** | `query_sparql.py` (16 recipes), `query_postgres.py` (8) | Full-text vs abstract-only inclusions, retrieval routes, reading basis, screening decisions, exclusion reasons, research-question answers, EZproxy-sourced articles, full-text search over the store. |
 | **Run without an OpenRouter key** | `export_review.py` | The agent performs the stages itself and serialises through the same exporters — identical schema and exports, different author. |
 
-What it deliberately does **not** do: search bibliographic databases for you
-(that's the application's job — here the corpus is yours), deduplicate your
-PDFs, or store any credential. Scanned PDFs are handled when
+What it deliberately does **not** do: search databases other than PubMed
+(the search-to-review mode is PubMed only; the application covers the rest),
+deduplicate your PDFs, or store any credential. Scanned PDFs are handled when
 [Docling](https://github.com/docling-project/docling) is installed —
 `build_corpus.py` reaches for it first, and its pipeline OCRs and reconstructs
 tables. With `--no-docling`, or without the package, a scanned PDF yields no
@@ -61,6 +71,7 @@ synthscholar/
 ├── references/
 │   ├── protocol_intake.md       # complete ReviewProtocol field catalog (intake)
 │   ├── byo_corpus_review.md     # user-supplied-PDF workflow, schemas, PRISMA flow rules
+│   ├── search_strategy.md       # search-to-review: PubMed strategy, screening, PRISMA accounting
 │   ├── citation_verification.md # citation checks, finding codes → actions, styles
 │   ├── writing_style.md         # formal review register; AI patterns to rewrite
 │   ├── review_template.md       # the manuscript section plan, budgets, figures, gates
@@ -69,6 +80,9 @@ synthscholar/
 │   └── data_model.md            # SLR ontology + DB schema + provenance values
 └── scripts/
     ├── validate_protocol.py     # scaffold + completeness-gate a protocol file
+    ├── generate_search_strategy.py  # question → deterministic PubMed query (+ count/fetch/provenance)
+    ├── search_strategy/         #   └─ closure-mode engine from sensein/search-strategy-generator
+    ├── screen_records.py        # search results → title/abstract screening → corpus.json
     ├── build_corpus.py          # PDFs → corpus.json (full text, hashes, provenance)
     ├── fetch_ezproxy.py         # DOIs → PDFs: open access first, institutional second
     ├── oa_client.py             #   └─ vendored Unpaywall → OpenAlex → Semantic Scholar
@@ -94,6 +108,20 @@ synthscholar/
 # Intake: scaffold a protocol, fill it, gate it before running
 python scripts/validate_protocol.py --print-template > protocol.json
 python scripts/validate_protocol.py protocol.json
+
+# Search-to-review: question → PubMed query → screened corpus (references/search_strategy.md)
+# (the MeSH index downloads and builds itself on first use, ~120 MB once)
+python scripts/generate_search_strategy.py "vocal biomarkers for depression" --emit-prompt > prompt.json
+#   the agent answers the prompt k times → samples.json
+python scripts/generate_search_strategy.py "vocal biomarkers for depression" \
+    --facet-samples samples.json --model-name <model id> --fetch 0 --outdir search/ \
+    --provenance-out search_provenance.json
+python scripts/screen_records.py plan search/<run>/results.jsonl --protocol protocol.json
+#   the agent writes screening/decisions_NNN.json for each batch
+python scripts/screen_records.py apply --corpus-out corpus.json \
+    --provenance search_provenance.json --model-name <model id>
+# outside an agent: OPENROUTER_API_KEY lets the script call the model itself
+python scripts/generate_search_strategy.py "vocal biomarkers for depression" --count
 
 # BYO corpus: PDFs → review.md + review.ttl
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json
@@ -152,12 +180,19 @@ released package** — PyPI's latest (0.0.11) predates the whole-document readin
 full-text screening and retrieval-provenance work:
 
 ```bash
-pip install -e /path/to/prisma-review-agent    # the checkout, not `pip install synthscholar`
+git clone https://github.com/sensein/synthscholar
+git -C synthscholar checkout improve_verification   # main does not yet carry these fields
+pip install -e "./synthscholar[fulltext]"            # the checkout, not `pip install synthscholar`
 ```
+
+The checkout used to be called `prisma-review-agent`. Use the `improve_verification`
+branch: `main` predates the provenance fields, and the scripts below refuse it.
 
 | Script | Runs on released 0.0.11? |
 | --- | --- |
 | `validate_protocol.py`, `build_corpus.py`, `update_provenance.py` | yes — no app import, or models only |
+| `generate_search_strategy.py` | yes — no app import; needs `requests` (the MeSH index builds itself) |
+| `screen_records.py` | yes — stdlib only |
 | `fetch_ezproxy.py` | yes — the skill vendors `oa_client.py` and `ezproxy_client.py`, so it needs only `httpx` |
 | `export_review.py`, `run_local_review.py` | **no** — they refuse to run and say what's missing |
 
@@ -170,6 +205,11 @@ is by feature, not version string (the package's `__version__` and its
 
 ## Requirements
 
+- Search strategy: `requests`. The MeSH index is downloaded from NLM (~120 MB)
+  and built on first use (~37 MB, reused); `SYNTHSCHOLAR_MESH_DB` points at an
+  existing one. `OPENROUTER_API_KEY` only when the script calls a model itself —
+  not under an agent host, which answers the prompts. `NCBI_API_KEY` /
+  `NCBI_EMAIL` optional.
 - SPARQL scripts: `rdflib`.
 - SQL scripts: `psycopg[binary]>=3.1`.
 - Backfill: the `synthscholar` package importable, and migration 006 applied.

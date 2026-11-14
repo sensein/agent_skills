@@ -382,10 +382,12 @@ async def run(args: argparse.Namespace) -> int:
         model_name=args.model,
         pipeline_kwargs={
             "entrypoint": "synthscholar/run_local_review.py",
-            "corpus_provenance": "user_supplied_pdfs",
+            # screen_records.py labels a corpus built from the skill's own
+            # PubMed search; a build_corpus.py corpus is the user's PDFs
+            "corpus_provenance": (corpus.get("provenance") if isinstance(corpus, dict) else "") or "user_supplied_pdfs",
             "corpus_size": len(articles),
             "corpus_full_text_count": n_ft,
-            "discovery_performed_by": "user",
+            "discovery_performed_by": (corpus.get("discovery_performed_by") if isinstance(corpus, dict) else "") or "user",
             "search_provenance_file": args.provenance or "",
             "data_items": args.data_item or None,
             "per_group_analysis": not args.no_per_group,
@@ -522,7 +524,9 @@ def main() -> int:
         print("The installed synthscholar has no synthscholar/text_windows.py, so "
               "evidence extraction would read only the opening pages of each "
               "article. Install the development checkout:\n"
-              "  pip install -e /path/to/prisma-review-agent", file=sys.stderr)
+              "  git clone https://github.com/sensein/synthscholar\n"
+              "  git -C synthscholar checkout improve_verification   # main lacks these fields\n"
+              "  pip install -e ./synthscholar", file=sys.stderr)
         return 3
 
     return asyncio.run(run(args))

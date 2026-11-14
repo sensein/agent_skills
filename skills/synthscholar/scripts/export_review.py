@@ -121,7 +121,9 @@ def _require_synthscholar():
               "complete while recording nothing about which reports were retrieved "
               "or whether each decision was made on the full text. Install the "
               "development checkout instead:\n"
-              "  pip install -e /path/to/prisma-review-agent",
+              "  git clone https://github.com/sensein/synthscholar\n"
+              "  git -C synthscholar checkout improve_verification   # main lacks these fields\n"
+              "  pip install -e ./synthscholar",
             file=sys.stderr,
         )
         raise SystemExit(3)

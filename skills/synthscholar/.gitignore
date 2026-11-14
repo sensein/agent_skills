@@ -12,3 +12,12 @@ review_output/
 pdfs/
 *.ttl
 *.jsonld
+
+# Search-strategy engine: the MeSH RDF dump (~2 GB) and the index built from it
+# are regenerated locally (generate_search_strategy.py --build-index), and
+# --fetch writes PubMed records under searches/.
+mesh*.nt
+mesh*.nt.gz
+scripts/search_strategy/data/mesh.sqlite
+scripts/search_strategy/data/mesh.sqlite.building
+searches/

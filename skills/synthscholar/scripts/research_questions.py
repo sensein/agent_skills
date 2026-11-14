@@ -48,7 +48,9 @@ _STALE = (
     "The installed synthscholar has no research_questions module, so the "
     "exports carry the charted answers only inside each study's custom_fields.\n"
     "Install the development checkout to get the question-first view:\n"
-    "  pip install -e /path/to/prisma-review-agent"
+    "  git clone https://github.com/sensein/synthscholar\n"
+    "  git -C synthscholar checkout improve_verification   # main lacks these fields\n"
+    "  pip install -e ./synthscholar"
 )
 
 
