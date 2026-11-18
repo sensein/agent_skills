@@ -1152,7 +1152,7 @@ class SetupTests(unittest.TestCase):
                 return mock.Mock(returncode=auth[0], stdout=auth[1], stderr="")
             return mock.Mock(returncode=0, stdout="1\n", stderr="")
         return colab.cmd_setup(cfg, install, home=home, env=env or {}, runner=runner,
-                               which=which or (lambda n: f"/usr/bin/{n}"), skill_dir=Path("/opt/skills/lab-colab"))
+                               which=which or (lambda n: f"/usr/bin/{n}"), skill_dir=SKILL)
 
     def by_name(self, checks):
         return {c["name"]: c for c in checks}
@@ -1214,7 +1214,7 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(data[key], original[key])
             self.assertEqual(data["hooks"]["PreToolUse"], original["hooks"]["PreToolUse"])
             self.assertEqual(data["hooks"]["PostToolUse"][0], original["hooks"]["PostToolUse"][0])
-            expected = (f"COLAB_CONFIG={cfg.resolve()} {sys.executable} /opt/skills/lab-colab/scripts/colab.py "
+            expected = (f"COLAB_CONFIG={cfg.resolve()} {sys.executable} {SKILL}/scripts/colab.py "
                         "beat --from-hook --background 2>/dev/null || true")
             for event in ("PostToolUse", "Stop"):
                 added = data["hooks"][event][-1]
@@ -1251,9 +1251,66 @@ class SetupTests(unittest.TestCase):
             self.assertFalse(settings.exists())
 
     def test_existing_beat_hook_is_left_alone(self) -> None:
-        settings = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 /x/colab.py beat --from-hook"}]}]}}
-        self.assertEqual(colab.merge_hooks(settings, "cmd"), ["PostToolUse"])
-        self.assertEqual(len(settings["hooks"]["Stop"]), 1)
+        script = SKILL / "scripts" / "colab.py"
+        hand = f"COLAB_CONFIG=/my/cfg python3.12 {script} beat --from-hook"  # hand-edited, same live script
+        settings = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": hand}]}]}}
+        self.assertEqual(colab.merge_hooks(settings, colab.hook_command("/c", "py", SKILL)), ["PostToolUse"])
+        self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["command"], hand)
+
+    def test_dead_or_moved_beat_hook_is_rewritten_in_place(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        for old in ("python3 /x/colab.py beat --from-hook",  # the path no longer exists
+                    "COLAB_CONFIG=/c py /home/u/.claude/plugins/cache/lab-colab~g2/scripts/colab.py beat --from-hook"):
+            settings = {"hooks": {"Stop": [{"matcher": "*", "hooks": [{"type": "command", "command": old, "timeout": 30}]}],
+                                  "PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": old}]}]}}
+            self.assertEqual(colab.merge_hooks(settings, new), ["PostToolUse", "Stop"])
+            for event in ("Stop", "PostToolUse"):
+                self.assertEqual(len(settings["hooks"][event]), 1)  # updated in place, not added
+                self.assertEqual(settings["hooks"][event][0]["hooks"][0]["command"], new)
+            self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["timeout"], 30)
+            self.assertEqual(colab.merge_hooks(settings, new), [])  # idempotent once current
+        with tempfile.TemporaryDirectory() as tmp:  # a different colab.py that exists (another checkout) is repointed too
+            other = Path(tmp) / "scripts" / "colab.py"
+            other.parent.mkdir()
+            other.write_text("")
+            settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": f"py {other} beat"}]}] for e in colab.HOOK_EVENTS}}
+            self.assertEqual(sorted(colab.merge_hooks(settings, new)), sorted(colab.HOOK_EVENTS))
+
+    def test_setup_check_and_install_repoint_a_dead_hook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            settings = home / ".claude" / "settings.json"
+            dead = f"COLAB_CONFIG={cfg} py {tmp}/plugins/lab-colab~g2/scripts/colab.py beat --from-hook --background 2>/dev/null || true"
+            settings.write_text(json.dumps({"hooks": {e: [{"matcher": "*", "hooks": [{"type": "command", "command": dead}]}]
+                                                      for e in colab.HOOK_EVENTS}}))
+            checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
+            hooks = self.by_name(checks)["hooks"]
+            self.assertEqual(hooks["status"], "fail")  # a substring match used to show a tick here
+            self.assertIn("no longer exists", hooks["detail"])
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            self.assertEqual(rc, 0, [c for c in checks if c["status"] == "fail"])
+            self.assertEqual(len(list((home / ".claude").glob("settings.json.colab-bak-*"))), 1)  # backup kept
+            data = json.loads(settings.read_text())
+            for e in colab.HOOK_EVENTS:
+                [entry] = data["hooks"][e]
+                self.assertIn(f"{SKILL}/scripts/colab.py beat", entry["hooks"][0]["command"])
+            checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
+            self.assertEqual(self.by_name(checks)["hooks"]["status"], "ok")
+
+    def test_admin_org_covers_read_org(self) -> None:
+        self.assertIn("read:org", colab.effective_scopes(["admin:org"]))
+        self.assertIn("read:org", colab.effective_scopes(["write:org"]))
+        self.assertIn("public_repo", colab.effective_scopes(["repo"]))
+        self.assertNotIn("read:org", colab.effective_scopes(["repo", "project"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            auth = (0, "  - Token scopes: 'admin:org', 'project', 'repo', 'workflow'\n")
+            got = self.by_name(self.run_setup(Path(tmp), auth=auth)[0])
+            self.assertEqual(got["gh scopes"]["status"], "ok", got["gh scopes"])
+            got = self.by_name(self.run_setup(Path(tmp), auth=(0, "  - Token scopes: 'project', 'repo'\n"))[0])
+            self.assertEqual(got["gh scopes"]["status"], "fail")
+            self.assertIn("read:org", got["gh scopes"]["detail"])
 
     def test_cli_uses_temp_home_only(self) -> None:
         import io, os

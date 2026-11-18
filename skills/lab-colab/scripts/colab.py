@@ -2019,6 +2019,37 @@ def cmd_seed_marketplace(config: dict, dest: Path, source=None, today: date | No
 
 HOOK_EVENTS = ("PostToolUse", "Stop")
 NEEDED_SCOPES = ("repo", "read:org", "project")
+# GitHub's scope hierarchy: a granted scope also grants these (docs: "Scopes for OAuth apps").
+SCOPE_IMPLIES = {
+    "repo": ("repo:status", "repo_deployment", "public_repo", "repo:invite", "security_events"),
+    "admin:org": ("write:org", "read:org", "manage_runners:org"),
+    "write:org": ("read:org",),
+    "project": ("read:project",),
+    "admin:repo_hook": ("write:repo_hook", "read:repo_hook"),
+    "write:repo_hook": ("read:repo_hook",),
+    "admin:org_hook": ("read:org_hook",),
+    "admin:public_key": ("write:public_key", "read:public_key"),
+    "write:public_key": ("read:public_key",),
+    "admin:gpg_key": ("write:gpg_key", "read:gpg_key"),
+    "write:gpg_key": ("read:gpg_key",),
+    "user": ("read:user", "user:email", "user:follow"),
+    "write:packages": ("read:packages",),
+    "delete:packages": ("read:packages",),
+    "admin:enterprise": ("manage_runners:enterprise", "manage_billing:enterprise", "read:enterprise"),
+    "manage_billing:enterprise": ("read:enterprise",),
+}
+
+
+def effective_scopes(scopes) -> set[str]:
+    """The granted scopes plus every scope they imply (admin:org covers read:org, repo covers public_repo, ...)."""
+    out: set[str] = set()
+    todo = list(scopes or [])
+    while todo:
+        x = todo.pop()
+        if x not in out:
+            out.add(x)
+            todo.extend(SCOPE_IMPLIES.get(x, ()))
+    return out
 BEAT = "colab.py beat"
 
 
@@ -2050,18 +2081,49 @@ def _hook_commands(settings: dict, event: str) -> list[str]:
             for h in entry.get("hooks", []) if isinstance(h, dict)]
 
 
+BEAT_SCRIPT = re.compile(r"""(?P<path>[^\s'"=]*colab\.py)['"]?\s+beat\b""")
+
+
+def beat_script(command: str) -> str | None:
+    """The colab.py path a beat hook command runs, or None when it names none."""
+    m = BEAT_SCRIPT.search(command or "")
+    return os.path.expanduser(m["path"]) if m else None
+
+
+def beat_hook_live(command: str) -> bool:
+    """A colab beat hook whose script still exists (a plugin update moves the skill to a new versioned folder,
+    and the old hook then fails silently behind `2>/dev/null || true`)."""
+    path = beat_script(command)
+    return bool(BEAT in (command or "") and path and Path(path).is_file())
+
+
 def merge_hooks(settings: dict, command: str) -> list[str]:
     """Add the beat hook to PostToolUse and Stop in place; returns the events changed. Idempotent.
 
-    Any existing colab beat hook is left alone, so a re-run adds nothing and hand edits survive.
+    An existing colab beat hook that runs this same script, and the script exists, is left alone, so a re-run
+    changes nothing and hand edits survive. One that points at a script that no longer exists, or at a different
+    colab.py (an older plugin version), is rewritten in place to `command`.
     """
     changed = []
+    want = beat_script(command)
     hooks = settings.setdefault("hooks", {})
     for event in HOOK_EVENTS:
-        if any(BEAT in c for c in _hook_commands(settings, event)):
-            continue
-        hooks.setdefault(event, []).append({"matcher": "*", "hooks": [{"type": "command", "command": command, "timeout": 30}]})
-        changed.append(event)
+        found = False
+        for entry in hooks.get(event, []) or []:
+            if not isinstance(entry, dict):
+                continue
+            for h in entry.get("hooks", []) or []:
+                if not (isinstance(h, dict) and BEAT in str(h.get("command", ""))):
+                    continue
+                found = True
+                have = beat_script(h["command"])
+                if not beat_hook_live(h["command"]) or (want and have != want):
+                    h["command"] = command
+                    if event not in changed:
+                        changed.append(event)
+        if not found:
+            hooks.setdefault(event, []).append({"matcher": "*", "hooks": [{"type": "command", "command": command, "timeout": 30}]})
+            changed.append(event)
     return changed
 
 
@@ -2255,7 +2317,7 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
                 "logged in; token scopes are not shown (fine-grained or app token), so they are not checked")
         else:
             gh_ok = True
-            missing = [x for x in NEEDED_SCOPES if x not in scopes]
+            missing = [x for x in NEEDED_SCOPES if x not in effective_scopes(scopes)]
             if missing:
                 add("gh scopes", "fail", "Your assistant is signed in, but cannot yet read and comment on lab projects.",
                     f"missing scopes: {', '.join(missing)}", f"gh auth refresh -s {SETUP_SCOPES}")
@@ -2327,7 +2389,9 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
     add("skill location", "info", "The lab-colab skill is installed.", f"{sd} ({kind})")
 
     # heartbeat hooks
-    present = {e: any(BEAT in c for c in _hook_commands(settings, e)) for e in HOOK_EVENTS}
+    present = {e: any(beat_hook_live(c) for c in _hook_commands(settings, e)) for e in HOOK_EVENTS}
+    dead = sorted({beat_script(c) or c for e in HOOK_EVENTS for c in _hook_commands(settings, e)
+                   if BEAT in c and not beat_hook_live(c)})
     if install_hooks:
         if settings_err or cfg_abs is None or python is None:
             add("hooks", "fail", "Setup could not yet let your assistant tell the lab when it is working.",
@@ -2339,14 +2403,15 @@ def cmd_setup(config_path: Path | None, install_hooks: bool, home: Path | None =
             if changed:
                 backup = _write_settings(settings_path, settings)
                 add("hooks", "ok", "Your assistant now tells the lab when it is working.",
-                    f"added heartbeat hooks for {', '.join(changed)}" + (f"; backup at {backup}" if backup else ""))
+                    f"added or updated heartbeat hooks for {', '.join(changed)}" + (f"; backup at {backup}" if backup else ""))
             else:
                 add("hooks", "ok", "Your assistant tells the lab when it is working.", "heartbeat hooks already present; nothing changed")
     elif all(present.values()):
         add("hooks", "ok", "Your assistant tells the lab when it is working.", f"heartbeat hooks present in {settings_path}")
     else:
         add("hooks", "fail", "Your assistant does not yet tell the lab when it is working, so its claims can lapse unnoticed.",
-            f"no heartbeat hook for {', '.join(e for e, v in present.items() if not v)} in {settings_path}",
+            f"no working heartbeat hook for {', '.join(e for e, v in present.items() if not v)} in {settings_path}"
+            + (f" (a hook points at a script that no longer exists: {', '.join(dead)})" if dead else ""),
             "python3.11 <skill>/scripts/colab.py setup --install-hooks")
 
     if operator:
