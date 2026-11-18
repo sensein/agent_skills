@@ -243,7 +243,7 @@ lab = { members = "org:sensein" }
 [[phases]]
 id = 0
 name = "Foundation"
-gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space's repos are covered by the Spaces field and its Space: <name> view (members' `colab.py sync` keeps it), and show the org-wide colab forms or keep their own templates (labels are created on first use, never up front)."
+gate = "Leak scan finds every seeded case (selftest) and reports 0 findings on the meta repo; every space's repos are covered by the Spaces field and its Space: <name> view, and show the org-wide colab forms or keep their own templates (labels are created on first use, never up front); a member's `colab.py sync` has put the space's items on the board."
 
 [[phases]]
 id = 1
@@ -254,7 +254,7 @@ switches = ["bus_live"]
 [[phases]]
 id = 2
 name = "Knowledge + routing"
-gate = "50 accepted knowledge nodes; BrainKB sandbox round trip verified; catch-up under 2 minutes."
+gate = "50 accepted knowledge nodes; BrainKB sandbox round trip verified; `next` and `inbox` each finish in under 2 minutes for a steward."
 switches = ["agent_proposals", "auto_intake", "restricted"]
 
 [[phases]]

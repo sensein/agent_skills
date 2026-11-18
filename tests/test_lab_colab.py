@@ -246,12 +246,24 @@ class PlanTests(unittest.TestCase):
 class GateTests(unittest.TestCase):
     def test_gates_open_switches_in_order(self) -> None:
         r = colab.empty_rollout()
-        colab.record_gate(r, CONFIG, "proj", 0, "https://example/pr/1", today="2026-11-09")
+        relay = json.loads(json.dumps(CONFIG))
+        relay.setdefault("bus", {})["enabled"] = True
+        colab.record_gate(r, relay, "proj", 0, "https://example/pr/1", today="2026-11-09")
         self.assertEqual(r["spaces"]["proj"]["bus"], "live")
         self.assertTrue(r["spaces"]["proj"]["switches"]["bus_live"])
-        colab.record_gate(r, CONFIG, "proj", 1, "https://example/pr/2", today="2026-11-10")
+        colab.record_gate(r, relay, "proj", 1, "https://example/pr/2", today="2026-11-10")
         self.assertTrue(r["spaces"]["proj"]["switches"]["restricted"])
         self.assertEqual(len(r["gates"]), 2)
+
+    def test_gate_with_the_relay_off_records_no_bus(self) -> None:
+        self.assertFalse(colab.bus_enabled(CONFIG))
+        r = colab.empty_rollout()
+        colab.record_gate(r, CONFIG, "proj", 0, "https://example/pr/1", today="2026-11-09")
+        self.assertNotIn("bus", r["spaces"]["proj"])
+        self.assertNotIn("bus_live", r["spaces"]["proj"].get("switches", {}))
+        colab.record_gate(r, CONFIG, "proj", 1, "https://example/pr/2", today="2026-11-10")
+        self.assertTrue(r["spaces"]["proj"]["switches"]["restricted"])
+        self.assertNotIn("bus", r["spaces"]["proj"])
 
     def test_cannot_skip_a_phase(self) -> None:
         with self.assertRaises(ValueError):

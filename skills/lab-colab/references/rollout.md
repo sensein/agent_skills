@@ -1,12 +1,12 @@
 # Rollout
 
-Every space joins in phase 0 with the low-risk parts. Members' `colab.py sync` (Spaces field, new items on the board, their own Contributions) is board bookkeeping under each member's own login and runs from phase 0. The `bus_live` switch matters only to the optional relay ([bus] enabled = true). Risky parts switch on per space, and only after that space passes the previous phase's gate. `colab.py gate` records a pass in `.colab/rollout.json` and turns on the next phase's switches for that one space.
+Every space joins in phase 0 with the low-risk parts. Members' `colab.py sync` (Spaces field, new items on the board, their own Contributions) is board bookkeeping under each member's own login and runs from phase 0. The `bus_live` switch matters only to the optional relay ([bus] enabled = true). Risky parts switch on per space, and only after that space passes the previous phase's gate. `colab.py gate` records a pass in `.colab/rollout.json` and turns on the next phase's switches for that one space; with the relay off it skips `bus_live` and records no bus mode, and the plan's gate lines leave it out of "opens".
 
 | Phase | Reaches | Switches it opens for the space | Gate to pass before the next phase |
 |---|---|---|---|
-| 0 Foundation | Every space at once | (the optional relay, if on, runs in dry-run) | `colab.py scan --selftest` passes and the meta repo scans clean; the org-wide forms exist; members' sync keeps the space's Spaces view current |
+| 0 Foundation | Every space at once | (the optional relay, if on, runs in dry-run) | `colab.py scan --selftest` passes and the meta repo scans clean; the org-wide forms exist; members' sync keeps the space's Spaces view current, and a member's `colab.py sync` has put the space's items on the board |
 | 1 Distill + sessions | Per space | `bus_live` (relay deliveries only) | One full cycle: distill, claim, PR, handoff, with the lease honoured |
-| 2 Knowledge + routing | Per space | `agent_proposals`, `auto_intake`, `restricted` | 50 accepted knowledge nodes; BrainKB sandbox round trip; catch-up under 2 minutes |
+| 2 Knowledge + routing | Per space | `agent_proposals`, `auto_intake`, `restricted` | 50 accepted knowledge nodes; BrainKB sandbox round trip; `next` and `inbox` each finish in under 2 minutes for a steward |
 | 3 Self-evolution | Per space | `self_improve` | An improve PR merged with a measured gain; cost per task against a Claude-only baseline |
 
 The config's `[[phases]]` table is authoritative; this page explains it.

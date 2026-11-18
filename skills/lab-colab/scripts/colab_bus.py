@@ -605,7 +605,7 @@ def drift_body(actions: list[dict]) -> str:
              "Nothing was applied. This issue is edited in place at each check and closed when the plan is clean.", ""]
     lines += [f"- `{a['kind']}`: {a['desc']}" for a in actions]
     lines += ["", "Review, then apply the `gh` actions yourself (`local` and `manual` actions are printed for you to do):", "",
-              "```bash", f"python3 colab.py --config {cfg} plan", f"python3 colab.py --config {cfg} apply --yes", "```", "",
+              "```bash", f"python3.11 colab.py --config {cfg} plan", f"python3.11 colab.py --config {cfg} apply --yes", "```", "",
               "If a change was intentional, update the config by PR instead. Expected recurring steps "
               "(gates, starting the bus, own-template notes) are left out of this list."]
     return "\n".join(lines)

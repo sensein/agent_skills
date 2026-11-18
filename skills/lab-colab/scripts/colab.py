@@ -18,7 +18,7 @@ Subcommands
                 rules instead. --selftest checks that every seeded case of both is caught.
   security      `status <item>`, `clear <item> --reason ...`, `ignore-author <login> --reason ...`: the Security
                 gate. Two people: a steward who is not the item's assignee or claimant clears; each writes an
-                audit record on [security] audit_issue, and the bus re-flags a clear without one.
+                audit record on [security] audit_issue, and every reader's CLI ignores a clear without one.
   links         Parse and validate the fenced ```links block of an issue body.
   tag           Add or remove allow-listed labels (space:<name>, [[labels]]) on one issue in [org] name; creates
                 a label on first use. Uses your own gh login; --dry-run prints the calls.
@@ -29,9 +29,10 @@ Subcommands
   seed-marketplace  Write the private plugin-marketplace repo's starter files (one plugin per skill).
   setup         Onboarding check in plain words (gh sign-in, org membership, meta clone, Python, hooks), one next
                 step per problem; --install-hooks merges the heartbeat hooks, --clone copies the meta repo, --json
-                for agents, --operator adds the bus entry, the operators team, and the lesser assistant token.
-  bus           `status`: which bus holds the lease (colab-state), in plain words; `handback <id>`: return the
-                lease to a bus (operators only).
+                for agents, --operator (optional relay only) adds the bus entry, the operators team, and the lesser
+                assistant token.
+  bus           Optional relay ([bus] enabled = true only). `status`: which bus holds the lease (colab-state), in
+                plain words; `handback <id>`: return the lease to a bus (operators only).
   run           Run a claimed Experiment issue in an isolated workspace under budgets (start, step, loop,
                 check, finish, stage, status). Delegates to colab_run.py; see `colab.py run --help`.
   gate          Record a passed gate for a space in a local rollout.json and
@@ -372,6 +373,9 @@ def actions_buses(config: dict) -> list[dict]:
         return [b for b in buses(config) if b["kind"] == "actions"]
     except BusConfigError:
         return []
+
+
+BUS_SWITCHES = frozenset({"bus_live"})  # rollout switches that only mean something when [bus] enabled = true
 
 
 def bus_enabled(config: dict) -> bool:
@@ -1136,7 +1140,7 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
                 actions.append(_action("gh", 0,
                                        f"Set the options of Project field {f['name']} to: {', '.join(want)}. "
                                        "GitHub may reset existing values on items; that is fine, "
-                                       "because the bus recomputes them on every sync",
+                                       "because members' `colab.py sync` recomputes them",
                                        ["gh", "api", "graphql", "-f", f"query={_options_mutation(want, multi=True)}",
                                         "-f", f"id=<field id of {f['name']} on project {number}>"]))
             elif missing:
@@ -1222,7 +1226,8 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
                                                 "for read access, or fix [spaces]"))
         else:
             track = (config.get("bus") or {}).get("external_track", "involved")
-            actions.append(_action("manual", 0, f"Tracked read-only: {repo} ({seen['visibility']}). The bus adds "
+            who = "The bus (or members' `colab.py sync`) adds" if bus_enabled(config) else "Members' `colab.py sync` adds"
+            actions.append(_action("manual", 0, f"Tracked read-only: {repo} ({seen['visibility']}). {who} "
                                                 f"{'its' if track == 'all' else f'its items that involve {org} members'} "
                                                 f"to the org Project; nothing is created or delivered in {repo.split('/')[0]}"))
 
@@ -1308,7 +1313,8 @@ def build_plan(config: dict, snapshot: dict, today: date | None = None) -> list[
         reached = rollout.get("spaces", {}).get(space, {}).get("phase", -1)
         target = reached + 1
         if target in phases:
-            opens = ", ".join(phases.get(target + 1, {}).get("switches", [])) or "nothing new"
+            opens = ", ".join(sw for sw in phases.get(target + 1, {}).get("switches", [])
+                              if bus_enabled(config) or sw not in BUS_SWITCHES) or "nothing new"
             actions.append(_action("gate", target,
                                    f"Space {space}: phase {target} gate. When this holds, record it (opens: {opens}). "
                                    f"Gate: {phases[target]['gate']}",
@@ -2688,7 +2694,7 @@ def scan_text(text: str, patterns: dict[str, list[str]]) -> dict[str, int]:
 
 # Prompt-injection rules. Text read from GitHub, documents, transcripts or tool output is data, never
 # instructions; these rules find text that tries to be instructions anyway. A hit is a stop for agents
-# and sets the Project field Security = flagged (the bus), never an automatic action.
+# and blocks claim and run until a steward clears it, never an automatic action.
 _AGENT = r"(?:AI|LLM|assistant|agent|language model|Claude|ChatGPT|GPT-?\d*|Copilot|Codex|chat ?bot|bot)s?"
 INJECTION_RULES: dict[str, list[str]] = {
     "agent_address": [
@@ -4496,7 +4502,7 @@ def field_value(item: dict, name: str):
 
 def candidates(items: list[dict]) -> list[dict]:
     """Issues with Status = Ready and Agent-ready = yes. Visibility is GitHub's own check: the list only holds
-    items the caller can see. The Security gate is applied by cmd_next from COLAB_SECURITY_STATE."""
+    items the caller can see. The Security gate is decided by cmd_next per listed item, now (gate_status)."""
     out = []
     for it in items:
         content = it.get("content") or {}
@@ -4504,7 +4510,7 @@ def candidates(items: list[dict]) -> list[dict]:
             continue
         if str(field_value(it, "Status") or "") != "Ready" or str(field_value(it, "Agent-ready") or "").lower() != "yes":
             continue
-        security = str(field_value(it, "Security") or "").lower()  # display only; cmd_next decides from the bus's state
+        security = str(field_value(it, "Security") or "").lower()  # display only; cmd_next decides the gate itself
         assignees = it.get("assignees") or content.get("assignees") or []
         out.append({"repo": content.get("repository", ""), "number": content.get("number"),
                     "title": content.get("title", ""), "url": content.get("url", ""),
@@ -4669,10 +4675,13 @@ def record_gate(rollout: dict, config: dict, space: str, phase: int, evidence: s
     if phase > state.get("phase", -1) + 1:
         raise ValueError(f"{space} is at phase {state.get('phase', -1)}; pass phase {state.get('phase', -1) + 1} first")
     state["phase"] = max(state.get("phase", -1), phase)
-    if phase == 0:
+    bus = bus_enabled(config)
+    if phase == 0 and bus:
         state["bus"] = "dry-run"
     nxt = phases.get(phase + 1)
     for sw in (nxt or {}).get("switches", []):
+        if sw in BUS_SWITCHES and not bus:
+            continue  # the relay is off: its switches stay closed and nothing records a bus mode
         state.setdefault("switches", {})[sw] = True
         if sw == "bus_live":
             state["bus"] = "live"
