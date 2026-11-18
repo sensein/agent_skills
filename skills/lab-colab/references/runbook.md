@@ -8,7 +8,7 @@ Everything core runs through each member's own credentials, used by that member'
 
 Do these in order. Each step is safe to repeat.
 
-1. **Member check.** Members who use the Claude app need nothing here ([getting-started.md](./getting-started.md)). Members with a terminal run `python3.11 "$COLAB/colab.py" setup`: one plain line per check (gh sign-in and scopes, org membership, the meta clone and `COLAB_CONFIG`, Python 3.11+, the skill, the heartbeat hooks), with one next step and link for each failure.
+1. **Member check.** Every member needs Claude Code with `gh` and Python 3.11+, on a laptop or on ORCD through remote control (the Claude app alone is not ready yet; see [getting-started.md](./getting-started.md)). Members run `python3.11 "$COLAB/colab.py" setup`: one plain line per check (gh sign-in and scopes, org membership, the meta clone and `COLAB_CONFIG`, Python 3.11+, the skill, the heartbeat hooks), with one next step and link for each failure.
 2. **Config.** Start from the bundled `assets/lab-colab.toml`. Set `[org] name`, `meta_repo`, `project_title`. Leave `[spaces]` empty for now.
 3. **Observe and plan.** `colab.py --config <cfg> status > status.json`, then `colab.py --config <cfg> plan --snapshot status.json`. Read every action.
 4. **Apply the `gh` actions.** `colab.py --config <cfg> apply --snapshot status.json --yes`. An org owner is needed for issue types. Re-run `status` and `plan`, because new objects (the Project number) unlock later actions.

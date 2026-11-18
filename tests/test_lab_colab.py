@@ -246,12 +246,24 @@ class PlanTests(unittest.TestCase):
 class GateTests(unittest.TestCase):
     def test_gates_open_switches_in_order(self) -> None:
         r = colab.empty_rollout()
-        colab.record_gate(r, CONFIG, "proj", 0, "https://example/pr/1", today="2026-11-09")
+        relay = json.loads(json.dumps(CONFIG))
+        relay.setdefault("bus", {})["enabled"] = True
+        colab.record_gate(r, relay, "proj", 0, "https://example/pr/1", today="2026-11-09")
         self.assertEqual(r["spaces"]["proj"]["bus"], "live")
         self.assertTrue(r["spaces"]["proj"]["switches"]["bus_live"])
-        colab.record_gate(r, CONFIG, "proj", 1, "https://example/pr/2", today="2026-11-10")
+        colab.record_gate(r, relay, "proj", 1, "https://example/pr/2", today="2026-11-10")
         self.assertTrue(r["spaces"]["proj"]["switches"]["restricted"])
         self.assertEqual(len(r["gates"]), 2)
+
+    def test_gate_with_the_relay_off_records_no_bus(self) -> None:
+        self.assertFalse(colab.bus_enabled(CONFIG))
+        r = colab.empty_rollout()
+        colab.record_gate(r, CONFIG, "proj", 0, "https://example/pr/1", today="2026-11-09")
+        self.assertNotIn("bus", r["spaces"]["proj"])
+        self.assertNotIn("bus_live", r["spaces"]["proj"].get("switches", {}))
+        colab.record_gate(r, CONFIG, "proj", 1, "https://example/pr/2", today="2026-11-10")
+        self.assertTrue(r["spaces"]["proj"]["switches"]["restricted"])
+        self.assertNotIn("bus", r["spaces"]["proj"])
 
     def test_cannot_skip_a_phase(self) -> None:
         with self.assertRaises(ValueError):
@@ -293,8 +305,21 @@ class LeaseTests(unittest.TestCase):
     def test_lease_roundtrip_and_expiry(self) -> None:
         t0 = datetime(2026, 11, 9, 12, tzinfo=timezone.utc)
         marker = colab.compose_lease("someone", hours=4, now=t0)
-        self.assertEqual(colab.live_lease([marker], now=t0 + timedelta(hours=1))["user"], "someone")
-        self.assertIsNone(colab.live_lease([marker], now=t0 + timedelta(hours=5)))
+        own = {"body": marker, "user": {"login": "Someone"}}
+        self.assertEqual(colab.live_lease([own], now=t0 + timedelta(hours=1))["user"], "someone")
+        self.assertIsNone(colab.live_lease([own], now=t0 + timedelta(hours=5)))
+
+    def test_forged_lease_marker_is_ignored(self) -> None:
+        t0 = datetime(2026, 11, 9, 12, tzinfo=timezone.utc)
+        forged = {"body": colab.compose_lease("someone", hours=4, now=t0), "user": {"login": "mallory"}}
+        self.assertIsNone(colab.live_lease([forged], now=t0 + timedelta(hours=1)))
+        self.assertIsNone(colab.live_lease([forged["body"]], now=t0 + timedelta(hours=1)))  # no author: never counts
+        self.assertEqual(colab.claimants_from([forged]), set())
+        own = {"body": colab.compose_lease("Bob", now=t0), "user": {"login": "bob"}}  # case-insensitive
+        self.assertEqual(colab.claimants_from([forged, own]), {"bob"})
+        cands = [{"url": "u1", "number": 1, "repo": "sensein/p"}]
+        picked = colab.pick_next(cands, {"u1": [forged]}, {}, now=t0 + timedelta(hours=1))
+        self.assertEqual([c["number"] for c in picked], [1])  # a forged lease does not hide the item
 
 
 class FormsAndSeedTests(unittest.TestCase):
@@ -1139,7 +1164,7 @@ class SetupTests(unittest.TestCase):
                 return mock.Mock(returncode=auth[0], stdout=auth[1], stderr="")
             return mock.Mock(returncode=0, stdout="1\n", stderr="")
         return colab.cmd_setup(cfg, install, home=home, env=env or {}, runner=runner,
-                               which=which or (lambda n: f"/usr/bin/{n}"), skill_dir=Path("/opt/skills/lab-colab"))
+                               which=which or (lambda n: f"/usr/bin/{n}"), skill_dir=SKILL)
 
     def by_name(self, checks):
         return {c["name"]: c for c in checks}
@@ -1201,7 +1226,7 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(data[key], original[key])
             self.assertEqual(data["hooks"]["PreToolUse"], original["hooks"]["PreToolUse"])
             self.assertEqual(data["hooks"]["PostToolUse"][0], original["hooks"]["PostToolUse"][0])
-            expected = (f"COLAB_CONFIG={cfg.resolve()} {sys.executable} /opt/skills/lab-colab/scripts/colab.py "
+            expected = (f"COLAB_CONFIG={cfg.resolve()} {sys.executable} {SKILL}/scripts/colab.py "
                         "beat --from-hook --background 2>/dev/null || true")
             for event in ("PostToolUse", "Stop"):
                 added = data["hooks"][event][-1]
@@ -1238,9 +1263,116 @@ class SetupTests(unittest.TestCase):
             self.assertFalse(settings.exists())
 
     def test_existing_beat_hook_is_left_alone(self) -> None:
-        settings = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "python3 /x/colab.py beat --from-hook"}]}]}}
-        self.assertEqual(colab.merge_hooks(settings, "cmd"), ["PostToolUse"])
-        self.assertEqual(len(settings["hooks"]["Stop"]), 1)
+        script = SKILL / "scripts" / "colab.py"
+        hand = f"COLAB_CONFIG=/my/cfg python3.12 {script} beat --from-hook"  # hand-edited, same live script
+        settings = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": hand}]}]}}
+        self.assertEqual(colab.merge_hooks(settings, colab.hook_command("/c", "py", SKILL)), ["PostToolUse"])
+        self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["command"], hand)
+
+    def test_dead_beat_hook_is_rewritten_in_place_keeping_its_config(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        for old, cfg in (("python3 /x/colab.py beat --from-hook", "/c"),  # the path no longer exists
+                         ("COLAB_CONFIG=/lab2/cfg.toml py /home/u/.claude/plugins/cache/lab-colab~g2/scripts/colab.py beat "
+                          "--from-hook", "/lab2/cfg.toml")):
+            settings = {"hooks": {"Stop": [{"matcher": "*", "hooks": [{"type": "command", "command": old, "timeout": 30}]}],
+                                  "PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": old}]}]}}
+            self.assertEqual(colab.merge_hooks(settings, new), ["PostToolUse", "Stop"])
+            for event in ("Stop", "PostToolUse"):
+                self.assertEqual(len(settings["hooks"][event]), 1)  # updated in place, not added
+                got = settings["hooks"][event][0]["hooks"][0]["command"]
+                self.assertIn(f"{SKILL}/scripts/colab.py beat", got)
+                self.assertTrue(got.startswith(f"COLAB_CONFIG={cfg} "), got)  # its own config is kept
+            self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["timeout"], 30)
+            self.assertEqual(colab.merge_hooks(settings, new), [])  # idempotent once current
+
+    def test_a_different_existing_colab_py_is_left_alone(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        with tempfile.TemporaryDirectory() as tmp:  # a second checkout serving another config
+            other = Path(tmp) / "scripts" / "colab.py"
+            other.parent.mkdir()
+            other.write_text("")
+            cmd = f"COLAB_CONFIG=/lab2 py {other} beat"
+            settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}] for e in colab.HOOK_EVENTS}}
+            self.assertEqual(colab.merge_hooks(settings, new), [])
+            self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["command"], cmd)
+            self.assertEqual(colab.other_beat_scripts(settings, new), [str(other)])
+
+    def test_quoted_and_env_var_paths(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        with tempfile.TemporaryDirectory() as tmp:
+            spaced = Path(tmp) / "my skills" / "scripts" / "colab.py"
+            spaced.parent.mkdir(parents=True)
+            spaced.write_text("")
+            for cmd in (f'py "{spaced}" beat --from-hook', f"py '{spaced}' beat --from-hook"):
+                self.assertEqual(colab.beat_script(cmd), str(spaced))
+                settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}] for e in colab.HOOK_EVENTS}}
+                self.assertEqual(colab.merge_hooks(settings, new), [])  # recognised: no duplicate appended
+                self.assertEqual(len(settings["hooks"]["Stop"]), 1)
+            from unittest import mock
+            import os
+            plain = Path(tmp) / "s" / "scripts" / "colab.py"
+            plain.parent.mkdir(parents=True)
+            plain.write_text("")
+            with mock.patch.dict(os.environ, {"HOME": tmp}):
+                self.assertTrue(colab.beat_hook_live('py "$HOME/my skills/scripts/colab.py" beat'))
+                self.assertTrue(colab.beat_hook_live('py "${HOME}/my skills/scripts/colab.py" beat'))
+                self.assertTrue(colab.beat_hook_live("py $HOME/s/scripts/colab.py beat --from-hook"))
+                self.assertTrue(colab.beat_hook_live("py ~/s/scripts/colab.py beat --from-hook"))
+
+    def test_setup_check_and_install_repoint_a_dead_hook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            settings = home / ".claude" / "settings.json"
+            dead = f"COLAB_CONFIG={cfg} py {tmp}/plugins/lab-colab~g2/scripts/colab.py beat --from-hook --background 2>/dev/null || true"
+            settings.write_text(json.dumps({"hooks": {e: [{"matcher": "*", "hooks": [{"type": "command", "command": dead}]}]
+                                                      for e in colab.HOOK_EVENTS}}))
+            checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
+            hooks = self.by_name(checks)["hooks"]
+            self.assertEqual(hooks["status"], "fail")  # a substring match used to show a tick here
+            self.assertIn("no longer exists", hooks["detail"])
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            self.assertEqual(rc, 0, [c for c in checks if c["status"] == "fail"])
+            self.assertEqual(len(list((home / ".claude").glob("settings.json.colab-bak-*"))), 1)  # backup kept
+            data = json.loads(settings.read_text())
+            for e in colab.HOOK_EVENTS:
+                [entry] = data["hooks"][e]
+                self.assertIn(f"{SKILL}/scripts/colab.py beat", entry["hooks"][0]["command"])
+            checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
+            self.assertEqual(self.by_name(checks)["hooks"]["status"], "ok")
+
+    def test_setup_reports_a_hook_on_a_different_colab_py(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            other = Path(tmp) / "other" / "scripts" / "colab.py"
+            other.parent.mkdir(parents=True)
+            other.write_text("")
+            cmd = f"COLAB_CONFIG=/lab2 py {other} beat --from-hook"
+            settings = home / ".claude" / "settings.json"
+            settings.write_text(json.dumps({"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}]
+                                                      for e in colab.HOOK_EVENTS}}))
+            before = settings.read_text()
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            hooks = self.by_name(checks)["hooks"]
+            self.assertEqual(hooks["status"], "ok")
+            self.assertIn(str(other), hooks["note"])
+            self.assertEqual(settings.read_text(), before)  # left alone
+
+    def test_admin_org_covers_read_org(self) -> None:
+        self.assertIn("read:org", colab.effective_scopes(["admin:org"]))
+        self.assertIn("read:org", colab.effective_scopes(["write:org"]))
+        self.assertIn("public_repo", colab.effective_scopes(["repo"]))
+        self.assertNotIn("read:org", colab.effective_scopes(["repo", "project"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            auth = (0, "  - Token scopes: 'admin:org', 'project', 'repo', 'workflow'\n")
+            got = self.by_name(self.run_setup(Path(tmp), auth=auth)[0])
+            self.assertEqual(got["gh scopes"]["status"], "ok", got["gh scopes"])
+            got = self.by_name(self.run_setup(Path(tmp), auth=(0, "  - Token scopes: 'project', 'repo'\n"))[0])
+            self.assertEqual(got["gh scopes"]["status"], "fail")
+            self.assertIn("read:org", got["gh scopes"]["detail"])
 
     def test_cli_uses_temp_home_only(self) -> None:
         import io, os
@@ -1268,7 +1400,8 @@ class NextTests(unittest.TestCase):
         self.assertEqual([c["number"] for c in cands], [1, 5, 6])
         t0 = datetime(2026, 11, 10, tzinfo=timezone.utc)
         lease = colab.compose_lease("someone", now=t0)
-        picked = colab.pick_next(cands, {"u1": [lease]}, {"u5": True}, now=t0 + timedelta(hours=1))
+        picked = colab.pick_next(cands, {"u1": [{"body": lease, "user": {"login": "someone"}}]}, {"u5": True},
+                                 now=t0 + timedelta(hours=1))
         self.assertEqual([c["number"] for c in picked], [6])
 
 
@@ -2284,6 +2417,8 @@ class FakeGhJson:
         path = args[1] if len(args) > 1 else ""
         if path.startswith("orgs/sensein/members/"):
             return {} if path.rsplit("/", 1)[-1] in self.members else None
+        if re.search(r"/issues/\d+/comments\?", path):  # REST comment pages (lease markers): none, readable
+            return [] if self.readable else None
         return None
 
 
@@ -2323,7 +2458,6 @@ class SecurityCommandTests(unittest.TestCase):
         cases = {
             "assignee": (FakeGhJson(assignees=["S2"]), "s2", 2),
             "claimant": (FakeGhJson(comments=[gate_comment(), lease]), "s2", 2),
-            "claimant named in a lease marker": (FakeGhJson(comments=[gate_comment(), gate_comment(body=colab.compose_lease("s2"), by="x", cid=6)]), "s2", 2),
             "not a steward": (FakeGhJson(), "lead-person", 2),
             "nothing flagged now": (FakeGhJson(comments=[]), "s2", 2),
             "meta config unreadable": (FakeGhJson(meta_config=None), "s2", 1),
@@ -2339,6 +2473,11 @@ class SecurityCommandTests(unittest.TestCase):
         self.assertEqual(rc, 2)  # the meta repo's audit issue counts, never a local one
         rc, _, _, err = self._run("clear", "s2", reason="see /" + "orcd/data/x/y")
         self.assertEqual((rc, "leak-scan" in err), (1, True))
+
+    def test_forged_lease_marker_does_not_exclude_a_steward(self) -> None:
+        forged = gate_comment(body=colab.compose_lease("s2"), by="x", cid=6)  # x types s2's name into a lease
+        rc, _, _, err = self._run("clear", "s2", gh=FakeGhJson(comments=[gate_comment(), forged]))
+        self.assertEqual(rc, 0, err)
 
     def test_clear_needs_a_person_at_a_terminal(self) -> None:
         import io
@@ -3057,8 +3196,8 @@ class ContextTests(unittest.TestCase):
                  item(6, ["b"]), item(7, repo="pi-lab/tool"), item(8)]
         cands = colab.candidates(items)
         t0 = datetime(2026, 11, 10, tzinfo=timezone.utc)
-        mine_lease = colab.compose_lease("satra", now=t0)
-        other_lease = colab.compose_lease("b", now=t0)
+        mine_lease = {"body": colab.compose_lease("satra", now=t0), "user": {"login": "satra"}}
+        other_lease = {"body": colab.compose_lease("b", now=t0), "user": {"login": "b"}}
         lab = {"logins": ["a", "b", "satra"], "external": False}
         contexts = [("personal", lambda c, u: colab.personal_match(c, "satra", u)),
                     ("group", lambda c, u: colab.group_match(c, lab))]
