@@ -33,7 +33,7 @@ To add an ontology: drop the file in this directory, add a row, and run
 
 | Priority | Name | File | CURIE prefix | Namespace | Labels | Notes |
 |---|---|---|---|---|---|---|
-| 1 | bke | bke_taxonomy.ttl | BKE | https://identifiers.org/brain-bican/vocab/ | * | BICAN knowledge-extraction taxonomy. First priority. |
+| 1 | cell_taxonomy | cell_taxonomy.ttl | BKE | https://identifiers.org/brain-bican/vocab/ | * | BICAN Cell Taxonomy model (brain-bican/models cell_taxonomy, the model the *_BG.ttl taxonomies use), as OWL. Replaces bke_taxonomy. First priority. |
 | 2 | cl | cl.owl | - | - | * | Full Cell Ontology release (with imports and symbols). |
 | 3 | go_basic | go-basic.owl | - | - | * | Biological process, molecular function and cellular component. The basic edition is acyclic and omits cross-aspect relationships; its versio… |
 | 4 | uberon | uberon.owl | - | - | * | Cross-species anatomy including nervous-system structures. The full edition, replacing the basic edition: it carries the axioms the basic pr… |

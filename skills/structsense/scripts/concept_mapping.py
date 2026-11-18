@@ -1038,9 +1038,10 @@ def export_synonyms(lex: Lexicon, out: Path, match_types=("label", "exact_synony
 def init_priorities(directory: Path, out: Path) -> int:
     """Write a priority table listing every ontology file in `directory`.
 
-    Order: bke* first, then cl.owl, then the `declared` list of sources.json (its own
-    order), then everything else. sources.json discovery candidates, files it does not
-    declare, and the knowledge graph's own core are listed `off`.
+    Order: the BICAN taxonomy model (cell_taxonomy*, formerly bke*) first, then cl.owl,
+    then the `declared` list of sources.json (its own order), then everything else.
+    sources.json discovery candidates, files it does not declare, and the knowledge
+    graph's own core are listed `off`.
     """
     exts = (".owl", ".rdf", ".xml", ".ttl", ".nt", ".jsonld")
     files = sorted(p.name for p in directory.iterdir() if p.suffix.lower() in exts)
@@ -1057,10 +1058,11 @@ def init_priorities(directory: Path, out: Path) -> int:
         except Exception as e:
             logger.warning("sources.json unreadable (%s); ordering by file name", e)
     by_file = {e.get("file"): e for e in declared}
+    bican_model = ("cell_taxonomy", "bke")  # BICAN taxonomy model files, first priority
     order: list[tuple[str, dict]] = []
     for f in files:
-        if f.startswith("bke"):
-            order.append((f, {"acronym": "BKE", "note": "BICAN knowledge-extraction taxonomy. First priority."}))
+        if f.startswith(bican_model):
+            order.append((f, {"acronym": "BKE", "note": "BICAN Cell Taxonomy model. First priority."}))
     if "cl.owl" in files:
         order.append(("cl.owl", {"acronym": "CL", "source": "https://purl.obolibrary.org/obo/cl.owl",
                                  "note": "Full Cell Ontology release (with imports and symbols)."}))
@@ -1075,6 +1077,8 @@ def init_priorities(directory: Path, out: Path) -> int:
     for f, e in order:
         acr = (e.get("acronym") or re.sub(r"-sub\d+$", "", Path(f).stem)).upper()
         name = re.sub(r"[^a-z0-9]+", "_", acr.lower()).strip("_")
+        if f.startswith(bican_model):  # named after the file; its CURIE prefix stays BKE
+            name = re.sub(r"[^a-z0-9]+", "_", Path(f).stem.lower()).strip("_")
         if name in used_names:  # two files for one acronym (cl.owl / cl-basic.owl)
             name = re.sub(r"[^a-z0-9]+", "_", Path(f).stem.lower()).strip("_")
         used_names.add(name)
@@ -1083,7 +1087,7 @@ def init_priorities(directory: Path, out: Path) -> int:
             off_reason = "the knowledge graph's own core ontology, not a mapping vocabulary"
         elif f == "cl-basic.owl" and "cl.owl" in files:
             off_reason = "subset of cl.owl, which is enabled"
-        elif f not in by_file and not f.startswith("bke") and f != "cl.owl":
+        elif f not in by_file and not f.startswith(bican_model) and f != "cl.owl":
             st = (candidates.get(f) or {}).get("status")
             off_reason = "discovery candidate, not reviewed" + (f" (BioPortal status: {st})" if st else "")
         if off_reason:
@@ -1096,7 +1100,7 @@ def init_priorities(directory: Path, out: Path) -> int:
         if off_reason:
             note = f"OFF: {off_reason}. {note}".strip()
         obo = (e.get("source") or "").startswith("https://purl.obolibrary.org")
-        ns_decl = "https://identifiers.org/brain-bican/vocab/" if f.startswith("bke") else "-"
+        ns_decl = "https://identifiers.org/brain-bican/vocab/" if f.startswith(bican_model) else "-"
         rows.append(f"| {prio} | {name} | {f} | {'-' if obo else acr} | {ns_decl} | * | {note} |")
     head = out.read_text().split("| Priority")[0] if out.is_file() else "# Trusted ontology priority\n\n"
     out.write_text(head.rstrip() + "\n\n| Priority | Name | File | CURIE prefix | Namespace | Labels | Notes |\n"

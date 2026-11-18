@@ -938,6 +938,67 @@
           }
         }
       }
+    },
+    "paper": {
+      "type": "object",
+      "description": "The source paper's own bibliographic metadata, exactly as printed in the text (title page, header, footer). Omit any field the text does not state; never fill from memory.",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "orcid": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Journal or preprint server, as printed"
+        },
+        "publication_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "YYYY-MM-DD when printed"
+        },
+        "license": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The paper's licence as printed, e.g. 'CC-BY 4.0 International license'"
+        }
+      }
     }
   },
   "$defs": {

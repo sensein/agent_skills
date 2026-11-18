@@ -86,7 +86,29 @@ charted against each question and the report is organised by them (§ 5).
 ```bash
 python scripts/build_corpus.py --dir ./pdfs --out corpus.json
 python scripts/build_corpus.py --check corpus.json        # exit 1 while incomplete
+python scripts/build_corpus.py --check corpus.json --offline   # no network: syntax only
 ```
+
+`--check` is the corpus gate, and `run_local_review.py` repeats it before any
+LLM call (exit 1; `--allow-citation-errors` only when the user accepts the
+findings, `--skip-citation-check` to skip it). It fails on:
+
+- **missing metadata** (`_needs_metadata`);
+- **duplicate studies**, matched on *content*, not filename: shared wording of
+  the extracted text (word 5-grams, ≥ 50 % of the shorter document), identical
+  file or text hash, same DOI or PMID, or a near-identical title. A preprint
+  and its published version, a re-download and an author copy are all caught.
+  Each flagged entry lists the other in `_duplicates`. Keep the version of
+  record, remove the other entry and count it in `duplicates_removed`. If two
+  really are different works (companion papers), add the other's `pmid` to
+  `_distinct_from` on one of them;
+- **identifier errors** from `verify_citations.py` over the corpus: a DOI
+  registered to a different paper, a DOI or PMID that does not exist, a PMID
+  whose PubMed DOI disagrees, a retraction, or one work entered twice. The
+  report is `corpus.citations.md`. A wrong DOI here puts another paper's
+  identity on the study, so fix it from the paper's first page or the user's
+  manifest, or clear it. A `doi-candidate` is a suggestion to confirm against
+  the paper, never something to copy in.
 
 Each entry is an `Article`-shaped dict plus `_`-prefixed bookkeeping that is
 stripped before the run.
@@ -546,7 +568,10 @@ gets no appendix, no block and no question nodes.
 
 ### Citation verification
 
-Run before ingesting, and again after any re-export:
+`run_local_review.py` and `export_review.py` run this after every export and
+exit 1 on errors (`--offline-citations` for syntax and in-text checks only,
+`--skip-citation-check` to skip). Run it by hand to apply fixes, and again
+after any re-export:
 
 ```bash
 python scripts/verify_citations.py out/review.json                 # exit 1 on errors
@@ -692,8 +717,13 @@ full-text-vs-abstract-only queries, since every PDF-backed article carries a
   estimate up front; bound it with `protocol.evidence_max_chars` (per article)
   or a smaller `--max-chars` at corpus-build time when a paper doesn't warrant
   the full read.
-- **Deduplication is the user's.** Nothing here detects that two PDFs are the
-  same paper; `run_local_review.py` only rejects duplicate `pmid`s.
+- **Deduplication is checked, not done.** `build_corpus.py` flags entries that
+  look like one study by content (see § 2), and the run stops until each pair
+  is resolved. It never removes an entry itself: which version to keep, and the
+  `duplicates_removed` count, are the user's. Two versions whose wording was
+  heavily rewritten in peer review can fall below the text threshold; the
+  registry check still catches them when Crossref links the preprint to its
+  published DOI.
 - **Institutional access needs a live session.** EZproxy sessions expire, and no
   amount of retrying fixes that: the script reopens the browser, or run
   `fetch_ezproxy.py --login`. Papers outside the

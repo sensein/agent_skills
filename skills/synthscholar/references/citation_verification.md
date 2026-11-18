@@ -12,12 +12,64 @@ python scripts/verify_citations.py out/review.json                      # gate
 python scripts/verify_citations.py out/review.json --apply out/review.verified.json
 python scripts/verify_citations.py out/review.json --style vancouver    # + reference list
 python scripts/verify_citations.py out/review.json --offline            # no network
+python scripts/verify_citations.py out/review.manuscript.md            # the delivered manuscript
 python scripts/verify_citations.py manuscript.md --check-urls           # any Markdown
 ```
 
 Output: `<base>.citations.md` (show this to the user), `<base>.citations.json`
-(machine-readable, every registry record it compared against). Exit `0` = no
-errors, `1` = errors (or warnings under `--strict`), `2` = bad input.
+(machine-readable, every registry record it compared against).
+
+## Verdict and release
+
+Every report ends in one verdict, and only **PASS** is releasable:
+
+| Verdict | Meaning | Exit |
+| --- | --- | --- |
+| PASS | every reference checked against its registry, no errors | 0 |
+| FAIL | at least one error (wrong-paper DOI, unregistered id, retraction, a cited study that is excluded or unknown, …) | 1 |
+| INCOMPLETE | no errors, but something was not checked: `--offline`, a registry lookup that failed, a reference with no DOI or PMID, or nothing to check | 3 |
+
+INCOMPLETE is not a pass. A registry outage or an offline run produces no
+errors, and before the verdict existed that looked clean. `summary.unverified`
+lists the references that could not be checked: re-run when the registries
+answer, or add the identifier from the paper. `--strict` additionally fails a
+PASS that carries warnings. Exit `2` = bad input.
+
+The report records the SHA-256 of every input it vouches for (`inputs`). It
+describes those bytes and nothing else: edit any of them and it is stale.
+
+**This applies to every review, whatever its search.** Reviews from the hosted
+app's online database search and reviews over supplied PDFs pass the same gates:
+
+| Step | Gate |
+| --- | --- |
+| `build_corpus.py --check`, start of `run_local_review.py` (supplied PDFs) | the corpus identifiers: anything but PASS stops the run before LLM spend |
+| `export_review.py`, end of `run_local_review.py` | the exported `review.json`: exit 1 unless PASS (the export is then a draft) |
+| `generate_review_pdf.py` | the **delivered manuscript** (below): no PDF unless PASS and current |
+
+### Manuscript mode
+
+A Markdown file with its `review.json` beside it (`review.manuscript.md`,
+`review.md`), or named with `--review`, is checked against the review it was
+built from. The Discussion, the prior-review comparison and the figure
+interpretations are written into `review.manuscript.json` after the export, so
+they exist only in the manuscript. Verifying `review.json` alone never sees them.
+
+- Every included study is verified as in review mode (`role: included`).
+- Every reference-list entry that is not an included study is verified as
+  **background** literature (`role: background`): it must resolve, and its DOI
+  must belong to the paper the line names.
+- In the prose, a PMID/DOI must be an included study or a background reference.
+  An id that is neither (`citation-unknown`) or a screened-out study cited as
+  evidence (`citation-excluded`) is an error; listing it in the References as
+  background is how a legitimate background citation is declared.
+
+The report (`review.manuscript.citations.json`) binds the manuscript Markdown,
+`review.json` and `review.manuscript.json`. `generate_review_pdf.py` re-verifies
+when it is missing or any of the three has changed, and refuses to build on
+anything but PASS. `--allow-citation-errors` builds anyway and prints a
+"Citations not verified" notice on the first page of the body: use it only when
+the user accepts an unverified document, and say so when you hand it over.
 
 Set `SYNTHSCHOLAR_EMAIL` (or `--mailto`): Crossref's polite pool and NCBI both
 want a contact address. `NCBI_API_KEY` raises the PubMed rate limit. Cost is
@@ -43,6 +95,34 @@ notice carries `update-to` pointing at the retracted paper; the paper itself
 carries `updated-by` (and is returned by the `updates:` filter). A checker that
 reads only `update-to` on the cited DOI flags cited *notices* and misses every
 cited retracted *paper*, which is the case that matters.
+
+### URL references (no DOI or PMID)
+
+A reference is not always a DOI: reports, guidelines, web pages, datasets,
+software and standards are cited by URL. Every reference-list entry without a
+DOI or PMID, every included study identified only by a URL (`url` field, or its
+own reference-list entry), and every link in the prose is checked:
+
+1. **The page is fetched**, following redirects. The work's title is read from
+   scholarly metadata (`citation_title`, `DC.title`, `og:title`), else
+   `<title>`; for a PDF, from its metadata and first pages.
+2. **It must be the work cited.** The page title must match the reference
+   line, or, when the page has no usable title, most of the reference's
+   distinctive words must appear in its opening text. Another work is
+   `url-title-mismatch` (error).
+3. **A page that is gone** (404/410, or a "not found" page served as 200) is
+   looked up in the **Wayback Machine**: the latest capture that answered 200
+   is fetched and checked the same way. Found and matching → `url-dead-archived`
+   (warning: cite the archived copy). Not archived → `url-not-found` (error).
+4. **A page that blocks automated access** (403, 429, timeouts) is checked
+   against its archived capture (`url-via-archive`, info). With no capture it is
+   `url-unreachable`: unverified, so the verdict is INCOMPLETE, never PASS.
+5. **An entry with no DOI, PMID or URL** (`reference-unidentified`) cannot be
+   checked and is unverified.
+
+Links in the prose that are not reference-list entries must resolve. A dead
+one is reported, but only reference-list entries need to match a title: a
+review may cite a resource's URL to report that it is offline.
 
 ### In-text citations (the generated prose)
 
@@ -84,7 +164,15 @@ reference.** Fix the reference from the registry, or remove the claim.
 | `author-year-pmid-conflict` | warning | "(Smith 2019; PMID: X)" but X is Harris 2020 | fix whichever half is wrong |
 | `author-year-unmatched` | warning | author–year citation matching no included study | as `citation-unknown`, unless it is background literature deliberately cited in the introduction. Say so if it is |
 | `update-expression_of_concern`, `update-partial_retraction` | warning | editorial concern | mention it in the limitations / risk-of-bias text |
-| `doi-missing` | warning | nothing to verify against | look for a `doi-candidate`; otherwise leave it |
+| `doi-missing` | warning (unverified) | no DOI, PMID or URL | look for a `doi-candidate`, or add the URL the work is available at |
+| `url-title-mismatch` | error | the URL is a different work (or a generic page) | cite the URL of the work itself |
+| `url-not-found` | error | the page is gone and was never archived | find where the work lives now, or drop the reference |
+| `url-dead-archived` | warning | gone, but the archived capture is the work | cite the archived copy (web.archive.org URL) |
+| `url-unreachable` | warning (unverified) | the site blocks checks and has no archive | check it by hand; the verdict stays INCOMPLETE |
+| `url-content-unchecked` | warning (unverified) | no title, and the text does not show the work | point at the work's landing page rather than a file |
+| `url-unchecked` | warning (unverified) | offline run | re-run online |
+| `reference-unidentified` | warning (unverified) | no DOI, PMID or URL in the entry | add one |
+| `url-via-archive` | info | live site blocked; verified against the archive | none |
 | `doi-malformed` | warning | URL prefix / trailing punctuation in the DOI field | `--apply` fixes it |
 | `duplicate-doi` | warning | two included entries share a DOI | the same study included twice: merge them, and fix the PRISMA counts |
 | `lookup-failed` | warning | network / registry error | re-run; unverified ≠ verified |

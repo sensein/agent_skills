@@ -61,13 +61,13 @@ def _s(v: Any) -> str:
 
 
 def _group_summary(v: Any) -> str:
-    """Text of a per-group summary. In the model it is a GroupSummary object
-    (aggregate_finding, caveats, ...), not a string; str() of it would print
-    the raw dict into the manuscript."""
+    """A group's summary as prose. The package's GroupSummary is structured
+    (label, n_studies, aggregate_finding, representative_pmids, caveats); passing it
+    through _s() printed its Python repr into the manuscript."""
     if isinstance(v, dict):
-        finding = _s(v.get("aggregate_finding")).strip()
+        finding = _s(v.get("aggregate_finding") or v.get("summary") or v.get("text")).strip()
         caveats = _s(v.get("caveats")).strip()
-        return f"{finding} Caveats: {caveats}" if finding and caveats else finding or caveats
+        return " ".join(x if x.endswith((".", "!", "?")) else f"{x}." for x in (finding, caveats) if x)
     return _s(v).strip()
 
 
@@ -311,6 +311,7 @@ class Manuscript:
         self.references()
         self.appendices()
         self.supplementary()
+        self.check_python_repr()
         self.check_gates()
         return "\n".join(self.lines).strip() + "\n"
 
@@ -915,6 +916,16 @@ class Manuscript:
         words = sum(_words(ln) for ln in self.lines if not ln.startswith(("|", "```", "![")))
         return (words / WORDS_PER_PAGE + FIG_PAGES * len(self.placed)
                 + (self.table_rows + self.appendix_rows) / ROWS_PER_PAGE + REF_PAGES * self.n_refs)
+
+    _PY_REPR = re.compile(r"""\{'[A-Za-z_][\w ]*': |\[\{'[A-Za-z_]""")
+
+    def check_python_repr(self) -> None:
+        """A dict or list printed with str() lands in the manuscript as Python repr
+        ({'label': ..., 'n_studies': ...}) — readable to no one, and it reads as a bug
+        because it is one. Fails, with the line, so it is fixed at the source field."""
+        for i, line in enumerate(self.lines, 1):
+            if self._PY_REPR.search(line) and not line.lstrip().startswith(("```", "    ")):
+                self.gate("fail", "python-repr", f"line {i}: structured data printed as Python repr: {line.strip()[:120]}")
 
     def check_gates(self) -> None:
         # 1. numbering continuity of the headings this assembler emitted

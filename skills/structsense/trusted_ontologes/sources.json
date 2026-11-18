@@ -10,6 +10,14 @@
       "tier": "trusted"
     },
     {
+      "acronym": "BKE",
+      "file": "cell_taxonomy.ttl",
+      "source": "https://github.com/brain-bican/models/blob/63254e74/linkml-schema/cell_taxonomy.yaml",
+      "role": "neuroscience",
+      "note": "BICAN Cell Taxonomy model, the schema of the Human_BG/Macaque_BG/Marmoset_BG.ttl taxonomies (bkbit ait2jsonld). OWL as Turtle, generated with LinkML 1.11.1 gen-owl from brain-bican/models commit 63254e74 (2026-10-14), the version pushed to bkbit as #110. Replaces bke_taxonomy.ttl. Terms are in https://identifiers.org/brain-bican/vocab/ (CURIE prefix BKE).",
+      "tier": "trusted"
+    },
+    {
       "acronym": "GO-BASIC",
       "file": "go-basic.owl",
       "source": "https://purl.obolibrary.org/obo/go/go-basic.owl",

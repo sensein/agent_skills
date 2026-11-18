@@ -32,7 +32,7 @@ release, outcome) for each of them.
 
 | Priority | Name | File | Size | Prefix / namespace | Classes indexed |
 |---:|---|---|---:|---|---:|
-| 1 | `bke` | bke_taxonomy.ttl | 0.3 MB | BKE: `https://identifiers.org/brain-bican/vocab/` | 98 |
+| 1 | `cell_taxonomy` | cell_taxonomy.ttl | 0.3 MB | BKE: `https://identifiers.org/brain-bican/vocab/` | 94 |
 | 2 | `cl` | cl.owl | 66.0 MB | OBO prefixes | 18690 |
 | 3 | `go_basic` | go-basic.owl | 118.1 MB | OBO prefixes | 38092 |
 | 4 | `uberon` | uberon.owl | 95.9 MB | OBO prefixes | 25188 |
