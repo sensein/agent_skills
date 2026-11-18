@@ -30,7 +30,7 @@ When an org runs it, the main bus runs by itself on GitHub Actions, signed in as
 3. **Give your assistant a lesser token.** Your assistant's everyday GitHub calls should not use your full login, because your login can change the bus's state. Run:
 
    ```bash
-   python3 <skill folder>/scripts/colab.py setup --operator
+   python3.11 <skill folder>/scripts/colab.py setup --operator
    ```
 
    - It opens with a link to GitHub's token page, already filled in: the name, the org, 90 days, and only these rights: read and comment on issues and pull requests, read files, use the lab board, see members. No pushing, no admin, no Actions variables.

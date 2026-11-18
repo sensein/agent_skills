@@ -15,9 +15,9 @@ description: >-
 
 # Lab Colab Space
 
-Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped into spaces: named areas of work declared in the config, each with stewards and a list of existing repos. A space is not a repo or a folder, and nothing is created in member repos up front. Everything core works through **each member's own credentials**, used by that member's agent when they act: there is no service identity, nothing is installed in any org (including other orgs the group contributes to), and the minimum an org needs is its config (meta) repo and a Project. Most members need only their `gh` login or the GitHub connector in the Claude app. Members' agents keep the board current (`colab.py sync`), pull what is new (`colab.py inbox`), scan an item at the moment they claim or run it (the Security gate), and record their own contributions. A bus that files delivery issues is kept only as an **optional relay** (`[bus] enabled = true`); nothing depends on it.
+Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped into spaces: named areas of work declared in the config, each with stewards and a list of existing repos. A space is not a repo or a folder, and nothing is created in member repos up front. Everything core works through **each member's own credentials**, used by that member's agent when they act: there is no service identity, nothing is installed in any org (including other orgs the group contributes to), and the minimum an org needs is its config (meta) repo and a Project. Each member needs their own `gh` login and Python 3.11+, in Claude Code on a laptop or on ORCD through remote control; an app-only mode (the Claude app's GitHub connector, no terminal) is future work. Members' agents keep the board current (`colab.py sync`), pull what is new (`colab.py inbox`), scan an item at the moment they claim or run it (the Security gate), and record their own contributions. A bus that files delivery issues is kept only as an **optional relay** (`[bus] enabled = true`); nothing depends on it.
 
-Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command. [`references/runbook.md`](./references/runbook.md) has the operating steps: a new org from scratch, recovering from an accidental change, when re-applying loses data, and running the bus. For people: [`references/getting-started.md`](./references/getting-started.md) (members, with the Claude app or a terminal) and [`references/operators.md`](./references/operators.md) (the optional relay's standby bus).
+Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command. [`references/runbook.md`](./references/runbook.md) has the operating steps: a new org from scratch, recovering from an accidental change, when re-applying loses data, and running the bus. For people: [`references/getting-started.md`](./references/getting-started.md) (members: Claude Code on a laptop or on ORCD; the app alone is not ready yet) and [`references/operators.md`](./references/operators.md) (the optional relay's standby bus).
 
 ## Constitution
 
@@ -40,18 +40,18 @@ Commands below use `skills/lab-colab/scripts/colab.py`, the path inside this rep
 
 ```bash
 COLAB="<this-skill-dir>/scripts"
-python3 "$COLAB/colab.py" --help
+python3.11 "$COLAB/colab.py" --help
 ```
 
-The scripts need Python 3.11+ (for `tomllib`) and an authenticated `gh` (`gh auth status`). Creating issue types needs an org owner.
+The scripts need Python 3.11+ (for `tomllib`; on ORCD plain `python3` is 3.6, so call `python3.11`) and an authenticated `gh` (`gh auth status`). Creating issue types needs an org owner.
 
 ## The Bootstrap Loop
 
 Run this loop whenever the user asks to set up, continue, or check the rollout. It is safe to re-run: every step observes first.
 
 1. **Find the config.** If a clone of the meta repo exists (`<[org] name>/<meta_repo>`; the bundled config says `sensein/lab-colab`, and each org's setup sets its own), pass `--config <clone>/.colab/config.toml`; that copy is the source of truth. Otherwise use the bundled [`assets/lab-colab.toml`](./assets/lab-colab.toml) and tell the user that bootstrap starts from defaults.
-2. **Observe.** `python3 "$COLAB/colab.py" --config <cfg> status > /tmp/colab-status.json` (read-only).
-3. **Plan.** `python3 "$COLAB/colab.py" --config <cfg> plan --snapshot /tmp/colab-status.json`. Show the user the actions grouped by kind:
+2. **Observe.** `python3.11 "$COLAB/colab.py" --config <cfg> status > /tmp/colab-status.json` (read-only).
+3. **Plan.** `python3.11 "$COLAB/colab.py" --config <cfg> plan --snapshot /tmp/colab-status.json`. Show the user the actions grouped by kind:
    - `gh`: org metadata, run by `apply`;
    - `local`: file changes you make in a clone and send as a PR;
    - `manual`: steps only a person can do (e.g. defining spaces, recording the Project number);
@@ -102,7 +102,7 @@ The Security gate trusts only what GitHub reports through each reader's own logi
 
 - **Apply the default-branch ruleset before relying on clears.** The meta repo's default branch then changes only by reviewed PR with code owner review. Its `.colab/config.toml` names the stewards and the audit issue the gate trusts; a local `--config` never overrides them. Set `[security] audit_issue` by PR.
 - **CODEOWNERS** in the meta repo covers `/.colab/` and `/.github/workflows/` (and `/bus/` with the relay): `colab.py seed` adds the missing lines (owners: `[security] code_owners`, else the stewards) and the plan proposes it when they are missing.
-- **The Security audit issue** lives in the meta repo (at least lab tier, never public), locked to collaborators; an edited record never counts.
+- **The Security audit issue** lives in the meta repo (at least lab tier, never public). Locking it would not help, since every member can write there; the control is that a record counts only as an unedited comment (GitHub's own edit time) by an eligible steward (not the item's assignee or claimant), so an edited or ineligible record never counts.
 - **Members can read the meta repo.** Without it the gate cannot check clears for them, and flagged items stay blocked.
 - **Retire the relay's pieces by hand** if an earlier setup made them (the plan lists the steps), and delete the App (which voids its key) or rotate the key if you keep it.
 - **Each member acts with their own login** (or the GitHub connector). No shared token, App, or service account is involved; the optional relay's requirements (the App's environment secrets, the `colab-state` ruleset, the operators team, lesser tokens for operators' assistants) apply only when it is enabled, and no longer protect the gate.
@@ -112,9 +112,9 @@ The Security gate trusts only what GitHub reports through each reader's own logi
 
 A session that runs out of tokens just stops, with no handoff. So the heartbeat comes from activity: Claude Code hooks run `colab.py beat` after tool use, and a session that makes no tool calls sends no beats. Beats cost no model tokens. They are throttled locally, so a GitHub write happens at most every 10 minutes per session.
 
-Each beat refreshes the session's comment in the meta repo's Session activity issue, and renews the session's lease on its claimed item (it scans the item first and stops renewing when it is flagged). Leases default to 45 minutes, so a silent session's claim lapses within the hour and `next` offers the item again. `next` counts active, waiting, and stale sessions from that issue at read time.
+A beat writes nothing unless the worktree has a `colab-claim` file or `--session`/`--job`/`--item` was given, so unrelated Claude Code sessions never post. Otherwise each beat refreshes the session's comment in the meta repo's Session activity issue (its id is cached per session, so the comment is edited in place however long the issue grows), and renews the session's lease on its claimed item (it scans the item first and stops renewing when it is flagged). Leases default to 45 minutes, so a silent session's claim lapses within the hour and `next` offers the item again. `next` counts active, waiting, and stale sessions from that issue at read time.
 
-Install the hooks once per member with `colab.py setup --install-hooks`. Setup speaks plain words: one line per check with ✓ or ✗ and a sentence ("Your assistant can read and comment on lab projects"), exactly one next step and link for each ✗, and GitHub terms only on an indented details line (`--json` for agents). It checks the `gh` sign-in (offering `gh auth login --web -s repo,read:org,project`, or `gh auth refresh -s repo,read:org,project`), org membership (with the invitation link), the meta clone and `COLAB_CONFIG` (`--clone` puts it in a default place and prints the shell line to add), where the skill is installed, and a Python 3.11+. Then it backs up `~/.claude/settings.json`, merges the `PostToolUse` and `Stop` hooks, keeps every other key and hook, and adds nothing on a re-run. To do it by hand, use a Python 3.11+ interpreter and point `COLAB_CONFIG` at the meta clone's config:
+Install the hooks once per member with `colab.py setup --install-hooks`. Setup speaks plain words: one line per check with ✓ or ✗ and a sentence ("Your assistant can read and comment on lab projects"), exactly one next step and link for each ✗, and GitHub terms only on an indented details line (`--json` for agents). It checks the `gh` sign-in (offering `gh auth login --web -s repo,read:org,project`, or `gh auth refresh -s repo,read:org,project`), org membership (with the invitation link), the meta clone and `COLAB_CONFIG` (`--clone` puts it in a default place and prints the shell line to add), where the skill is installed, and a Python 3.11+. Then it backs up `~/.claude/settings.json`, merges the `PostToolUse` and `Stop` hooks, keeps every other key and hook, and adds nothing on a re-run. A plugin update moves the skill to a new versioned folder: a re-run rewrites in place any colab beat hook whose script no longer exists or is a different `colab.py`, and the plain check reports such a hook as ✗ rather than ✓. Scopes count with GitHub's implications (`admin:org` or `write:org` covers `read:org`; `repo` covers `public_repo`). To do it by hand, use a Python 3.11+ interpreter and point `COLAB_CONFIG` at the meta clone's config:
 
 ```json
 {
