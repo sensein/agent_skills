@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Write a labnb-consumable governance verdict JSON.
+"""Write a governance verdict JSON for the `/colab run` loop breaker.
 
 Deterministic and tool-agnostic: it validates the fields and writes the
-canonical schema that ``labnb``'s ``monitor_slice.py check --governance-file``
+canonical schema that lab-colab's ``monitor_slice.py check --governance-file``
 reads. Drive it from a veldt-kya result (``score_agent`` / ``check_consensus`` /
 ``detect_drift``) or any other governance source.
 

@@ -71,6 +71,8 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+import ontology_cache  # noqa: E402  (download-on-demand cache for the trusted ontology files)
+
 SKILL_DIR = _SCRIPTS_DIR.parent
 DEFAULT_CONFIG = SKILL_DIR / "concept_mapping.json"
 LEXICON_FORMAT = 5
@@ -216,7 +218,7 @@ class LexiconSource:
         self.spec = spec
         self.name = spec["name"]
         self.priority = int(spec["priority"])
-        self.path = _resolve(tcfg.get("directory", "trusted_ontologes")) / spec["file"]
+        self.local_path = _resolve(tcfg.get("directory", "trusted_ontologes")) / spec["file"]
         self.curie_prefix = spec.get("curie_prefix")
         self.labels_scope = set(spec["labels"]) if spec.get("labels") else None
         self.props = {mt: set(v) for mt, v in _clean(tcfg.get("match_properties")).items()}
@@ -226,6 +228,22 @@ class LexiconSource:
         self.camel = bool(tcfg.get("split_camel_case", True))
         self.local_names = bool(tcfg.get("index_local_name_when_unlabeled", False))
         self.static_sig = ""  # set by Lexicon: the known-namespace registry this index was built against
+
+    @property
+    def path(self) -> Path:
+        """The ontology file: the configured directory first (a checkout, or your own
+        file), else the shared download cache (scripts/ontology_cache.py). Never downloads."""
+        if self.local_path.is_file():
+            return self.local_path
+        return ontology_cache.cached_path(self.spec["file"]) or self.local_path
+
+    def fetch(self) -> bool:
+        """Make the file available, downloading it into the cache if it is a manifest
+        ontology. Raises ontology_cache.OntologyError when that fails."""
+        if self.local_path.is_file():
+            return True
+        ontology_cache.resolve(self.spec["file"], log=logger.info)
+        return self.path.is_file()
 
     @property
     def own_prefix(self) -> str:
@@ -401,11 +419,27 @@ class Lexicon:
         return [s for s in self.sources
                 if s.path.is_file() and have.get(s.name, {}).get("signature") != s.signature()]
 
+    def fetch_missing(self, only: Optional[list[str]] = None) -> None:
+        """Download (once, lazily) the enabled ontologies that are neither in the trusted
+        directory nor cached. After a network failure the rest are not attempted."""
+        manifest = ontology_cache.load_manifest()
+        for s in self.sources:
+            if s.path.is_file() or (only is not None and s.name not in only) \
+                    or s.spec["file"] not in manifest:
+                continue
+            try:
+                s.fetch()
+            except ontology_cache.OntologyError as e:
+                logger.warning("trusted ontology %s (%s) unavailable: %s", s.name, s.spec["file"], e)
+                if getattr(e, "network", False):
+                    return
+
     def missing_files(self) -> list[LexiconSource]:
         return [s for s in self.sources if not s.path.is_file()]
 
     def build(self, only: Optional[list[str]] = None, rebuild: bool = False,
               progress: Callable[[str], None] = lambda m: None) -> dict:
+        self.fetch_missing(only)
         todo = [s for s in self.sources if s.path.is_file() and (only is None or s.name in only)]
         if not rebuild:
             stale = {s.name for s in self.stale()}
@@ -513,6 +547,7 @@ class Lexicon:
                 "unregistered_classes": sum(unregistered.values())}
 
     def ensure_built(self) -> None:
+        self.fetch_missing()
         stale = self.stale()
         if stale:
             logger.warning("trusted lexicon is stale for %s — indexing now (one-time; run "
@@ -1044,7 +1079,9 @@ def init_priorities(directory: Path, out: Path) -> int:
     graph's own core are listed `off`.
     """
     exts = (".owl", ".rdf", ".xml", ".ttl", ".nt", ".jsonld")
-    files = sorted(p.name for p in directory.iterdir() if p.suffix.lower() in exts)
+    # the ontology files are no longer bundled: the manifest (ontologies.json) lists them too
+    files = sorted({p.name for p in directory.iterdir() if p.suffix.lower() in exts}
+                   | set(ontology_cache.load_manifest()))
     declared: list[dict] = []
     candidates: dict[str, dict] = {}
     src = directory / "sources.json"
@@ -1137,7 +1174,7 @@ def write_readme(lex: Lexicon, readme: Path) -> int:
         pass
     enabled = [r for r in raw_rows if r.get("priority", "").isdigit()]
     disabled = [r for r in raw_rows if not r.get("priority", "").isdigit()]
-    directory = lex.sources[0].path.parent if lex.sources else lex.priority_file.parent
+    directory = lex.sources[0].local_path.parent if lex.sources else lex.priority_file.parent
     lines = [_README_BEGIN, "",
              f"**{len(enabled)} enabled** for concept mapping, **{len(disabled)} disabled** "
              f"(listed in priority.md as `off`). Priority, CURIE prefix and namespace come from "
@@ -1146,7 +1183,11 @@ def write_readme(lex: Lexicon, readme: Path) -> int:
              "|---:|---|---|---:|---|---:|"]
     for r in enabled:
         f = directory / r["file"]
-        size = f"{f.stat().st_size / 1e6:.1f} MB" if f.is_file() else "missing"
+        if not f.is_file():
+            f = ontology_cache.cached_path(r["file"]) or f
+        mf = ontology_cache.load_manifest().get(r["file"])
+        size = (f"{f.stat().st_size / 1e6:.1f} MB" if f.is_file()
+                else f"{mf['size'] / 1e6:.1f} MB (not cached)" if mf else "missing")
         own = "; ".join(ns_rows.get(r["name"], [])) or ("OBO prefixes" if r.get("curie prefix") in ("-", "") else "—")
         classes = st.get(r["name"], {}).get("classes")
         lines.append(f"| {r['priority']} | `{r['name']}` | {r['file']} | {size} | {own} | "
@@ -1225,7 +1266,9 @@ def _main() -> int:
         print(f"trusted strategy: {tm.strategy}; match on: {', '.join(tm.match_on)}")
         print(f"priority table: {tm.lexicon.priority_file}")
         for s in tm.lexicon.sources:
-            state = ("MISSING" if not s.path.is_file() else "not indexed" if s.name in stale
+            state = ("not cached (python -m scripts.ontology_cache prefetch)"
+                     if not s.path.is_file() and s.spec["file"] in ontology_cache.load_manifest()
+                     else "MISSING" if not s.path.is_file() else "not indexed" if s.name in stale
                      else f"{st.get(s.name, {}).get('classes')} classes")
             scope = "any label" if s.labels_scope is None else ", ".join(sorted(s.labels_scope))
             print(f"  {s.priority:>3}  {s.name:<16} {s.spec['file']:<28} prefix={s.curie_prefix or '-':<10} "

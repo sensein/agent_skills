@@ -875,7 +875,7 @@ copy has.
 - **`connecting/claude-desktop.md`** added. Explains Claude Desktop's
   **split execution model** (chat UI on your machine, code interpreter in
   Anthropic's cloud sandbox), why your `localhost:8000` is unreachable
-  from a sandboxed code-interpreter call (`/home/claude/work/...` paths
+  from a sandboxed code-interpreter call (sandbox working-directory paths
   are the giveaway), and how to bridge via an MCP server configured in
   `claude_desktop_config.json`.
 

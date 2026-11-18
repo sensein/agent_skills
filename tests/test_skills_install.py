@@ -82,7 +82,7 @@ class InstallSkillsTests(unittest.TestCase):
     def test_discover_finds_known_skills(self) -> None:
         names = {p.name for p in install_skills.discover_skills()}
         self.assertIn("duct", names)
-        self.assertIn("labnb", names)
+        self.assertIn("lab-colab", names)
 
     def test_install_copies_selected_skills(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -90,7 +90,7 @@ class InstallSkillsTests(unittest.TestCase):
             code = install_skills.main(["--dest", str(dest), "--skills", "duct"])
             self.assertEqual(code, 0)
             self.assertTrue((dest / "duct" / "SKILL.md").exists())
-            self.assertFalse((dest / "labnb").exists())
+            self.assertFalse((dest / "lab-colab").exists())
 
     def test_codex_resolves_to_agents_skills_dir(self) -> None:
         dest = install_skills.resolve_dest("codex", None, "user")

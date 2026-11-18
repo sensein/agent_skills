@@ -28,7 +28,7 @@ the portal installs the key once.
    chmod 600 ~/.ssh/authorized_keys
    ```
 
-5. **Configure and test locally**: `python3 scripts/orcd_doctor.py --fix --user <mit-username>`
+5. **Configure and test locally**: `uv run scripts/orcd_doctor.py --fix --user <mit-username>`
    appends this block to `~/.ssh/config` and connects; then `ssh orcd hostname`
    prints a login node. Keep the browser signed in for that first ssh.
 
@@ -54,7 +54,7 @@ and never copy the private key out. Losing the key with the container is
 normal; mint a fresh one next time.
 
 When the sandbox has ssh egress (the doctor's `tcp port 22` check passes),
-`python3 scripts/orcd_doctor.py --sandbox-setup --user <mit-username>` verifies
+`uv run scripts/orcd_doctor.py --sandbox-setup --user <mit-username>` verifies
 egress, mints an `orcd-sandbox-<user>-<date>` ed25519 key (no passphrase:
 headless, ephemeral, revocable) if none exists, and prints two commands for the
 **account owner**: the `authorized_keys` append and its revocation. The owner
@@ -104,7 +104,7 @@ and fixed by orcd-help@mit.edu or the PI, not from the client.
 
 ## uv in the cluster home
 
-Login-node `python3` is 3.6; no system uv or conda. `python3 scripts/orcd_uv.py`
+Login-node `python3` is 3.6; no system uv or conda. `uv run scripts/orcd_uv.py`
 reports `~/.local/bin/uv`, its version and whether it is on PATH;
 `--install` runs the standalone installer with `UV_INSTALL_DIR=$HOME/.local/bin`
 and `UV_NO_MODIFY_PATH=1` (never edits startup files) or `uv self update`.

@@ -31,7 +31,8 @@ structsense/
 │   ├── ttl_config.json             ← IRI scheme (UUIDv5), guardrails, predicates, prefix registry (static part)
 │   ├── label_class_map.json        ← extractor label → ontology class
 │   └── key_synonyms.json           ← user overrides for keys (keys come from the trusted ontologies)
-├── trusted_ontologes/       ← the trusted ontology files (OWL/TTL)
+├── ontologies.json          ← manifest of the trusted ontology files (url, sha256, size); files are downloaded into a local cache, not bundled
+├── trusted_ontologes/       ← priority.md, sources.json, README (the OWL/TTL files themselves live in the cache)
 │   ├── priority.md                 ← THE priority table (edit to reorder / enable / add)
 │   ├── README.md                   ← generated list of the ontologies
 │   ├── sources.json                ← acquisition log
@@ -616,7 +617,11 @@ when a target is the wrong kind (`relation_range_hints`).
 
 ## Trusted ontologies (0.9)
 
-The ontology files in `trusted_ontologes/` are consulted before any remote mapper.
+The ontology files are consulted before any remote mapper. They are not bundled (about
+400 MB; claude.ai caps a plugin at 200 MB): `ontologies.json` lists them and they are downloaded on demand into
+`${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`, sha256-verified.
+`python -m scripts.ontology_cache prefetch --all` fetches everything up front (offline/cluster use);
+`python -m scripts.ontology_cache import-local <dir>` seeds the cache from a checkout that still has the files.
 `trusted_ontologes/priority.md` is the only place that says which files are used and in
 what order (1 first; `off` disables a row); `trusted_ontologes/README.md` lists them.
 

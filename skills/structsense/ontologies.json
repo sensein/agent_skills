@@ -1,0 +1,706 @@
+{
+  "_comment": "Trusted ontology files, hosted as assets of the GitHub release structsense-ontologies-v1 on sensein/agent_skills. `upstream` is optional provenance and a fallback download (used only if its bytes match sha256). Regenerate with `python -m scripts.ontology_cache build-manifest <dir>`.",
+  "release_tag": "structsense-ontologies-v1",
+  "ontologies": [
+    {
+      "file": "Human_BG.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/Human_BG.ttl",
+      "sha256": "163570a43ea2cfe6d62d73638019218886ee07ed6b9af92d58a853c79d6ae9a3",
+      "size": 598592
+    },
+    {
+      "file": "Macaque_BG.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/Macaque_BG.ttl",
+      "sha256": "7c0219ec8258da578bd133894c957c08150e83154683ff80ae8cc26d360b899b",
+      "size": 532147
+    },
+    {
+      "file": "Marmoset_BG.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/Marmoset_BG.ttl",
+      "sha256": "039b50d229bd961bbdc7bb260d0c9f5bd8bc7b812301b4f45531a42ca2555aa7",
+      "size": 737778
+    },
+    {
+      "file": "aba-amb-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/aba-amb-sub1.owl",
+      "sha256": "92e8788686c79379d7b19fd063a866a12d9e2b0bff5dcd0be11e33c94da81e1c",
+      "size": 692674,
+      "upstream": "https://data.bioontology.org/ontologies/ABA-AMB/submissions/1/download"
+    },
+    {
+      "file": "ad-cdo-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ad-cdo-sub2.owl",
+      "sha256": "b050eba620c48861157ba5d7e12cce1340f33de38973eb927178f87fecba80ec",
+      "size": 150715
+    },
+    {
+      "file": "ad-drop-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ad-drop-sub1.owl",
+      "sha256": "149bd4fa5ffd76411377498f147fec89fde58c06e741bbe76e4b701ac04e38df",
+      "size": 128750
+    },
+    {
+      "file": "adar-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/adar-sub1.owl",
+      "sha256": "6f5bd4bc902f2cc7c4f8be45c4dd4249b99284b7e95c2996e57afd02bdf92a63",
+      "size": 7684828
+    },
+    {
+      "file": "admo-sub4.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/admo-sub4.owl",
+      "sha256": "b7d4031524240b71d27de3d50d6e00b684e2f5dea7d758568935d4fac3802633",
+      "size": 10088789
+    },
+    {
+      "file": "ado-sub4.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ado-sub4.owl",
+      "sha256": "30d2c292255ef4f59cae3940e24f9fd64e049c232492007197bf0a583861f20d",
+      "size": 5491455,
+      "upstream": "https://data.bioontology.org/ontologies/ADO/submissions/4/download"
+    },
+    {
+      "file": "apaneurocluster-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/apaneurocluster-sub1.owl",
+      "sha256": "1d5c4c7d70c0108747e804caf58d6b0e4f731ac4d7cbe00e4e5d7270f6f97e36",
+      "size": 168953
+    },
+    {
+      "file": "asdpto-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/asdpto-sub1.owl",
+      "sha256": "d92883475a62ea50bd356109eddf03b134aa1e48b2dd85e4af8f93f0da031183",
+      "size": 184780
+    },
+    {
+      "file": "azdonto-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/azdonto-sub1.owl",
+      "sha256": "a5d5e4e3ec0202cb87aed0b4243b4c80008077869b940482cd50ae726ca8afc0",
+      "size": 67320
+    },
+    {
+      "file": "bci-o-sub6.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/bci-o-sub6.owl",
+      "sha256": "b003645b798869b84f61f47489b0e7b53047529ba4762bc50128f13188ae3292",
+      "size": 506248,
+      "upstream": "https://data.bioontology.org/ontologies/BCI-O/submissions/6/download"
+    },
+    {
+      "file": "bcio-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/bcio-sub1.owl",
+      "sha256": "92d680403b290ad09866ced344e19d48bf7693f7c3e9c978a7ec490cf611bf50",
+      "size": 2030103
+    },
+    {
+      "file": "bctt-sub6.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/bctt-sub6.owl",
+      "sha256": "a373f6a2c4e3779275df4f92d6fc1551b435e83713b2c168c73dfdb9ca8fc305",
+      "size": 36327
+    },
+    {
+      "file": "brain-cof-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/brain-cof-sub2.owl",
+      "sha256": "998a4378797ba142979602c63140f61df95d4631bb051805b7869a1f723569a8",
+      "size": 122499,
+      "upstream": "https://data.bioontology.org/ontologies/BRAIN-COF/submissions/2/download"
+    },
+    {
+      "file": "brct-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/brct-sub1.owl",
+      "sha256": "3d7000189f5ff48669eb1c2dfb3665345f1630f55bd9909529de283373b27b16",
+      "size": 1248137,
+      "upstream": "https://data.bioontology.org/ontologies/BRCT/submissions/1/download"
+    },
+    {
+      "file": "bt-ontology-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/bt-ontology-sub3.owl",
+      "sha256": "767652fd92947eb413c0e26f8e8be5ba54662a66dd293bd2ad901331ff471c55",
+      "size": 1453886
+    },
+    {
+      "file": "bto_ontology-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/bto_ontology-sub1.owl",
+      "sha256": "d9807b44b8510388027079a39afc225867a1064d8a736406e8dd2b7eb4d7ab0b",
+      "size": 154400
+    },
+    {
+      "file": "cabro-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cabro-sub1.owl",
+      "sha256": "7aff96b03e494ee7add93d452ff000832590564bf6c15aaa69e7ba325a3b6b4c",
+      "size": 38714
+    },
+    {
+      "file": "cbo-sub25.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cbo-sub25.owl",
+      "sha256": "b232c257998a9d21a988625f15812f71abaffcbe5a94c38e40bc41b2c19a8608",
+      "size": 284437
+    },
+    {
+      "file": "cell_taxonomy.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cell_taxonomy.ttl",
+      "sha256": "74367d0d738db08226e13634297f28f0f38b33534bcf72a9114beee6d955cb58",
+      "size": 259772,
+      "upstream": "https://github.com/brain-bican/models/blob/63254e74/linkml-schema/cell_taxonomy.yaml"
+    },
+    {
+      "file": "cl-basic.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cl-basic.owl",
+      "sha256": "8dffb71f26cdbdb4b44513abb29f53d29284b0820806b3c90906b8d0071efbdb",
+      "size": 9557097,
+      "upstream": "https://purl.obolibrary.org/obo/cl/cl-basic.owl"
+    },
+    {
+      "file": "cl.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cl.owl",
+      "sha256": "6abe12f1569d077507e03c1ad0168ebbb9ed725973a7eddba8ab3b9aeaf7a68d",
+      "size": 66012941
+    },
+    {
+      "file": "cno-sub8.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cno-sub8.owl",
+      "sha256": "11efd0eb6c65ab116165e469dbbe1621862cbafbf12dc436b41556d2fdb3b5f7",
+      "size": 162896,
+      "upstream": "https://data.bioontology.org/ontologies/CNO/submissions/8/download"
+    },
+    {
+      "file": "cogat-sub8.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cogat-sub8.owl",
+      "sha256": "be4fe4bcf42ba54246a1b6a5bdb534582c1de652561d0fbc8c7da50ca86dd133",
+      "size": 2706390,
+      "upstream": "https://data.bioontology.org/ontologies/COGAT/submissions/8/download"
+    },
+    {
+      "file": "cogito-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cogito-sub3.owl",
+      "sha256": "addf35111a1bcdf8e9e00b1ecd356b32a46862b7ee32a3b6c86391356c88ebf6",
+      "size": 3185994
+    },
+    {
+      "file": "cogmemo-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cogmemo-sub1.owl",
+      "sha256": "e58cf900a3edfedaa836fd234fb5506e05bc10e4507e389f66ec53e3c5ca86d3",
+      "size": 5232120
+    },
+    {
+      "file": "cogpo-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cogpo-sub1.owl",
+      "sha256": "09d8fd3e7c41437fc9e4094cfd12f8879e5eac68d1d2db101913d91f3c242255",
+      "size": 209798,
+      "upstream": "https://data.bioontology.org/ontologies/COGPO/submissions/1/download"
+    },
+    {
+      "file": "cto-ndd-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cto-ndd-sub1.owl",
+      "sha256": "63a18038064369b530c8a26cd9ad616f3e6f75939a15bbda90eecd5ddd7456f7",
+      "size": 316142
+    },
+    {
+      "file": "ctx-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ctx-sub2.owl",
+      "sha256": "388accf0e8c63d86b7b870653b2f186cfae5ec490f44989e541b303236507e1b",
+      "size": 1241728
+    },
+    {
+      "file": "cxso-sub2.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/cxso-sub2.ttl",
+      "sha256": "69a3269c742df86a4d274e456594ba0429817555c84eafa04d45b57089efea39",
+      "size": 47383
+    },
+    {
+      "file": "demlab-sub1.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/demlab-sub1.ttl",
+      "sha256": "c42938a46b65027c5776cb410e6206b643145ee919a3589c5512e3bf2e1aa702",
+      "size": 118221
+    },
+    {
+      "file": "doid-sub675.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/doid-sub675.owl",
+      "sha256": "481ce1fbb69fed71f78c78e5d48b1563adc74915c23308f70b3c2d7377098dc6",
+      "size": 28639789
+    },
+    {
+      "file": "dranpto-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/dranpto-sub1.owl",
+      "sha256": "2329c65a7647737ec6345826fa02de2e01a861e8ef5f5d88789419468aa13372",
+      "size": 579469
+    },
+    {
+      "file": "dreamdnpto-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/dreamdnpto-sub1.owl",
+      "sha256": "92a7b408bc8f366ac685bf57130be77982c4fdcaa4c2b3d787a8d8b625366de0",
+      "size": 1021729
+    },
+    {
+      "file": "drpsnpto-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/drpsnpto-sub1.owl",
+      "sha256": "ef0f04bfd20d1f34008f5e11238c05bb978a9542595a641a9b833af31693910b",
+      "size": 575707
+    },
+    {
+      "file": "ecdo-sub1.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ecdo-sub1.ttl",
+      "sha256": "0b7cf6eb2d2f8f9fe07fbd7ddfbf9765369129c4e239adf25732d60a52b38017",
+      "size": 19878
+    },
+    {
+      "file": "edem-connectonto-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/edem-connectonto-sub2.owl",
+      "sha256": "81a41757020c0097be8b51fda28e2dbc129bc1ab24f28f4431531602893a1eae",
+      "size": 476609
+    },
+    {
+      "file": "emif-ad-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/emif-ad-sub3.owl",
+      "sha256": "8b592440e438e0b5285f667a0ef7973c2006e6559b15c73a20cc07ed54399338",
+      "size": 414779
+    },
+    {
+      "file": "emro-sub12.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/emro-sub12.owl",
+      "sha256": "10bf86f2035a3775edd502781532419d9b62fdbc587dc59389b421cf2f40e86d",
+      "size": 281368
+    },
+    {
+      "file": "ep-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ep-sub2.owl",
+      "sha256": "4420d86c4b94645211e96ad0fddda352e2273027a1b728aa24800d570b44e0ee",
+      "size": 107938
+    },
+    {
+      "file": "epilont-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/epilont-sub2.owl",
+      "sha256": "9747b7a8cf208566b01f870e7f921d2dafa9b0613224f0fc42ab59e1cf4c620c",
+      "size": 82828
+    },
+    {
+      "file": "epio-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/epio-sub1.owl",
+      "sha256": "a90dfa4bae2e51b11182a59fc5ce0aa3ac152a3881ff958cc19078a39e3e42c3",
+      "size": 3259626
+    },
+    {
+      "file": "episem-sub8.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/episem-sub8.owl",
+      "sha256": "550f2a53784970be1fc8089b0cbacd61e0744502434b706fe807d4c4800cfb26",
+      "size": 911174
+    },
+    {
+      "file": "epso-sub8.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/epso-sub8.owl",
+      "sha256": "b93222e0e98ab2b0dea825f35f1221b4fd76afdc066e0af48f2089c7049bc71e",
+      "size": 1365937,
+      "upstream": "https://data.bioontology.org/ontologies/EPSO/submissions/8/download"
+    },
+    {
+      "file": "eso_c-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/eso_c-sub1.owl",
+      "sha256": "fe468d1df6ab0325190228b412687d8f29af163af09851ba8df792d21705b0ee",
+      "size": 98850
+    },
+    {
+      "file": "esso-sub5.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/esso-sub5.owl",
+      "sha256": "f1db03b8d698145c6d2c3f92ddbd1973d98ece60600d6fe920440c51c53f3f49",
+      "size": 2099911
+    },
+    {
+      "file": "fenics-sub9.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/fenics-sub9.owl",
+      "sha256": "8159d67a8d3fec7419ab9823b059a7cca53deef7902e62df9acaa6136ffac0c0",
+      "size": 197780
+    },
+    {
+      "file": "hns-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/hns-sub1.owl",
+      "sha256": "83518fdbe681fb40a1ccd632cf79de506b48b188e057d35a7481977130369444",
+      "size": 255339
+    },
+    {
+      "file": "homba.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/homba.owl",
+      "sha256": "c8eeef4722b65b4df3bb06ca9ac6a84a106f65dd6d9998b39ab01b83357ba749",
+      "size": 15677522
+    },
+    {
+      "file": "hp-base.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/hp-base.owl",
+      "sha256": "42c7e775d590837d838701d264740c79c8f343fd67ef0f5a68d6569965445558",
+      "size": 48335979,
+      "upstream": "https://purl.obolibrary.org/obo/hp/hp-base.owl"
+    },
+    {
+      "file": "lda-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/lda-sub1.owl",
+      "sha256": "a42a271424baa4eebb821e226bca848d172c3b5d144034d9285df83c986ff682",
+      "size": 69713
+    },
+    {
+      "file": "mdm-sub5.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mdm-sub5.owl",
+      "sha256": "b1cdddf2e50c2ca87925b4955d18c596acd9ce7ad17094d9d975a0d624e038d4",
+      "size": 47140702
+    },
+    {
+      "file": "mepo-sub6.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mepo-sub6.owl",
+      "sha256": "0e4d0ac9007465b92ea169e39d731092d999297756ed1710f8a24e1fb4877685",
+      "size": 3649809
+    },
+    {
+      "file": "mf.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mf.owl",
+      "sha256": "1c0166102ddfc57a5415b541b86a4894116e00a36f66d49fd2bafb647f67b587",
+      "size": 430780,
+      "upstream": "https://purl.obolibrary.org/obo/mf.owl"
+    },
+    {
+      "file": "mfoem.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mfoem.owl",
+      "sha256": "b3b5f3a74be326350df3fffd24992dee9b990af3da0690a9d302cc1de2940894",
+      "size": 640327,
+      "upstream": "https://purl.obolibrary.org/obo/mfoem.owl"
+    },
+    {
+      "file": "mfomd.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mfomd.owl",
+      "sha256": "378d88f742231ffe249ce2b0b42283f3126f427f70962de087d89b05a5582534",
+      "size": 7116,
+      "upstream": "https://purl.obolibrary.org/obo/mfomd.owl"
+    },
+    {
+      "file": "mhio-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mhio-sub1.owl",
+      "sha256": "b209f4afcd1809d7cb93a33bdabbb307595b4e57b1f1a2fdbf38b0f0cd451d72",
+      "size": 97271
+    },
+    {
+      "file": "mhmo-sub9.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mhmo-sub9.owl",
+      "sha256": "3c0494688e67cc118bc14df0e1ee4799c8597def950e7d02a9d0f2eb8725d617",
+      "size": 347111
+    },
+    {
+      "file": "mso-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/mso-sub2.owl",
+      "sha256": "b5f19be36f83a66d59b7b08812d6d2363c815bd288957fc0d70e28f0bb268e45",
+      "size": 1234931
+    },
+    {
+      "file": "nbo.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nbo.owl",
+      "sha256": "dbae2820243e1bb16f81085fcd88e06d0f82948aa120fb653ae6154ee93916eb",
+      "size": 5635046,
+      "upstream": "https://purl.obolibrary.org/obo/nbo.owl"
+    },
+    {
+      "file": "ncbitaxon-taxslim.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ncbitaxon-taxslim.owl",
+      "sha256": "6fcafb679c2ec9affe69f3b853d8391c9eefe1fe1a2a485bdc89121154f6149f",
+      "size": 40617427,
+      "upstream": "https://purl.obolibrary.org/obo/ncbitaxon/subsets/taxslim.owl"
+    },
+    {
+      "file": "nddo-sub10.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nddo-sub10.owl",
+      "sha256": "2449b2dfa7d7dd843be0579a34f808c1adad00aa5b8cc98a8e75957b1f0c54a3",
+      "size": 202900,
+      "upstream": "https://data.bioontology.org/ontologies/NDDO/submissions/10/download"
+    },
+    {
+      "file": "nddrfo-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nddrfo-sub3.owl",
+      "sha256": "be6b797a60ac67531658900eaf2f24434ea4fdcf0ff5bb6e7fe4a41213244119",
+      "size": 1065368,
+      "upstream": "https://data.bioontology.org/ontologies/NDDRFO/submissions/3/download"
+    },
+    {
+      "file": "neio-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/neio-sub3.owl",
+      "sha256": "5b7e6a04a73050cf2561a5b5dcbdaa4a0cb6996938f28e1af12a2f0a3bac7f5e",
+      "size": 554481
+    },
+    {
+      "file": "nemo-sub24.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nemo-sub24.owl",
+      "sha256": "f27cfe696b5e6124b4ad8f78531f86d2ca8dcebf5fd16782cb09d531eaae0e00",
+      "size": 4396395,
+      "upstream": "https://data.bioontology.org/ontologies/NEMO/submissions/24/download"
+    },
+    {
+      "file": "neo-sub90.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/neo-sub90.owl",
+      "sha256": "7546128a2153d5754393d46491bb17fe2f5431337342ea616710acf83a11a979",
+      "size": 1344926,
+      "upstream": "https://data.bioontology.org/ontologies/NEO/submissions/90/download"
+    },
+    {
+      "file": "nero-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nero-sub1.owl",
+      "sha256": "39518565af5a9d26452e0f191278bc2f5efa8c3ef37a109605603a0375da9cff",
+      "size": 50607
+    },
+    {
+      "file": "neudigs-sub1.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/neudigs-sub1.ttl",
+      "sha256": "e5f415a71440ced8c73950e687bfd5725496449430fe16175460086ffc5b609d",
+      "size": 11817
+    },
+    {
+      "file": "neurobrg-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/neurobrg-sub2.owl",
+      "sha256": "1fba835904ab2f6f85ea2ab413e0067debb6181227c028729b2efbdb609b2e02",
+      "size": 448146,
+      "upstream": "https://data.bioontology.org/ontologies/NEUROBRG/submissions/2/download"
+    },
+    {
+      "file": "nidm-results-sub2.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nidm-results-sub2.ttl",
+      "sha256": "16b735e5442ca51e4b8de3ffd3faf736c14cb661d08a1faf8ba5b7a26cc0c86e",
+      "size": 304571,
+      "upstream": "https://data.bioontology.org/ontologies/NIDM-RESULTS/submissions/2/download"
+    },
+    {
+      "file": "nifcell-sub15.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nifcell-sub15.owl",
+      "sha256": "265f4c3ec5c0eb2f2f3eda41ef8f90f2adbf92011c4ff11602d60f21643e5634",
+      "size": 472097
+    },
+    {
+      "file": "nifdys-sub16.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nifdys-sub16.ttl",
+      "sha256": "5b89cedc02215396e09f50720f3a5be7786438224cc701d88c5af87507dc4de4",
+      "size": 437531
+    },
+    {
+      "file": "nifstd-sub27.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nifstd-sub27.ttl",
+      "sha256": "e1619cdc0b1bc5d9f6f04bc82c3c4cca570288f93b50e4fdf875c02bd4242220",
+      "size": 3801,
+      "upstream": "https://data.bioontology.org/ontologies/NIFSTD/submissions/27/download"
+    },
+    {
+      "file": "nifsubcell-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nifsubcell-sub1.owl",
+      "sha256": "c86599bc6f5222fe911ab04b61553f78ec803f60c8ef85b90b77ee5f50c62022",
+      "size": 551123
+    },
+    {
+      "file": "nihss-sub15.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nihss-sub15.owl",
+      "sha256": "d9f3900250e8ed9023517bb06e4cb4e9974ced44e31e32378a756196a59d2711",
+      "size": 106694,
+      "upstream": "https://data.bioontology.org/ontologies/NIHSS/submissions/15/download"
+    },
+    {
+      "file": "nio-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nio-sub2.owl",
+      "sha256": "7b50761a538ec8928db3c3677a28b3f95a89bfcd648fb492a50fbdda02b36024",
+      "size": 3751091
+    },
+    {
+      "file": "nmobr-sub36.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nmobr-sub36.owl",
+      "sha256": "1488ba63c54361fdf4bcf7a731bd3795446e5e5f06b56ddf5645aea1b0217965",
+      "size": 335349,
+      "upstream": "https://data.bioontology.org/ontologies/NMOBR/submissions/36/download"
+    },
+    {
+      "file": "nmosp-sub22.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nmosp-sub22.owl",
+      "sha256": "d38727fd6b6f55f0087bdeb6c83f0363e0672646edbb4ea67d657dc8b5b313b1",
+      "size": 1718088
+    },
+    {
+      "file": "nnd_ch-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nnd_ch-sub2.owl",
+      "sha256": "bb8f3ffc1f86b9742e0c76ea1a3014ecb0ae238b0e82c74fe06e05e694f66de9",
+      "size": 318805
+    },
+    {
+      "file": "nnd_nd-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nnd_nd-sub2.owl",
+      "sha256": "dfefe899c5fdf912e6f4ed57ba875bc66892cdaec150bfbdd9d065eaf9b5ad3d",
+      "size": 84663
+    },
+    {
+      "file": "npdx-sub8.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/npdx-sub8.owl",
+      "sha256": "9ad1e67e495b8f25fe5a948c26ddef8d043431ab0499c4ef9b7a60d4331f6025",
+      "size": 693004
+    },
+    {
+      "file": "npokb-sub22.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/npokb-sub22.ttl",
+      "sha256": "7b896ae324c6a9abba5a1f6615295bb9268817fb5e44ccdd36955424f7c8899f",
+      "size": 899857,
+      "upstream": "https://data.bioontology.org/ontologies/NPOKB/submissions/22/download"
+    },
+    {
+      "file": "nro-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/nro-sub1.owl",
+      "sha256": "0d810ce52fdd8c4fa72dced36675fc534fa0a012d645e359004d17e2af065351",
+      "size": 340903
+    },
+    {
+      "file": "obi_iee-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/obi_iee-sub1.owl",
+      "sha256": "e435e1e8a21d86a3f08ce91b61ed45d3c5ef8a761a37f7b1deadc302fac46ad4",
+      "size": 6425777
+    },
+    {
+      "file": "odnae-sub3.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/odnae-sub3.owl",
+      "sha256": "7635094b604c177720ed2c35aab33b1f5490ef84a3d6c0faff39bb3897496d92",
+      "size": 2021077
+    },
+    {
+      "file": "onl-msa-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/onl-msa-sub1.owl",
+      "sha256": "5f68cd965f85872e65e1f65e081f0be420fd86fc3a971d27584d2e90ac2bbaa1",
+      "size": 1009643
+    },
+    {
+      "file": "onl-tasks-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/onl-tasks-sub1.owl",
+      "sha256": "322db54243bf8870f0bdb179ec8d5862b4f30e5a90b12cc306d02bbab778b1f1",
+      "size": 19264
+    },
+    {
+      "file": "ontoad-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ontoad-sub2.owl",
+      "sha256": "fe08649848ae6752f69a413eac9555d9b26472c1c8d5b34c8c2fb7f3e91dc958",
+      "size": 5774925
+    },
+    {
+      "file": "ontoparon-sub9.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ontoparon-sub9.owl",
+      "sha256": "ccc9391fd1a45fd5bcba47923507963ae9bbd43570f934116436c530b6705299",
+      "size": 1839723
+    },
+    {
+      "file": "ontoparon_social-sub12.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ontoparon_social-sub12.owl",
+      "sha256": "fa86bdfda3deeaf8e1cd1642cd9fe7cc392f0327dead8d8d585944f3b703d042",
+      "size": 762707
+    },
+    {
+      "file": "ontriscal-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/ontriscal-sub1.owl",
+      "sha256": "9abac5a962047293458f5adf674667bacea5c1b18a00de32eb1d783507703a8b",
+      "size": 135712
+    },
+    {
+      "file": "onvoc-sub9.ttl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/onvoc-sub9.ttl",
+      "sha256": "459a51cc4380d8c310dbd8766ad85d8cc2db77b51f0c75da3e68411526e77766",
+      "size": 386863,
+      "upstream": "https://data.bioontology.org/ontologies/ONVOC/submissions/9/download"
+    },
+    {
+      "file": "partumdo-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/partumdo-sub1.owl",
+      "sha256": "c4d04e02c543fe44ef4f79d684243bdecec8b375255687de1fe84c765a7b41a2",
+      "size": 4560143
+    },
+    {
+      "file": "pdon-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/pdon-sub1.owl",
+      "sha256": "7add16f81e409e2700b440e24e8dea87ff02e0bea9031678b20c213717996b7a",
+      "size": 788162,
+      "upstream": "https://data.bioontology.org/ontologies/PDON/submissions/1/download"
+    },
+    {
+      "file": "pmdo-sub4.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/pmdo-sub4.owl",
+      "sha256": "c8c0fbaeadef4f27cfcca911a62f6f2f8fd3afd8410007a3c4d71bb47a4800ad",
+      "size": 228306,
+      "upstream": "https://data.bioontology.org/ontologies/PMDO/submissions/4/download"
+    },
+    {
+      "file": "promot-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/promot-sub2.owl",
+      "sha256": "036904f89043d7ce82ba93a2f1ac2a9da30033916047d169620e3a2e87089956",
+      "size": 3671293
+    },
+    {
+      "file": "sato-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sato-sub2.owl",
+      "sha256": "23b229c2c1d7bd4aeee9b422c7c3cc63ed6ccb2bdff537c77a44fb6e837622ff",
+      "size": 15994
+    },
+    {
+      "file": "scio-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/scio-sub2.owl",
+      "sha256": "24dfea60d4393962302b1a40a15d0d3e045ce25c0c5113a479cdf41eff5139da",
+      "size": 326578,
+      "upstream": "https://data.bioontology.org/ontologies/SCIO/submissions/2/download"
+    },
+    {
+      "file": "sdo-sub4.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sdo-sub4.owl",
+      "sha256": "2231f8b2aea79cdaa8acb5083367513ae2f1a8613369509aec3ce863505060a9",
+      "size": 1174403
+    },
+    {
+      "file": "sibo-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sibo-sub2.owl",
+      "sha256": "5afbbe877cac9efd6ce02e9bb4ffb62b051e5391083b3c99def5b1374dc406e1",
+      "size": 514573
+    },
+    {
+      "file": "sl_dis-sub2.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sl_dis-sub2.owl",
+      "sha256": "9405f537b6f4a416ed751467c6ef8cbd92741a6a3bb1348b3583250a8111e074",
+      "size": 318304
+    },
+    {
+      "file": "sleep-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sleep-sub1.owl",
+      "sha256": "1effe04b9a155bdae732ec544eaf3f0686f8ded5433cadb2ba1bf85e11e6bae9",
+      "size": 69290
+    },
+    {
+      "file": "stmso-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/stmso-sub1.owl",
+      "sha256": "2c442b1c045516a087e7fb288b07f0224f413897ed58dccd760979c9491e25db",
+      "size": 716671
+    },
+    {
+      "file": "sto-draft-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/sto-draft-sub1.owl",
+      "sha256": "cef1c63bfc6204962ad67532da71c62841eb7fb4f04b5e9d64b4320c72eb1bc4",
+      "size": 2541188
+    },
+    {
+      "file": "veo-sub1.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/veo-sub1.owl",
+      "sha256": "665cab8cfde7f84edf95d7c4c7fb71e0b6e3039d241f905f1fe85bb8830bbdda",
+      "size": 124460
+    },
+    {
+      "file": "wbbt.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/wbbt.owl",
+      "sha256": "c33ca24ec26abb05ff6b3abc6701752a183a20ba4c6e1d175c305dd0fc3f9e68",
+      "size": 9373027,
+      "upstream": "https://purl.obolibrary.org/obo/wbbt.owl"
+    },
+    {
+      "file": "wweca-sub4.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/wweca-sub4.owl",
+      "sha256": "eab2f9a703af02ddb62def19059358a48c0c261d77503914899938561e1dd80f",
+      "size": 1596162
+    },
+    {
+      "file": "xao.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/xao.owl",
+      "sha256": "35db632535cc255ec039b61fd77ba0c5a171d35fe50ed0017ea01b74280816e3",
+      "size": 3907321,
+      "upstream": "https://purl.obolibrary.org/obo/xao.owl"
+    },
+    {
+      "file": "zfa.owl",
+      "url": "https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/zfa.owl",
+      "sha256": "9f3fcf68739d2eb31c8cde5848f508ee8f21e32174efd5353ac13454aa081385",
+      "size": 7361558,
+      "upstream": "https://purl.obolibrary.org/obo/zfa.owl"
+    }
+  ]
+}

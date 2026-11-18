@@ -1,6 +1,6 @@
 # ORCD storage: tiers, speed, and where to put job IO
 
-`python3 scripts/orcd_storage.py` lists this user's writable paths; this file
+`uv run scripts/orcd_storage.py` lists this user's writable paths; this file
 explains the tiers.
 
 ## Quotas: `~/orcd/.quota`
@@ -167,7 +167,7 @@ checkpoints, outputs, shared intermediates, readable by the lab.
 
 **Group scratch dirs are group-readable and closed to others.** Setgid keeps
 files group-owned but leaves the "other" bits alone, so
-`python3 scripts/orcd_storage.py --setup` creates the per-user dir on each
+`uv run scripts/orcd_storage.py --setup` creates the per-user dir on each
 group flash tier with `chmod o-rwx` (existing dirs too, mode reported), and
 every job script that writes there starts with `umask 027`. `--setup` skips
 `~/orcd/scratch` and `~/orcd/pool`: ORCD provisions those; a missing symlink is

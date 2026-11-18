@@ -4,9 +4,34 @@ These are the ontologies, which we call the "trusted ontologies", that are loade
 in our graph database for connecting assertion-evidence and materialization, and
 that structsense uses **first** for concept mapping.
 
-The directory holds **115 ontology files** in two formats: `.owl` (RDF/XML) and
-`.ttl` (Turtle). `sources.json` is the acquisition log (source, submission,
-release, outcome) for each of them.
+The ontology files (`.owl` RDF/XML and `.ttl` Turtle) are **not stored in git**. They
+total ~400 MB, and claude.ai caps a plugin at 200 MB, so they are downloaded on demand
+into a local cache; this directory keeps only `priority.md`, `sources.json` (the
+acquisition log: source, submission, release, outcome) and this README.
+
+## Getting the files (cache)
+
+[`../ontologies.json`](../ontologies.json) lists every file: name, asset URL
+(`https://github.com/sensein/agent_skills/releases/download/structsense-ontologies-v1/<file>`),
+sha256, size and, where known, the upstream IRI. Several files are subsets upstream does not
+publish (e.g. `adar-sub1.owl`, `doid-sub675.owl`), so the release assets are the source of truth.
+
+- Cache directory: `${STRUCTSENSE_ONTOLOGY_CACHE:-${XDG_CACHE_HOME:-~/.cache}/structsense/ontologies}`,
+  shared by all runs and projects.
+- **Lazy**: `concept_mapping index` / `map` download only the enabled ontologies
+  (priority.md) that are not cached yet. Each download goes to a temp file, is
+  checked against the sha256, then atomically moved into place; concurrent runs are
+  serialised per file, so one downloads and the rest reuse it.
+- **Prefetch** (offline nodes, clusters, CI): `python -m scripts.ontology_cache prefetch --all`
+  or `prefetch cl.owl hp-base.owl`.
+- **Seed from files you already have**: `python -m scripts.ontology_cache import-local <dir>`
+  copies the files of an old checkout's `trusted_ontologes/` into the cache after verifying each sha256
+  (mismatching files are reported and skipped). This is how a cache is filled before the release assets exist.
+- `python -m scripts.ontology_cache list | verify | dir | path <file>` show state, re-hash the cache, print its location or one file's path.
+- A file placed in this directory (or in the `directory` set in `concept_mapping.json`) takes precedence over the cache.
+- Offline with a cold cache, the ontology is skipped with a warning, as a missing file always was, and the message names `import-local`.
+- Maintainers: `python -m scripts.ontology_cache build-manifest <dir>` regenerates `ontologies.json`;
+  `scripts/publish_ontologies.sh` (owner-run) creates the release and uploads the assets.
 
 ## How structsense uses them
 
@@ -28,52 +53,53 @@ release, outcome) for each of them.
 
 <!-- BEGIN generated: python -m scripts.concept_mapping readme -->
 
-**42 enabled** for concept mapping, **73 disabled** (listed in priority.md as `off`). Priority, CURIE prefix and namespace come from [priority.md](priority.md); class counts from the last `index`.
+**43 enabled** for concept mapping, **73 disabled** (listed in priority.md as `off`). Priority, CURIE prefix and namespace come from [priority.md](priority.md); class counts from the last `index`.
 
 | Priority | Name | File | Size | Prefix / namespace | Classes indexed |
 |---:|---|---|---:|---|---:|
 | 1 | `cell_taxonomy` | cell_taxonomy.ttl | 0.3 MB | BKE: `https://identifiers.org/brain-bican/vocab/` | 94 |
-| 2 | `cl` | cl.owl | 66.0 MB | OBO prefixes | 18690 |
-| 3 | `go_basic` | go-basic.owl | 118.1 MB | OBO prefixes | 38092 |
-| 4 | `uberon` | uberon.owl | 95.9 MB | OBO prefixes | 25188 |
-| 5 | `pcl` | pcl.owl | 167.6 MB | OBO prefixes | 36396 |
-| 6 | `mondo` | mondo-simple.owl | 226.6 MB | OBO prefixes | 32109 |
-| 7 | `hp` | hp-base.owl | 48.3 MB | OBO prefixes | 19944 |
-| 8 | `chebi` | chebi-lite.owl | 183.4 MB | OBO prefixes | 218533 |
-| 9 | `ncbitaxon` | ncbitaxon-taxslim.owl | 40.6 MB | OBO prefixes | 31798 |
-| 10 | `nbo` | nbo.owl | 5.6 MB | OBO prefixes | 4542 |
-| 11 | `mf` | mf.owl | 0.4 MB | OBO prefixes | 399 |
-| 12 | `mfoem` | mfoem.owl | 0.6 MB | OBO prefixes | 622 |
-| 13 | `mfomd` | mfomd.owl | 0.0 MB | OBO prefixes | 0 |
-| 14 | `mp` | mp.owl | 101.2 MB | OBO prefixes | 34397 |
-| 15 | `fbbt` | fbbt.owl | 120.3 MB | OBO prefixes | 28122 |
-| 16 | `wbbt` | wbbt.owl | 9.4 MB | OBO prefixes | 6780 |
-| 17 | `zfa` | zfa.owl | 7.4 MB | OBO prefixes | 3169 |
-| 18 | `xao` | xao.owl | 3.9 MB | OBO prefixes | 1781 |
-| 19 | `pr` | pr.owl | 1279.4 MB | OBO prefixes | 327402 |
-| 20 | `nifstd` | nifstd-sub27.ttl | 0.0 MB | — | 0 |
-| 21 | `npokb` | npokb-sub22.ttl | 0.9 MB | NPOKB: `http://uri.interlex.org/base/` | 2757 |
-| 22 | `aba_amb` | aba-amb-sub1.owl | 0.7 MB | ABA-AMB: `http://mouse.brain-map.org/atlas/index.html#` | 913 |
-| 23 | `nmobr` | nmobr-sub36.owl | 0.3 MB | NMOBR: `http://neuromorpho.org/ontologies/vertebrateH.owl#` | 272 |
-| 24 | `brct` | brct-sub1.owl | 1.2 MB | BRCT: `http://www.semanticweb.org/ontologies/2009/9/Ontology1255357986125.owl#` | 1654 |
-| 25 | `brain_cof` | brain-cof-sub2.owl | 0.1 MB | BRAIN-COF: `https://explaination.net/onto/tree-structure-brain-anatomy-FastSurfer#` | 125 |
-| 26 | `cogat` | cogat-sub8.owl | 2.7 MB | COGAT: `http://www.cognitiveatlas.org/ontology/cogat.owl#` | 3786 |
-| 27 | `cogpo` | cogpo-sub1.owl | 0.2 MB | COGPO: `http://www.cogpo.org/ontologies/CogPOver1.owl#` | 191 |
-| 28 | `cno` | cno-sub8.owl | 0.2 MB | CNO: `http://purl.org/incf/ontology/Computational_Neurosciences/cno_alpha.owl#` | 219 |
-| 29 | `nemo` | nemo-sub24.owl | 4.4 MB | NEMO: `http://purl.bioontology.org/NEMO/ontology/NEMO.owl#` | 1808 |
-| 30 | `nidm_results` | nidm-results-sub2.ttl | 0.3 MB | NIDM-RESULTS: `http://purl.org/nidash/nidm#` | 150 |
-| 31 | `neurobrg` | neurobrg-sub2.owl | 0.4 MB | NEUROBRG: `http://maven.renci.org/NeuroBridge/neurobridge#` | 667 |
-| 32 | `onvoc` | onvoc-sub9.ttl | 0.4 MB | ONVOC: `https://w3id.org/onvoc/` | 754 |
-| 33 | `bci_o` | bci-o-sub6.owl | 0.5 MB | BCI-O: `https://w3id.org/BCI-ontology#` | 71 |
-| 34 | `ado` | ado-sub4.owl | 5.5 MB | ADO: `http://scai.fraunhofer.de/AlzheimerOntology#` | 1961 |
-| 35 | `pdon` | pdon-sub1.owl | 0.8 MB | PDON: `http://www.semanticweb.org/ontologies/2011/1/Ontology1296772722296.owl#` | 631 |
-| 36 | `pmdo` | pmdo-sub4.owl | 0.2 MB | PMDO: `http://www.case.edu/PMDO#` | 628 |
-| 37 | `epso` | epso-sub8.owl | 1.4 MB | EPSO: `http://www.case.edu/EpilepsyOntology.owl#` | 2195 |
-| 38 | `neo` | neo-sub90.owl | 1.3 MB | NEO: `http://www.semanticweb.org/danielhier/ontologies/2019/3/untitled-ontology-57/` | 1609 |
-| 39 | `nddo` | nddo-sub10.owl | 0.2 MB | NDDO: `http://www.purl.org/NDDO/` | 184 |
-| 40 | `nddrfo` | nddrfo-sub3.owl | 1.1 MB | NDDRFO: `http://www.semanticweb.org/NDDRFO#` | 855 |
-| 41 | `nihss` | nihss-sub15.owl | 0.1 MB | NIHSS: `https://mre.zcu.cz/ontology/nihss.owl#` | 18 |
-| 42 | `scio` | scio-sub2.owl | 0.3 MB | SCIO: `http://psink.de/scio/` | 298 |
+| 2 | `homba` | homba.owl | 15.7 MB | — | 5651 |
+| 3 | `cl` | cl.owl | 66.0 MB | OBO prefixes | 18690 |
+| 4 | `go_basic` | go-basic.owl | 118.1 MB | OBO prefixes | 38092 |
+| 5 | `uberon` | uberon.owl | 95.9 MB | OBO prefixes | 25188 |
+| 6 | `pcl` | pcl.owl | 167.6 MB | OBO prefixes | 36396 |
+| 7 | `mondo` | mondo-simple.owl | 226.6 MB | OBO prefixes | 32109 |
+| 8 | `hp` | hp-base.owl | 48.3 MB | OBO prefixes | 19944 |
+| 9 | `chebi` | chebi-lite.owl | 183.4 MB | OBO prefixes | 218533 |
+| 10 | `ncbitaxon` | ncbitaxon-taxslim.owl | 40.6 MB | OBO prefixes | 31798 |
+| 11 | `nbo` | nbo.owl | 5.6 MB | OBO prefixes | 4542 |
+| 12 | `mf` | mf.owl | 0.4 MB | OBO prefixes | 399 |
+| 13 | `mfoem` | mfoem.owl | 0.6 MB | OBO prefixes | 622 |
+| 14 | `mfomd` | mfomd.owl | 0.0 MB | OBO prefixes | 0 |
+| 15 | `mp` | mp.owl | 101.2 MB | OBO prefixes | 34397 |
+| 16 | `fbbt` | fbbt.owl | 120.3 MB | OBO prefixes | 28122 |
+| 17 | `wbbt` | wbbt.owl | 9.4 MB | OBO prefixes | 6780 |
+| 18 | `zfa` | zfa.owl | 7.4 MB | OBO prefixes | 3169 |
+| 19 | `xao` | xao.owl | 3.9 MB | OBO prefixes | 1781 |
+| 20 | `pr` | pr.owl | 1279.4 MB | OBO prefixes | 327402 |
+| 21 | `nifstd` | nifstd-sub27.ttl | 0.0 MB | — | 0 |
+| 22 | `npokb` | npokb-sub22.ttl | 0.9 MB | NPOKB: `http://uri.interlex.org/base/` | 2757 |
+| 23 | `aba_amb` | aba-amb-sub1.owl | 0.7 MB | ABA-AMB: `http://mouse.brain-map.org/atlas/index.html#` | 913 |
+| 24 | `nmobr` | nmobr-sub36.owl | 0.3 MB | NMOBR: `http://neuromorpho.org/ontologies/vertebrateH.owl#` | 272 |
+| 25 | `brct` | brct-sub1.owl | 1.2 MB | BRCT: `http://www.semanticweb.org/ontologies/2009/9/Ontology1255357986125.owl#` | 1654 |
+| 26 | `brain_cof` | brain-cof-sub2.owl | 0.1 MB | BRAIN-COF: `https://explaination.net/onto/tree-structure-brain-anatomy-FastSurfer#` | 125 |
+| 27 | `cogat` | cogat-sub8.owl | 2.7 MB | COGAT: `http://www.cognitiveatlas.org/ontology/cogat.owl#` | 3786 |
+| 28 | `cogpo` | cogpo-sub1.owl | 0.2 MB | COGPO: `http://www.cogpo.org/ontologies/CogPOver1.owl#` | 191 |
+| 29 | `cno` | cno-sub8.owl | 0.2 MB | CNO: `http://purl.org/incf/ontology/Computational_Neurosciences/cno_alpha.owl#` | 219 |
+| 30 | `nemo` | nemo-sub24.owl | 4.4 MB | NEMO: `http://purl.bioontology.org/NEMO/ontology/NEMO.owl#` | 1808 |
+| 31 | `nidm_results` | nidm-results-sub2.ttl | 0.3 MB | NIDM-RESULTS: `http://purl.org/nidash/nidm#` | 150 |
+| 32 | `neurobrg` | neurobrg-sub2.owl | 0.4 MB | NEUROBRG: `http://maven.renci.org/NeuroBridge/neurobridge#` | 667 |
+| 33 | `onvoc` | onvoc-sub9.ttl | 0.4 MB | ONVOC: `https://w3id.org/onvoc/` | 754 |
+| 34 | `bci_o` | bci-o-sub6.owl | 0.5 MB | BCI-O: `https://w3id.org/BCI-ontology#` | 71 |
+| 35 | `ado` | ado-sub4.owl | 5.5 MB | ADO: `http://scai.fraunhofer.de/AlzheimerOntology#` | 1961 |
+| 36 | `pdon` | pdon-sub1.owl | 0.8 MB | PDON: `http://www.semanticweb.org/ontologies/2011/1/Ontology1296772722296.owl#` | 631 |
+| 37 | `pmdo` | pmdo-sub4.owl | 0.2 MB | PMDO: `http://www.case.edu/PMDO#` | 628 |
+| 38 | `epso` | epso-sub8.owl | 1.4 MB | EPSO: `http://www.case.edu/EpilepsyOntology.owl#` | 2195 |
+| 39 | `neo` | neo-sub90.owl | 1.3 MB | NEO: `http://www.semanticweb.org/danielhier/ontologies/2019/3/untitled-ontology-57/` | 1609 |
+| 40 | `nddo` | nddo-sub10.owl | 0.2 MB | NDDO: `http://www.purl.org/NDDO/` | 184 |
+| 41 | `nddrfo` | nddrfo-sub3.owl | 1.1 MB | NDDRFO: `http://www.semanticweb.org/NDDRFO#` | 855 |
+| 42 | `nihss` | nihss-sub15.owl | 0.1 MB | NIHSS: `https://mre.zcu.cz/ontology/nihss.owl#` | 18 |
+| 43 | `scio` | scio-sub2.owl | 0.3 MB | SCIO: `http://psink.de/scio/` | 298 |
 
 <details><summary>Disabled rows</summary>
 

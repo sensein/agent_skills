@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 """Capture ORCD's Slurm and storage configuration, and diff it against a baseline.
 
 Cluster configuration is not stable. Partitions are added and retired, QOS
@@ -8,11 +12,11 @@ that worked last month, usually presenting as an unexplained queue or a refusal.
 
 So: snapshot the configuration, keep it, and diff it later.
 
-    python3 orcd_snapshot.py                 # human-readable summary
-    python3 orcd_snapshot.py --save          # write a JSON baseline
-    python3 orcd_snapshot.py --diff          # compare now against the baseline
-    python3 orcd_snapshot.py --diff --save   # compare, then update the baseline
-    python3 orcd_snapshot.py --json          # emit the snapshot on stdout
+    uv run orcd_snapshot.py                 # human-readable summary
+    uv run orcd_snapshot.py --save          # write a JSON baseline
+    uv run orcd_snapshot.py --diff          # compare now against the baseline
+    uv run orcd_snapshot.py --diff --save   # compare, then update the baseline
+    uv run orcd_snapshot.py --json          # emit the snapshot on stdout
 
 Baselines live in ``~/.orcd/snapshots/``: ``<cluster>-latest.json`` plus a
 timestamped copy per save, so history is kept without extra bookkeeping.
@@ -483,12 +487,13 @@ def main() -> int:
     ap.add_argument("--baseline", help="explicit baseline path (default ~/.orcd/snapshots/<cluster>-latest.json)")
     ap.add_argument("--json", action="store_true", help="print the snapshot as JSON")
     args = ap.parse_args()
+    oc.require_uv()
 
     try:
         snap = build_snapshot(args.host)
     except oc.OrcdError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("\nRun `python3 orcd_doctor.py` to diagnose access.", file=sys.stderr)
+        print("\nRun `uv run orcd_doctor.py` to diagnose access.", file=sys.stderr)
         return 1
 
     cluster = snap["config"].get("ClusterName") or "orcd"

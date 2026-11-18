@@ -1,0 +1,45 @@
+# Pins every __SOURCE_REPO__ plugin to the newest __ORG__/__SOURCE_REPO__ commit and bumps their versions.
+# claude.ai re-syncs an org marketplace when a PR that bumps a plugin version is merged,
+# so this opens and merges such a PR whenever __SOURCE_REPO__ main moves.
+name: track-agent-skills
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency: track-agent-skills
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare pinned and latest commit
+        id: cmp
+        run: |
+          latest=$(gh api repos/__ORG__/__SOURCE_REPO__/commits/main --jq .sha)
+          pinned=$(jq -r '[.plugins[] | select(.source.url=="https://github.com/__ORG__/__SOURCE_REPO__.git") | .source.sha] | unique | join(" ")' .claude-plugin/marketplace.json)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "changed=$([ "$latest" != "$pinned" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Bump, open, and merge a PR
+        if: steps.cmp.outputs.changed == 'true'
+        env:
+          LATEST: ${{ steps.cmp.outputs.latest }}
+        run: |
+          version="$(date -u +%Y.%m.%d)+${LATEST:0:7}"
+          jq --arg sha "$LATEST" --arg v "$version" \
+            '(.plugins[] | select(.source.url=="https://github.com/__ORG__/__SOURCE_REPO__.git")) |= (.source.sha = $sha | .version = $v)' \
+            .claude-plugin/marketplace.json > m.json && mv m.json .claude-plugin/marketplace.json
+          branch="bump/${LATEST:0:7}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          GITHUB_TOKEN="$GH_TOKEN" python3 scripts/check_marketplace.py --fetch   # PRs opened by this bot do not trigger CI, so check here
+          git switch -c "$branch"
+          git commit -am "__SOURCE_REPO__ plugins $version (${LATEST:0:7})"
+          git push -u origin "$branch"
+          gh pr create --title "__SOURCE_REPO__ plugins $version" \
+            --body "Pins __ORG__/__SOURCE_REPO__@${LATEST}. Opened automatically; merging it triggers the claude.ai marketplace sync."
+          gh pr merge "$branch" --squash --delete-branch
