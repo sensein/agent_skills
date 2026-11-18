@@ -24,7 +24,8 @@ Subcommands
                 a label on first use. Uses your own gh login; --dry-run prints the calls.
   lease         Compose a claim lease marker for an issue comment (default 45 minutes).
   beat          Session heartbeat: refresh this session's Session activity comment and renew
-                its lease. Called by Claude Code hooks; throttled; costs no model tokens.
+                its lease. Called by Claude Code hooks; throttled; costs no model tokens; a no-op (no GitHub
+                write) unless the worktree has a colab-claim file or --session/--job/--item is given.
   seed-marketplace  Write the private plugin-marketplace repo's starter files (one plugin per skill).
   setup         Onboarding check in plain words (gh sign-in, org membership, meta clone, Python, hooks), one next
                 step per problem; --install-hooks merges the heartbeat hooks, --clone copies the meta repo, --json
@@ -3034,13 +3035,33 @@ def lease_refusal(config: dict, item: str, gh=None, acting_for: str | None = Non
     return None
 
 
-def live_lease(comments: list[str], now: datetime | None = None) -> dict | None:
-    """The newest unexpired lease among issue comments, if any."""
+def _author(comment) -> str:
+    """The comment author's login as GitHub reports it (lower-case), or "" when unknown."""
+    if not isinstance(comment, dict):
+        return ""
+    return str((comment.get("user") or {}).get("login") or comment.get("author") or "").lower()
+
+
+def own_lease_markers(comment) -> list:
+    """Lease markers in one API comment that its author posted for themselves. A marker naming anyone else is
+    forged (any commenter can type one) and never counts; a bare string has no author and never counts."""
+    author = _author(comment)
+    if not author:
+        return []
+    return [m for m in LEASE.finditer(comment.get("body") or "") if m["user"].lower() == author]
+
+
+def live_lease(comments: list[dict], now: datetime | None = None) -> dict | None:
+    """The newest unexpired lease among issue comments (API dicts with `body` and `user.login`), if any. Only a
+    marker whose user is the comment's own author counts."""
     now = now or datetime.now(timezone.utc)
     latest = None
-    for text in comments:
-        for m in LEASE.finditer(text or ""):
-            until = datetime.fromisoformat(m["until"].replace("Z", "+00:00"))
+    for c in comments:
+        for m in own_lease_markers(c):
+            try:
+                until = datetime.fromisoformat(m["until"].replace("Z", "+00:00"))
+            except ValueError:
+                continue
             if until > now and (latest is None or until > latest["until"]):
                 latest = {"user": m["user"], "until": until}
     return latest
@@ -3139,21 +3160,66 @@ def _gh_send(method: str, path: str, body: dict) -> dict | None:
     return json.loads(proc.stdout) if proc.returncode == 0 and proc.stdout.strip() else None
 
 
-def _own_comment(path: str, marker: re.Pattern, match) -> dict | None:
-    for page in range(1, 11):
-        batch = _gh_json(["api", f"{path}/comments?per_page=100&page={page}"]) or []
-        for c in batch:
-            m = marker.search(c.get("body") or "")
-            if m and match(m):
-                return c
-        if len(batch) < 100:
-            return None
-    return None
+COMMENT_PAGES = 10          # pages of 100 read from the start of an issue's comments
+RECENT_DAYS = 7             # past that cap, comments updated this recently are read too
+
+
+def issue_comments(path: str, gh=None, pages: int = COMMENT_PAGES, since: datetime | None = None) -> list[dict]:
+    """An issue's comments, read in pages of 100 up to `pages`. When the issue has more than that, the comments
+    updated in the last RECENT_DAYS (or since `since`) are read as well, so a lease or session comment edited in
+    place is still seen on a long issue. At most 2 x `pages` calls."""
+    gh = gh or _gh_json
+    out: dict = {}
+
+    def read(query: str) -> bool:
+        for page in range(1, pages + 1):
+            batch = gh(["api", f"{path}/comments?per_page=100&page={page}{query}"])
+            if not isinstance(batch, list):
+                return False
+            for c in batch:
+                if isinstance(c, dict):
+                    out[c.get("id") or id(c)] = c
+            if len(batch) < 100:
+                return False
+        return True  # every page was full: there may be more
+
+    if read(""):
+        when = since or datetime.now(timezone.utc) - timedelta(days=RECENT_DAYS)
+        read(f"&since={_iso(when)}")
+    return list(out.values())
+
+
+def recent_comments(path: str, gh=None) -> list[dict]:
+    """Comments an issue's leases are read from (see issue_comments)."""
+    return issue_comments(path, gh)
+
+
+def _own_comment(path: str, marker: re.Pattern, match, author: str | None = None, cached_id=None,
+                 since: datetime | None = None, gh=None) -> dict | None:
+    """The comment on `path` whose marker satisfies `match`, posted by `author` when given. A cached comment id is
+    tried first (one call); otherwise the issue is searched, newest first, including comments updated since `since`."""
+    gh = gh or _gh_json
+
+    def ok(c) -> bool:
+        if not isinstance(c, dict):
+            return False
+        m = marker.search(c.get("body") or "")
+        return bool(m and match(m) and (not author or _author(c) == author.lower()))
+
+    if cached_id:
+        repo = path.split("/issues/")[0]
+        c = gh(["api", f"{repo}/issues/comments/{cached_id}"])
+        if ok(c) and str(c.get("issue_url") or path).rstrip("/").endswith(path):
+            return c
+    found = [c for c in issue_comments(path, gh, since=since) if ok(c)]
+    found.sort(key=lambda c: (str(c.get("updated_at") or ""), c.get("id") or 0), reverse=True)
+    return found[0] if found else None
 
 
 def cmd_beat(config: dict, session: str | None, item: str | None, job: str | None,
              from_hook: bool, background: bool, now: datetime | None = None) -> int:
     cwd = None
+    explicit = bool(session or job or item)
     if from_hook:
         try:
             hook = json.loads(sys.stdin.read() or "{}")
@@ -3165,6 +3231,8 @@ def cmd_beat(config: dict, session: str | None, item: str | None, job: str | Non
         print("beat needs --session or hook input with session_id", file=sys.stderr)
         return 2
     item = item or claimed_item(cwd)
+    if not (explicit or item):
+        return 0  # a session that claimed nothing and named nothing is not lab work: no GitHub write
     now = now or datetime.now(timezone.utc)
     sess_cfg = config.get("sessions", {})
     cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "colab" / "beats"
@@ -3178,14 +3246,19 @@ def cmd_beat(config: dict, session: str | None, item: str | None, job: str | Non
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     user = (last or {}).get("user") or (_gh_json(["api", "user"]) or {}).get("login", "")
     issue = sess_cfg.get("issue")
+    comment_id = None
     if issue and user:
         path = f"repos/{org}/{meta}/issues/{issue}"
         body = session_comment(session, user, now, job, item)
-        mine = _own_comment(path, SESSION, lambda m: m["id"] == re.sub(r"[^A-Za-z0-9._-]", "-", session)[:64])
+        sid = re.sub(r"[^A-Za-z0-9._-]", "-", session)[:64]
+        since = datetime.fromisoformat(last["at"]) - timedelta(minutes=5) if last and last.get("at") else None
+        mine = _own_comment(path, SESSION, lambda m: m["id"] == sid, author=user,
+                            cached_id=(last or {}).get("comment_id"), since=since)
         if mine:
-            _gh_send("PATCH", f"repos/{org}/{meta}/issues/comments/{mine['id']}", {"body": body})
+            sent = _gh_send("PATCH", f"repos/{org}/{meta}/issues/comments/{mine['id']}", {"body": body})
         else:
-            _gh_send("POST", f"{path}/comments", {"body": body})
+            sent = _gh_send("POST", f"{path}/comments", {"body": body})
+        comment_id = (sent or {}).get("id") or (mine or {}).get("id")
     m = ITEM.match(item or "")
     gate = gate_status(config, item, acting_for=user, require_seen=False) if m and user else None
     blocked = gate_blocks(gate, item) if gate else None
@@ -3196,7 +3269,7 @@ def cmd_beat(config: dict, session: str | None, item: str | None, job: str | Non
     elif m and user:
         # renew this member's lease on the claimed item; never create one (claim does that)
         path = f"repos/{m['repo']}/issues/{m['number']}"
-        lease = _own_comment(path, LEASE, lambda x: x["user"] == user)
+        lease = _own_comment(path, LEASE, lambda x: x["user"].lower() == user.lower(), author=user)
         if lease:
             minutes = float(sess_cfg.get("lease_minutes", 45))
             until = now + timedelta(minutes=minutes)
@@ -3205,7 +3278,10 @@ def cmd_beat(config: dict, session: str | None, item: str | None, job: str | Non
                 until = end + timedelta(minutes=15)
             text = LEASE.sub(f"<!-- colab-lease user={user} until={_iso(until)} -->", lease["body"])
             _gh_send("PATCH", f"repos/{m['repo']}/issues/comments/{lease['id']}", {"body": text})
-    state_file.write_text(json.dumps({"at": now.isoformat(), "user": user, "job": job, "item": item}))
+    state = {"at": now.isoformat(), "user": user, "job": job, "item": item}
+    if issue and user and comment_id:
+        state["comment_id"] = comment_id  # the session's own comment: edited in place next time, no search
+    state_file.write_text(json.dumps(state))
     return 0
 
 
@@ -3444,14 +3520,9 @@ def item_security(config: dict, item: str, gh=None) -> dict:
 
 
 def claimants_from(comments: list[dict]) -> set[str]:
-    """Who claimed an item: the users named in its lease markers and the authors of those comments."""
-    out = set()
-    for c in comments:
-        found = list(LEASE.finditer(c.get("body") or ""))
-        if found:
-            out |= {m["user"].lower() for m in found}
-            out.add(str((c.get("user") or {}).get("login") or "").lower())
-    return out - {""}
+    """Who claimed an item: authors of comments holding a lease marker in their own name. A marker naming someone
+    else is forged and ignored, so nobody can exclude a steward from clearing by typing their name into a lease."""
+    return {_author(c) for c in comments if own_lease_markers(c)} - {""}
 
 
 def item_claimants(item: str, gh=None) -> set[str]:
@@ -4390,7 +4461,7 @@ def org_match(c: dict, ctx: dict, home: str) -> bool:
     return key in set(ctx.get("repos") or []) or (c.get("repo", "").split("/")[0].lower() in set(ctx.get("orgs") or []))
 
 
-def pick_next(cands: list[dict], comments: dict[str, list[str]], blocked: dict[str, bool],
+def pick_next(cands: list[dict], comments: dict[str, list[dict]], blocked: dict[str, bool],
               now: datetime | None = None, limit: int = 10, me: str | None = None,
               contexts: list[tuple[str, object]] | None = None, home: str | None = None) -> list[dict]:
     """Drop items with an open blocker or someone else's live lease, then order them by context.
@@ -4470,11 +4541,11 @@ def cmd_next(config: dict, items_path: Path | None, limit: int, me: bool = False
             lab = resolve_context(config, group="lab", fetch=fetch)
             contexts.append(("group", lambda c, u: group_match(c, lab)))
     cands = candidates(items)
-    comments: dict[str, list[str]] = {}
+    comments: dict[str, list[dict]] = {}
     blocked: dict[str, bool] = {}
     for c in cands[: limit * 3]:
         path = f"repos/{c['repo']}/issues/{c['number']}"
-        comments[c["url"]] = [x.get("body", "") for x in (_gh_json(["api", f"{path}/comments?per_page=100"]) or [])]
+        comments[c["url"]] = recent_comments(path)
         blockers = _gh_json(["api", f"{path}/dependencies/blocked_by"]) or []
         blocked[c["url"]] = any(b.get("state") == "open" for b in blockers if isinstance(b, dict))
     picks = pick_next(cands[: limit * 3], comments, blocked, limit=limit, me=login or None, contexts=contexts, home=home)

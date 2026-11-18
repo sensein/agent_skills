@@ -293,8 +293,21 @@ class LeaseTests(unittest.TestCase):
     def test_lease_roundtrip_and_expiry(self) -> None:
         t0 = datetime(2026, 11, 9, 12, tzinfo=timezone.utc)
         marker = colab.compose_lease("someone", hours=4, now=t0)
-        self.assertEqual(colab.live_lease([marker], now=t0 + timedelta(hours=1))["user"], "someone")
-        self.assertIsNone(colab.live_lease([marker], now=t0 + timedelta(hours=5)))
+        own = {"body": marker, "user": {"login": "Someone"}}
+        self.assertEqual(colab.live_lease([own], now=t0 + timedelta(hours=1))["user"], "someone")
+        self.assertIsNone(colab.live_lease([own], now=t0 + timedelta(hours=5)))
+
+    def test_forged_lease_marker_is_ignored(self) -> None:
+        t0 = datetime(2026, 11, 9, 12, tzinfo=timezone.utc)
+        forged = {"body": colab.compose_lease("someone", hours=4, now=t0), "user": {"login": "mallory"}}
+        self.assertIsNone(colab.live_lease([forged], now=t0 + timedelta(hours=1)))
+        self.assertIsNone(colab.live_lease([forged["body"]], now=t0 + timedelta(hours=1)))  # no author: never counts
+        self.assertEqual(colab.claimants_from([forged]), set())
+        own = {"body": colab.compose_lease("Bob", now=t0), "user": {"login": "bob"}}  # case-insensitive
+        self.assertEqual(colab.claimants_from([forged, own]), {"bob"})
+        cands = [{"url": "u1", "number": 1, "repo": "sensein/p"}]
+        picked = colab.pick_next(cands, {"u1": [forged]}, {}, now=t0 + timedelta(hours=1))
+        self.assertEqual([c["number"] for c in picked], [1])  # a forged lease does not hide the item
 
 
 class FormsAndSeedTests(unittest.TestCase):
@@ -1268,7 +1281,8 @@ class NextTests(unittest.TestCase):
         self.assertEqual([c["number"] for c in cands], [1, 5, 6])
         t0 = datetime(2026, 11, 10, tzinfo=timezone.utc)
         lease = colab.compose_lease("someone", now=t0)
-        picked = colab.pick_next(cands, {"u1": [lease]}, {"u5": True}, now=t0 + timedelta(hours=1))
+        picked = colab.pick_next(cands, {"u1": [{"body": lease, "user": {"login": "someone"}}]}, {"u5": True},
+                                 now=t0 + timedelta(hours=1))
         self.assertEqual([c["number"] for c in picked], [6])
 
 
@@ -2323,7 +2337,6 @@ class SecurityCommandTests(unittest.TestCase):
         cases = {
             "assignee": (FakeGhJson(assignees=["S2"]), "s2", 2),
             "claimant": (FakeGhJson(comments=[gate_comment(), lease]), "s2", 2),
-            "claimant named in a lease marker": (FakeGhJson(comments=[gate_comment(), gate_comment(body=colab.compose_lease("s2"), by="x", cid=6)]), "s2", 2),
             "not a steward": (FakeGhJson(), "lead-person", 2),
             "nothing flagged now": (FakeGhJson(comments=[]), "s2", 2),
             "meta config unreadable": (FakeGhJson(meta_config=None), "s2", 1),
@@ -2339,6 +2352,11 @@ class SecurityCommandTests(unittest.TestCase):
         self.assertEqual(rc, 2)  # the meta repo's audit issue counts, never a local one
         rc, _, _, err = self._run("clear", "s2", reason="see /" + "orcd/data/x/y")
         self.assertEqual((rc, "leak-scan" in err), (1, True))
+
+    def test_forged_lease_marker_does_not_exclude_a_steward(self) -> None:
+        forged = gate_comment(body=colab.compose_lease("s2"), by="x", cid=6)  # x types s2's name into a lease
+        rc, _, _, err = self._run("clear", "s2", gh=FakeGhJson(comments=[gate_comment(), forged]))
+        self.assertEqual(rc, 0, err)
 
     def test_clear_needs_a_person_at_a_terminal(self) -> None:
         import io
@@ -3057,8 +3075,8 @@ class ContextTests(unittest.TestCase):
                  item(6, ["b"]), item(7, repo="pi-lab/tool"), item(8)]
         cands = colab.candidates(items)
         t0 = datetime(2026, 11, 10, tzinfo=timezone.utc)
-        mine_lease = colab.compose_lease("satra", now=t0)
-        other_lease = colab.compose_lease("b", now=t0)
+        mine_lease = {"body": colab.compose_lease("satra", now=t0), "user": {"login": "satra"}}
+        other_lease = {"body": colab.compose_lease("b", now=t0), "user": {"login": "b"}}
         lab = {"logins": ["a", "b", "satra"], "external": False}
         contexts = [("personal", lambda c, u: colab.personal_match(c, "satra", u)),
                     ("group", lambda c, u: colab.group_match(c, lab))]
