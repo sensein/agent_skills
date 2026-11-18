@@ -8,7 +8,7 @@ Everything works through **your own GitHub sign-in**, used by your assistant whe
 
 Every lab-colab function today runs `colab.py`, which needs the GitHub tool (`gh`) signed in as you and Python 3.11 or newer. The Claude app on its own (a GitHub connector, no terminal) has neither, so it cannot sync the board, read your inbox, claim, or run the safety check. An app-only mode is future work.
 
-Until then, use **Claude Code**, either on your laptop or on ORCD through remote control (you can drive an ORCD session from the Claude app or the browser; the work runs on the cluster). On ORCD, `python3.11` is installed system-wide (`/usr/bin/python3.11`), but `gh` is not: a check on 2026-11-18 (`command -v gh`) found only a copy a member had installed in `~/.local/bin`. Install your own without root: download the `linux_amd64` tarball from https://github.com/cli/cli/releases, unpack it, and copy `bin/gh` into `~/.local/bin` (which should be on your `PATH`). The steps are in the next section.
+Until then, use **Claude Code**, either on your laptop or on ORCD through remote control (you can drive an ORCD session from the Claude app or the browser; the work runs on the cluster). On ORCD, `python3.11` is installed system-wide (`/usr/bin/python3.11`), but `gh` is not installed system-wide. Install your own without root: download the `linux_amd64` tarball and the `checksums.txt` file from https://github.com/cli/cli/releases, check the tarball with `sha256sum -c --ignore-missing checksums.txt`, unpack it, and copy `bin/gh` into `~/.local/bin` (which should be on your `PATH`).
 
 What working this way looks like, once set up:
 
