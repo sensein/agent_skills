@@ -1269,24 +1269,55 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(colab.merge_hooks(settings, colab.hook_command("/c", "py", SKILL)), ["PostToolUse"])
         self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["command"], hand)
 
-    def test_dead_or_moved_beat_hook_is_rewritten_in_place(self) -> None:
+    def test_dead_beat_hook_is_rewritten_in_place_keeping_its_config(self) -> None:
         new = colab.hook_command("/c", "py", SKILL)
-        for old in ("python3 /x/colab.py beat --from-hook",  # the path no longer exists
-                    "COLAB_CONFIG=/c py /home/u/.claude/plugins/cache/lab-colab~g2/scripts/colab.py beat --from-hook"):
+        for old, cfg in (("python3 /x/colab.py beat --from-hook", "/c"),  # the path no longer exists
+                         ("COLAB_CONFIG=/lab2/cfg.toml py /home/u/.claude/plugins/cache/lab-colab~g2/scripts/colab.py beat "
+                          "--from-hook", "/lab2/cfg.toml")):
             settings = {"hooks": {"Stop": [{"matcher": "*", "hooks": [{"type": "command", "command": old, "timeout": 30}]}],
                                   "PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": old}]}]}}
             self.assertEqual(colab.merge_hooks(settings, new), ["PostToolUse", "Stop"])
             for event in ("Stop", "PostToolUse"):
                 self.assertEqual(len(settings["hooks"][event]), 1)  # updated in place, not added
-                self.assertEqual(settings["hooks"][event][0]["hooks"][0]["command"], new)
+                got = settings["hooks"][event][0]["hooks"][0]["command"]
+                self.assertIn(f"{SKILL}/scripts/colab.py beat", got)
+                self.assertTrue(got.startswith(f"COLAB_CONFIG={cfg} "), got)  # its own config is kept
             self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["timeout"], 30)
             self.assertEqual(colab.merge_hooks(settings, new), [])  # idempotent once current
-        with tempfile.TemporaryDirectory() as tmp:  # a different colab.py that exists (another checkout) is repointed too
+
+    def test_a_different_existing_colab_py_is_left_alone(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        with tempfile.TemporaryDirectory() as tmp:  # a second checkout serving another config
             other = Path(tmp) / "scripts" / "colab.py"
             other.parent.mkdir()
             other.write_text("")
-            settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": f"py {other} beat"}]}] for e in colab.HOOK_EVENTS}}
-            self.assertEqual(sorted(colab.merge_hooks(settings, new)), sorted(colab.HOOK_EVENTS))
+            cmd = f"COLAB_CONFIG=/lab2 py {other} beat"
+            settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}] for e in colab.HOOK_EVENTS}}
+            self.assertEqual(colab.merge_hooks(settings, new), [])
+            self.assertEqual(settings["hooks"]["Stop"][0]["hooks"][0]["command"], cmd)
+            self.assertEqual(colab.other_beat_scripts(settings, new), [str(other)])
+
+    def test_quoted_and_env_var_paths(self) -> None:
+        new = colab.hook_command("/c", "py", SKILL)
+        with tempfile.TemporaryDirectory() as tmp:
+            spaced = Path(tmp) / "my skills" / "scripts" / "colab.py"
+            spaced.parent.mkdir(parents=True)
+            spaced.write_text("")
+            for cmd in (f'py "{spaced}" beat --from-hook', f"py '{spaced}' beat --from-hook"):
+                self.assertEqual(colab.beat_script(cmd), str(spaced))
+                settings = {"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}] for e in colab.HOOK_EVENTS}}
+                self.assertEqual(colab.merge_hooks(settings, new), [])  # recognised: no duplicate appended
+                self.assertEqual(len(settings["hooks"]["Stop"]), 1)
+            from unittest import mock
+            import os
+            plain = Path(tmp) / "s" / "scripts" / "colab.py"
+            plain.parent.mkdir(parents=True)
+            plain.write_text("")
+            with mock.patch.dict(os.environ, {"HOME": tmp}):
+                self.assertTrue(colab.beat_hook_live('py "$HOME/my skills/scripts/colab.py" beat'))
+                self.assertTrue(colab.beat_hook_live('py "${HOME}/my skills/scripts/colab.py" beat'))
+                self.assertTrue(colab.beat_hook_live("py $HOME/s/scripts/colab.py beat --from-hook"))
+                self.assertTrue(colab.beat_hook_live("py ~/s/scripts/colab.py beat --from-hook"))
 
     def test_setup_check_and_install_repoint_a_dead_hook(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1310,6 +1341,25 @@ class SetupTests(unittest.TestCase):
                 self.assertIn(f"{SKILL}/scripts/colab.py beat", entry["hooks"][0]["command"])
             checks, rc = self.run_setup(home, env={"COLAB_CONFIG": str(cfg)})
             self.assertEqual(self.by_name(checks)["hooks"]["status"], "ok")
+
+    def test_setup_reports_a_hook_on_a_different_colab_py(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.cfg_file(tmp)
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            other = Path(tmp) / "other" / "scripts" / "colab.py"
+            other.parent.mkdir(parents=True)
+            other.write_text("")
+            cmd = f"COLAB_CONFIG=/lab2 py {other} beat --from-hook"
+            settings = home / ".claude" / "settings.json"
+            settings.write_text(json.dumps({"hooks": {e: [{"hooks": [{"type": "command", "command": cmd}]}]
+                                                      for e in colab.HOOK_EVENTS}}))
+            before = settings.read_text()
+            checks, rc = self.run_setup(home, cfg=cfg, install=True)
+            hooks = self.by_name(checks)["hooks"]
+            self.assertEqual(hooks["status"], "ok")
+            self.assertIn(str(other), hooks["note"])
+            self.assertEqual(settings.read_text(), before)  # left alone
 
     def test_admin_org_covers_read_org(self) -> None:
         self.assertIn("read:org", colab.effective_scopes(["admin:org"]))
@@ -2367,6 +2417,8 @@ class FakeGhJson:
         path = args[1] if len(args) > 1 else ""
         if path.startswith("orgs/sensein/members/"):
             return {} if path.rsplit("/", 1)[-1] in self.members else None
+        if re.search(r"/issues/\d+/comments\?", path):  # REST comment pages (lease markers): none, readable
+            return [] if self.readable else None
         return None
 
 
