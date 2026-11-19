@@ -31,6 +31,11 @@ Usage:
     # cheap pre-flight: build everything, make no LLM calls
     python run_local_review.py --protocol protocol.json --corpus corpus.json --dry-run
 
+Before any LLM call the corpus is gated: duplicate studies (matched on content)
+or a DOI/PMID that belongs to another paper stop the run (exit 1;
+``--allow-citation-errors`` to proceed). After export the review's citations
+are verified (``<base>.citations.md``); errors exit 1.
+
     # blank provenance file to fill in
     python run_local_review.py --print-provenance-template > search_provenance.json
 
@@ -46,9 +51,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vendor  # noqa: E402,F401  (the skill's own synthscholar copy, first)
+
 # Sibling helper — the single export surface for both BYO-corpus paths.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from export_review import ALL_FORMATS, write_exports  # noqa: E402
+from export_review import ALL_FORMATS, check_citations, citation_outcome, write_exports  # noqa: E402
+from build_corpus import citation_gate, report_duplicates  # noqa: E402
 
 # Corpus keys that are skill bookkeeping, not Article fields.
 _INTERNAL_PREFIX = "_"
@@ -326,7 +335,22 @@ async def run(args: argparse.Namespace) -> int:
     articles = build_articles(corpus)
     protocol = build_protocol(args.protocol, provenance)
     queries = describe_searches(provenance)
-    flow = build_flow(articles, provenance)
+    flow = build_flow(articles, provenance)     # identification counts every supplied entry
+
+    # Full text only: a study whose report could not be read cannot be screened
+    # on eligibility, charted, appraised or quoted, so it is a report not
+    # retrieved (PRISMA 2020), never a study judged on its abstract.
+    unreadable = [a for a in articles if not (a.full_text or "").strip()]
+    articles = [a for a in articles if (a.full_text or "").strip()]
+    if unreadable:
+        print(f"Full text: {len(unreadable)} entr{'y has' if len(unreadable) == 1 else 'ies have'} no "
+              "extracted text — counted as reports not retrieved and left out of screening: "
+              + ", ".join(a.pmid for a in unreadable[:8]) + (" …" if len(unreadable) > 8 else ""))
+        print("  OCR a scanned PDF, or fetch the paper (fetch_ezproxy.py), and rebuild the corpus "
+              "to include it.")
+    if not articles:
+        print("ERROR: no corpus entry has full text; there is nothing to review.", file=sys.stderr)
+        return 2
 
     n_ft = sum(1 for a in articles if (a.full_text or "").strip())
     print(f"Corpus:   {len(articles)} articles ({n_ft} with extracted full text)")
@@ -353,6 +377,28 @@ async def run(args: argparse.Namespace) -> int:
     if missing:
         print(f"  WARN  {len(missing)} article(s) have neither abstract nor full text "
               f"and will screen out: {', '.join(missing[:5])}")
+
+    # Corpus gate, before any LLM spend: the review is written around whatever
+    # metadata each entry carries, so a guessed DOI that belongs to another
+    # paper, or one study supplied twice, is caught here or not at all.
+    items = corpus.get("items", corpus if isinstance(corpus, list) else [])
+    blocked = []
+    if report_duplicates(items):
+        blocked.append("duplicate studies")
+    if args.skip_citation_check:
+        print("  WARN  corpus identifiers NOT verified (--skip-citation-check)")
+    else:
+        verdict = citation_gate(items, Path(args.corpus).with_suffix(""), args.offline_citations)
+        if verdict != "PASS":
+            blocked.append("citation errors" if verdict == "FAIL" else "unverified identifiers")
+    if blocked:
+        if args.allow_citation_errors:
+            print(f"  WARN  proceeding despite {' and '.join(blocked)} (--allow-citation-errors)")
+        else:
+            print(f"\n✗ Corpus has {' and '.join(blocked)} — fix corpus.json and re-run "
+                  "(build_corpus.py --check), or pass --allow-citation-errors if the "
+                  "user accepts them.", file=sys.stderr)
+            return 1
 
     if args.dry_run:
         print("\n--dry-run: no LLM calls made. Everything above is what would be run.")
@@ -431,6 +477,16 @@ async def run(args: argparse.Namespace) -> int:
     overridden = apply_user_flow(result.flow, provenance)
     if overridden:
         print(f"Flow: user-declared counts applied for {', '.join(overridden)}")
+    if unreadable:
+        # supplied but unreadable reports: sought, not retrieved, never assessed
+        if "sought_fulltext" not in overridden:
+            result.flow.sought_fulltext += len(unreadable)
+        result.flow.not_retrieved += len(unreadable)
+        Path(args.outdir).mkdir(parents=True, exist_ok=True)
+        (Path(args.outdir) / f"{args.base}.not-retrieved.json").write_text(json.dumps(
+            {"reason": "no extracted full text; a study cannot be evaluated on its abstract",
+             "reports": [{"pmid": a.pmid, "title": a.title, "doi": a.doi} for a in unreadable]},
+            indent=2) + "\n", encoding="utf-8")
 
     # Re-stamp so per-group / post-run invocations are included.
     collector.stamp(result)
@@ -438,6 +494,12 @@ async def run(args: argparse.Namespace) -> int:
     themes = json.loads(Path(args.rq_themes).read_text(encoding="utf-8")) if args.rq_themes else None
     written = write_exports(result, args.outdir, args.formats, base=args.base,
                             rq_themes=themes)
+    # the page map travels with the review: page-level evidence is checked against it
+    pages = Path(args.corpus).with_name(f"{Path(args.corpus).stem}.pages.json")
+    if pages.is_file():
+        dest = Path(args.outdir) / f"{args.base}.pages.json"
+        dest.write_bytes(pages.read_bytes())
+        written.append(str(dest))
     f = result.flow
     print(f"\nIncluded {len(result.included_articles)} of {len(articles)} articles.")
     print(f"Full text:  {f.full_text_retrieved} of {f.sought_fulltext} available"
@@ -460,7 +522,11 @@ async def run(args: argparse.Namespace) -> int:
         print("\nProvenance is still incomplete — add the search strategy with:\n"
               f"  python update_provenance.py {args.outdir}/{args.base}.json "
               "--provenance search_provenance.json --outdir " + str(args.outdir))
-    return 0
+    if args.skip_citation_check:
+        print("\nCitations NOT verified (--skip-citation-check).")
+        return 0
+    return citation_outcome(check_citations(result, args.outdir, args.base,
+                                            offline=args.offline_citations))
 
 
 def main() -> int:
@@ -487,6 +553,13 @@ def main() -> int:
                     choices=["paragraph", "bullet"], help="synthesis prose style")
     ap.add_argument("--no-per-group", action="store_true",
                     help="skip the per-group analysis pass")
+    ap.add_argument("--skip-citation-check", action="store_true",
+                    help="don't verify identifiers (before the run) or citations (after)")
+    ap.add_argument("--offline-citations", action="store_true",
+                    help="verify without registry lookups: identifier syntax and in-text only")
+    ap.add_argument("--allow-citation-errors", action="store_true",
+                    help="run even when the corpus has duplicates, identifier errors or "
+                         "unverified identifiers")
     ap.add_argument("--dry-run", action="store_true",
                     help="build corpus/protocol/flow and report, without LLM calls")
     ap.add_argument("--print-provenance-template", action="store_true",
@@ -507,13 +580,12 @@ def main() -> int:
     try:
         import synthscholar  # noqa: F401
     except ImportError as e:
-        print(f"synthscholar is not importable ({e}). "
-              "`pip install 'synthscholar[fulltext]'`", file=sys.stderr)
+        print(f"synthscholar is not importable ({e}): the skill's own copy is vendor/synthscholar (vendor/VENDORED.md); install its libraries with `pip install -r requirements.txt`.", file=sys.stderr)
         return 2
 
-    # This path drives the app's own pipeline, so it needs the whole-document
-    # reading and screening-basis work — not just the released package. Checked
-    # by feature rather than version, and before any LLM spend.
+    # This path drives the pipeline (the skill's vendored copy), which must have
+    # the whole-document reading and screening-basis work. Checked by feature
+    # rather than version, and before any LLM spend.
     from export_review import _require_synthscholar
     _require_synthscholar()
     try:
@@ -521,8 +593,17 @@ def main() -> int:
     except ImportError:
         print("The installed synthscholar has no synthscholar/text_windows.py, so "
               "evidence extraction would read only the opening pages of each "
-              "article. Install the development checkout:\n"
-              "  pip install -e /path/to/prisma-review-agent", file=sys.stderr)
+              "article. The skill's own copy (vendor/synthscholar) has it: restore "
+              "the skill folder (vendor/VENDORED.md).", file=sys.stderr)
+        return 3
+    # The app scores every span as grounded when rapidfuzz is missing; the skill
+    # does not run the pipeline in that state.
+    try:
+        import rapidfuzz  # noqa: F401
+    except ImportError:
+        print("rapidfuzz is not installed. Without it the app's evidence-span filter cannot check "
+              "spans and accepts every one as grounded, so extraction does not run. Install it "
+              "(pip install 'rapidfuzz>=3.0'; see check_deps.py) and re-run.", file=sys.stderr)
         return 3
 
     return asyncio.run(run(args))

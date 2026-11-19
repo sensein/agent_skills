@@ -18,10 +18,20 @@ What a SynthScholar review needs beyond a plain pandoc call:
   only a log line. On TeX engines the script picks an installed font that
   covers the characters the review actually uses (``fc-list``), maps
   ``✓ ✗ ⚠`` to TeX symbols, and reports any glyph still missing.
-* **Citation gate.** If ``verify_citations.py`` has been run
-  (``<stem>.citations.json`` next to the Markdown, or ``--citations``) and
-  found errors, or its report is older than the Markdown, the build stops.
-  ``--allow-citation-errors`` overrides; with no report at all it warns.
+* **Citation gate.** The PDF is built only from a manuscript whose citation
+  report (``<md stem>.citations.json``, or ``--citations``) says **PASS** and
+  whose recorded SHA-256 hashes still match the Markdown, ``<stem>.json`` and
+  ``<stem>.manuscript.json``. A missing or stale report is regenerated first
+  (``verify_citations.py`` in manuscript mode, so the Discussion and other
+  prose authored after the export are checked too). FAIL or INCOMPLETE
+  (offline, failed lookups, references with no identifier) stops the build;
+  ``--allow-citation-errors`` builds anyway and prints an "unverified" notice
+  on the first page.
+* **Grounding gate.** The same for ``audit_grounding.py``: evidence spans found
+  in the source text, every substantive claim judged with verbatim quotes and
+  sourced numbers, flow counts and percentages reconciled, version changes
+  re-extracted, overlapping reports resolved. Only PASS, for exactly these
+  inputs, builds; ``--allow-ungrounded`` builds with a notice.
 * **Verified reference list.** ``--references vancouver`` swaps the review's
   References list for ``<stem>.references.vancouver.md``, the list
   ``verify_citations.py --style vancouver`` rendered from registry metadata.
@@ -50,6 +60,7 @@ Needs ``pandoc`` and one engine; stdlib only otherwise.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -57,6 +68,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 import urllib.error
 import urllib.request
@@ -424,40 +436,202 @@ def _norm_title(s: str) -> str:
 
 
 def base_stem(md: Path) -> str:
-    """``review.manuscript.md`` → ``review``: the manuscript shares the review's siblings."""
-    return md.stem[:-len(".manuscript")] if md.stem.endswith(".manuscript") else md.stem
+    """``review.manuscript.md`` / ``review.delivered.md`` → ``review``: they share the review's siblings."""
+    stem = md.stem
+    for suffix in (".manuscript", ".delivered"):
+        if stem.endswith(suffix):
+            stem = stem[:-len(suffix)]
+    return stem
 
 
-def citation_gate(md: Path, report: Optional[Path], allow: bool) -> Optional[str]:
-    """Refusal message if the citation report has errors or predates ``md``."""
-    report = report or md.with_name(f"{base_stem(md)}.citations.json")
-    if not report.is_file():
-        print(f"  warning: {report} not found — citations unverified; run "
-              f"verify_citations.py on {base_stem(md)}.json first (or point --citations at its report)",
-              file=sys.stderr)
-        return None
+RELEASE_SIDECARS = ("json", "claims.json", "evidence-ledger.json", "studies.json", "revalidation.json",
+                    "extraction.json", "pages.json", "grounding.json", "grounding.md", "ungrounded.json",
+                    "references.apa.md", "references.vancouver.md", "references.nature.md", "references.ieee.md")
+
+
+def release(md: Path, delivered: Path, pdf: Optional[Path], notice: Optional[str]) -> Path:
+    """Save this delivery as a new numbered version; never overwrite an earlier one.
+
+    ``releases/<stem>-vN/`` holds the delivered manuscript (the exact text that
+    passed the gates), the PDF when one was built, the citation and grounding
+    reports, the ledgers and the review JSON they were checked against, and
+    ``manifest.json``: each file's SHA-256, both verdicts, any override used,
+    and the previous version's manifest hash, so the versions form a chain.
+    A delivery built with an override is saved too, marked ``-UNVERIFIED``.
+    """
+    stem = base_stem(md)
+    root = md.parent / "releases"
+    root.mkdir(exist_ok=True)
+    nums = [int(m.group(1)) for d in root.iterdir()
+            if (m := re.match(rf"{re.escape(stem)}-v(\d+)(?:-UNVERIFIED)?$", d.name))]
+    n = max(nums, default=0) + 1
+    prev = sorted((d for d in root.iterdir() if re.match(rf"{re.escape(stem)}-v{n - 1}(?:-UNVERIFIED)?$", d.name)),
+                  key=lambda d: d.name)
+    dest = root / f"{stem}-v{n}{'-UNVERIFIED' if notice else ''}"
+    dest.mkdir()
+    files = {f"{stem}.manuscript.md": delivered,
+             f"{delivered.stem}.citations.json": delivered.with_name(f"{delivered.stem}.citations.json"),
+             f"{delivered.stem}.citations.md": delivered.with_name(f"{delivered.stem}.citations.md")}
+    if pdf is not None and pdf.is_file():
+        files[f"{stem}.pdf"] = pdf
+    for suffix in RELEASE_SIDECARS:
+        files[f"{stem}.{suffix}"] = md.with_name(f"{stem}.{suffix}")
+    manifest_files = {}
+    for name, src in files.items():
+        if src.is_file():
+            shutil.copy2(src, dest / name)
+            manifest_files[name] = hashlib.sha256((dest / name).read_bytes()).hexdigest()
+
+    def verdict(name: str) -> Optional[str]:
+        try:
+            return json.loads((dest / name).read_text(encoding="utf-8"))["summary"]["verdict"]
+        except (OSError, ValueError, KeyError):
+            return None
+
+    prev_manifest = prev[-1] / "manifest.json" if prev else None
+    manifest = {
+        "review": stem, "version": n,
+        "released_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "verified": not notice,
+        "citations_verdict": verdict(f"{delivered.stem}.citations.json"),
+        "grounding_verdict": verdict(f"{stem}.grounding.json"),
+        "override_notice": notice or "",
+        "pdf": f"{stem}.pdf" if f"{stem}.pdf" in manifest_files else None,
+        "files": manifest_files,
+        "previous_version": prev[-1].name if prev else None,
+        "previous_manifest_sha256": hashlib.sha256(prev_manifest.read_bytes()).hexdigest()
+        if prev_manifest and prev_manifest.is_file() else None,
+    }
+    (dest / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"Released v{n}{' (UNVERIFIED)' if notice else ''}: {dest}", file=sys.stderr)
+    return dest
+
+
+def prepare_delivery(md: Path, family: str, references: Optional[str],
+                     include: list[str]) -> tuple[Path, str]:
+    """Write ``<stem>.delivered.md``: exactly the text the PDF will carry.
+
+    The gates run on this, not on the manuscript, because the build adds to the
+    manuscript — the styled reference list (``--references``) and the sidecar
+    appendices (``--include``). Each appendix is marked with its file's hash so
+    the grounding audit can check it is what the exporter renders from the
+    current review. ``_build`` re-assembles and refuses if the text differs.
+    """
+    text = assemble(md, family, references, include, None)[0]
+    dest = md.with_name(f"{base_stem(md)}.delivered.md")
+    if not dest.is_file() or dest.read_text(encoding="utf-8") != text:
+        dest.write_text(text, encoding="utf-8")
+    return dest, text
+
+
+def grounding_gate(md: Path, allow: bool, run: bool = True) -> tuple[Optional[str], Optional[str]]:
+    """``(refusal, notice)`` from ``audit_grounding.py`` over the delivered ``md``.
+
+    Builds only when the grounding audit — evidence spans in the source, every
+    substantive claim judged with real quotes and sourced numbers, flow and
+    percentages reconciled, version changes re-extracted, overlapping reports
+    resolved — is PASS for exactly these inputs. A stale report is re-run here
+    (it is local and deterministic). ``allow`` builds anyway with a notice.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
-        summary = json.loads(report.read_text(encoding="utf-8")).get("summary") or {}
-    except (OSError, json.JSONDecodeError) as e:
-        return f"{report.name} is unreadable ({e}); re-run verify_citations.py"
-    problems = []
-    # The report verifies the review JSON's references; a manuscript re-assembled
-    # from the same JSON is not new citations. Compare against the JSON when present.
-    basis = md.with_name(f"{base_stem(md)}.json")
-    basis = basis if basis.is_file() else md
-    if report.stat().st_mtime < basis.stat().st_mtime:
-        problems.append(f"{report.name} is older than {basis.name} — it describes an earlier "
-                        "export; re-run verify_citations.py on the re-exported review.json")
-    errors = int(summary.get("errors") or 0)
-    if errors:
-        codes = ", ".join(f"{k} {v}" for k, v in (summary.get("by_code") or {}).items())
-        problems.append(f"{report.name} reports {errors} citation error(s) ({codes})")
-    if problems and not allow:
+        import audit_grounding as ag
+        import verify_citations as vc
+    except ImportError as e:
+        problem = f"grounding cannot be audited here ({e})"
+        return (None, f"Grounding not audited: {problem}.") if allow else (problem, None)
+    review_json = vc.review_for_markdown(md)
+    if not review_json:
+        problem = f"no review JSON beside {md.name}: its claims cannot be traced to evidence"
+    else:
+        rep = ag.is_current(review_json)
+        if rep is None or rep.get("delivered") != str(md.resolve()):
+            if not run:
+                rep = None
+            else:
+                print(f"  auditing grounding of {md.name}", file=sys.stderr)
+                rep = ag.audit(review_json, md)
+                ag.write(rep, review_json)
+        if rep is None:
+            problem = f"{review_json.stem}.grounding.json is missing or stale — run audit_grounding.py"
+        else:
+            s = rep["summary"]
+            problem = None if s["verdict"] == "PASS" else (
+                f"grounding audit {s['verdict']} — {s['errors']} error(s), {s['unresolved']} "
+                f"unresolved ({', '.join(f'{k} {v}' for k, v in list(s['by_code'].items())[:6])}); "
+                f"see {review_json.stem}.grounding.md")
+    if not problem:
+        return None, None
+    if not allow:
+        return (problem + "\n  Resolve it (references/validation.md), or pass --allow-ungrounded "
+                "to build a PDF marked as not grounding-audited."), None
+    print(f"  warning: building anyway — {problem}", file=sys.stderr)
+    return None, f"Grounding not verified: {problem}. Built with --allow-ungrounded."
+
+
+def citation_gate(md: Path, report: Optional[Path], allow: bool,
+                  verify: bool = True) -> tuple[Optional[str], Optional[str]]:
+    """``(refusal, notice)`` for building ``md``: the release gate.
+
+    Builds only on a citation report whose verdict is PASS and whose recorded
+    input hashes still match the manuscript, the review JSON and the authored
+    ``<stem>.manuscript.json``. A missing or stale report is regenerated here
+    (``verify_citations.py`` in manuscript mode, so prose written after the
+    export is checked too) when ``verify``; anything else — FAIL, INCOMPLETE,
+    unverifiable — refuses. ``allow`` builds anyway and returns a ``notice``
+    the PDF prints, so an unverified document never looks like a verified one.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import verify_citations as vc
+    except ImportError as e:
+        problems = [f"citations cannot be verified here ({e}; `pip install httpx`)"]
+        vc = None
+    else:
+        problems = []
+    report = report or md.with_name(f"{md.stem}.citations.json")
+    review_json = vc.review_for_markdown(md) if vc else None
+    data = None
+    if vc:
+        try:
+            data = json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None
+        except (OSError, json.JSONDecodeError):
+            data = None
+        stale = vc.stale_inputs(data) if data else ["(no report)"]
+        if data and str(md.resolve()) not in (data.get("inputs") or {}):
+            stale.append(f"(report does not cover {md.name})")
+        if stale and verify:
+            print(f"  verifying citations of {md.name}"
+                  + (f" against {review_json.name}" if review_json else "")
+                  + (" — the report is missing" if not data else
+                     f" — the report is stale: {', '.join(Path(x).name for x in stale[:4])}"),
+                  file=sys.stderr)
+            review = json.loads(review_json.read_text(encoding="utf-8")) if review_json else None
+            data = vc.gate(review, report.with_name(report.name[:-len(".citations.json")]),
+                           manuscript=md.read_text(encoding="utf-8"),
+                           catalog=vc.load_catalog(review_json),
+                           inputs=vc.manuscript_inputs(md, review_json))
+        elif stale:
+            problems.append(f"{report.name} is missing or stale — run verify_citations.py {md.name}")
+    if data:
+        s = data.get("summary") or {}
+        verdict = s.get("verdict") or "INCOMPLETE"
+        if verdict == "FAIL":
+            codes = ", ".join(f"{k} {v}" for k, v in (s.get("by_code") or {}).items())
+            problems.append(f"{report.name}: FAIL — {s.get('errors')} citation error(s) ({codes})")
+        elif verdict != "PASS":
+            problems.append(f"{report.name}: {verdict} — {len(s.get('unverified') or [])} "
+                            "reference(s) could not be checked"
+                            + (" (offline run)" if data.get("offline") else ""))
+    if not problems:
+        return None, None
+    if not allow:
         return ("\n  ".join(problems) + "\n  Fix them (see references/citation_verification.md) "
-                "and re-export, or pass --allow-citation-errors to build anyway.")
+                "and rebuild, or pass --allow-citation-errors to build an unverified PDF."), None
     for p in problems:
         print(f"  warning: building anyway — {p}", file=sys.stderr)
-    return None
+    return None, ("Citations not verified: " + "; ".join(problems)
+                  + ". This PDF was built with --allow-citation-errors.")
 
 
 def image_size(path: Path) -> Optional[tuple[float, float]]:
@@ -700,8 +874,11 @@ def assemble(md: Path, family: str, references: Optional[str],
         if side_hs and _norm_title(side_hs[0][1]) in present:
             notes.append(f"skipped {side.name} (already in {md.name} as “{side_hs[0][1]}”)")
             continue
-        # Sidecars open with "# …": a top-level section, like the review's own.
-        text += "\n" + PAGE_BREAK + "\n" + side_text + "\n"
+        # Sidecars open with "# …": a top-level section, like the review's own. The
+        # marker (an HTML comment: no engine prints it) lets the audit verify it.
+        sha = hashlib.sha256(side.read_bytes()).hexdigest()
+        text += ("\n" + PAGE_BREAK + "\n" + f"<!-- sidecar: {side.name} sha256={sha} -->\n"
+                 + side_text + "\n")
         notes.append(f"appendix: {side.name}")
     if flow_image is not None:
         text, placed = insert_flow_diagram(text, flow_image)
@@ -881,6 +1058,8 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
                  toc: Optional[bool] = None, number_sections: bool = False,
                  pdf_engine: Optional[str] = None, bibliography: Optional[str] = None,
                  citations: Optional[str] = None, allow_citation_errors: bool = False,
+                 allow_ungrounded: bool = False, prepare_only: bool = False,
+                 no_pdf: bool = False, no_release: bool = False,
                  mainfont: Optional[str] = None, dry_run: bool = False,
                  keep_source: bool = False, timeout: int = 900,
                  flow_diagram: bool = True, flow_json: Optional[str] = None,
@@ -903,6 +1082,29 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
     if toc is None:
         # a journal manuscript has no contents page: front matter and abstract open page 1
         toc = not md.stem.endswith(".manuscript")
+    if no_pdf or prepare_only:
+        # the manuscript is delivered on its own: same assembly, same gates, a release
+        try:
+            delivered, _ = prepare_delivery(md, "plain", references, include or [])
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return False
+        if prepare_only:
+            print(f"Wrote {delivered} — the text that will be delivered. Judge its claims "
+                  f"(audit_grounding.py {base_stem(md)}.json --init-claims) and verify it "
+                  f"(verify_citations.py {delivered.name}), then build.", file=sys.stderr)
+            return True
+        refusal, notice = citation_gate(delivered, Path(citations) if citations else None,
+                                        allow_citation_errors)
+        if refusal:
+            print(f"Error: {refusal}", file=sys.stderr)
+            return False
+        refusal, g_notice = grounding_gate(delivered, allow_ungrounded)
+        if refusal:
+            print(f"Error: {refusal}", file=sys.stderr)
+            return False
+        release(md, delivered, None, " ".join(x for x in (notice, g_notice) if x) or None)
+        return True
     if not shutil.which("pandoc"):
         print("Error: pandoc not found. Install with:\n"
               "  conda install -c conda-forge pandoc   # or: brew / apt install pandoc",
@@ -937,22 +1139,37 @@ def generate_pdf(markdown_file: str, output_pdf: Optional[str] = None, *,
         print(f"  warning: '{engine}' is not an engine this script knows; "
               "no engine-specific options are applied", file=sys.stderr)
 
-    refusal = citation_gate(md, Path(citations) if citations else None, allow_citation_errors)
+    try:
+        delivered, delivered_text = prepare_delivery(md, family, references, include or [])
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return False
+    refusal, notice = citation_gate(delivered, Path(citations) if citations else None,
+                                    allow_citation_errors or dry_run, verify=not dry_run)
     if refusal:
         print(f"Error: {refusal}", file=sys.stderr)
         return False
+    refusal, g_notice = grounding_gate(delivered, allow_ungrounded or dry_run, run=not dry_run)
+    if refusal:
+        print(f"Error: {refusal}", file=sys.stderr)
+        return False
+    notice = " ".join(x for x in (notice, g_notice) if x) or None
 
     tmpdir = tempfile.TemporaryDirectory(prefix="review-pdf-")
     try:
-        return _build(md, output_pdf, Path(tmpdir.name), engine=engine, family=family,
+        ok = _build(md, output_pdf, Path(tmpdir.name), engine=engine, family=family,
                       page_limit=page_limit, allow_over_limit=allow_over_limit, keep_tex=keep_tex,
                       citation_style=citation_style, references=references, include=include,
                       template=template, toc=toc, number_sections=number_sections,
                       bibliography=bibliography, mainfont=mainfont, dry_run=dry_run,
                       keep_source=keep_source, timeout=timeout, flow_diagram=flow_diagram,
-                      flow_json=Path(flow_json) if flow_json else None, layout=layout)
+                      flow_json=Path(flow_json) if flow_json else None, layout=layout,
+                      notice=notice, checked_sha=hashlib.sha256(delivered_text.encode()).hexdigest())
     finally:
         tmpdir.cleanup()
+    if ok and not dry_run and not no_release:
+        release(md, delivered, Path(output_pdf) if output_pdf else md.with_suffix(".pdf"), notice)
+    return ok
 
 
 def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, family: str,
@@ -960,7 +1177,8 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
            citation_style: str, references: Optional[str], include: Optional[list[str]],
            template: Optional[str], toc: bool, number_sections: bool, bibliography: Optional[str],
            mainfont: Optional[str], dry_run: bool, keep_source: bool, timeout: int,
-           flow_diagram: bool, flow_json: Optional[Path], layout: str = "plain") -> bool:
+           flow_diagram: bool, flow_json: Optional[Path], layout: str = "plain",
+           notice: Optional[str] = None, checked_sha: Optional[str] = None) -> bool:
     # #3: a kept .tex must still compile after the temp dir is gone, so images
     # converted for it live in <name>_files/ beside it, not in the temp dir.
     out_path = Path(output_pdf) if output_pdf else md.with_suffix(".pdf")
@@ -971,6 +1189,12 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
     flow_image, flow_note = (flow_figure(md, flow_json, family, assets)
                              if flow_diagram and not has_flow else (None, ""))
     try:
+        if checked_sha and hashlib.sha256(assemble(md, family, references, include or [], None)[0]
+                                          .encode()).hexdigest() != checked_sha:
+            print("Error: the assembled text changed after it was verified (a manuscript, reference "
+                  "list or appendix file was modified during the build) — run the build again",
+                  file=sys.stderr)
+            return False
         text, title, notes = assemble(md, family, references, include or [], flow_image)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -984,6 +1208,12 @@ def _build(md: Path, output_pdf: Optional[str], tmp: Path, *, engine: str, famil
         text, acm_meta = split_front_matter(text)
         text, _ = small_wide_tables(text)
         notes.append(f"layout: ACM acmsmall ({n_floats} figure float(s))")
+    if notice:
+        # before the first section, so it is on the first page of the body
+        m = re.search(r"^## ", text, re.MULTILINE)
+        at = m.start() if m else 0
+        text = text[:at] + f"> **{notice}**\n\n" + text[at:]
+        notes.append("UNVERIFIED notice printed on the first page")
     text, img_notes = prepare_images(text, [md.parent], family, assets)
     for n in img_notes:
         print(f"  {n}", file=sys.stderr)
@@ -1167,9 +1397,9 @@ def latex_route(cmd: list[str], out: Path, engine: str, family: str, tmp: Path,
 
 # ─────────────────────────── batch ────────────────────────────
 
-SIDECAR_MD = re.compile(r"\.(charting|appraisal|per-group|narrative|citations|writing|pandoc|"
+SIDECAR_MD = re.compile(r"\.(charting|appraisal|per-group|narrative|citations|writing|pandoc|delivered|"
                         r"references\.[\w-]+|manuscript\.md\.writing)$")
-SKIP_DIRS = {"work", "figures", "node_modules", "__pycache__", ".git"}
+SKIP_DIRS = {"work", "figures", "node_modules", "__pycache__", ".git", "releases"}
 
 
 def is_review_json(path: Path) -> bool:
@@ -1307,7 +1537,19 @@ def main() -> int:
     p.add_argument("--citations", metavar="REPORT_JSON",
                    help="citation report to gate on (default: <stem>.citations.json beside the Markdown)")
     p.add_argument("--allow-citation-errors", action="store_true",
-                   help="build even if the citation report has errors or is stale")
+                   help="build even if citations are not verified (FAIL/INCOMPLETE); the PDF "
+                        "then carries an 'unverified' notice")
+    p.add_argument("--no-pdf", action="store_true",
+                   help="deliver the manuscript without building a PDF: same assembly and gates, "
+                        "then a release (no pandoc/TeX needed)")
+    p.add_argument("--no-release", action="store_true",
+                   help="build the PDF without saving a numbered release")
+    p.add_argument("--prepare", action="store_true",
+                   help="write <stem>.delivered.md (the exact text the PDF will carry: styled "
+                        "references and --include appendices) and stop, so its claims can be judged")
+    p.add_argument("--allow-ungrounded", action="store_true",
+                   help="build even if the grounding audit (audit_grounding.py) is not PASS; the "
+                        "PDF then carries a 'grounding not verified' notice")
     p.add_argument("--citation-style", default="apa",
                    help="CSL style id or .csl path, for [@key] citations only (default: apa)")
     p.add_argument("--bibliography", help="explicit .bib for [@key] citations")
@@ -1351,7 +1593,8 @@ def main() -> int:
                        citation_style=args.citation_style, references=args.references, include=args.include,
                        template=args.template, toc=args.toc, number_sections=args.number_sections,
                        pdf_engine=args.pdf_engine, citations=None,
-                       allow_citation_errors=args.allow_citation_errors, mainfont=args.mainfont,
+                       allow_citation_errors=args.allow_citation_errors,
+                       allow_ungrounded=args.allow_ungrounded, mainfont=args.mainfont,
                        dry_run=args.dry_run, keep_source=args.keep_source, timeout=args.timeout,
                        flow_diagram=not args.no_flow_diagram, page_limit=args.page_limit,
                        allow_over_limit=args.allow_over_limit, keep_tex=not args.no_tex, layout=args.layout)
@@ -1363,6 +1606,8 @@ def main() -> int:
                       toc=args.toc, number_sections=args.number_sections,
                       pdf_engine=args.pdf_engine, bibliography=args.bibliography,
                       citations=args.citations, allow_citation_errors=args.allow_citation_errors,
+                      allow_ungrounded=args.allow_ungrounded, prepare_only=args.prepare,
+                      no_pdf=args.no_pdf, no_release=args.no_release,
                       mainfont=args.mainfont, dry_run=args.dry_run,
                       keep_source=args.keep_source, timeout=args.timeout,
                       flow_diagram=not args.no_flow_diagram, flow_json=args.flow_json,

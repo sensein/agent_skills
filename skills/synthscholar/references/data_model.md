@@ -39,6 +39,23 @@ Distinguishing rule: a source with a `slr:full_text_artifact` is full-text
 included; one without is abstract-only. Emitted by `rdf_export.py`
 (`_add_included_source`).
 
+### Which software, which version, when (NIDM-aligned provenance)
+
+- `?review prov:wasGeneratedBy ?run` — the review activity; `?run prov:endedAtTime`
+  and `?review prov:generatedAtTime` are `xsd:dateTime` when the run recorded a time.
+- `?run prov:wasAssociatedWith <urn:synthscholar:agent:synthscholar:<version>>` — the
+  SynthScholar release, a `prov:SoftwareAgent` with `nidm:NIDM_0000122` (NIDM-Results
+  "software Version") and `schema:softwareVersion`; and the model agent, a separate
+  `prov:SoftwareAgent` with `slr:model_name`.
+- The ontology aligns the review's provenance with NIDM-Experiment by
+  `skos:closeMatch` (never subclass — NIDM's acquisitions are about study
+  participants): `slr:SystematicReview` ≈ `nidm:Project`, `slr:PreWorkflowSession` ≈
+  `nidm:Session`, search / screening / charting / appraisal activities (and
+  `SearchIteration`, `ScreeningDecisionRecord`) ≈ `nidm:Acquisition`, and
+  `ChartingRecord`, `CriticalAppraisal`, `RiskOfBiasAssessment` ≈
+  `nidm:AcquisitionObject`. A NIDM-aware consumer can follow the mapping without the
+  review claiming to be participant data.
+
 ### Research questions
 
 Each `protocol.research_questions` entry becomes a `slr:ResearchQuestion` under

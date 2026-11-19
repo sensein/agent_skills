@@ -557,7 +557,9 @@ class TurtleBuilder:
         self.EX = Namespace(f"{kb_ns.rstrip('/')}/{paper_slug}/")   # slug scheme only
         self.KB = Namespace(kb_ns if kb_ns.endswith("/") else kb_ns + "/")
         doi = re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", (result.get("source_metadata") or {}).get("doi") or "", flags=re.I)
-        self.paper_id = str(self.meta.get("source_id") or doi or self.meta.get("source_path")
+        # a preprint not yet registered is named by its server id, not by a file path
+        preprint = f"preprint:{self.meta['preprint_id']}" if self.meta.get("preprint_id") else None
+        self.paper_id = str(self.meta.get("source_id") or doi or preprint or self.meta.get("source_path")
                             or self.meta.get("sha256") or source_checksum or paper_slug)
         # Entities and source occurrences share identity across extraction variants.
         # Annotation/classification/review records retain their separate readings.
@@ -2030,8 +2032,14 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
                   source_path: Optional[Path] = None,
                   media_type: Optional[str] = None,
                   ttl_config: Path = DEFAULT_TTL_CONFIG,
-                  variant: Optional[str] = None) -> tuple[str, dict]:
+                  variant: Optional[str] = None,
+                  check_activity: Optional[bool] = False,
+                  text_out: Optional[Path] = None,
+                  resolve_doi: Optional[bool] = False) -> tuple[str, dict]:
     """Library entry point. Returns (turtle_text, report).
+
+    check_activity applies to a resource result only (resource_kg.build): None
+    follows the config's `activity.enabled`; the default False stays offline.
 
     A resource result (extracted_resources) is a resource KG, not a NER graph: it is
     built by scripts/resource_kg.py against the BrainKB Resource Ontology
@@ -2040,7 +2048,8 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
     from resource_kg import is_resource_result
     if is_resource_result(result) and not (result.get("entities") or result.get("key_terms")):
         from resource_kg import build as build_resource_kg
-        return build_resource_kg(result, source_path=Path(source_path) if source_path else None)
+        return build_resource_kg(result, source_path=Path(source_path) if source_path else None,
+                                 check_activity=check_activity, text_out=text_out, resolve_doi=resolve_doi)
     if source_path:
         result = {**result, "source_metadata": {"source_path": str(Path(source_path).resolve()),
                                                 **(result.get("source_metadata") or {})}}
@@ -2107,6 +2116,9 @@ def _main() -> int:
     ap.add_argument("--ended-at", help="ISO-8601 time the extraction run ended (else result.run_metadata)")
     ap.add_argument("--publication-date", help="YYYY-MM-DD (else source_metadata.publication_date)")
     ap.add_argument("--date", help="date recorded in gap comments (default today)")
+    ap.add_argument("--check-activity", action=argparse.BooleanOptionalAction, default=None,
+                    help="resource results: check whether each resource is still maintained (network). "
+                         "Default: activity.enabled in resource_kg_config.json")
     args = ap.parse_args()
 
     result = json.loads(args.result.read_text())
@@ -2126,7 +2138,9 @@ def _main() -> int:
         result, kg_plan=plan, ontology=args.ontology, label_map=args.label_map,
         synonyms=args.synonyms, paper_slug=args.paper_slug, kb_ns=args.kb_ns,
         profile=args.profile, run_id=args.run_id, checked_date=args.date,
-        source_path=args.source, ttl_config=args.ttl_config, variant=args.variant)
+        source_path=args.source, ttl_config=args.ttl_config, variant=args.variant,
+        check_activity=args.check_activity, resolve_doi=None,
+        text_out=(args.out or default_ttl_path(args.result)).with_suffix(".source.txt"))
     out = args.out or default_ttl_path(args.result)
     out.write_text(ttl)
     if report.get("kind") == "resource_kg":
