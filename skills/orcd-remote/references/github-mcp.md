@@ -7,9 +7,9 @@ The GitHub connector you add in claude.ai does not reach those sessions. Other c
 ## Prerequisites
 
 - `gh` is installed and signed in. `gh` is not installed system-wide on ORCD. Install your own copy into `~/.local/bin`:
-  1. Download the `linux_amd64` tarball and `checksums.txt` from https://github.com/cli/cli/releases.
-  2. Check them with `sha256sum -c --ignore-missing checksums.txt`.
-  3. Unpack the tarball and copy `bin/gh` into `~/.local/bin`.
+  1. Download the `gh_<version>_linux_amd64.tar.gz` tarball and `gh_<version>_checksums.txt` from the latest release at https://github.com/cli/cli/releases.
+  2. In the download directory, check them with `sha256sum -c --ignore-missing gh_<version>_checksums.txt`.
+  3. Unpack the tarball and copy `bin/gh` into `~/.local/bin`. Make sure `~/.local/bin` is on your `PATH`; `command -v gh` should print it.
   4. Run `gh auth login --web`.
 - Claude Code is installed on ORCD (`claude --version`).
 
@@ -22,7 +22,7 @@ claude mcp get github     # Status: ✔ Connected
 ```
 
 - **`-s user`** makes the server available in every Claude Code session you start on ORCD. The tools appear from the **next** session on.
-- **`headersHelper`** runs `gh auth token` each time Claude Code connects. The token is never written into `~/.claude.json`: only the command is stored. If you rotate or refresh your `gh` login, nothing needs to change.
+- **`headersHelper`** runs `gh auth token` each time Claude Code connects. The token is never written into `~/.claude.json`: only the command is stored. If you rotate or refresh your `gh` login, nothing needs to change. The token briefly appears in the helper's process arguments while it runs, visible only to your own user, as with any header helper.
 - **`X-MCP-Readonly: true`** exposes read tools only: about 30, such as `search_issues`, `list_issues`, `issue_read`, `pull_request_read`, `get_file_contents`, `projects_list` and `projects_get`. There are no create, update, merge or push tools. Keep it read-only: make writes with `gh` or `git`, where Claude Code's permission prompts and your repo's PR rules apply.
 - **`X-MCP-Toolsets: default,projects`** adds read access to GitHub Projects (org boards) on top of the default set.
 

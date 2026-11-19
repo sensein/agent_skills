@@ -156,7 +156,7 @@ scheduler and storage queries only.
 
 ## GitHub tools in Claude Code on ORCD
 
-The claude.ai GitHub connector does not reach Claude Code sessions on ORCD, including remote-control ones. To give those sessions GitHub's read tools (issues, PRs, files, Projects), add GitHub's official MCP server once per person, signed in with their own `gh` login. Use read-only mode; the token is fetched from `gh` at connect time and never stored. Ask the user first, because the command changes their `~/.claude.json`. The exact command and notes are in [references/github-mcp.md](references/github-mcp.md).
+As of 2026-11-19, the claude.ai GitHub connector does not reach Claude Code sessions on ORCD, including remote-control ones. To give those sessions GitHub's read tools (issues, PRs, files, Projects), add GitHub's official MCP server once per person, signed in with their own `gh` login. Use read-only mode; the token is fetched from `gh` at connect time and never stored. Ask the user first, because the command changes their `~/.claude.json`. The exact command and notes are in [references/github-mcp.md](references/github-mcp.md).
 
 ## Python: uv in the cluster `$HOME`
 
