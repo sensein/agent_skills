@@ -154,6 +154,10 @@ Python (about 30 MB, a few seconds to a minute on the login node) and caches it
 under `$HOME`; later runs start immediately. Do no compute on login nodes:
 scheduler and storage queries only.
 
+## GitHub tools in Claude Code on ORCD
+
+As of 2026-11-19, the claude.ai GitHub connector does not reach Claude Code sessions on ORCD, including remote-control ones. To give those sessions GitHub's read tools (issues, PRs, files, Projects), add GitHub's official MCP server once per person, signed in with their own `gh` login. Use read-only mode; the token is fetched from `gh` at connect time and never stored. Ask the user first, because the command changes their `~/.claude.json`. The exact command and notes are in [references/github-mcp.md](references/github-mcp.md).
+
 ## Python: uv in the cluster `$HOME`
 
 Login-node `python3` is 3.6 and there is no system uv or conda; the skill scripts themselves need uv.
