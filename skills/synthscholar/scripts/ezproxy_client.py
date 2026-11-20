@@ -272,9 +272,14 @@ class EZProxyFetcher:
                 "Accept": "application/pdf,text/html;q=0.9,*/*;q=0.8",
                 **c.extra_headers,
             }
+            # Scope the session to the proxy and its subdomains: a domain-less
+            # jar would send it to every host, never-proxied ones and redirects too.
+            jar = httpx.Cookies()
+            for name, value in c.cookies().items():
+                jar.set(name, value, domain="." + c.host.lower())
             self._client = httpx.Client(
                 timeout=c.timeout, follow_redirects=True,
-                headers=headers, cookies=c.cookies(),
+                headers=headers, cookies=jar,
             )
         return self._client
 
