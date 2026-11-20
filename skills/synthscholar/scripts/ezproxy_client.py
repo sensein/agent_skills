@@ -191,7 +191,8 @@ class EZProxyConfig:
         if not parsed.scheme.startswith("http") or not parsed.netloc:
             return url
         host = parsed.netloc.lower()
-        if self.host.lower() in host:
+        hostname, proxy = (parsed.hostname or "").lower(), self.host.lower()
+        if hostname == proxy or hostname.endswith("." + proxy):
             return url                                     # already proxied
         if any(host == d or host.endswith("." + d) for d in _NEVER_PROXY):
             return url
