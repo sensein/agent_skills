@@ -328,8 +328,9 @@ class EZProxyFetcher:
 
     @staticmethod
     def _is_pdf(response: httpx.Response) -> bool:
-        ctype = response.headers.get("content-type", "").lower()
-        return "pdf" in ctype and response.content[:5] == b"%PDF-"
+        # Magic bytes, not the content-type: publishers serve PDFs as
+        # application/octet-stream too (same rule as oa_client._download_pdf).
+        return response.content[:5] == b"%PDF-"
 
     def _pdf_links(self, html: str, base_url: str) -> list[str]:
         """Candidate PDF URLs from landing-page markup, best first."""
