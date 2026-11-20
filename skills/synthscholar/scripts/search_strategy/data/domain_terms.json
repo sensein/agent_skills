@@ -1,0 +1,23 @@
+{
+  "_README": "Domain jargon MeSH lags behind, injected as [Title/Abstract] terms so the search still reaches records MeSH has not indexed with the right heading (or at all). Edit freely: domain_vocab.py reloads this file, and every term here is as reproducible as the file is, so strict mode keeps these while dropping the model's own free-text. A cluster fires when its concept or any synonym appears in a concept block's name, headings or free-text. THIS FILE IS A SEED: it was regenerated on 2026-08-10 after the original was lost, so it is deliberately small — extend it with your own review's vocabulary.",
+  "neuroscience": [
+    {"concept": "optogenetics", "synonyms": ["optogenetic", "optogenetics", "channelrhodopsin", "halorhodopsin", "archaerhodopsin", "ChR2", "photostimulation", "light-evoked stimulation"]},
+    {"concept": "chemogenetics", "synonyms": ["chemogenetic", "chemogenetics", "DREADD", "DREADDs", "designer receptor exclusively activated by designer drugs"]},
+    {"concept": "connectomics", "synonyms": ["connectome", "connectomics", "structural connectivity", "functional connectivity", "tractography"]},
+    {"concept": "calcium imaging", "synonyms": ["calcium imaging", "GCaMP", "two-photon imaging", "2-photon imaging", "miniscope", "widefield imaging"]},
+    {"concept": "electrophysiology", "synonyms": ["patch clamp", "patch-clamp", "multi-electrode array", "silicon probe", "Neuropixels", "local field potential", "LFP", "spike sorting"]},
+    {"concept": "memory consolidation", "synonyms": ["memory consolidation", "systems consolidation", "synaptic consolidation", "memory reconsolidation", "sharp-wave ripple", "replay"]},
+    {"concept": "neurodegeneration", "synonyms": ["neurodegeneration", "neurodegenerative", "proteinopathy", "tauopathy", "amyloid-beta", "amyloid beta", "A-beta", "tau pathology", "neuroinflammation"]},
+    {"concept": "brain organoid", "synonyms": ["brain organoid", "cerebral organoid", "assembloid", "neural organoid", "iPSC-derived neurons"]}
+  ],
+  "bioinformatics": [
+    {"concept": "single-cell transcriptomics", "synonyms": ["single-cell RNA sequencing", "single cell RNA sequencing", "scRNA-seq", "scRNAseq", "snRNA-seq", "single-nucleus RNA-seq", "single-cell transcriptomics", "CITE-seq", "multiome"]},
+    {"concept": "spatial omics", "synonyms": ["spatial transcriptomics", "spatially resolved transcriptomics", "Visium", "MERFISH", "seqFISH", "Slide-seq", "Xenium"]},
+    {"concept": "bulk sequencing", "synonyms": ["RNA-seq", "RNAseq", "RNA sequencing", "whole-genome sequencing", "WGS", "whole-exome sequencing", "WES", "long-read sequencing", "nanopore sequencing", "PacBio HiFi"]},
+    {"concept": "epigenomics", "synonyms": ["ATAC-seq", "scATAC-seq", "ChIP-seq", "CUT&RUN", "CUT&Tag", "bisulfite sequencing", "Hi-C", "Micro-C"]},
+    {"concept": "genome editing", "synonyms": ["CRISPR", "CRISPR-Cas9", "CRISPR/Cas9", "Cas9", "Cas12a", "base editing", "prime editing", "guide RNA", "sgRNA", "off-target effects", "off-target editing", "GUIDE-seq", "CIRCLE-seq", "DISCOVER-seq"]},
+    {"concept": "proteomics", "synonyms": ["proteomics", "mass spectrometry", "LC-MS/MS", "DIA-MS", "AlphaFold", "structure prediction"]},
+    {"concept": "machine learning", "synonyms": ["deep learning", "machine learning", "neural network", "transformer model", "foundation model", "large language model", "LLM"]},
+    {"concept": "reproducibility", "synonyms": ["reproducibility", "reproducible", "FAIR data", "workflow", "Nextflow", "Snakemake", "containerized", "provenance"]}
+  ]
+}

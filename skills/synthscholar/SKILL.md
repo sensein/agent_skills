@@ -1,13 +1,13 @@
 ---
 name: synthscholar
-version: 0.6.0
-description: Set up, run, and query SynthScholar / PRISMA systematic reviews. (1) Protocol intake — draft a complete protocol (research question, PICO, eligibility, databases, risk-of-bias tool, charting, per-group analysis, registration) and validate it before a run. (2) Provenance queries over a finished review — full-text vs abstract-only inclusions, retrieval routes, and the screening audit trail (decisions on full text vs abstract, exclusion reasons per stage), via SPARQL over the RDF export or SQL over the article store. (3) Bring-your-own-corpus review — the user supplies PDFs, or DOIs whose full text is fetched open access (Unpaywall, OpenAlex, Semantic Scholar) then via their own institutional EZproxy access; produces the full PRISMA review (screening, charting, appraisal, synthesis) as Markdown and SLR-ontology Turtle. Use when asked to start or scope a review, run a review over supplied PDFs, get full text for a DOI, export a review to md/ttl, or audit full-text and screening provenance.
+version: 0.7.0
+description: Set up, run, and query SynthScholar / PRISMA systematic reviews. (1) Protocol intake — draft a complete protocol (research question, PICO, eligibility, databases, risk-of-bias tool, charting, per-group analysis) and validate it. (2) Provenance queries over a finished review — full-text vs abstract-only inclusions, retrieval routes, screening decisions and exclusion reasons, via SPARQL over the RDF export or SQL over the article store. (3) Bring-your-own-corpus review — the user supplies PDFs, or DOIs fetched open access then via their institutional EZproxy; produces the full PRISMA review as Markdown and SLR-ontology Turtle. (4) Search-to-review — no papers yet: a reproducible MeSH-grounded PubMed search (no API key needed), title/abstract screening, then (3). Use when asked to start or scope a review, find the literature for one or build its PubMed search strategy, run a review over supplied PDFs, get full text for a DOI, export a review to md/ttl, or audit full-text and screening provenance.
 license: Apache-2.0
 ---
 
 # SynthScholar Review Skills
 
-Three capabilities for working with systematic reviews produced by SynthScholar:
+Four capabilities for working with systematic reviews produced by SynthScholar:
 
 1. **Guided protocol intake** — before a review runs, guide the user through
    *every* input the agent supports and validate the protocol is complete.
@@ -16,11 +16,16 @@ Three capabilities for working with systematic reviews produced by SynthScholar:
    and where it came from*.
 3. **Bring-your-own-corpus review** — the user hands over PDFs they collected
    themselves; produce the full review over them and export Markdown + Turtle.
+4. **Search-to-review** — the user has a question but no papers: build a
+   reproducible PubMed search, screen titles/abstracts, then run Mode 3 over
+   what was kept.
 
 Pick the mode from the request: setting up / scoping a review → intake; the
 user has PDFs that meet the eligibility criteria for the review → BYO
-corpus; inspecting a finished review → queries. Modes compose — a BYO review
-starts with the Mode 1 intake and its output is queryable with Mode 2.
+corpus; the user wants the literature found for them → search-to-review;
+inspecting a finished review → queries. Modes compose — every review starts
+with the Mode 1 intake, Mode 4 hands its corpus to Mode 3, and the output is
+queryable with Mode 2.
 
 ---
 
@@ -341,7 +346,9 @@ Hard rules:
 - **Ask for the search strategy, but never block on it.** Databases, exact
   query strings, dates searched, filters, records identified, duplicates
   removed — ask as one batch of structured questions. If the user doesn't have
-  the numbers, run anyway and patch them in with `update_provenance.py`.
+  the numbers, run anyway and patch them in with `update_provenance.py`. When
+  the corpus came from Mode 4, the strategy and counts are already in
+  `search_provenance.json`: don't ask.
 - **Keep the flow honest.** Identification counts are the user's; the screening
   this mode performs is a *second pass over already-retrieved reports*, not a
   re-run of their title/abstract screening. Say so when summarising.
@@ -463,6 +470,67 @@ Hard rules:
   folder that holds them. Keep `protocol.review_id` as the run minted it: it names
   the review's graph, and a review is ingested once per space.
 
+## Mode 4 — Search-to-review (no papers yet)
+
+> *"Do a systematic review of whether MBSR reduces anxiety in breast cancer
+> patients on chemotherapy."*
+
+The skill finds the literature itself: a deterministic, MeSH-grounded PubMed
+query, every matching record, title/abstract screening, then the Mode 3 review
+over what was kept. Search is PubMed only; full text comes from open access
+and the user's institutional access. Full workflow, decision rules and the
+PRISMA accounting: **[references/search_strategy.md](references/search_strategy.md)**
+— read it before running this mode.
+
+```bash
+# 0. Protocol — Mode 1, unchanged; screening needs its eligibility criteria
+python scripts/validate_protocol.py protocol.json
+
+# 1. Search strategy — you answer the prompt yourself (k independent samples)
+python scripts/generate_search_strategy.py "<question>" --emit-prompt > prompt.json
+python scripts/generate_search_strategy.py "<question>" --facet-samples samples.json \
+    --model-name <your model id> --count                       # show blocks + hits first
+python scripts/generate_search_strategy.py "<question>" --facet-samples samples.json \
+    --model-name <your model id> --fetch 0 --outdir search/ \
+    --provenance-out search_provenance.json
+
+# 2. Title/abstract screening — you (or one subagent per batch) decide each record
+python scripts/screen_records.py plan search/<run>/results.jsonl \
+    --protocol protocol.json --workdir screening/
+python scripts/screen_records.py status --workdir screening/
+python scripts/screen_records.py apply --workdir screening/ --corpus-out corpus.json \
+    --provenance search_provenance.json --model-name <your model id>
+
+# 3. Full text (open access first), then Mode 3 from its step 4
+python scripts/fetch_ezproxy.py --corpus corpus.json --pdf-dir ./pdfs
+```
+
+### Rules for this mode
+
+- **You are the model. Never ask the user for `OPENROUTER_API_KEY`** for the
+  search strategy or the screening: under Claude Code, Codex or any agent host,
+  you answer `--emit-prompt` and the screening batches yourself. The key is only
+  for running the scripts on their own, outside an agent.
+- **Make closure's k samples independent** — a fresh context per sample (one
+  subagent each, given only the emitted messages). k answers from one context
+  don't vote, they repeat. Pass `--model-name` every time; it is the provenance.
+- **Use `closure`** (the default). `llm` is kept for comparison only;
+  `mesh_only` is the no-model baseline.
+- **The MeSH index builds itself.** The first search downloads ~120 MB from
+  NLM and builds the index (1–2 minutes, then reused). Tell the user it is
+  coming, run with a long timeout (or `--ensure-index` up front), and never ask
+  them to download or build anything.
+- **Show the strategy before fetching.** Report the concept blocks and the hit
+  count, and fetch everything (`--fetch 0`) once they look right. Don't
+  hand-edit the compiled query; re-answer the prompt or add filters instead.
+- **Screen conservatively.** `exclude` only a record that clearly fails a
+  criterion, naming the criterion; anything uncertain is `unsure` and goes on to
+  full text. Judge from the title and abstract alone.
+- **Report the flow as it happened**: *N identified in PubMed → N screened → X
+  excluded on title/abstract → M sought → R retrieved → … included*. Every one
+  of those numbers is the skill's own, recorded in `search_provenance.json` and
+  `screening/screening_log.jsonl`; keep the log with the review.
+
 ## Mode 2 — Provenance queries
 
 > *Which included publications have full text, which are abstract-only, what is
@@ -488,6 +556,14 @@ parity: `slr:content_hash` in RDF equals `article_full_text.content_sha256`.
 - **Check a protocol is complete** before running.
 - Configure **domain features**: charting questions, per-group / cohort
   analysis, custom appraisal domains, output formatting, PRISMA registration.
+
+**Search-to-review (Mode 4)** — when the user:
+
+- Wants the literature **found for them** — "do a systematic review of X", "find
+  the studies on X" — and has no PDFs or reference list yet.
+- Asks for a **PubMed search strategy**, a MeSH-based query, or a hit count for
+  a research question.
+- Wants search results **screened** against eligibility criteria.
 
 **BYO corpus (Mode 3)** — when the user:
 
@@ -583,11 +659,14 @@ dependencies (`docling`, `playwright`, `psycopg`) may be skipped.
 | `build_corpus.py` | `pymupdf`; `docling` optional | `python -c "import fitz"` | `pip install pymupdf` (+ `pip install docling` for scans/tables) |
 | `export_review.py`, `run_local_review.py`, `update_provenance.py`, `extract_evidence.py`, `backfill_full_text.py` | the `synthscholar` package — **vendored in the skill** (`vendor/synthscholar`), nothing to install | `python scripts/check_deps.py` | its libraries: `pip install -r requirements.txt` |
 | `generate_review_pdf.py` | `pandoc` + a **TeX engine** (xelatex, lualatex, pdflatex or tectonic) for the ACM layout; `rsvg-convert` (or `cairosvg`/`typst`) to convert SVG figures for TeX; `fc-list` optional. Without TeX: `typst` or an HTML engine, plain layout only | `python scripts/generate_review_pdf.py --check-deps` (also finds a TeX Live/MacTeX install that is not on `PATH`) | TeX: `brew install --cask mactex-no-gui` (macOS), `apt-get install texlive-xetex texlive-fonts-extra texlive-latex-extra` (Debian/Ubuntu), or `conda install -c conda-forge tectonic` (smallest; fetches packages once into its cache). Then `conda install -c conda-forge pandoc librsvg` (or `brew install pandoc librsvg`). The ACM class itself is bundled in `assets/acmart/` |
-| `validate_protocol.py`, `research_questions.py`, `check_writing.py`, `review_figures.py`, `assemble_manuscript.py`, `check_deps.py` | stdlib | — | — |
+| `generate_search_strategy.py` | `requests`; the MeSH index (built automatically on first use, ~120 MB download) | `python -c "import requests"` | `pip install requests` |
+| `validate_protocol.py`, `research_questions.py`, `check_writing.py`, `review_figures.py`, `assemble_manuscript.py`, `screen_records.py`, `check_deps.py` | stdlib | — | — |
 
-Network services (Crossref, PubMed, Unpaywall) and `OPENROUTER_API_KEY` are
-not installs: mention them if a run will need them, and ask the user for any
-key. Never invent one.
+Network services (Crossref, PubMed, Unpaywall, NLM's MeSH download) and
+`OPENROUTER_API_KEY` are not installs: mention them if a run will need them,
+and ask the user for any key. Never invent one. The search strategy and the
+title/abstract screening never need `OPENROUTER_API_KEY` inside an agent host —
+you answer their prompts yourself (Mode 4).
 
 All live in [scripts/](scripts/). **The skill is self-contained**: the
 SynthScholar package it drives is vendored in `vendor/synthscholar`
@@ -655,6 +734,10 @@ scripts) to see every named recipe.
 - [references/byo_corpus_review.md](references/byo_corpus_review.md) —
   bring-your-own-corpus workflow: corpus schema, search-provenance intake,
   PRISMA-flow accounting, the two execution paths, exports and ingestion.
+- [references/search_strategy.md](references/search_strategy.md) —
+  search-to-review: the PubMed strategy (closure mode, answering the prompt
+  yourself, the automatic MeSH index), title/abstract screening rules and
+  outputs, and the PRISMA accounting when the skill did the discovery.
 - [references/validation.md](references/validation.md) — every validation the skill
   performs (protocol, corpus, source-grounded evidence extraction, citations, claim
   ledger, numbers, version changes, studies vs reports, release gates), with its

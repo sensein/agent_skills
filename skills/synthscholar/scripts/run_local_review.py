@@ -428,10 +428,12 @@ async def run(args: argparse.Namespace) -> int:
         model_name=args.model,
         pipeline_kwargs={
             "entrypoint": "synthscholar/run_local_review.py",
-            "corpus_provenance": "user_supplied_pdfs",
+            # screen_records.py labels a corpus built from the skill's own
+            # PubMed search; a build_corpus.py corpus is the user's PDFs
+            "corpus_provenance": (corpus.get("provenance") if isinstance(corpus, dict) else "") or "user_supplied_pdfs",
             "corpus_size": len(articles),
             "corpus_full_text_count": n_ft,
-            "discovery_performed_by": "user",
+            "discovery_performed_by": (corpus.get("discovery_performed_by") if isinstance(corpus, dict) else "") or "user",
             "search_provenance_file": args.provenance or "",
             "data_items": args.data_item or None,
             "per_group_analysis": not args.no_per_group,
