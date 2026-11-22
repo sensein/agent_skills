@@ -66,7 +66,7 @@ class FetcherTestCase(unittest.TestCase):
                 raise AssertionError(f"unrouted request: {url}")
             return routes[url](request)
 
-        cfg = EZProxyConfig(host=HOST, cookie=COOKIE, delay_seconds=0, **config)
+        cfg = EZProxyConfig(**{"host": HOST, "cookie": COOKIE, "delay_seconds": 0, **config})
         fetcher = EZProxyFetcher(config=cfg, pdf_parser=StubParser())
         real = fetcher._get_client()
         fetcher._client = httpx.Client(transport=httpx.MockTransport(handler),
@@ -144,6 +144,18 @@ class RewriteTests(FetcherTestCase):
             self.urls(), [proxied],
             "DEFECT: rewrite() uses a substring check for 'already proxied', so a "
             "lookalike host is fetched directly instead of through the proxy")
+
+
+class PortTests(FetcherTestCase):
+    def test_proxy_host_with_port_keeps_cookie_and_single_rewrite(self):
+        """A proxy configured as host:port gets the cookie and is not added twice."""
+        proxied = f"https://www-publisher-com.{HOST}:2048/article/1"
+        f = self.make({proxied: pdf()}, host=f"{HOST}:2048")
+        self.assertEqual(f.fetch_text(url=proxied), ("TEXT", SOURCE_PDF))
+        self.assertEqual(self.urls(), [proxied],
+                         "a proxied URL on host:port must not be rewritten again")
+        self.assertEqual(self.cookie_for(proxied), COOKIE,
+                         "the cookie domain must not include the port")
 
 
 class CookieScopeTests(FetcherTestCase):

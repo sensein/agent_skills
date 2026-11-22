@@ -191,7 +191,7 @@ class EZProxyConfig:
         if not parsed.scheme.startswith("http") or not parsed.netloc:
             return url
         host = parsed.netloc.lower()
-        hostname, proxy = (parsed.hostname or "").lower(), self.host.lower()
+        hostname, proxy = (parsed.hostname or "").lower(), self.host.lower().partition(":")[0]
         if hostname == proxy or hostname.endswith("." + proxy):
             return url                                     # already proxied
         if any(host == d or host.endswith("." + d) for d in _NEVER_PROXY):
@@ -277,7 +277,7 @@ class EZProxyFetcher:
             # jar would send it to every host, never-proxied ones and redirects too.
             jar = httpx.Cookies()
             for name, value in c.cookies().items():
-                jar.set(name, value, domain="." + c.host.lower())
+                jar.set(name, value, domain="." + c.host.lower().partition(":")[0])
             self._client = httpx.Client(
                 timeout=c.timeout, follow_redirects=True,
                 headers=headers, cookies=jar,
