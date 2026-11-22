@@ -8,16 +8,16 @@ description: >-
   Also runs the day-to-day /colab commands (sync, inbox, distill, next, claim, handoff, capture,
   brief, run, link, tag, credit, ingest, subscribe, publish, scan, security, improve). Use when the user
   wants to set up or advance the lab's GitHub-based coordination; turn discussions,
-  meetings, or threads into typed work items; pick up, hand off, or run agent-ready work (a claimed Experiment issue in an isolated workspace under explicit budgets, with a metric/verify loop and immutable Observation records);
+  meetings, or threads into typed items; pick up, hand off, or run agent-ready work (a claimed Experiment issue in an isolated workspace under explicit budgets, with a metric/verify loop and immutable Observation records);
   capture session knowledge for the lab graph or BrainKB; check what is happening
-  across projects; or scan before pushing to a public repo.
+  across projects; scan before a public push; or onboard a new member.
 ---
 
 # Lab Colab Space
 
 Use this skill to set up and run the lab's GitHub-based coordination layer. Work is a typed graph of issues (Idea, Question, Experiment, Review, Software, Model, Infrastructure, Dataset, Output, Task) linked by typed edges and grouped into spaces: named areas of work declared in the config, each with stewards and a list of existing repos. A space is not a repo or a folder, and nothing is created in member repos up front. Everything core works through **each member's own credentials**, used by that member's agent when they act: there is no service identity, nothing is installed in any org (including other orgs the group contributes to), and the minimum an org needs is its config (meta) repo and a Project. Each member needs their own `gh` login and Python 3.11+, in Claude Code on a laptop or on ORCD through remote control; an app-only mode (the Claude app's GitHub connector, no terminal) is future work. Members' agents keep the board current (`colab.py sync`), pull what is new (`colab.py inbox`), scan an item at the moment they claim or run it (the Security gate), and record their own contributions. A bus that files delivery issues is kept only as an **optional relay** (`[bus] enabled = true`); nothing depends on it.
 
-Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command. [`references/runbook.md`](./references/runbook.md) has the operating steps: a new org from scratch, recovering from an accidental change, when re-applying loses data, and running the bus. For people: [`references/getting-started.md`](./references/getting-started.md) (members: Claude Code on a laptop or on ORCD; the app alone is not ready yet) and [`references/operators.md`](./references/operators.md) (the optional relay's standby bus).
+Read [`references/design.md`](./references/design.md) once per session for the model, tiers, and bus rules, and [`references/commands.md`](./references/commands.md) before running a `/colab` command. [`references/runbook.md`](./references/runbook.md) has the operating steps: a new org from scratch, recovering from an accidental change, when re-applying loses data, and running the bus. When someone new asks to be set up, or `colab.py setup` can't run because Python 3.11+ or `gh` is missing, follow [`references/onboarding.md`](./references/onboarding.md): it guides them step by step, from a fresh Claude Code install, in plain words. For people: [`references/getting-started.md`](./references/getting-started.md) (members: Claude Code on a laptop or on ORCD; the app alone is not ready yet) and [`references/operators.md`](./references/operators.md) (the optional relay's standby bus).
 
 ## Constitution
 

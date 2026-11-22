@@ -17,6 +17,10 @@ What working this way looks like, once set up:
 - When you ask "what's new?" or "what can I pick up?", your assistant first brings the board up to date with what you can see (a few seconds), then reads what changed since you last looked. Nobody sends you notification issues; you get the news when you ask.
 - Before an assistant claims or runs an item, it reads the item's text and comments for anything that looks like instructions aimed at an assistant. If it says an item "has text that looks like instructions to an assistant", a steward of that area needs to read the item and clear it before any assistant works on it: that is a safety check, not an error. Stewards clear an item themselves, in their own terminal (`colab.py security clear <item> --reason "..."`, then type the item back when asked); an assistant cannot do it for them. The clear counts until someone changes the item again.
 
+## The quickest start: let your assistant guide you
+
+Install Claude Code (https://code.claude.com/docs/en/setup), sign in with the lab's Claude account, start `claude`, and say **"set me up for lab-colab"**. The skill arrives with the lab's Claude account, and it walks you through the rest: installing `gh` and Python if needed, signing in to GitHub, joining the org, the setup check, and your first sync ([onboarding.md](./onboarding.md) is what it follows). The steps below are the same thing done by hand.
+
 ## If you write code (Claude Code and a terminal)
 
 1. Accept the org invitation: GitHub sends an email inviting you to the lab's organisation; click **Join**. (Lost it? Open `https://github.com/orgs/<org>/invitation` while signed in.)
