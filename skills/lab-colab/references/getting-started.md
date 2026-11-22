@@ -19,7 +19,7 @@ What working this way looks like, once set up:
 
 ## The quickest start: let your assistant guide you
 
-Install Claude Code (https://code.claude.com/docs/en/setup), sign in with the lab's Claude account, start `claude`, and say **"set me up for lab-colab"**. The skill arrives with the lab's Claude account, and it walks you through the rest: installing `gh` and Python if needed, signing in to GitHub, joining the org, the setup check, and your first sync ([onboarding.md](./onboarding.md) is what it follows). The steps below are the same thing done by hand.
+Install Claude Code (https://code.claude.com/docs/en/setup), sign in with the lab's Claude account, start `claude`, and say **"set me up for lab-colab"**. The skill arrives with the lab's Claude account, and it walks you through the rest ([onboarding.md](./onboarding.md) is what it follows): a request for the group and project access you still need, lab-colab on your computer (`gh`, Python, GitHub sign-in, the setup check, your first sync), and a Claude Code session on ORCD that you drive from the Claude app through remote control. The steps below are the same thing done by hand.
 
 If your assistant doesn't know lab-colab (your Claude account isn't on the lab's plan, or the sync hasn't reached you), add it from the lab's private marketplace. First accept the org invitation, install `gh`, and run `gh auth login --web -s repo,read:org,project` and `gh auth setup-git` in a terminal. Then type these inside Claude Code, and restart `claude` afterwards:
 

@@ -154,6 +154,10 @@ Python (about 30 MB, a few seconds to a minute on the login node) and caches it
 under `$HOME`; later runs start immediately. Do no compute on login nodes:
 scheduler and storage queries only.
 
+## Claude Code on ORCD with remote control
+
+To keep a Claude Code session running on ORCD for days and drive it from the Claude app, claude.ai/code or a phone, use `scripts/claude_rc/claude-rc-submit.sh` (`check`, `start -p <partition>`, `status`). It runs `claude remote-control` as a chain of Slurm jobs that hand over before each time limit and around maintenance windows, never on a login node. Prerequisites, options and how to stop it are in [references/remote-control.md](references/remote-control.md). The person signs in to Claude once, interactively, in their own ssh session; never handle their credentials.
+
 ## GitHub tools in Claude Code on ORCD
 
 As of 2026-11-19, the claude.ai GitHub connector does not reach Claude Code sessions on ORCD, including remote-control ones. To give those sessions GitHub's read tools (issues, PRs, files, Projects), add GitHub's official MCP server once per person, signed in with their own `gh` login. Use read-only mode; the token is fetched from `gh` at connect time and never stored. Ask the user first, because the command changes their `~/.claude.json`. The exact command and notes are in [references/github-mcp.md](references/github-mcp.md).
