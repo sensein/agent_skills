@@ -22,7 +22,7 @@ class PerGroupSummaryTests(unittest.TestCase):
             "label": "Chemotherapy sample", "n_studies": 3,
             "aggregate_finding": "Three of three studies reported lower anxiety.",
             "representative_pmids": ["1", "2", "3"], "caveats": "Abstracts only."})
-        self.assertEqual(text, "Three of three studies reported lower anxiety. Caveats: Abstracts only.")
+        self.assertEqual(text, "Three of three studies reported lower anxiety. Abstracts only.")
         self.assertNotIn("{", text)
 
     def test_summary_without_caveats_or_as_plain_string(self):
