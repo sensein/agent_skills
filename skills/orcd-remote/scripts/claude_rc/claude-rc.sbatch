@@ -101,7 +101,7 @@ case "${1:-}" in
 esac
 
 LOG=$RC_DIR/claude-rc-$SLURM_JOB_ID.out
-cd "$RC_WORKDIR"
+[ -n "$RC_WORKDIR" ] && [ "$RC_WORKDIR" != "$(readlink -f "$HOME")" ] && cd "$RC_WORKDIR" || { echo "$(date -Is) refusing to start: cannot serve RC_WORKDIR='$RC_WORKDIR'"; exit 1; }
 echo "$(date -Is) start job=$SLURM_JOB_ID restart=${SLURM_RESTART_COUNT:-0} node=$(hostname) deadline=$(date -Is -d @"$deadline") pred=${RC_PRED:-none}"
 echo "$(date -Is) claude update: $(timeout 300 claude update 2>&1 | grep -aE 'Current version|Successfully|up to date|rror' | tr '\n' ' ')"
 echo "$(date -Is) claude=$(claude --version)"

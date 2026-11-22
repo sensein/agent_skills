@@ -7,7 +7,7 @@ The scripts are in [`scripts/claude_rc/`](../scripts/claude_rc/): `claude-rc-sub
 ## Before you start
 
 1. **An ORCD account and ssh access**: see [setup.md](setup.md). You need a key installed through the OnDemand portal.
-2. **A partition you can use for days.** A group partition (for sensein, `pi_satra`, through `orcd_ug_pi_satra_all`; see [sensein.md](sensein.md)) is best. `mit_normal` works too, with shorter runs and more hand-overs. Avoid preemptable partitions.
+2. **A partition you can use for days.** A group partition (for sensein, `pi_satra`, through `orcd_ug_pi_satra_all`; see [sensein.md](sensein.md)) is best. `mit_normal` (12 h) works too, with more hand-overs. `start` refuses partitions under 12 hours, because each successor starts 2 hours early and waits; `check` marks those and the preemptable or transfer-only ones to avoid.
 3. **Claude Code on ORCD**, installed in your home without root:
 
    ```bash
@@ -30,7 +30,7 @@ bash $RC/claude-rc-submit.sh status                 # jobs and the latest log li
 `start` options:
 - `-d "2026-12-20 09:00"` or `-d "+30 days"` sets the deadline;
 - `-c` and `-m` set CPUs and memory;
-- `-w <folder>` sets the folder served.
+- `-w <folder>` sets the folder served. Run `claude` in it once and trust it first, or the session waits at that prompt. `start` refuses your home folder, which holds your keys and sign-ins.
 
 Once the job starts, the log shows "Connected", and the session is listed in your Claude app and at claude.ai/code, where you can start conversations in it.
 

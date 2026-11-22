@@ -82,6 +82,57 @@ class ClaudeRcPlanTest(unittest.TestCase):
         self.assertEqual(out.returncode, 2)
         self.assertIn("claude-rc-submit.sh check", out.stdout)
 
+    def _stub(self, name, body):
+        f = Path(self.tmp.name) / "bin" / name
+        f.write_text("#!/bin/sh\n" + body + "\n")
+        f.chmod(f.stat().st_mode | stat.S_IEXEC)
+
+    def _start_env(self):
+        home = Path(self.tmp.name) / "home"
+        (home / ".claude").mkdir(parents=True, exist_ok=True)
+        (home / ".claude" / ".credentials.json").write_text("{}")
+        self._stub("sbatch", '[ "$1" = "--test-only" ] && exit 0; echo SBATCH "$@"')
+        self._stub("squeue", "exit 0")
+        self._stub("claude", "echo 2.0.0")
+        self._stub("scontrol", 'case "$*" in *reservation*) exit 0 ;; *) echo "PartitionName=$3 MaxTime=$MAXTIME" ;; esac')
+        env = {**self.env, "HOME": str(home), "RC_DIR": str(Path(self.tmp.name) / "state"), "MAXTIME": "2-00:00:00"}
+        env.pop("ANTHROPIC_API_KEY", None)
+        return env, home
+
+    def submit(self, env, *args, cwd=None):
+        return subprocess.run(["bash", str(SUBMIT), *args], env=env, capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL, cwd=cwd)
+
+    def test_status_with_no_logs_succeeds(self):
+        self._stub("squeue", "exit 0")
+        out = self.submit(self.env, "status")
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def test_start_refuses_home_missing_and_comma_folders(self):
+        env, home = self._start_env()
+        bad = Path(self.tmp.name) / "a,b"
+        bad.mkdir()
+        for folder, msg in ((str(home), "home folder"), ("/nonexistent", "No such folder"), (str(bad), "commas")):
+            out = self.submit(env, "start", "-p", "x", "-w", folder)
+            self.assertEqual(out.returncode, 2, folder)
+            self.assertIn(msg, out.stdout)
+
+    def test_start_refuses_short_partition(self):
+        env, _ = self._start_env()
+        env["MAXTIME"] = "04:00:00"
+        out = self.submit(env, "start", "-p", "short", "-w", self.tmp.name)
+        self.assertEqual(out.returncode, 2)
+        self.assertIn("at least 12 hours", out.stdout)
+
+    def test_start_passes_absolute_paths_to_the_chain(self):
+        env, _ = self._start_env()
+        work = Path(self.tmp.name) / "work"
+        work.mkdir()
+        out = self.submit(env, "start", "-p", "long", "-w", "work", "-d", "+3 days", cwd=self.tmp.name)
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertIn(f"RC_WORKDIR={work.resolve()}", out.stdout)
+        self.assertIn("-p long -t 2880 -c 2 --mem=16G", out.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
