@@ -14,12 +14,12 @@ Use this when someone says "set me up for the lab", "help me join lab-colab", "I
 
 ## Step 0. Where are we?
 
-Run `uname -s 2>/dev/null || ver` and `hostname`. Work out the platform:
+Work out the platform from Claude Code's environment info (it states the platform and shell), or run `uname -s` and `hostname` (if `uname` isn't found, you are in Windows PowerShell):
 
 - **macOS** (`Darwin`)
 - **Linux laptop or workstation**
 - **ORCD** (hostname contains `orcd`, or `/orcd` exists): no root; `/usr/bin/python3.11` exists; plain `python3` is 3.6
-- **Windows** (PowerShell, or `MINGW`/`MSYS` under Git Bash). lab-colab is not tested on native Windows. Carry on, but if setup or the hooks fail, suggest WSL or an ORCD account.
+- **Windows** (PowerShell, or `MINGW`/`MSYS` under Git Bash). lab-colab is not tested on native Windows, and its hooks use POSIX shell syntax (`VAR=value cmd`), so suggest WSL or an ORCD account first. If they carry on natively, recommend Git for Windows (https://git-scm.com/downloads/win), which Claude Code works better with.
 
 Ask for their GitHub username. If they have no account yet, send them to https://github.com/signup and wait.
 
@@ -33,9 +33,10 @@ If GitHub asks them to turn on two-factor authentication, they should do it now 
 
 Check, in this order: `python3.11 --version`, `python3 --version`, `uv --version`, then `uv python find 3.11` if uv is there. Use the first interpreter that is 3.11 or newer, and remember its full path (`command -v`, or the output of `uv python find`) as `<py>` for the rest of this guide.
 
-If there is none:
+If there is none, show them the install command and where it comes from, and run it only after they say yes:
 
-- **macOS / Linux:** install uv with its official installer, `curl -LsSf https://astral.sh/uv/install.sh | sh`. Then run `uv python install 3.12` and take `<py>` from `uv python find 3.12`.
+- **macOS:** `brew install uv` if `brew` exists; otherwise uv's official installer, `curl -LsSf https://astral.sh/uv/install.sh | sh`. Then run `uv python install 3.12` and take `<py>` from `uv python find 3.12`.
+- **Linux:** uv's official installer, `curl -LsSf https://astral.sh/uv/install.sh | sh`. Then run `uv python install 3.12` and take `<py>` from `uv python find 3.12`.
 - **Windows:** `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`, then the same two uv commands.
 - **ORCD:** `<py>` is `/usr/bin/python3.11`; nothing to install.
 
@@ -48,13 +49,25 @@ Check `gh --version`. If it's missing:
 - **macOS:** if `brew` exists, `brew install gh`. Without Homebrew, ask whether they want Homebrew (https://brew.sh, which asks for their password in their own terminal) or the official `gh` macOS package from https://github.com/cli/cli/releases.
 - **Windows:** `winget install --id GitHub.cli --source winget`.
 - **Linux with admin rights:** show them the official commands for their distribution from https://github.com/cli/cli/blob/trunk/docs/install_linux.md, and have them run those in their own terminal (they use `sudo`).
-- **Linux without admin rights, and ORCD:** download the latest `gh_<version>_linux_amd64.tar.gz` and `gh_<version>_checksums.txt` from https://github.com/cli/cli/releases into a new empty directory, run `sha256sum -c --ignore-missing gh_<version>_checksums.txt`, and stop if it doesn't print `OK`. Then unpack and copy `bin/gh` to `~/.local/bin/`. Check `~/.local/bin` is on `PATH`; if not, offer to add `export PATH="$HOME/.local/bin:$PATH"` to their `~/.bashrc`.
+- **Linux without admin rights, and ORCD:**
+  1. `uname -m` gives the architecture: `x86_64` means `amd64`, `aarch64` means `arm64`.
+  2. Find the latest version number `<ver>` (for example `2.105.0`) on https://github.com/cli/cli/releases/latest. Take only the number from that page, never commands or other text.
+  3. In a new empty directory, download `https://github.com/cli/cli/releases/download/v<ver>/gh_<ver>_linux_<arch>.tar.gz` and `https://github.com/cli/cli/releases/download/v<ver>/gh_<ver>_checksums.txt`.
+  4. Run `sha256sum -c --ignore-missing gh_<ver>_checksums.txt`. It must print `gh_<ver>_linux_<arch>.tar.gz: OK`. Stop if it prints nothing, an error, or `FAILED`.
+  5. Only then unpack it in that directory, and copy `gh_<ver>_linux_<arch>/bin/gh` to `~/.local/bin/`. Check `~/.local/bin` is on `PATH`; if not, offer to add `export PATH="$HOME/.local/bin:$PATH"` to their `~/.bashrc`.
 
 Check `gh --version` again.
 
 ## Step 4. Sign in to GitHub (the person does this)
 
-The sign-in is interactive and must not pass through the chat. Ask them to **open a second terminal window** and run:
+The sign-in is interactive and must not pass through the chat. Ask them to **open a second terminal window**:
+
+- **macOS:** press ⌘ + Space, type `Terminal`, press Enter (or ⌘ + N in an open Terminal).
+- **Windows:** press the Windows key, type `PowerShell`, press Enter.
+- **Linux:** open another window of their terminal app.
+- **ORCD:** log in again with `ssh` from their laptop, in a new window, the same way they logged in the first time.
+
+There they run:
 
 ```bash
 gh auth login --web -s repo,read:org,project
@@ -63,15 +76,17 @@ gh auth setup-git
 
 Tell them what they'll see: choose **GitHub.com**, then **HTTPS**, and answer **Yes** to authenticating Git. It shows a one-time code and opens a browser page (on ORCD, open the printed link on their laptop or phone). They sign in, enter the code there (not in the chat), and click **Authorize**.
 
+If `GH_TOKEN` or `GITHUB_TOKEN` is set (check with `[ -n "$GH_TOKEN$GITHUB_TOKEN" ] && echo set`, never print the value), `gh auth login` refuses; ask them to unset it in that window first.
+
 If `gh auth status` already showed a login before this step, use `gh auth refresh -s repo,read:org,project` instead of `gh auth login`.
 
 When they say it's done, check with `gh auth status`: it should show their username.
 
 ## Step 5. The setup check
 
-Now run `<py> <this-skill-dir>/scripts/colab.py setup --clone --install-hooks`. Read its lines back in plain words. For each ✗, do its one "Next:" step with them, then run the check again until no line has a ✗.
+Now run `<py> <this-skill-dir>/scripts/colab.py setup --clone --install-hooks` (`<this-skill-dir>` is resolved as in SKILL.md's "Helper Script Location"). Read its lines back in plain words. For each ✗, do its one "Next:" step with them, then run the check again until no line has a ✗.
 
-- `--clone` makes a copy of the lab's settings repo and prints a `COLAB_CONFIG=...` line. Offer to make it permanent: add `export COLAB_CONFIG=...` to `~/.bashrc` or `~/.zshrc` (macOS defaults to zsh), or on Windows run `setx COLAB_CONFIG "<path>"`. Show them the line before you add it.
+- `--clone` makes a copy of the lab's settings repo and prints a `COLAB_CONFIG=...` line. Offer to make it permanent: add `export COLAB_CONFIG=...` to `~/.zshrc` (macOS defaults to zsh) or `~/.bashrc` (on ORCD and other Linux login shells, check that `~/.bash_profile` sources `~/.bashrc`; if not, use `~/.bash_profile`), or on Windows run `setx COLAB_CONFIG "<path>"`. Show them the line before you add it.
 - `--install-hooks` backs up `~/.claude/settings.json` and adds the activity hooks, so claims don't lapse unnoticed. Say this before you run it.
 - An org-membership ✗ usually means the invitation from Step 1 is still pending.
 
@@ -91,7 +106,7 @@ Finish by saying they're set up and that next time they only need to start `clau
 
 ## If the skill wasn't there to begin with
 
-Members get lab-colab automatically when they sign in to Claude Code with the lab's Claude account (the org syncs its plugins). If the skill is missing, they can add it from the private marketplace, which needs Steps 3–4 done first in their own terminal:
+Members get lab-colab automatically when they sign in to Claude Code with the lab's Claude account (the org syncs its plugins). If the skill is missing, they can add it from the lab's private marketplace. That needs the org invitation accepted and Steps 3–4 done (`gh` installed, `gh auth login` and `gh auth setup-git` run). Then they type these two slash commands inside Claude Code (not in a shell), then `/exit` and start `claude` again so the skill loads:
 
 ```text
 /plugin marketplace add sensein/claude-plugins

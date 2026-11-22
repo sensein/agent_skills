@@ -21,6 +21,13 @@ What working this way looks like, once set up:
 
 Install Claude Code (https://code.claude.com/docs/en/setup), sign in with the lab's Claude account, start `claude`, and say **"set me up for lab-colab"**. The skill arrives with the lab's Claude account, and it walks you through the rest: installing `gh` and Python if needed, signing in to GitHub, joining the org, the setup check, and your first sync ([onboarding.md](./onboarding.md) is what it follows). The steps below are the same thing done by hand.
 
+If your assistant doesn't know lab-colab (your Claude account isn't on the lab's plan, or the sync hasn't reached you), add it from the lab's private marketplace. First accept the org invitation, install `gh`, and run `gh auth login --web -s repo,read:org,project` and `gh auth setup-git` in a terminal. Then type these inside Claude Code, and restart `claude` afterwards:
+
+```text
+/plugin marketplace add sensein/claude-plugins
+/plugin install lab-colab@sensein
+```
+
 ## If you write code (Claude Code and a terminal)
 
 1. Accept the org invitation: GitHub sends an email inviting you to the lab's organisation; click **Join**. (Lost it? Open `https://github.com/orgs/<org>/invitation` while signed in.)
