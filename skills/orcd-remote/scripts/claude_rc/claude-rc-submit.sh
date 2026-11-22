@@ -65,9 +65,11 @@ start() {
   [ -n "$part" ] || { echo "Pick a partition with -p (see: $0 check)"; exit 2; }
   [ -n "$RC_DIR" ] || { echo "~/orcd/scratch is missing; set RC_DIR to a folder on your scratch"; exit 2; }
   [ -n "$work" ] || { echo "No folder to serve: ~/orcd/scratch is missing; pass -w <folder>"; exit 2; }
-  work=$(readlink -f "$work"); RC_DIR=$(readlink -m "$RC_DIR")
-  [ -d "$work" ] || { echo "No such folder: $work"; exit 2; }
-  [ "$work" != "$(readlink -f "$HOME")" ] || { echo "Don't serve your home folder (it holds your keys and sign-ins); pick a folder on scratch"; exit 2; }
+  local given=$work home
+  work=$(readlink -f "$work" || true); RC_DIR=$(readlink -m "$RC_DIR")
+  [ -n "$work" ] && [ -d "$work" ] || { echo "No such folder: $given"; exit 2; }
+  home=$(readlink -f "$HOME")
+  case "$home/" in "${work%/}/"*) echo "Don't serve your home folder or a folder above it (it holds your keys and sign-ins); pick a folder on scratch"; exit 2 ;; esac
   case "$work$RC_DIR$mem$cpus" in *,*) echo "Folders and sizes can't contain commas"; exit 2 ;; esac
   [ -z "${ANTHROPIC_API_KEY:-}" ] || { echo "Unset ANTHROPIC_API_KEY first: remote control uses your claude.ai sign-in, and jobs would inherit the key"; exit 2; }
   check >/dev/null || { echo "Prerequisites missing; run: $0 check"; exit 1; }

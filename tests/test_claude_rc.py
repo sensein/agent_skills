@@ -112,7 +112,9 @@ class ClaudeRcPlanTest(unittest.TestCase):
         env, home = self._start_env()
         bad = Path(self.tmp.name) / "a,b"
         bad.mkdir()
-        for folder, msg in ((str(home), "home folder"), ("/nonexistent", "No such folder"), (str(bad), "commas")):
+        cases = ((str(home), "home folder"), ("/", "home folder"), ("/nonexistent", "No such folder"),
+                 ("/nonexistent/sub", "No such folder"), (str(bad), "commas"))
+        for folder, msg in cases:
             out = self.submit(env, "start", "-p", "x", "-w", folder)
             self.assertEqual(out.returncode, 2, folder)
             self.assertIn(msg, out.stdout)
