@@ -122,7 +122,9 @@ class ClaudeRcPlanTest(unittest.TestCase):
     def test_start_refuses_short_partition(self):
         env, _ = self._start_env()
         env["MAXTIME"] = "04:00:00"
-        out = self.submit(env, "start", "-p", "short", "-w", self.tmp.name)
+        work = Path(self.tmp.name) / "work"
+        work.mkdir()
+        out = self.submit(env, "start", "-p", "short", "-w", str(work))
         self.assertEqual(out.returncode, 2)
         self.assertIn("at least 12 hours", out.stdout)
 
