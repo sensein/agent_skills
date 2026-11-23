@@ -113,6 +113,7 @@
     ],
     "quality_issue": [
       "label_glyph_artifact",
+      "label_masked_glyphs",
       "label_mojibake",
       "label_letter_spaced",
       "label_low_alpha",
@@ -122,6 +123,7 @@
       "label_not_gene_symbol",
       "label_not_in_text",
       "evidence_glyph_artifact",
+      "evidence_masked_glyphs",
       "evidence_mojibake",
       "evidence_letter_spaced",
       "evidence_low_alpha",
@@ -130,6 +132,7 @@
       "label_not_in_evidence",
       "evidence_too_short",
       "evidence_boilerplate",
+      "evidence_markup",
       "evidence_in_reference_list",
       "all_evidence_junk"
     ]

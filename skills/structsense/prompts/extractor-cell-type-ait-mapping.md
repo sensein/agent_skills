@@ -71,7 +71,10 @@ python -m scripts.text_quality paper.txt --layout paper.layout.json   # exit 1 =
 - `text_quality` scores each paragraph for parse junk: `(cid:NN)` glyph codes,
   replacement and private-use characters, mojibake (`â€™`, `Ã©`), letter-spaced
   words (`c e l l s`), symbol soup, one-word-per-line fragments of run-together
-  columns, and words fused without spaces. It also lists repeated running
+  columns, and words fused without spaces. Asterisk-masked glyph runs
+  (`** **** *** **`: a preprint watermark or the text inside a figure, drawn in a
+  font with no Unicode map) count as junk only where they are, so a watermark on
+  every page does not condemn the paper. It also lists repeated running
   headers/footers and checks that figure captions survived.
 - **Verdict `unusable`: stop.** Re-extract with another backend (open access:
   `python -m scripts.fetch_fulltext <PMCID>`; otherwise GROBID, Docling — the only
@@ -263,13 +266,13 @@ each evidence sentence that was found, and writes the codes it finds to
 
 | Code | Holds the entity back? | Meaning |
 |---|---|---|
-| `label_glyph_artifact`, `label_mojibake`, `label_letter_spaced` | yes | the label carries `(cid:NN)`/control/replacement characters, mojibake, or spaced letters |
+| `label_glyph_artifact`, `label_masked_glyphs`, `label_mojibake`, `label_letter_spaced` | yes | the label carries `(cid:NN)`/control/replacement characters, asterisk-masked glyphs, mojibake, or spaced letters |
 | `label_low_alpha`, `label_too_long`, `label_sentence_like`, `label_unbalanced_brackets` | yes | not a name: symbols, a sentence fragment, a run-on, a cut-off bracket |
 | `label_not_gene_symbol` | yes | a `gene` label that is not a symbol (`Pvalb expression`) |
 | `label_not_in_text` | yes | neither the label nor an alias occurs anywhere in the paper: it was repaired, invented, or read from text that is not there |
-| `evidence_glyph_artifact`, `evidence_mojibake`, `evidence_letter_spaced`, `evidence_low_alpha`, `evidence_fused_words`, `evidence_in_junk_region` | only when **all** found evidence is junk (`all_evidence_junk`) | the sentence, or the paragraph it sits in, is parse junk |
+| `evidence_glyph_artifact`, `evidence_masked_glyphs`, `evidence_mojibake`, `evidence_letter_spaced`, `evidence_low_alpha`, `evidence_fused_words`, `evidence_in_junk_region` | only when **all** found evidence is junk (`all_evidence_junk`) | the sentence, or the paragraph it sits in, is parse junk — e.g. `It is made ** **** *** ** available under a … SchizophreniaNeuroticism<br>*** ***`, figure text and a watermark read as a sentence |
 | `label_not_in_evidence` | no | the evidence names the entity indirectly ("These cells …"); fine, but worth a look |
-| `evidence_too_short`, `evidence_boilerplate`, `evidence_in_reference_list` | no | under 20 characters; a running header/footer; the reference list |
+| `evidence_too_short`, `evidence_boilerplate`, `evidence_markup`, `evidence_in_reference_list` | no | under 20 characters; a running header/footer or preprint watermark spliced in at a page break; HTML left from a table cell (`<br>`); the reference list |
 
 An entity that is held back gets `extraction_flag = parse_artifact`. Like
 `unverified_evidence`, it stays in `entities.csv`, visible with its reasons, and

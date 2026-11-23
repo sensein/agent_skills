@@ -2,9 +2,10 @@
 
 The lexical evidence check (`scripts/ait_evidence.py`) proves a quote is in the
 source text. It cannot tell whether that text is readable: when a PDF parse emits
-`(cid:12)` glyph codes, `â€™` mojibake, letter-spaced words (`c e l l`), columns
-run together one word per line, or words fused without spaces, the garbage is
-copied verbatim and verifies as `exact`. This module catches that, at two levels.
+`(cid:12)` glyph codes, `â€™` mojibake, letter-spaced words (`c e l l`), asterisk-
+masked glyph runs (`** **** ***`: a watermark or figure text in a font with no
+Unicode map), columns run together one word per line, or words fused without spaces
+(`SchizophreniaNeuroticism`), the garbage is copied verbatim and verifies as `exact`. This module catches that, at two levels.
 
 **Document** (`document_report`, the Pass 0 gate). The text is scored per
 paragraph (long paragraphs in fixed windows), so one garbled table does not taint
@@ -43,16 +44,31 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 # (cid:NN) is what pdfminer emits for a glyph with no Unicode mapping; U+FFFD is a
 # decoder's replacement character; private-use code points are unmapped font glyphs.
-GLYPH_RE = re.compile(r"\(cid:\d+\)|�|[-]")
+GLYPH_RE = re.compile(r"\(cid:\d+\)|\ufffd|[\ue000-\uf8ff]")
 # Control characters other than tab, newline, carriage return and form feed.
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]")
 # UTF-8 decoded as Windows-1252/Latin-1: "Ã©" for é, "â€™" for ’, "Â " for NBSP, "ï¬" for ligatures.
-MOJIBAKE_RE = re.compile(r"Ã[\u0080-¿ŒœŠšŸŽžƒˆ˜–-›€™]"
-                         r"|â€|Â[ -¿]|ï¬")
+MOJIBAKE_RE = re.compile(r"\u00c3[\u0080-\u00bf\u0152\u0153\u0160\u0161\u0178\u017d\u017e\u0192\u02c6\u02dc\u2013-\u203a\u20ac\u2122]"
+                         r"|\u00e2\u20ac|\u00c2[\u00a0-\u00bf]|\u00ef\u00ac")
 # Five or more single letters separated by single spaces: "c e l l s", "P v a l b".
 LETTER_SPACED_RE = re.compile(r"(?<![^\s(\[])(?:[A-Za-z] ){4,}[A-Za-z](?![^\s.,;:)\]])")
 # A run of 30+ letters with no space: words fused by a lost space ("thecellsweresorted...").
 FUSED_RE = re.compile(r"[A-Za-z]{30,}")
+# Five or more consecutive tokens made only of asterisks: text drawn in a font with no
+# Unicode map (a preprint server's watermark, the text inside a figure) extracts as
+# "** **** *** ** ...". Significance stars in a table are separated by values or
+# pipes, so they do not form a run this long.
+MASKED_RE = re.compile(r"(?<!\S)(?:\*+[ \t]+){4,}\*+(?!\S)")
+# Two words fused by a lost space between figure labels or table cells:
+# "SchizophreniaNeuroticism", "disorderMajor". Four lowercase letters before the
+# capital and four after keep tool names (CellRanger, DeepLabCut, MapMyCells) out;
+# a sentence needs two of these to count.
+CAMEL_FUSED_RE = re.compile(r"[a-z]{4,}[A-Z][a-z]{4,}")
+# Per-page watermark/licence header a preprint server prints into the text layer.
+WATERMARK_RE = re.compile(r"the copyright holder for this preprint|is made available under a\b|"
+                          r"(?:bio|med)Rxiv preprint (?:doi|first posted)", re.IGNORECASE)
+# HTML left in Markdown output (table cells): a figure parsed as a table, usually.
+MARKUP_RE = re.compile(r"</?(?:br|p|span|div|sup|sub|i|b)\s*/?>", re.IGNORECASE)
 _LETTER = re.compile(r"[^\W\d_]", re.UNICODE)
 
 # --------------------------------------------------------------------------- #
@@ -77,15 +93,16 @@ MAX_LABEL_CHARS = 100
 MAX_LABEL_WORDS = 12
 GENE_SYMBOL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9\-./@_']{0,24}[+\-]?$")
 
-HARD_LABEL = ("label_glyph_artifact", "label_mojibake", "label_letter_spaced", "label_low_alpha",
+HARD_LABEL = ("label_glyph_artifact", "label_masked_glyphs", "label_mojibake", "label_letter_spaced", "label_low_alpha",
               "label_sentence_like", "label_too_long", "label_unbalanced_brackets",
               "label_not_gene_symbol", "label_not_in_text")
-JUNK_EVIDENCE = ("evidence_glyph_artifact", "evidence_mojibake", "evidence_letter_spaced",
-                 "evidence_low_alpha", "evidence_fused_words", "evidence_in_junk_region")
+JUNK_EVIDENCE = ("evidence_glyph_artifact", "evidence_masked_glyphs", "evidence_mojibake",
+                 "evidence_letter_spaced", "evidence_low_alpha", "evidence_fused_words",
+                 "evidence_in_junk_region")
 # A supporting sentence may name the entity indirectly ("These cells co-expressed
 # Sst, Chodl and Nos1."), so a label missing from its evidence is recorded, not held back.
 SOFT_EVIDENCE = ("label_not_in_evidence", "evidence_too_short", "evidence_boilerplate",
-                 "evidence_in_reference_list")
+                 "evidence_markup", "evidence_in_reference_list")
 QUALITY_ISSUES = HARD_LABEL + JUNK_EVIDENCE + SOFT_EVIDENCE + ("all_evidence_junk",)
 # Holding back: any hard label issue, or every usable evidence sentence is junk.
 HOLD_BACK = set(HARD_LABEL) | {"all_evidence_junk"}
@@ -100,15 +117,17 @@ def alpha_ratio(s: str) -> float:
 
 
 def letter_symbol_ratio(s: str) -> float:
-    """letters / (letters + symbols), ignoring digits, whitespace and table pipes.
+    """letters / (letters + symbols), ignoring digits, whitespace, table pipes and asterisks.
 
     Digits are legitimate in bulk (count tables, statistics), so they say nothing
     about readability. What a broken font map produces is symbol soup
-    (`!"#$%&'()*+`), and that is what this ratio drops on. 1.0 for text with
-    neither letters nor symbols (a row of numbers)."""
+    (`!"#$%&'()+`), and that is what this ratio drops on. Asterisks are left to
+    MASKED_RE: significance stars (`* p<0.05, ** p<0.01`) are legitimate, and a
+    masked-glyph run is caught as a run. 1.0 for text with neither letters nor
+    symbols (a row of numbers)."""
     letters = symbols = 0
     for c in s:
-        if c.isspace() or c.isdigit() or c == "|":
+        if c.isspace() or c.isdigit() or c in "|*":
             continue
         if _LETTER.match(c):
             letters += 1
@@ -133,6 +152,8 @@ def _artifact_codes(s: str, prefix: str) -> List[str]:
     out = []
     if GLYPH_RE.search(s) or CONTROL_RE.search(s):
         out.append(f"{prefix}_glyph_artifact")
+    if MASKED_RE.search(s):
+        out.append(f"{prefix}_masked_glyphs")
     if MOJIBAKE_RE.search(s):
         out.append(f"{prefix}_mojibake")
     if LETTER_SPACED_RE.search(s):
@@ -181,10 +202,16 @@ def evidence_issues(sentence: str) -> List[str]:
     out = _artifact_codes(s, "evidence")
     if len(s.strip()) >= MIN_EVIDENCE_CHARS and letter_symbol_ratio(_prose_lines(s)) < MIN_LETTER_RATIO:
         out.append("evidence_low_alpha")
-    if FUSED_RE.search(s):
+    if FUSED_RE.search(s) or len(CAMEL_FUSED_RE.findall(s)) >= 2:
         out.append("evidence_fused_words")
     if len(" ".join(s.split())) < MIN_EVIDENCE_CHARS:
         out.append("evidence_too_short")
+    # A watermark spliced into a sentence at a page break leaves the sentence itself
+    # usable, so these two are recorded, not held against the entity.
+    if WATERMARK_RE.search(s):
+        out.append("evidence_boilerplate")
+    if MARKUP_RE.search(s):
+        out.append("evidence_markup")
     return out
 
 
@@ -316,6 +343,15 @@ def document_report(text: str, layout: Optional[dict] = None) -> Dict[str, objec
             reasons_all.update(m["junk_reasons"])
             junk_spans.append([start, end])
             junk_chars += end - start
+    # Masked-glyph runs are local (a watermark on every page, the text of one figure):
+    # the run itself is junk, not the paragraph around it, or a preprint whose every
+    # page carries a masked watermark would read as unusable end to end.
+    masked = [[m.start(), m.end()] for m in MASKED_RE.finditer(text)]
+    for a, b in masked:
+        if not any(s <= a and b <= e for s, e in junk_spans):
+            junk_spans.append([a, b])
+            junk_chars += b - a
+    junk_spans.sort()
     content = sum(len(text[a:b]) for _, a, b in _regions(text, layout)) if text else 0
     frac = junk_chars / content if content else 1.0
     verdict = "unusable" if (not text.strip() or frac > UNUSABLE_FRACTION) else \
@@ -327,6 +363,8 @@ def document_report(text: str, layout: Optional[dict] = None) -> Dict[str, objec
         captions = None
     boiler = boilerplate_lines(text)
     advice = []
+    if masked:
+        reasons_all["masked_glyphs"] += len(masked)
     if verdict != "ok":
         advice.append(f"{verdict}: {round(100 * frac, 1)}% of the text is in junk regions "
                       f"({', '.join(f'{k} x{v}' for k, v in reasons_all.most_common())}).")
@@ -339,6 +377,7 @@ def document_report(text: str, layout: Optional[dict] = None) -> Dict[str, objec
         "verdict": verdict,
         "junk_fraction": round(frac, 4),
         "junk_spans": junk_spans,
+        "masked_glyph_runs": len(masked),
         "n_regions": n_regions,
         "junk_regions": regions,
         "boilerplate": boiler,
@@ -409,6 +448,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
           f"{len(bad)}/{report['n_regions']} regions)")
     for r in bad[:20]:
         print(f"  {r['region']}: {', '.join(r['junk_reasons'])} — {r['excerpt'][:80]!r}")
+    if report["masked_glyph_runs"]:
+        print(f"asterisk-masked glyph runs: {report['masked_glyph_runs']} (watermark or figure text "
+              f"with no Unicode map; only the runs themselves count as junk)")
     if report["boilerplate"]:
         print(f"boilerplate lines: {len(report['boilerplate'])}")
     for a in report["advice"]:
