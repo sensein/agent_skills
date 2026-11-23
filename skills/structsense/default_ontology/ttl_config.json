@@ -175,7 +175,9 @@
       "concept": "concept|{iri}",
       "ontology": "ontology|{acronym}",
       "agent": "agent|{key}",
-      "entity": "entity|{key}"
+      "entity": "entity|{key}",
+      "taxonomy": "taxonomy|{id}",
+      "taxonomy_node": "taxonomy_node|{taxonomy}|{node}"
     },
     "paper_name": "{kind}|{paper}|{variant}|{local}",
     "_paper": "{paper} is the DOI when the source has one, else the paper slug. {variant} is the extraction (task_type:ner_domain, e.g. 'ner:neuroscience', 'ner:cns-cells'; json_to_ttl --variant): two extractions of one paper are different readings, so their mentions, classifications, reviews and runs never share an IRI. paper_shared_kinds (the publication, its text, sentences, sections) are the same thing in every extraction and are shared.",
@@ -186,7 +188,8 @@
       "sentence",
       "section",
       "document_ingestion",
-      "mention"
+      "mention",
+      "document_part"
     ]
   },
   "relation_range_hints": {

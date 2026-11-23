@@ -23,12 +23,16 @@ edge. Practically this means:
 
 ## Order of operations
 
-Four passes, then the review loop every structsense mode runs
-(`references/review-loop.md`). Do not merge Pass 1 with Pass 3 — extraction must not
-be biased by what the taxonomy happens to contain.
+A text-quality gate, four passes, the review loop every structsense mode runs
+(`references/review-loop.md`), then the Turtle export. Do not merge Pass 1 with
+Pass 3 — extraction must not be biased by what the taxonomy happens to contain.
 
+0. **Check the text before extracting from it** — build the layout map and run the
+   quality gate (Pass 0 below). Junk in, junk out: a garbled parse verifies as
+   "exact" against itself.
 1. **Index and extract (one pass over the paper).**
-2. **Verify** — lexical evidence check, deduplication, provenance labelling.
+2. **Verify** — lexical evidence check, parse-artifact check, evidence location,
+   deduplication, provenance labelling.
 3. **Map** to AIT taxonomies with SKOS match relations.
 4. **Assemble entity cards**, including the marker-gene diff.
 5. **Review loop** — concept map every entity through the trusted ontologies
@@ -41,6 +45,43 @@ be biased by what the taxonomy happens to contain.
    curator) and never overwrite; an entity a gate drops is quarantined
    (`unverified_evidence`). Re-run Pass 4 if an edge moved to another node, then
    `ait_tables validate`.
+6. **Export to Turtle** — `python -m scripts.ait_export out/ --text paper.txt
+   --source paper.pdf` writes `out/<paper_id>.ttl` from the validated tables and
+   gates it with `validate_ttl`. That file, not the CSVs, is what is loaded into the
+   knowledge graph; never write Turtle by hand.
+
+---
+
+## Pass 0 — Text quality and layout (code, before any extraction)
+
+Every offset, quote and location below refers to one text file, `paper.txt` (main
+text, captions, tables and supplements, concatenated). Before extracting from it,
+map it and check that it is readable:
+
+```bash
+python -m scripts.doc_layout paper.txt --pdf paper.pdf           # -> paper.layout.json
+python -m scripts.text_quality paper.txt --layout paper.layout.json   # exit 1 = unusable
+```
+
+- `doc_layout` records, as character ranges of `paper.txt`, its sections, figure
+  captions, tables (caption plus rows), the reference list, appended supplements
+  and — from the PDF — its pages. Pages are physical PDF pages, 1-based. The text is
+  not modified, so offsets stay valid; the layout stores the text's sha256 and is
+  refused for any other text.
+- `text_quality` scores each paragraph for parse junk: `(cid:NN)` glyph codes,
+  replacement and private-use characters, mojibake (`â€™`, `Ã©`), letter-spaced
+  words (`c e l l s`), symbol soup, one-word-per-line fragments of run-together
+  columns, and words fused without spaces. It also lists repeated running
+  headers/footers and checks that figure captions survived.
+- **Verdict `unusable`: stop.** Re-extract with another backend (open access:
+  `python -m scripts.fetch_fulltext <PMCID>`; otherwise GROBID, Docling — the only
+  backend that OCRs scanned pages — or pymupdf4llm, via `scripts/input_loader.py`),
+  rebuild the layout and run the gate again. **`degraded`: continue**, but expect
+  entities from the junk regions to be held back in Pass 2, and say so in
+  `run_report.md`.
+
+When you append a supplementary file to `paper.txt`, put a marker line before it,
+`[SUPPLEMENTARY FILE: <file name>]`, so the layout can attribute its text.
 
 ---
 
@@ -121,13 +162,20 @@ observed, because that bounds how much weight a marker-based mapping can carry:
 
 **Evidence** — for every extracted entity, capture the verbatim supporting sentence(s)
 together with `chunk_id` and the character offsets. Copy the span exactly: do not fix
-typography, expand abbreviations, normalize whitespace, or join sentences with ellipses.
+typography, expand abbreviations, normalize whitespace, or join sentences with ellipses
+— and do not repair garbled text either. If the source reads `Pv(cid:3)alb`, a
+cleaned-up `Pvalb` occurs nowhere in the paper and is held back as a parse artifact;
+the honest record is the garbled one, which Pass 2 holds back with its reason.
 Offsets index the one text file the Pass 1a index was built on (main text, captions,
 tables and supplements concatenated); keep that file, because Pass 2 verifies against it.
 When an entity has several evidence sentences, the evidence columns are *aligned*
 multi-values: the n-th element of `evidence_sentence`, `evidence_section`,
-`evidence_chunk_id`, `evidence_char_start`, `evidence_char_end`, `evidence_verified` and
-`evidence_similarity` all describe the same sentence. A literal `|` inside a quoted span
+`evidence_chunk_id`, `evidence_char_start`, `evidence_char_end`, `evidence_verified`,
+`evidence_similarity`, `evidence_page`, `evidence_locator_type` and `evidence_locator`
+all describe the same sentence. Write `evidence_section` as your best reading of the
+section; leave `evidence_page`, `evidence_locator_type` and `evidence_locator` empty.
+Pass 2 computes all four from the layout map, which is the record of where the
+sentence is — not what the model remembers reading. A literal `|` inside a quoted span
 (a Markdown table row, say) is written `\|`.
 
 ---
@@ -140,7 +188,8 @@ Every evidence sentence must be checked programmatically against the source text
 is not an LLM judgement — run the check:
 
 ```bash
-python -m scripts.ait_evidence out/ --text paper.txt   # rewrites entities.csv + methods.csv, writes evidence_report.json
+python -m scripts.ait_evidence out/ --text paper.txt --layout paper.layout.json
+#   rewrites entities.csv + methods.csv, writes evidence_report.json; also runs 2d and 2e
 ```
 
 It implements the steps below exactly (case-sensitive; `methods.csv` has no offsets, so
@@ -194,6 +243,8 @@ should audit:
 | `code:lexical_verify` | confirmed by the Pass 2 substring check |
 | `code:ontology_lookup` | resolved against HGNC/MGI/AIT/UBERON by API or file lookup |
 | `code:supplement_table` | read from a supplementary or deposited table |
+| `code:layout_lookup` | located (section, page, figure, table) from `paper.layout.json` |
+| `code:text_quality` | set by the Pass 2d parse-artifact check |
 | `llm:extract` | produced by the extraction model |
 | `llm:review` | adjudicated or corrected by a reviewing model pass |
 | `human:curator` | set or corrected by a person |
@@ -202,6 +253,49 @@ Record provenance at field granularity in `field_provenance` as
 `field=label[;label]` pairs, pipe-delimited, at minimum for `label_verbatim`,
 `marker_genes`, `brain_region`, `species`, and `ait_node_id`. Also set `extractor_version`
 and `run_id` on every row so a result set can be reproduced or retracted.
+
+### 2d. Parse-artifact check (code, run by `ait_evidence`)
+
+A quote can be verbatim and still be garbage, when the parse that produced
+`paper.txt` was. For every entity, `scripts/text_quality.py` checks the label and
+each evidence sentence that was found, and writes the codes it finds to
+`quality_issues` (closed vocabulary `quality_issue`):
+
+| Code | Holds the entity back? | Meaning |
+|---|---|---|
+| `label_glyph_artifact`, `label_mojibake`, `label_letter_spaced` | yes | the label carries `(cid:NN)`/control/replacement characters, mojibake, or spaced letters |
+| `label_low_alpha`, `label_too_long`, `label_sentence_like`, `label_unbalanced_brackets` | yes | not a name: symbols, a sentence fragment, a run-on, a cut-off bracket |
+| `label_not_gene_symbol` | yes | a `gene` label that is not a symbol (`Pvalb expression`) |
+| `label_not_in_text` | yes | neither the label nor an alias occurs anywhere in the paper: it was repaired, invented, or read from text that is not there |
+| `evidence_glyph_artifact`, `evidence_mojibake`, `evidence_letter_spaced`, `evidence_low_alpha`, `evidence_fused_words`, `evidence_in_junk_region` | only when **all** found evidence is junk (`all_evidence_junk`) | the sentence, or the paragraph it sits in, is parse junk |
+| `label_not_in_evidence` | no | the evidence names the entity indirectly ("These cells …"); fine, but worth a look |
+| `evidence_too_short`, `evidence_boilerplate`, `evidence_in_reference_list` | no | under 20 characters; a running header/footer; the reference list |
+
+An entity that is held back gets `extraction_flag = parse_artifact`. Like
+`unverified_evidence`, it stays in `entities.csv`, visible with its reasons, and
+must not become a mapping edge, an entity card, or a node in the Turtle export. If a
+later run finds the issues fixed (a curator corrected the label, the text was
+re-extracted), the flag is reset to `uncertain` for a curator to confirm. Report
+the number held back and the most common codes; a high rate means the text
+extraction failed, not the extractor — go back to Pass 0.
+
+### 2e. Where in the paper (code, run by `ait_evidence --layout`)
+
+For every evidence sentence that was found, the verified offsets are looked up in
+`paper.layout.json`, and four aligned columns are written (provenance
+`code:layout_lookup`):
+
+| Column | Value |
+|---|---|
+| `evidence_section` | top-level section (`Results`, `Methods`, `Supplementary: Table S2.xlsx`, …); your reading is kept only where the layout found no heading |
+| `evidence_page` | physical PDF page, `4`, or `4-5` for a sentence across a page break |
+| `evidence_locator_type` | `body`, `figure_caption`, `table`, `supplementary` or `reference_list` |
+| `evidence_locator` | the figure or table, as numbered in the paper: `Fig. 3`, `Table 2`, `Fig. S1` |
+
+A `not_found` sentence has no location (`NA`), and neither does a page when the
+layout has none (no PDF, and no form feeds in the text). `methods.csv` gets the
+same four columns. These feed `review_sheet.source_in_paper`, the entity cards and
+the Turtle export.
 
 ---
 
@@ -334,15 +428,19 @@ Emit exactly these seven files, with exactly these column names, in this order. 
 names are a contract — do not rename, reorder, add, or drop columns; a field with no
 value is left empty, not omitted. The machine-readable contract is
 `schemas/ait-mapping-columns.json` (type, multi-valued flag, vocabulary and required
-flag for all 147 columns). Start from it and finish by checking against it:
+flag for all 156 columns). Start from it and finish by checking against it:
 
 ```bash
+python -m scripts.doc_layout paper.txt --pdf paper.pdf            # Pass 0: paper.layout.json
+python -m scripts.text_quality paper.txt --layout paper.layout.json   # Pass 0: stop if unusable
 python -m scripts.ait_tables init out/            # header-only files
-# ... Pass 1 extraction, then Pass 2a: python -m scripts.ait_evidence out/ --text paper.txt
+# ... Pass 1 extraction, then Pass 2a/2d/2e:
+python -m scripts.ait_evidence out/ --text paper.txt --layout paper.layout.json
 python -m scripts.ait_tables derive out/          # match_confidence + crosswalk copies
 python -m scripts.ait_gene_diff out/ --markers markers.json --namespace MGI
 python -m scripts.ait_tables review-sheet out/    # the deterministic join
 python -m scripts.ait_tables validate out/        # must exit 0 before anything reaches the knowledge graph
+python -m scripts.ait_export out/ --text paper.txt --source paper.pdf   # the Turtle that is loaded (gated)
 ```
 
 Use UTF-8, comma-separated, quote all fields, `\n` line endings. Empty means not applicable; `NA`
@@ -362,20 +460,24 @@ are pipe-delimited (`|`) with no surrounding spaces. Booleans are lowercase
 
 ### `entities.csv` — one row per deduplicated entity
 
-`paper_id, mention_id, entity_type, label_verbatim, label_normalized, aliases, n_mentions, merged_mention_ids, marker_genes, marker_genes_normalized, brain_region, brain_region_acronym, species, species_role, ncbi_taxon_id, assay_id, hierarchy_level, assertion_type, evidence_sentence, evidence_section, evidence_chunk_id, evidence_char_start, evidence_char_end, evidence_verified, evidence_similarity, extraction_flag, field_provenance, extractor_version, run_id`
+`paper_id, mention_id, entity_type, label_verbatim, label_normalized, aliases, n_mentions, merged_mention_ids, marker_genes, marker_genes_normalized, brain_region, brain_region_acronym, species, species_role, ncbi_taxon_id, assay_id, hierarchy_level, assertion_type, evidence_sentence, evidence_section, evidence_chunk_id, evidence_char_start, evidence_char_end, evidence_verified, evidence_similarity, evidence_page, evidence_locator_type, evidence_locator, extraction_flag, quality_issues, field_provenance, extractor_version, run_id`
 
 - `entity_type` ∈ `cell_type | gene | species | brain_region`
 - `species_role` ∈ `experimental | antibody_host | citation_only | reference_dataset`
 - `hierarchy_level` ∈ `class | subclass | supertype | cluster | type | unspecified`
 - `assertion_type` ∈ `asserted | inferred`
-- `extraction_flag` ∈ `ok | uncertain | unverified_evidence | generic_phrase | duplicate_merged`
+- `extraction_flag` ∈ `ok | uncertain | unverified_evidence | generic_phrase | duplicate_merged | parse_artifact`
+- `evidence_locator_type` ∈ `body | figure_caption | table | supplementary | reference_list`
+- `evidence_page`, `evidence_locator_type`, `evidence_locator` and `quality_issues` are
+  written by code (Pass 2d/2e); leave them empty when extracting
 
 ### `methods.csv` — one row per assay
 
-`paper_id, assay_id, assay_name, platform, modality, targeted, gene_panel_name, gene_panel_size, gene_panel_source, median_reads_per_cell, median_umis_per_cell, median_genes_per_cell, n_cells_qc, n_nuclei_qc, preparation, species, brain_region, n_donors, donor_ages, donor_sexes, clustering_method, clustering_software_version, clustering_resolution, annotation_method, reference_taxonomy, evidence_sentence, evidence_chunk_id, evidence_verified, field_provenance, run_id`
+`paper_id, assay_id, assay_name, platform, modality, targeted, gene_panel_name, gene_panel_size, gene_panel_source, median_reads_per_cell, median_umis_per_cell, median_genes_per_cell, n_cells_qc, n_nuclei_qc, preparation, species, brain_region, n_donors, donor_ages, donor_sexes, clustering_method, clustering_software_version, clustering_resolution, annotation_method, reference_taxonomy, evidence_sentence, evidence_chunk_id, evidence_verified, evidence_section, evidence_page, evidence_locator_type, evidence_locator, field_provenance, run_id`
 
 - `modality` ∈ `transcriptomic | spatial | electrophysiological | morphological | epigenomic | proteomic | multimodal`
 - `targeted` is boolean; when `true`, `gene_panel_size` is required
+- the four location columns are computed by Pass 2e, as in `entities.csv`
 
 ### `mappings.csv` — one row per edge (the reverse-lookup table)
 
@@ -409,8 +511,9 @@ order.
 - `ait_match` ← `mappings.ait_cell_type_label`; empty when `match_confidence = none`
 - `evidence_sentence` ← `entities.evidence_sentence`, verbatim; only rows with
   `evidence_verified` in {`exact`, `exact_offset_corrected`} may appear
-- `source_in_paper` ← `entities.evidence_section`, given as section name plus figure or
-  table number where applicable (e.g. `Results; Fig. 3b`)
+- `source_in_paper` ← `entities.evidence_section` + `evidence_locator` +
+  `evidence_page`, per kept sentence (e.g. `Results; Fig. 3; p. 4`); the section
+  alone when no layout was used
 - `assay` ← `methods.assay_name` via `assay_id`
 - `species` ← `entities.species` where `species_role = experimental`
 - `notes` ← `mappings.notes`
@@ -431,19 +534,36 @@ species, and regions:
 | `label_verbatim` | `cell_type_name_as_in_paper` | `cell_type_name` |
 | `species` (where `species_role = experimental`) | `species_experimental` | `species` |
 | `hierarchy_level` | — (paper-side level) | `hierarchy_level` |
-| `evidence_section` | — | `source_in_paper` |
+| `evidence_section` + `evidence_locator` + `evidence_page` | — | `source_in_paper` |
 | `assertion_type` | — | `asserted_or_inferred` |
 
 ### `entity_cards.csv` — one row per mapped entity
 
-`paper_id, mention_id, cell_type_name_as_in_paper, ait_id, ait_node_id, ait_cell_type_label, skos_relation, match_confidence, gene_namespace, genes_shared, genes_paper_only, genes_taxonomy_only, n_shared, n_paper_only, n_taxonomy_only, jaccard, panel_limited, jaccard_panel_restricted, assay_name, gene_panel_size, evidence_sentence, evidence_verified, field_provenance, run_id`
+`paper_id, mention_id, cell_type_name_as_in_paper, ait_id, ait_node_id, ait_cell_type_label, skos_relation, match_confidence, gene_namespace, genes_shared, genes_paper_only, genes_taxonomy_only, n_shared, n_paper_only, n_taxonomy_only, jaccard, panel_limited, jaccard_panel_restricted, assay_name, gene_panel_size, evidence_sentence, evidence_verified, source_in_paper, field_provenance, run_id`
 
 ### `run_report.md`
 
-Counts per table; entities extracted, verified, quarantined (from `evidence_report.json`);
+Counts per table; entities extracted, verified, quarantined, and held back as
+`parse_artifact` with their most common `quality_issues` (all from
+`evidence_report.json`); the Pass 0 text-quality verdict and junk fraction, and the
+text backend used; how pages were located (`page_method`, any `pages_unaligned`);
 mappings by SKOS relation; edges whose best evidence is only `fuzzy`; unmapped entities
 with reasons; sources attempted vs retrieved; the `allen_taxonomies.json` snapshot date
-used; the `validate` result; and every assumption you made that a curator should check.
+used; the `validate` result; the Turtle export's counts, held-out entities and
+`validate_ttl` result; and every assumption you made that a curator should check.
+
+### The Turtle export (`<paper_id>.ttl`)
+
+`scripts/ait_export.py` converts the validated tables through `scripts/json_to_ttl.py`
+(the NER mode's converter, so the paper, its text, sentences and concepts get the same
+IRIs as a NER run of the same paper) and refuses to run if `ait_tables validate`
+reports an error. It writes entities, one mention per strictly verified evidence
+sentence with its section, page and figure/table, tool-backed concept mappings, and
+each current mapping edge as a `ner:TaxonomyMappingAssertion` to a shared
+`ner:TaxonomyNode`. Held-back entities and `none` rows are left out and listed in
+`<paper_id>.report.json`. The edge is never a bare `skos:*Match` on the entity: that
+predicate is reserved for tool-resolved concepts, and an AIT edge is a model or
+curator judgement, so it is an assertion with its maker, basis and evidence.
 
 ---
 
@@ -458,10 +578,12 @@ used; the `validate` result; and every assumption you made that a curator should
   picks the taxonomy (Pass 3).
 - **AIT taxonomy reader** — look up candidate nodes by label, region, or markers, and
   retrieve the marker gene set needed for the Pass 4 diff.
-- **Deterministic stages** — `scripts/ait_evidence.py` (Pass 2a), `scripts/ait_tables.py`
+- **Deterministic stages** — `scripts/doc_layout.py` and `scripts/text_quality.py`
+  (Pass 0), `scripts/ait_evidence.py` (Pass 2a/2d/2e), `scripts/ait_tables.py`
   (derive / review sheet / validate), `scripts/ait_gene_diff.py` (Pass 4),
   `scripts/review_loop.py` / `scripts/record_judge.py` / `scripts/human_feedback.py`
-  (Pass 5). Run them; do not reproduce their output by hand.
+  (Pass 5), `scripts/ait_export.py` (Turtle). Run them; do not reproduce their output by
+  hand.
 - **GFF / GeneOrthology tools** — normalize gene symbols and resolve cross-species
   orthologs before any gene-set comparison.
 - **StructSense extraction skills**.
@@ -479,6 +601,9 @@ for the paper, at three levels, and include the table in `run_report.md`:
 3. **Evidence integrity** — fraction of evidence sentences with `evidence_verified` in
    {`exact`, `exact_offset_corrected`}. This is the trust metric and should be ~1.0; it is
    measured on every run, with or without a gold set.
+4. **Parse-artifact rate** — fraction of entities held back as `parse_artifact`
+   (`evidence_report.json`). It measures the text, not the extractor, and should be
+   ~0 on a clean extraction; report it next to the Pass 0 verdict.
 
 Recall is the priority at this stage. Never discard an uncertain extraction to improve
 precision — flag it with `extraction_flag = uncertain` and let the reviewer decide.

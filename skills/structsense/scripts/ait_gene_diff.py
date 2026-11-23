@@ -113,6 +113,7 @@ def build_cards(data: Dict[str, List[Dict[str, str]]], markers: Dict[str, List[s
         sentences = tables.split_multi(ent.get("evidence_sentence", ""))
         statuses = tables.split_multi(ent.get("evidence_verified", ""))
         found = [i for i, s in enumerate(statuses) if s != "not_found" and i < len(sentences)]
+        where = tables.sources_in_paper(ent)
         row: Dict[str, str] = {
             "paper_id": m.get("paper_id", ""), "mention_id": m["mention_id"],
             "cell_type_name_as_in_paper": ent.get("label_verbatim", ""),
@@ -125,6 +126,7 @@ def build_cards(data: Dict[str, List[Dict[str, str]]], markers: Dict[str, List[s
             "gene_panel_size": tables.join_multi(a.get("gene_panel_size", "") for a in targeted),
             "evidence_sentence": tables.join_multi(sentences[i] for i in found),
             "evidence_verified": tables.join_multi(statuses[i] for i in found),
+            "source_in_paper": tables.join_multi(where[i] for i in found),
             "field_provenance": _merge_provenance(ent.get("field_provenance", ""), m.get("field_provenance", "")),
             "run_id": m.get("run_id", ""),
         }
