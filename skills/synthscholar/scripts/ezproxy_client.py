@@ -191,7 +191,8 @@ class EZProxyConfig:
         if not parsed.scheme.startswith("http") or not parsed.netloc:
             return url
         host = parsed.netloc.lower()
-        if self.host.lower() in host:
+        hostname, proxy = (parsed.hostname or "").lower(), self.host.lower().partition(":")[0]
+        if hostname == proxy or hostname.endswith("." + proxy):
             return url                                     # already proxied
         if any(host == d or host.endswith("." + d) for d in _NEVER_PROXY):
             return url
@@ -272,9 +273,14 @@ class EZProxyFetcher:
                 "Accept": "application/pdf,text/html;q=0.9,*/*;q=0.8",
                 **c.extra_headers,
             }
+            # Scope the session to the proxy and its subdomains: a domain-less
+            # jar would send it to every host, never-proxied ones and redirects too.
+            jar = httpx.Cookies()
+            for name, value in c.cookies().items():
+                jar.set(name, value, domain="." + c.host.lower().partition(":")[0])
             self._client = httpx.Client(
                 timeout=c.timeout, follow_redirects=True,
-                headers=headers, cookies=c.cookies(),
+                headers=headers, cookies=jar,
             )
         return self._client
 
@@ -323,8 +329,9 @@ class EZProxyFetcher:
 
     @staticmethod
     def _is_pdf(response: httpx.Response) -> bool:
-        ctype = response.headers.get("content-type", "").lower()
-        return "pdf" in ctype and response.content[:5] == b"%PDF-"
+        # Magic bytes, not the content-type: publishers serve PDFs as
+        # application/octet-stream too (same rule as oa_client._download_pdf).
+        return response.content[:5] == b"%PDF-"
 
     def _pdf_links(self, html: str, base_url: str) -> list[str]:
         """Candidate PDF URLs from landing-page markup, best first."""
