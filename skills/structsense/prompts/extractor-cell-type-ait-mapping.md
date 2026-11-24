@@ -162,7 +162,9 @@ observed, because that bounds how much weight a marker-based mapping can carry:
 
 **Evidence** — for every extracted entity, capture the verbatim supporting sentence(s)
 together with `chunk_id` and the character offsets. **Every evidence sentence must
-contain the entity's phrase** — `label_verbatim` or one of its `aliases`, as printed.
+contain the entity's phrase** — `label_verbatim` or one of its `aliases`, as printed
+(case is ignored, and a space, hyphen or slash between words are interchangeable:
+`Sst Chodl` = `Sst-Chodl` = `Sst/Chodl`; a comma is not, `Sst, Chodl` is two genes).
 A sentence that only refers back to it ("These cells co-expressed …") is not
 returned as evidence; quote the sentence that names it. An entity none of whose
 sentences contains its phrase is held back in Pass 2d. Copy the span exactly: do not fix

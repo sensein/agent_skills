@@ -78,9 +78,15 @@ def _aligned(row: Dict[str, str], col: str, n: int) -> List[str]:
     return vals + [""] * (n - len(vals))
 
 
+_SEP_CLASS = r"[\s\-/\u2010-\u2015\u2212]+"
+
+
 def find_surface(text: str, start: int, end: int, surfaces: Sequence[str]) -> Optional[Tuple[int, int]]:
     """Raw [start, end) of the first surface found inside text[start:end]; exact case
-    first, then case-insensitive (a label capitalised at the start of a sentence)."""
+    first, then case-insensitive (a label capitalised at the start of a sentence), then
+    with space, hyphen and slash interchangeable ("Sst Chodl" finds "Sst-Chodl"). The
+    span returned is the paper's own characters, so the mention's surface form is what
+    the paper printed."""
     span = text[start:end]
     for surf in surfaces:
         i = span.find(surf)
@@ -91,6 +97,14 @@ def find_surface(text: str, start: int, end: int, surfaces: Sequence[str]) -> Op
         i = low.find(surf.lower())
         if i >= 0 and span[i:i + len(surf)].lower() == surf.lower():
             return start + i, start + i + len(surf)
+    for surf in surfaces:
+        tokens = [t for t in re.split(_SEP_CLASS, surf) if t]
+        if not tokens:
+            continue
+        m = re.search(r"(?<![^\W_])" + _SEP_CLASS.join(re.escape(t) for t in tokens) + r"(?![^\W_])",
+                      span, re.IGNORECASE)
+        if m:
+            return start + m.start(), start + m.end()
     return None
 
 

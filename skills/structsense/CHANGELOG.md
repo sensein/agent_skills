@@ -18,7 +18,9 @@
     and typography folded). A sentence that does not is not returned (review sheet,
     entity cards, Turtle); an entity none of whose found sentences contains it is
     held back (`label_not_in_evidence`), and `validate` rejects such an entity left
-    unflagged. Reported case (doi 10.64898/2026.02.03.703645): "STR SST GABA"
+    unflagged. In the match, a space, hyphen or slash between words are
+    interchangeable (`Sst Chodl` = `Sst-Chodl` = `Sst/Chodl`); a comma is not (`Sst,
+    Chodl` is two genes). The Turtle mention keeps the paper's own characters. Reported case (doi 10.64898/2026.02.03.703645): "STR SST GABA"
     returned with figure text that does not contain the phrase.
 - **Provenance is computed, not reported.** New `scripts/doc_layout.py` maps
   `paper.txt` to sections, figure captions, tables (with their rows), the reference

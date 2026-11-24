@@ -296,7 +296,7 @@ def verify_dir(out_dir: Path, text: str, *, threshold: float = FUZZY_THRESHOLD,
     quality = text_quality.document_report(text, layout)
     junk_spans = [tuple(s) for s in quality["junk_spans"]]
     boiler_spans = [tuple(sp) for b in quality["boilerplate"] for sp in b["spans"]]
-    doc_folded = doc.text.casefold()
+    doc_folded = text_quality.fold_separators(doc.text.casefold())
     report: dict = {"threshold": threshold, "tables": {}, "quarantined": [], "parse_artifacts": [],
                     "layout": None if layout is None else {
                         "page_method": layout.get("page_method"), "pages": len(layout.get("pages") or []),

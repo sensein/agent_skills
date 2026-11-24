@@ -191,13 +191,26 @@ def evidence_issues(sentence: str) -> List[str]:
     return out
 
 
+# Separators that do not change which entity is named: "Sst Chodl", "Sst-Chodl" and
+# "Sst/Chodl" are one cell type. A comma does change it ("Sst, Chodl" is two genes),
+# so it is not folded.
+_SEPARATORS = re.compile(r"[\s\-/]+")
+
+
+def fold_separators(s: str) -> str:
+    """Runs of spaces, hyphens and slashes -> one space. Expects normalized text
+    (ait_evidence.normalize already maps every dash variant to '-')."""
+    return _SEPARATORS.sub(" ", s)
+
+
 def _fold(s: str) -> str:
     from scripts.ait_evidence import normalize
-    return normalize(s).casefold()
+    return fold_separators(normalize(s).casefold()).strip()
 
 
 def label_in_sentence(labels: Iterable[str], sentence: str) -> bool:
-    """True if any of the labels occurs in this one sentence (case and typography folded)."""
+    """True if any of the labels occurs in this one sentence (case, typography and
+    space/hyphen/slash separators folded)."""
     return label_in_evidence(labels, [sentence])
 
 
@@ -219,7 +232,8 @@ def label_in_text(labels: Iterable[str], doc_folded: str) -> bool:
 
 
 def fold(text: str) -> str:
-    """The folding every label comparison uses: ait_evidence normalisation + casefold."""
+    """The folding every phrase comparison uses: ait_evidence normalisation, casefold,
+    and space/hyphen/slash treated as one separator."""
     return _fold(text)
 
 

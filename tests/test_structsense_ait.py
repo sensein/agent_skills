@@ -665,6 +665,22 @@ class ParseArtifactsAndLocation(unittest.TestCase):
             verdict = tq.entity_quality(label=label, aliases=aliases, sentences=[sentence], **kw)
             self.assertEqual(verdict["issues"], [], label)
 
+    def test_space_hyphen_and_slash_are_interchangeable_but_comma_is_not(self):
+        for sentence in ("a population of Sst-Chodl cells", "Sst/Chodl interneurons", "SST – CHODL neurons",
+                         "the Sst Chodl type"):
+            self.assertTrue(tq.label_in_sentence(["Sst Chodl"], sentence), sentence)
+            self.assertTrue(tq.label_in_sentence(["Sst-Chodl"], sentence), sentence)
+        for sentence in ("These cells co-expressed Sst, Chodl and Nos1.", "SstChodl"):
+            self.assertFalse(tq.label_in_sentence(["Sst Chodl"], sentence), sentence)
+
+    def test_hyphenated_variant_in_the_paper_is_found_anywhere_and_anchored(self):
+        from scripts import ait_export
+        text = "Results\nWe found a population of Sst-Chodl interneurons in layer 6.\n"
+        folded = tq.fold_separators(ev.Normalized(text).text.casefold())
+        self.assertTrue(tq.label_in_text(["Sst Chodl"], folded))
+        a, b = ait_export.find_surface(text, 0, len(text), ["Sst Chodl"])
+        self.assertEqual(text[a:b], "Sst-Chodl")  # the mention keeps the paper's own characters
+
     def test_sentences_without_the_phrase_are_not_returned(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
