@@ -475,37 +475,6 @@ class TextQuality(unittest.TestCase):
             self.assertIn(code, tq.label_issues(label, kind), label)
 
 
-    def test_biorxiv_masked_figure_text_is_junk(self):
-        # Reported in a real run (doi 10.64898/2026.02.03.703645): the evidence for
-        # "STR SST GABA" was a figure and the bioRxiv licence watermark, read as text.
-        evidence = ("It is made ** **** *** ** available under a * ***** *** ****** ***** ****** ****** "
-                    "****** ****** CC-BY-NC-ND 4.0 International license **** ****** ****** "
-                    "SchizophreniaNeuroticism . ****** ****** ****** ****** ****** ****** ****** ****** "
-                    "****** SchizophreniaNeuroticism<br>*** *** * ** ** * * Bipolar disorderMajor "
-                    "depressive disorder *** *** *** *** *** ***")
-        codes = tq.evidence_issues(evidence)
-        for code in ("evidence_masked_glyphs", "evidence_fused_words", "evidence_markup"):
-            self.assertIn(code, codes)
-        verdict = tq.entity_quality(label="STR SST GABA", aliases=[], entity_type="cell_type",
-                                    sentences=[evidence], spans=[(None, None)], statuses=["exact"],
-                                    locator_types=[], junk_spans=[], boiler_spans=[])
-        self.assertTrue(verdict["hold_back"])
-        self.assertIn("all_evidence_junk", verdict["issues"])
-
-    def test_masked_watermark_on_every_page_is_local_junk(self):
-        page = ("We profiled donors with single-nucleus multiome sequencing of caudate and putamen. " * 20
-                + "bioRxiv preprint doi: x. The copyright holder for this preprint ** **** *** ** *** **** ** made. ")
-        report = tq.document_report(page * 12)
-        self.assertEqual(report["verdict"], "ok")
-        self.assertEqual(report["masked_glyph_runs"], 12)
-
-    def test_stars_and_tool_names_are_not_junk(self):
-        for text in ("Significance: * p<0.05, ** p<0.01, *** p<0.001.", "| Sst | *** | ** | * |",
-                     "Reads were aligned with CellRanger, tracked with DeepLabCut and mapped with MapMyCells.",
-                     "STR SST GABA neurons were enriched in the putamen."):
-            self.assertEqual(tq.evidence_issues(text), [], text)
-
-
 JUNK_TEXT = (
     "Results\n"
     "We identified a population of Sst Chodl interneurons in layer 6 of mouse primary visual cortex. "

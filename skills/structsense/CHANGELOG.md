@@ -14,13 +14,6 @@
     nowhere in the paper (repaired or invented), or evidence that is all junk holds
     the entity back as the new `extraction_flag = parse_artifact`: kept and visible,
     never a mapping edge, card or graph node, like `unverified_evidence`.
-  - asterisk-masked glyph runs (`** **** *** **`: bioRxiv's licence watermark and
-    text inside figures, in fonts with no Unicode map), fused figure labels
-    (`SchizophreniaNeuroticism`) and table-cell HTML (`<br>`) are detected; masked
-    runs count as junk only where they are, so a watermark on every page does not
-    condemn the paper. Regression case from a real run (doi
-    10.64898/2026.02.03.703645, "STR SST GABA" evidenced by a figure).
-    Significance stars no longer lower the letter ratio.
 - **Provenance is computed, not reported.** New `scripts/doc_layout.py` maps
   `paper.txt` to sections, figure captions, tables (with their rows), the reference
   list, appended supplements (`[SUPPLEMENTARY FILE: <name>]` marker) and physical PDF
