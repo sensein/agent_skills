@@ -20,6 +20,10 @@ What is detected, and how:
   Markdown table rows (`| ... |`) that follow its caption; a Markdown table with
   no caption is still a `table` block.
 * **Reference list** — the References / Bibliography section.
+* **Figure pages** — with `--pdf`, a page that is a figure or other graphic rather
+  than running text (almost no text, or labels scattered over the page with almost
+  no sentences). Its text is located as `figure` in section `Figure page`: axis and
+  column labels read out as a "sentence" are figure content, not prose.
 * **Supplementary material** — a `Supplementary ...` section, or a marker line
   `[SUPPLEMENTARY FILE: <name>]` written when a supplement is appended to the
   text (the AIT prompt asks for one per appended file).
@@ -44,7 +48,7 @@ from typing import Dict, Iterable, List, Optional, Sequence
 
 LAYOUT_VERSION = 1
 
-LOCATOR_TYPES = ("body", "figure_caption", "table", "supplementary", "reference_list")
+LOCATOR_TYPES = ("body", "figure_caption", "figure", "table", "supplementary", "reference_list")
 
 # Top-level section headings, canonical label per pattern. Order matters only for
 # the label: the first pattern that matches names the section.
@@ -63,7 +67,7 @@ _SECTION_NAMES = [
     (r"author\s+contributions?", "Author contributions"),
     (r"(?:competing|declaration\s+of)\s+interests?", "Competing interests"),
     (r"funding", "Funding"),
-    (r"figure\s+legends", "Figure legends"),
+    (r"figure\s+legends?", "Figure legends"),
     (r"(?:supplementary|supplemental)\s+(?:information|materials?|data|figures|tables|methods)", "Supplementary"),
     (r"extended\s+data", "Supplementary"),
 ]
@@ -87,12 +91,14 @@ _SUPPL_FILE_RE = re.compile(r"^\[SUPPLEMENT(?:ARY)?(?:\s+FILE)?:\s*(?P<name>[^\]
                             re.IGNORECASE | re.MULTILINE)
 
 _CAPTION_RE = re.compile(
-    r"^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*)?(?P<label>"
+    # an optional manuscript line number first ("1947    Figure 1 ...")
+    r"^[ \t]*(?:\d{1,5}[ \t]{2,})?(?:#{1,6}[ \t]+)?(?:\*\*)?(?P<label>"
     r"(?P<prefix>Supplementary|Supplemental|Extended\s+Data)?\s*"
     r"(?P<kind>Figure|Fig\.?|Table)\s*(?P<num>S?\d+[A-Za-z]?|[IVX]+)\b)"
-    # a caption's number is followed by caption punctuation or the end of the line;
-    # a wrapped body line ("Fig. 3b, Pvalb cells ...", "Figure 3 shows ...") is not
-    r"(?=[ \t]*(?:\*\*)?[ \t]*(?:[.:|—–]|$))",
+    # a caption's number is followed by caption punctuation, the end of the line, or a
+    # capitalised title word ("Figure 1 Single-cell ..."); a wrapped body line
+    # ("Fig. 3b, Pvalb cells ...", "Figure 3 shows ...", "Figure 2 A-C") is not
+    r"(?=[ \t]*(?:\*\*)?[ \t]*(?:[.:|\u2014\u2013]|$)|[ \t]+(?-i:[A-Z][a-z]))",
     re.IGNORECASE | re.MULTILINE,
 )
 _MD_TABLE_LINE = re.compile(r"^[ \t]*\|.*\|[ \t]*$")
@@ -207,10 +213,13 @@ def build_blocks(text: str, sections: Sequence[Dict[str, object]]) -> List[Dict[
         blocks.append({"type": kind, "label": label, "start": start, "end": end, "source": source})
         claimed.append((start, end))
 
-    for m in _CAPTION_RE.finditer(text):
+    caps = list(_CAPTION_RE.finditer(text))
+    for k, m in enumerate(caps):
         start = _line_start(text, m.start("label"))
         kind = "table" if m.group("kind").lower().startswith("tab") else "figure_caption"
         end = _paragraph_end(text, m.end())
+        if k + 1 < len(caps):  # legends printed back to back, with no blank line between
+            end = min(end, _line_start(text, caps[k + 1].start("label")))
         if kind == "table":
             rows_end = _table_rows_end(text, end)
             end = rows_end or end
@@ -274,9 +283,11 @@ def align_pages(text: str, page_texts: Sequence[str], *, min_probe: int = 25) ->
     lines in it. Only lines that occur exactly once in the text are used as probes,
     so a repeated header or a boilerplate sentence cannot pin a page to the wrong
     place. Returns {pages, unaligned}."""
-    from scripts.ait_evidence import Normalized, normalize  # one normaliser for every match
+    from scripts.ait_evidence import Normalized  # one normaliser for every match
 
     doc = Normalized(text)
+    # probes are normalised like the document: line numbers dropped when it has them
+    normalize = lambda line: Normalized(line, numbered=doc.line_numbered).text  # noqa: E731
     anchors = []  # (page, norm_min, norm_max_end)
     unaligned = []
     for p, ptext in enumerate(page_texts, 1):
@@ -322,6 +333,32 @@ def align_pages(text: str, page_texts: Sequence[str], *, min_probe: int = 25) ->
     return {"pages": pages, "unaligned": sorted(set(unaligned))}
 
 
+FIGURE_PAGE_MAX_CHARS = 400        # an image page with less text than this is a picture (plus a watermark)
+FIGURE_PAGE_WHITESPACE = 0.6       # ... or text scattered over the page (labels, axes) ...
+FIGURE_PAGE_SENTENCES = 1.0        # ... with fewer sentence endings than this per 100 words
+
+
+def is_figure_page(page_text: str, images: int = 0) -> bool:
+    """A PDF page that is a figure or other graphic, not running text.
+
+    Running text, title pages and reference lists alike are dense and full of
+    sentence endings. A figure page is either an image with almost no text (often
+    only the preprint watermark over it) or its text is labels scattered across the
+    page: mostly whitespace and almost no sentences. A short page with no image (the
+    last lines of a reference list) is not a figure."""
+    stripped = (page_text or "").strip()
+    if not stripped:
+        return False
+    if len(stripped) < FIGURE_PAGE_MAX_CHARS:
+        return images > 0
+    words = re.findall(r"[A-Za-z][A-Za-z'\-]*", page_text)
+    if not words:
+        return True
+    whitespace = sum(c.isspace() for c in page_text) / len(page_text)
+    sentences = len(re.findall(r"[a-z]{2}[.;:](?:\s|$)", page_text)) * 100 / len(words)
+    return whitespace > FIGURE_PAGE_WHITESPACE and sentences < FIGURE_PAGE_SENTENCES
+
+
 def pdf_page_texts(pdf: Path) -> List[str]:
     """Per-page text from a PDF, PyMuPDF first, pdfminer as fallback."""
     try:
@@ -353,7 +390,24 @@ def pdf_page_texts(pdf: Path) -> List[str]:
 # build / load / locate
 # --------------------------------------------------------------------------- #
 
+def pdf_page_images(pdf: Path) -> List[int]:
+    """Images per PDF page (PyMuPDF); zeros when it is not installed."""
+    try:
+        try:
+            import pymupdf as fitz
+        except ImportError:
+            import fitz
+    except ImportError:
+        return []
+    doc = fitz.open(str(pdf))
+    try:
+        return [len(page.get_images()) for page in doc]
+    finally:
+        doc.close()
+
+
 def build_layout(text: str, *, page_texts: Optional[Sequence[str]] = None,
+                 page_images: Optional[Sequence[int]] = None,
                  source: Optional[str] = None) -> Dict[str, object]:
     sections = build_sections(text)
     layout: Dict[str, object] = {
@@ -374,6 +428,16 @@ def build_layout(text: str, *, page_texts: Optional[Sequence[str]] = None,
         layout["pages"], layout["pages_unaligned"] = aligned["pages"], aligned["unaligned"]
         layout["page_method"] = "pdf_line_alignment"
         layout["pdf_pages"] = len(page_texts)
+    if page_texts:
+        images = list(page_images or [])
+        figure_pages = [n for n, t in enumerate(page_texts, 1)
+                        if is_figure_page(t, images[n - 1] if n - 1 < len(images) else 0)]
+        layout["figure_pages"] = figure_pages
+        for p in layout["pages"]:
+            if p["page"] in figure_pages:
+                layout["blocks"].append({"type": "figure", "label": "", "start": p["start"], "end": p["end"],
+                                         "source": "page_profile"})
+        layout["blocks"].sort(key=lambda b: (b["start"], -b["end"]))
     return layout
 
 
@@ -406,12 +470,16 @@ def locate(layout: Dict[str, object], start: Optional[int], end: Optional[int]) 
         a, b = pages[i]["page"], pages[j]["page"]
         out["page"] = str(a) if a == b else f"{a}-{b}"
     blocks = _containing(layout.get("blocks") or [], start)
-    # the innermost block wins: a figure caption inside a supplement is a figure caption
-    rank = {"figure_caption": 0, "table": 0, "reference_list": 1, "supplementary": 2}
+    # the innermost block wins: a figure caption inside a supplement is a figure caption,
+    # and a legend printed on a figure page is a caption, not figure text
+    rank = {"figure_caption": 0, "table": 0, "figure": 0, "reference_list": 1, "supplementary": 2}
     if blocks:
         best = sorted(blocks, key=lambda b: (rank.get(str(b["type"]), 3), int(b["end"]) - int(b["start"])))[0]
         out["locator_type"] = str(best["type"])
         out["locator"] = str(best["label"]) if best.get("label") else "NA"
+        if best["type"] == "figure":
+            # figure pages often follow the reference list; they are not part of it
+            out["section"] = "Figure page"
     else:
         out["locator_type"] = "body"
     return out
@@ -438,7 +506,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     text = args.text.read_text(encoding="utf-8")
     page_texts = pdf_page_texts(args.pdf) if args.pdf else None
-    layout = build_layout(text, page_texts=page_texts, source=str(args.pdf or args.text))
+    page_images = pdf_page_images(args.pdf) if args.pdf else None
+    layout = build_layout(text, page_texts=page_texts, page_images=page_images, source=str(args.pdf or args.text))
     out = args.out or args.text.with_name(args.text.stem + ".layout.json")
     out.write_text(json.dumps(layout, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     kinds: Dict[str, int] = {}
@@ -446,6 +515,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         kinds[b["type"]] = kinds.get(b["type"], 0) + 1
     print(f"sections: {', '.join(s['label'] for s in layout['sections']) or 'none found'}")
     print(f"blocks: {kinds or 'none'}")
+    if layout.get("figure_pages"):
+        print(f"figure pages: {layout['figure_pages']}")
     print(f"pages: {len(layout['pages'])} ({layout['page_method']})"
           + (f"; unaligned {layout['pages_unaligned']}" if layout["pages_unaligned"] else ""))
     if not layout["pages"]:

@@ -30,6 +30,20 @@
   section (`code:layout_lookup`), in `entities.csv` and `methods.csv` (which also
   gains `evidence_section`). `review_sheet.source_in_paper` and the new
   `entity_cards.source_in_paper` read `Results; Fig. 3; p. 4`.
+- **Tested on a real preprint** (doi 10.64898/2026.02.03.703645), which showed three
+  general gaps, now fixed:
+  - manuscript line numbers (`1947    ...` on every line) broke quotes that cross a
+    line break (only `fuzzy`); they are now ignored when matching, when the text is
+    line-numbered (a rising sequence of line-start numbers), and offsets still index
+    the raw text;
+  - legends written `1947    Figure 1 Title` (line number, no period) and a
+    `FIGURE LEGEND` heading were not recognised; they are now captions and a
+    `Figure legends` section, and back-to-back legends end where the next begins;
+  - figure pages after the reference list were located as References. With `--pdf`,
+    a page that is an image with almost no text, or labels scattered over the page
+    with almost no sentences, is a figure page: its text is located as
+    `evidence_locator_type = figure`, section `Figure page`. Evidence that is only
+    figure text is recorded (`evidence_figure_only`), not held back.
 - **AIT Turtle export.** New `scripts/ait_export.py` turns validated tables into one
   Turtle file through `json_to_ttl` (same IRIs as a NER run of the paper) and gates it
   with `validate_ttl`. Mapping edges are `ner:TaxonomyMappingAssertion` nodes to

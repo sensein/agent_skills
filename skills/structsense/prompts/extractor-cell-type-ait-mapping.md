@@ -64,8 +64,9 @@ python -m scripts.text_quality paper.txt --layout paper.layout.json   # exit 1 =
 ```
 
 - `doc_layout` records, as character ranges of `paper.txt`, its sections, figure
-  captions, tables (caption plus rows), the reference list, appended supplements
-  and — from the PDF — its pages. Pages are physical PDF pages, 1-based. The text is
+  captions and legends, tables (caption plus rows), the reference list, appended
+  supplements and — from the PDF — its pages and which of them are figure pages
+  (images, or labels scattered over the page with almost no sentences). Pages are physical PDF pages, 1-based. The text is
   not modified, so offsets stay valid; the layout stores the text's sha256 and is
   refused for any other text.
 - `text_quality` scores each paragraph for parse junk: `(cid:NN)` glyph codes,
@@ -168,7 +169,10 @@ contain the entity's phrase** — `label_verbatim` or one of its `aliases`, as p
 A sentence that only refers back to it ("These cells co-expressed …") is not
 returned as evidence; quote the sentence that names it. An entity none of whose
 sentences contains its phrase is held back in Pass 2d. Copy the span exactly: do not fix
-typography, expand abbreviations, normalize whitespace, or join sentences with ellipses
+typography, expand abbreviations, normalize whitespace, or join sentences with ellipses.
+Leave out manuscript line numbers (a preprint's `1947` at the start of each line):
+the check ignores them in the source, so a quote that crosses a line break still
+verifies
 — and do not repair garbled text either. If the source reads `Pv(cid:3)alb`, a
 cleaned-up `Pvalb` occurs nowhere in the paper and is held back as a parse artifact;
 the honest record is the garbled one, which Pass 2 holds back with its reason.
@@ -276,6 +280,7 @@ each evidence sentence that was found, and writes the codes it finds to
 | `label_not_in_evidence` | yes | no found evidence sentence contains the label or an alias: what is returned as evidence does not show the phrase (e.g. figure text read as a sentence) |
 | `evidence_glyph_artifact`, `evidence_mojibake`, `evidence_letter_spaced`, `evidence_low_alpha`, `evidence_fused_words`, `evidence_in_junk_region` | only when **all** found evidence is junk (`all_evidence_junk`) | the sentence, or the paragraph it sits in, is parse junk |
 | `evidence_without_label` | no | some evidence sentences do not contain the phrase; they are not returned (review sheet, cards, Turtle) |
+| `evidence_figure_only` | no | every found sentence is text inside a figure (axis or column labels), not a sentence of the paper; the entity is kept, a curator should look |
 | `evidence_too_short`, `evidence_boilerplate`, `evidence_in_reference_list` | no | under 20 characters; a running header/footer; the reference list |
 
 An entity that is held back gets `extraction_flag = parse_artifact`. Like
@@ -296,7 +301,7 @@ For every evidence sentence that was found, the verified offsets are looked up i
 |---|---|
 | `evidence_section` | top-level section (`Results`, `Methods`, `Supplementary: Table S2.xlsx`, …); your reading is kept only where the layout found no heading |
 | `evidence_page` | physical PDF page, `4`, or `4-5` for a sentence across a page break |
-| `evidence_locator_type` | `body`, `figure_caption`, `table`, `supplementary` or `reference_list` |
+| `evidence_locator_type` | `body`, `figure_caption` (a caption or legend), `figure` (text inside a figure page, section `Figure page`), `table`, `supplementary` or `reference_list` |
 | `evidence_locator` | the figure or table, as numbered in the paper: `Fig. 3`, `Table 2`, `Fig. S1` |
 
 A `not_found` sentence has no location (`NA`), and neither does a page when the
@@ -474,7 +479,7 @@ are pipe-delimited (`|`) with no surrounding spaces. Booleans are lowercase
 - `hierarchy_level` ∈ `class | subclass | supertype | cluster | type | unspecified`
 - `assertion_type` ∈ `asserted | inferred`
 - `extraction_flag` ∈ `ok | uncertain | unverified_evidence | generic_phrase | duplicate_merged | parse_artifact`
-- `evidence_locator_type` ∈ `body | figure_caption | table | supplementary | reference_list`
+- `evidence_locator_type` ∈ `body | figure_caption | figure | table | supplementary | reference_list`
 - `evidence_page`, `evidence_locator_type`, `evidence_locator` and `quality_issues` are
   written by code (Pass 2d/2e); leave them empty when extracting
 

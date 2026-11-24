@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -78,15 +79,58 @@ def normalize_chars(raw: str) -> str:
     return "".join(out)
 
 
+# A manuscript line number at the start of a line: digits followed by two or more
+# spaces, or alone on the line ("1947    Figure 1 ...", "306\n"). Prose that starts a
+# line with a number ("12 donors were ...") has one space, so it does not match.
+_LINE_NUMBER = re.compile(r"(?m)^[ \t]*(\d{1,5})(?:[ \t]{2,}|[ \t]*$)")
+MIN_LINE_NUMBERS = 50
+
+
+def line_number_spans(raw: str, *, numbered: Optional[bool] = None) -> List[Tuple[int, int]]:
+    """Raw [start, end) of every manuscript line number (preprints print one on each
+    line). They are dropped before matching, so a correctly copied quote that
+    crosses a line break still verifies, while offsets keep indexing the raw text.
+
+    `numbered=None` decides from the text: at least MIN_LINE_NUMBERS candidates whose
+    values mostly increase. Only numbers that continue the running sequence are
+    taken, so a table value at the start of a line ("30    28    57") is kept."""
+    cands = [(m.start(), m.end(), int(m.group(1))) for m in _LINE_NUMBER.finditer(raw or "")]
+    if numbered is None:
+        if len(cands) < MIN_LINE_NUMBERS:
+            return []
+        rising = sum(1 for a, b in zip(cands, cands[1:]) if b[2] > a[2])
+        if rising < 0.8 * (len(cands) - 1):
+            return []
+    elif not numbered:
+        return []
+    spans, last = [], None
+    for start, end, n in cands:
+        if last is None or last < n <= last + 200:
+            spans.append((start, end))
+            last = n
+    return spans
+
+
 class Normalized:
     """Normalised text plus a map from every normalised character to its raw offset,
-    so a hit in normalised space reports offsets a reader can slice the source with."""
+    so a hit in normalised space reports offsets a reader can slice the source with.
 
-    def __init__(self, raw: str):
+    Manuscript line numbers are dropped (see `line_number_spans`) when the text is
+    line-numbered; `numbered` forces the decision (a quote or a slice of a numbered
+    document is too short to decide for itself)."""
+
+    def __init__(self, raw: str, *, numbered: Optional[bool] = None):
         self.raw = raw or ""
+        spans = line_number_spans(self.raw, numbered=numbered)
+        self.line_numbered = bool(spans) if numbered is None else bool(numbered)
+        drop = set()
+        for a, b in spans:
+            drop.update(range(a, b))
         chars: List[Tuple[str, int]] = []
         for i, ch in enumerate(self.raw):
-            if ch in _DROP:
+            if ch in _DROP or i in drop:
+                if i in drop and (not chars or not chars[-1][0].isspace()):
+                    chars.append((" ", i))  # the number separated words; keep them apart
                 continue
             for c in unicodedata.normalize("NFKC", ch):
                 if c in _DROP:
@@ -186,11 +230,11 @@ def verify_sentence(quote: str, doc: Normalized, start: Optional[int] = None,
                     end: Optional[int] = None, *, has_offsets: bool = True,
                     threshold: float = FUZZY_THRESHOLD) -> Dict[str, object]:
     """{status, similarity, start, end} for one evidence sentence."""
-    q = normalize(quote)
+    q = Normalized(quote, numbered=doc.line_numbered).text
     if not q:
         return {"status": "not_found", "similarity": 0.0, "start": start, "end": end}
     if start is not None and end is not None and 0 <= start < end <= len(doc.raw):
-        if normalize(doc.raw[start:end]) == q:
+        if Normalized(doc.raw[start:end], numbered=doc.line_numbered).text == q:
             return {"status": "exact", "similarity": 1.0, "start": start, "end": end}
     hits = _all_occurrences(doc.text, q)
     if hits:

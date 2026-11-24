@@ -107,6 +107,7 @@
     "locator_type": [
       "body",
       "figure_caption",
+      "figure",
       "table",
       "supplementary",
       "reference_list"
@@ -132,6 +133,7 @@
       "evidence_too_short",
       "evidence_boilerplate",
       "evidence_in_reference_list",
+      "evidence_figure_only",
       "all_evidence_junk"
     ]
   },

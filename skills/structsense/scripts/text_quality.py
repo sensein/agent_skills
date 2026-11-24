@@ -88,7 +88,7 @@ JUNK_EVIDENCE = ("evidence_glyph_artifact", "evidence_mojibake", "evidence_lette
 # held back (label_not_in_evidence, in HARD_LABEL). Some sentences missing it is
 # recorded only.
 SOFT_EVIDENCE = ("evidence_without_label", "evidence_too_short", "evidence_boilerplate",
-                 "evidence_in_reference_list")
+                 "evidence_in_reference_list", "evidence_figure_only")
 QUALITY_ISSUES = HARD_LABEL + JUNK_EVIDENCE + SOFT_EVIDENCE + ("all_evidence_junk",)
 # Holding back: any hard label issue, or every usable evidence sentence is junk.
 HOLD_BACK = set(HARD_LABEL) | {"all_evidence_junk"}
@@ -411,6 +411,10 @@ def entity_quality(*, label: str, aliases: Sequence[str], entity_type: str,
         junk_flags.append(any(c in JUNK_EVIDENCE for c in codes))
     if junk_flags and all(junk_flags):
         issues.append("all_evidence_junk")
+    # Recorded, not held back: the paper does show the entity, but only as text inside
+    # a figure (axis or column labels), never in a sentence.
+    if usable and all(i < len(locator_types) and locator_types[i] == "figure" for i in usable):
+        issues.append("evidence_figure_only")
     issues = [c for c in QUALITY_ISSUES if c in set(issues)]  # vocabulary order, deduplicated
     return {"issues": issues, "hold_back": bool(HOLD_BACK & set(issues))}
 

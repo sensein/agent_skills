@@ -183,6 +183,21 @@ class EvidenceVerification(unittest.TestCase):
         self.assertEqual(r["status"], "exact_offset_corrected")
         self.assertEqual((r["start"], r["end"]), (s, e))
 
+    def test_manuscript_line_numbers_do_not_break_quotes(self):
+        body = "".join(f"{n}    line {n} of the manuscript text continues here\n" for n in range(300, 360))
+        text = body + ("360    These target genes were enriched for processes coherent with cellular\n"
+                       "361    function and identity, including synaptic transmission.\n"
+                       "362    30    28    57\n")
+        doc = ev.Normalized(text)
+        self.assertTrue(doc.line_numbered)
+        r = ev.verify_sentence("These target genes were enriched for processes coherent with cellular "
+                               "function and identity, including synaptic transmission.", doc, None, None,
+                               has_offsets=False)
+        self.assertEqual(r["status"], "exact")
+        self.assertTrue(text[r["start"]:r["end"]].startswith("These target genes"))
+        self.assertIn("30 28 57", doc.text)  # a table value at a line start is not a line number
+        self.assertFalse(ev.Normalized("12 donors were profiled.\n13 more were not.").line_numbered)
+
     def test_typography_differences_still_exact(self):
         r = ev.verify_sentence('We identified a population of "Sst Chodl" interneurons', self.doc, None, None,
                                has_offsets=False)
@@ -430,6 +445,36 @@ class Layout(unittest.TestCase):
         self.assertEqual(dl.locate(layout, start, start + 16)["page"], "1-2")
         self.assertEqual(dl.format_source("Results", "Fig. 3", "1-2"), "Results; Fig. 3; pp. 1-2")
         self.assertEqual(dl.format_source("NA", "NA", "NA"), "NA")
+
+    def test_line_numbered_legends_and_singular_heading(self):
+        text = ("1945   Results\n1946   Pvalb cells were abundant.\n\n"
+                "1950   FIGURE LEGEND\n"
+                "1951    Figure 1 Single-cell joint profiling of the human basal\n"
+                "1952    ganglia. (A) Schematic.\n"
+                "1953    Figure 2 Cell type taxonomy. (L) STR SST-CHODL GABA enrichment.\n")
+        layout = dl.build_layout(text)
+        self.assertEqual(layout["sections"][-1]["label"], "Figure legends")
+        loc = _where(layout, text, "(L) STR SST-CHODL GABA")
+        self.assertEqual((loc["locator_type"], loc["locator"]), ("figure_caption", "Fig. 2"))
+        self.assertEqual(_where(layout, text, "(A) Schematic")["locator"], "Fig. 1")  # legends back to back
+
+    def test_figure_pages_are_not_references(self):
+        prose = ("Results\nPvalb interneurons were abundant in layer 4. Sst cells were rare. " * 20 + "\n\n"
+                 "References\n1. Tasic B et al. Shared and distinct transcriptomic cell types. Nature 2018.\n\n")
+        # labels scattered over the page, as a PDF figure's text layer reads (page 49 of
+        # the reported paper is 87% whitespace)
+        figure = ("Alzheimers disease" + " " * 60 + "STR SST GABA" + " " * 60 + "Schizophrenia\n"
+                  + (" " * 40 + "**" + " " * 50 + "***" + " " * 50 + "Neuroticism" + " " * 40 + "STR D1 MSN\n") * 12)
+        text = prose + figure
+        layout = dl.build_layout(text, page_texts=[prose, figure])
+        self.assertEqual(layout["figure_pages"], [2])
+        loc = _where(layout, text, "Neuroticism")
+        self.assertEqual((loc["section"], loc["locator_type"], loc["page"]), ("Figure page", "figure", "2"))
+        self.assertEqual(_where(layout, text, "Tasic B et al")["locator_type"], "reference_list")
+        watermark_only = ".\nCC-BY-NC-ND 4.0 International license\navailable under a\n"
+        self.assertTrue(dl.is_figure_page(watermark_only, images=1))   # an image page
+        self.assertFalse(dl.is_figure_page(watermark_only, images=0))  # a short text page is not a figure
+        self.assertFalse(dl.is_figure_page(prose))
 
     def test_layout_for_other_text_is_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -680,6 +725,14 @@ class ParseArtifactsAndLocation(unittest.TestCase):
         self.assertTrue(tq.label_in_text(["Sst Chodl"], folded))
         a, b = ait_export.find_surface(text, 0, len(text), ["Sst Chodl"])
         self.assertEqual(text[a:b], "Sst-Chodl")  # the mention keeps the paper's own characters
+
+    def test_figure_only_evidence_is_recorded_not_held_back(self):
+        verdict = tq.entity_quality(label="STR SST-CHODL GABA", aliases=[], entity_type="cell_type",
+                                    sentences=["Tobacco use disorder 7 7 24 STR SST-CHODL GABA, STR Hybrid MSN"],
+                                    spans=[(None, None)], statuses=["exact"], locator_types=["figure"],
+                                    junk_spans=[], boiler_spans=[])
+        self.assertIn("evidence_figure_only", verdict["issues"])
+        self.assertFalse(verdict["hold_back"])
 
     def test_sentences_without_the_phrase_are_not_returned(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -596,7 +596,7 @@ nsh:MentionLocationShape a sh:NodeShape ;
     sh:property [ sh:path ner:onPage ; sh:datatype xsd:positiveInteger ] ;
     sh:property [ sh:path ner:inDocumentPart ; sh:maxCount 1 ; sh:class ner:DocumentPart ] ;
     sh:property [ sh:path ner:evidenceLocatorTypeRaw ; sh:maxCount 1 ;
-                  sh:in ( "body"^^xsd:string "figure_caption"^^xsd:string "table"^^xsd:string
+                  sh:in ( "body"^^xsd:string "figure_caption"^^xsd:string "figure"^^xsd:string "table"^^xsd:string
                          "supplementary"^^xsd:string "reference_list"^^xsd:string ) ] .
 
 nsh:FigureOrTableShape a sh:NodeShape ;
