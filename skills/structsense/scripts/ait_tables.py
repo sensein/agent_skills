@@ -9,7 +9,8 @@ deterministic — the parts of the output that must not be model judgement:
   (`cell_type_name_as_in_paper`, `species_experimental`) from `entities.csv`.
 * `review-sheet`  writes `review_sheet.csv` as the join of entities + methods +
   mappings. It introduces no new values, and keeps only evidence sentences whose
-  `evidence_verified` is `exact` or `exact_offset_corrected`.
+  `evidence_verified` is `exact` or `exact_offset_corrected` and that contain the
+  entity's phrase (label or alias).
 * `validate`  checks headers, types, vocabularies, multi-value formatting, the
   crosswalk, the hold-back rules (`unverified_evidence`, `parse_artifact`), the
   SKOS/match_confidence crosswalk, the same-taxonomy `exactMatch` house rule, the
@@ -38,7 +39,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from scripts import ait_taxonomy
 from scripts.doc_layout import format_source
-from scripts.text_quality import HOLD_BACK
+from scripts.text_quality import HOLD_BACK, label_in_sentence
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "ait-mapping-columns.json"
 
@@ -188,6 +189,14 @@ def sources_in_paper(row: Dict[str, str]) -> List[str]:
             zip(col("evidence_section"), col("evidence_locator"), col("evidence_page"))]
 
 
+def names_entity(entity: Dict[str, str], sentence: str) -> bool:
+    """True if the sentence contains the entity's phrase: `label_verbatim` or one of its
+    `aliases` (case and typography folded). A sentence that does not is not returned
+    as evidence for the entity."""
+    return label_in_sentence([entity.get("label_verbatim", ""), *split_multi(entity.get("aliases", ""))],
+                             sentence)
+
+
 def experimental_species(entity: Dict[str, str]) -> str:
     return entity.get("species", "") if entity.get("species_role") == "experimental" else ""
 
@@ -228,7 +237,8 @@ def build_review_sheet(data: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, 
         sentences = split_multi(ent.get("evidence_sentence", ""))
         statuses = split_multi(ent.get("evidence_verified", ""))
         sections = sources_in_paper(ent)
-        keep = [i for i, s in enumerate(statuses) if s in VERIFIED and i < len(sentences)]
+        keep = [i for i, s in enumerate(statuses)
+                if s in VERIFIED and i < len(sentences) and names_entity(ent, sentences[i])]
         if not keep:
             continue
         assay_names = [assays[a]["assay_name"] for a in split_multi(ent.get("assay_id", ""))
@@ -373,6 +383,11 @@ def validate(out_dir: Path, schema: Optional[dict] = None, catalog: Optional[Pat
         if statuses and all(s == "not_found" for s in statuses) and e.get("extraction_flag") not in HELD_BACK_FLAGS:
             issues.append(Issue("error", "entities.csv", n, "extraction_flag",
                                 "all evidence is not_found but the row is not flagged unverified_evidence"))
+        found = [s for s, st in zip(split_multi(e.get("evidence_sentence", "")), statuses) if st != "not_found"]
+        if found and e.get("extraction_flag") not in HELD_BACK_FLAGS and not any(names_entity(e, s) for s in found):
+            issues.append(Issue("error", "entities.csv", n, "evidence_sentence",
+                                f"no evidence sentence contains {e.get('label_verbatim')!r} or an alias: "
+                                f"the returned evidence must contain the phrase (run ait_evidence to hold it back)"))
         hard = HOLD_BACK & set(split_multi(e.get("quality_issues", "")))
         if hard and e.get("extraction_flag") not in HELD_BACK_FLAGS:
             issues.append(Issue("error", "entities.csv", n, "extraction_flag",

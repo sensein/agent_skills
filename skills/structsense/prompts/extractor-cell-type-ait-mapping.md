@@ -161,7 +161,11 @@ observed, because that bounds how much weight a marker-based mapping can carry:
 - donor count, age, and sex where reported
 
 **Evidence** — for every extracted entity, capture the verbatim supporting sentence(s)
-together with `chunk_id` and the character offsets. Copy the span exactly: do not fix
+together with `chunk_id` and the character offsets. **Every evidence sentence must
+contain the entity's phrase** — `label_verbatim` or one of its `aliases`, as printed.
+A sentence that only refers back to it ("These cells co-expressed …") is not
+returned as evidence; quote the sentence that names it. An entity none of whose
+sentences contains its phrase is held back in Pass 2d. Copy the span exactly: do not fix
 typography, expand abbreviations, normalize whitespace, or join sentences with ellipses
 — and do not repair garbled text either. If the source reads `Pv(cid:3)alb`, a
 cleaned-up `Pvalb` occurs nowhere in the paper and is held back as a parse artifact;
@@ -267,8 +271,9 @@ each evidence sentence that was found, and writes the codes it finds to
 | `label_low_alpha`, `label_too_long`, `label_sentence_like`, `label_unbalanced_brackets` | yes | not a name: symbols, a sentence fragment, a run-on, a cut-off bracket |
 | `label_not_gene_symbol` | yes | a `gene` label that is not a symbol (`Pvalb expression`) |
 | `label_not_in_text` | yes | neither the label nor an alias occurs anywhere in the paper: it was repaired, invented, or read from text that is not there |
+| `label_not_in_evidence` | yes | no found evidence sentence contains the label or an alias: what is returned as evidence does not show the phrase (e.g. figure text read as a sentence) |
 | `evidence_glyph_artifact`, `evidence_mojibake`, `evidence_letter_spaced`, `evidence_low_alpha`, `evidence_fused_words`, `evidence_in_junk_region` | only when **all** found evidence is junk (`all_evidence_junk`) | the sentence, or the paragraph it sits in, is parse junk |
-| `label_not_in_evidence` | no | the evidence names the entity indirectly ("These cells …"); fine, but worth a look |
+| `evidence_without_label` | no | some evidence sentences do not contain the phrase; they are not returned (review sheet, cards, Turtle) |
 | `evidence_too_short`, `evidence_boilerplate`, `evidence_in_reference_list` | no | under 20 characters; a running header/footer; the reference list |
 
 An entity that is held back gets `extraction_flag = parse_artifact`. Like
@@ -509,8 +514,9 @@ order.
 
 - `cell_type_name` ← `entities.label_verbatim`
 - `ait_match` ← `mappings.ait_cell_type_label`; empty when `match_confidence = none`
-- `evidence_sentence` ← `entities.evidence_sentence`, verbatim; only rows with
-  `evidence_verified` in {`exact`, `exact_offset_corrected`} may appear
+- `evidence_sentence` ← `entities.evidence_sentence`, verbatim; only sentences with
+  `evidence_verified` in {`exact`, `exact_offset_corrected`} that contain the
+  entity's phrase (label or alias) may appear
 - `source_in_paper` ← `entities.evidence_section` + `evidence_locator` +
   `evidence_page`, per kept sentence (e.g. `Results; Fig. 3; p. 4`); the section
   alone when no layout was used

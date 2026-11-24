@@ -14,6 +14,12 @@
     nowhere in the paper (repaired or invented), or evidence that is all junk holds
     the entity back as the new `extraction_flag = parse_artifact`: kept and visible,
     never a mapping edge, card or graph node, like `unverified_evidence`.
+  - the returned evidence must contain the extracted phrase (label or alias, case
+    and typography folded). A sentence that does not is not returned (review sheet,
+    entity cards, Turtle); an entity none of whose found sentences contains it is
+    held back (`label_not_in_evidence`), and `validate` rejects such an entity left
+    unflagged. Reported case (doi 10.64898/2026.02.03.703645): "STR SST GABA"
+    returned with figure text that does not contain the phrase.
 - **Provenance is computed, not reported.** New `scripts/doc_layout.py` maps
   `paper.txt` to sections, figure captions, tables (with their rows), the reference
   list, appended supplements (`[SUPPLEMENTARY FILE: <name>]` marker) and physical PDF

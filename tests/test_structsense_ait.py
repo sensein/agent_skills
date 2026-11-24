@@ -37,13 +37,16 @@ TEXT = (
 )
 
 
+NAMED = "We identified a population of “Sst Chodl” interneurons in layer 6 of mouse primary visual cortex."
+
+
 def _sentence(fragment: str) -> tuple:
     start = TEXT.index(fragment)
     return start, start + len(fragment)
 
 
 def fixture_tables() -> dict:
-    s1, e1 = _sentence("These cells co-expressed Sst, Chodl and Nos1.")
+    s1, e1 = _sentence(NAMED)
     prov = ("label_verbatim=llm:extract|marker_genes=llm:extract|brain_region=llm:extract|"
             "species=llm:extract")
     paper = [{"paper_id": PAPER, "title": "A test paper", "extracted_at": "2026-10-01T12:00:00Z",
@@ -56,8 +59,10 @@ def fixture_tables() -> dict:
          "marker_genes": "Sst|Chodl|Nos1", "marker_genes_normalized": "Sst|Chodl|Nos1",
          "brain_region": "primary visual cortex", "species": "mouse", "species_role": "experimental",
          "assay_id": "A1", "hierarchy_level": "cluster", "assertion_type": "asserted",
-         # second sentence paraphrased -> not_found; first is verbatim but offsets are stale
-         "evidence_sentence": "These cells co-expressed Sst, Chodl and Nos1.|Sst Chodl cells are common.",
+         # second sentence paraphrased -> not_found; first is verbatim but offsets are stale.
+         # The first names the entity ("Sst Chodl", in curly quotes in the source): the
+         # returned evidence must contain the phrase.
+         "evidence_sentence": NAMED + "|Sst Chodl cells are common.",
          "evidence_section": "Results; Fig. 2a|Results",
          "evidence_chunk_id": "c1|c1",
          "evidence_char_start": f"{s1 + 3}|0", "evidence_char_end": f"{e1 + 3}|10",
@@ -261,7 +266,7 @@ class TablesContract(unittest.TestCase):
             run_pipeline(out)
             rows = tables.load_dir(out)["review_sheet.csv"]
             self.assertEqual(len(rows), 1)  # M002 is quarantined -> no verified evidence
-            self.assertEqual(rows[0]["evidence_sentence"], "These cells co-expressed Sst, Chodl and Nos1.")
+            self.assertEqual(rows[0]["evidence_sentence"], NAMED)
             self.assertEqual(rows[0]["source_in_paper"], "Results; Fig. 2a")
             self.assertEqual(rows[0]["assay"], "MERFISH")
             self.assertEqual(rows[0]["ait_match"], "Sst Chodl")
@@ -357,7 +362,7 @@ class GeneDiff(unittest.TestCase):
             self.assertEqual(c["jaccard"], "0.4")
             self.assertEqual(c["jaccard_panel_restricted"], "0.6667")
             self.assertEqual(c["gene_namespace"], "MGI")
-            self.assertEqual(c["evidence_sentence"], "These cells co-expressed Sst, Chodl and Nos1.")
+            self.assertEqual(c["evidence_sentence"], NAMED)
             self.assertEqual(c["evidence_verified"], "exact_offset_corrected")
 
 
@@ -628,12 +633,70 @@ class ParseArtifactsAndLocation(unittest.TestCase):
             out, _, _ = self.run_it(tmp)
             data = tables.load_dir(out)
             for e in data["entities.csv"]:
-                if e["mention_id"] == "P1:M003":
-                    e["label_verbatim"] = "Sst Chodl"  # a curator's correction
+                if e["mention_id"] == "P1:M003":  # a curator's correction of label and evidence
+                    e["label_verbatim"] = "Sst Chodl"
+                    e["evidence_sentence"] = "We identified a population of Sst Chodl interneurons"
             tables.write_table(out / "entities.csv", "entities.csv", data["entities.csv"])
             ev.verify_dir(out, JUNK_TEXT, layout=dl.build_layout(JUNK_TEXT, page_texts=JUNK_PAGES))
             e = {x["mention_id"]: x for x in tables.load_dir(out)["entities.csv"]}["P1:M003"]
             self.assertEqual(e["extraction_flag"], "uncertain")
+
+    def test_evidence_that_does_not_contain_the_phrase_is_held_back(self):
+        # Reported in a real run (doi 10.64898/2026.02.03.703645): "STR SST GABA" was
+        # returned with evidence that is figure text and does not contain the phrase.
+        evidence = ("It is made ** **** *** ** available under a * ***** *** ****** ***** ****** ****** "
+                    "****** ****** CC-BY-NC-ND 4.0 International license **** ****** ****** "
+                    "SchizophreniaNeuroticism . ****** ****** ****** ****** ****** ****** ****** ****** "
+                    "****** SchizophreniaNeuroticism<br>*** *** * ** ** * * Bipolar disorderMajor "
+                    "depressive disorder *** *** *** *** *** ***")
+        verdict = tq.entity_quality(label="STR SST GABA", aliases=[], entity_type="cell_type",
+                                    sentences=[evidence], spans=[(None, None)], statuses=["exact"],
+                                    locator_types=[], junk_spans=[], boiler_spans=[])
+        self.assertTrue(verdict["hold_back"])
+        self.assertIn("label_not_in_evidence", verdict["issues"])
+
+    def test_phrase_match_ignores_case_typography_and_accepts_aliases(self):
+        kw = dict(entity_type="cell_type", spans=[(None, None)], statuses=["exact"], locator_types=[],
+                  junk_spans=[], boiler_spans=[])
+        for label, aliases, sentence in (
+                ("STR SST GABA", [], "STR Sst GABA neurons were enriched in the putamen."),
+                ("Sst Chodl", [], "a population of “Sst Chodl” interneurons"),
+                ("L5 extratelencephalic", ["L5 ET"], "L5 ET neurons project to the brainstem.")):
+            verdict = tq.entity_quality(label=label, aliases=aliases, sentences=[sentence], **kw)
+            self.assertEqual(verdict["issues"], [], label)
+
+    def test_sentences_without_the_phrase_are_not_returned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            junk_fixture(out)
+            data = tables.load_dir(out)
+            s, e = _span(JUNK_TEXT, "These cells", "Nos1.")
+            for ent in data["entities.csv"]:
+                if ent["mention_id"] == "P1:M001":  # add a verified sentence that does not name it
+                    for col, val in (("evidence_sentence", JUNK_TEXT[s:e]), ("evidence_section", "Results"),
+                                     ("evidence_char_start", str(s)), ("evidence_char_end", str(e))):
+                        ent[col] = ent[col] + "|" + val
+            tables.write_table(out / "entities.csv", "entities.csv", data["entities.csv"])
+            run_junk_pipeline(out)
+            data = tables.load_dir(out)
+            m1 = {x["mention_id"]: x for x in data["entities.csv"]}["P1:M001"]
+            self.assertEqual(m1["extraction_flag"], "ok")
+            self.assertIn("evidence_without_label", m1["quality_issues"])
+            for row in (data["review_sheet.csv"][0], data["entity_cards.csv"][0]):
+                self.assertNotIn("These cells co-expressed", row["evidence_sentence"])
+                self.assertEqual(len(tables.split_multi(row["evidence_sentence"])), 2)
+
+    def test_validate_rejects_unflagged_entity_whose_evidence_lacks_the_phrase(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out, _, _ = self.run_it(tmp)
+            data = tables.load_dir(out)
+            for e in data["entities.csv"]:
+                if e["mention_id"] == "P1:M004":  # gene Nos1, but evidence that does not name it
+                    e["evidence_sentence"] = "Nuclei were profiled with a 300-gene MERFISH panel in mouse visual cortex."
+                    e["evidence_verified"] = "exact"
+            tables.write_table(out / "entities.csv", "entities.csv", data["entities.csv"])
+            msgs = [i.message for i in tables.validate(out) if i.level == "error"]
+            self.assertTrue(any("must contain the phrase" in m for m in msgs), msgs)
 
     def test_without_layout_location_columns_are_left_and_validate_warns(self):
         with tempfile.TemporaryDirectory() as tmp:

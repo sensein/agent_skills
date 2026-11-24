@@ -109,10 +109,11 @@ def build_cards(data: Dict[str, List[Dict[str, str]]], markers: Dict[str, List[s
                 panel += panels.get(a.get("gene_panel_name", ""), []) or panels.get(a["assay_id"], [])
 
         paper_genes = tables.split_multi(ent.get("marker_genes_normalized", ""))
-        # The card carries only evidence that was found; a not_found sentence is not evidence.
+        # The card carries only evidence that was found and names the entity.
         sentences = tables.split_multi(ent.get("evidence_sentence", ""))
         statuses = tables.split_multi(ent.get("evidence_verified", ""))
-        found = [i for i, s in enumerate(statuses) if s != "not_found" and i < len(sentences)]
+        found = [i for i, s in enumerate(statuses)
+                 if s != "not_found" and i < len(sentences) and tables.names_entity(ent, sentences[i])]
         where = tables.sources_in_paper(ent)
         row: Dict[str, str] = {
             "paper_id": m.get("paper_id", ""), "mention_id": m["mention_id"],

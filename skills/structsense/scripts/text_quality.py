@@ -43,12 +43,12 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 # (cid:NN) is what pdfminer emits for a glyph with no Unicode mapping; U+FFFD is a
 # decoder's replacement character; private-use code points are unmapped font glyphs.
-GLYPH_RE = re.compile(r"\(cid:\d+\)|�|[-]")
+GLYPH_RE = re.compile(r"\(cid:\d+\)|\ufffd|[\ue000-\uf8ff]")
 # Control characters other than tab, newline, carriage return and form feed.
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]")
 # UTF-8 decoded as Windows-1252/Latin-1: "Ã©" for é, "â€™" for ’, "Â " for NBSP, "ï¬" for ligatures.
-MOJIBAKE_RE = re.compile(r"Ã[\u0080-¿ŒœŠšŸŽžƒˆ˜–-›€™]"
-                         r"|â€|Â[ -¿]|ï¬")
+MOJIBAKE_RE = re.compile(r"\u00c3[\u0080-\u00bf\u0152\u0153\u0160\u0161\u0178\u017d\u017e\u0192\u02c6\u02dc\u2013-\u203a\u20ac\u2122]"
+                         r"|\u00e2\u20ac|\u00c2[\u00a0-\u00bf]|\u00ef\u00ac")
 # Five or more single letters separated by single spaces: "c e l l s", "P v a l b".
 LETTER_SPACED_RE = re.compile(r"(?<![^\s(\[])(?:[A-Za-z] ){4,}[A-Za-z](?![^\s.,;:)\]])")
 # A run of 30+ letters with no space: words fused by a lost space ("thecellsweresorted...").
@@ -79,12 +79,15 @@ GENE_SYMBOL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9\-./@_']{0,24}[+\-]?$")
 
 HARD_LABEL = ("label_glyph_artifact", "label_mojibake", "label_letter_spaced", "label_low_alpha",
               "label_sentence_like", "label_too_long", "label_unbalanced_brackets",
-              "label_not_gene_symbol", "label_not_in_text")
+              "label_not_gene_symbol", "label_not_in_text", "label_not_in_evidence")
 JUNK_EVIDENCE = ("evidence_glyph_artifact", "evidence_mojibake", "evidence_letter_spaced",
                  "evidence_low_alpha", "evidence_fused_words", "evidence_in_junk_region")
-# A supporting sentence may name the entity indirectly ("These cells co-expressed
-# Sst, Chodl and Nos1."), so a label missing from its evidence is recorded, not held back.
-SOFT_EVIDENCE = ("label_not_in_evidence", "evidence_too_short", "evidence_boilerplate",
+# The returned evidence must contain the extracted phrase: a sentence that does not
+# name the entity is not evidence for it (it is dropped from the review sheet, the
+# cards and the Turtle), and an entity none of whose found sentences names it is
+# held back (label_not_in_evidence, in HARD_LABEL). Some sentences missing it is
+# recorded only.
+SOFT_EVIDENCE = ("evidence_without_label", "evidence_too_short", "evidence_boilerplate",
                  "evidence_in_reference_list")
 QUALITY_ISSUES = HARD_LABEL + JUNK_EVIDENCE + SOFT_EVIDENCE + ("all_evidence_junk",)
 # Holding back: any hard label issue, or every usable evidence sentence is junk.
@@ -191,6 +194,11 @@ def evidence_issues(sentence: str) -> List[str]:
 def _fold(s: str) -> str:
     from scripts.ait_evidence import normalize
     return normalize(s).casefold()
+
+
+def label_in_sentence(labels: Iterable[str], sentence: str) -> bool:
+    """True if any of the labels occurs in this one sentence (case and typography folded)."""
+    return label_in_evidence(labels, [sentence])
 
 
 def label_in_evidence(labels: Iterable[str], sentences: Iterable[str]) -> bool:
@@ -370,8 +378,11 @@ def entity_quality(*, label: str, aliases: Sequence[str], entity_type: str,
     if doc_folded is not None and not label_in_text([label, *aliases], doc_folded):
         issues.append("label_not_in_text")
     usable = [i for i, st in enumerate(statuses) if st != "not_found" and i < len(sentences)]
-    if usable and not label_in_evidence([label, *aliases], [sentences[i] for i in usable]):
+    named = [i for i in usable if label_in_sentence([label, *aliases], sentences[i])]
+    if usable and not named:
         issues.append("label_not_in_evidence")
+    elif len(named) < len(usable):
+        issues.append("evidence_without_label")
     junk_flags = []
     for i in usable:
         codes = evidence_issues(sentences[i])
