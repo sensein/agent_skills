@@ -82,9 +82,10 @@ def next_state(view: dict, previous: dict, now_t: datetime) -> dict:
     return {"repos": repos}
 
 
-def read_digest_state(gh, config: dict, budget: Budget | None = None) -> tuple[dict | None, dict | None]:
-    """(issue, state) for the open digest issue in the meta repo, if this login can read it, preferring the one the
-    scheduled Action opened. (None, None) when there is none or it cannot be read."""
+def read_digest_state(gh, config: dict, budget: Budget | None = None,
+                      author: str | None = None) -> tuple[dict | None, dict | None]:
+    """(issue, state) for the open digest issue in the meta repo, if this login can read it: the one the scheduled
+    Action opened, else one opened by `author` (the caller). Nobody else's issue is read. (None, None) otherwise."""
     org, meta = config["org"]["name"], config["org"]["meta_repo"]
     found = []
     try:
@@ -101,8 +102,12 @@ def read_digest_state(gh, config: dict, budget: Budget | None = None) -> tuple[d
         return None, None
     if not found:
         return None, None
-    bot = [it for it in found if str((it.get("user") or {}).get("login") or "").lower() == "github-actions[bot]"]
-    issue = (bot or found)[0]
+    def by(login: str) -> list:
+        return [it for it in found if str((it.get("user") or {}).get("login") or "").lower() == login]
+    picks = by("github-actions[bot]") or (by(author.lower()) if author else [])
+    if not picks:
+        return None, None
+    issue = picks[0]
     return issue, parse_state(issue.get("body"))
 
 

@@ -108,6 +108,19 @@ class DigestBuildTests(unittest.TestCase):
         md = digest.build(gh, ov.brief_cfg(), now_t=NOW)["markdown"]
         self.assertIn("review requests not read", md)
 
+    def test_a_failing_visibility_check_fails_closed_never_lists_or_crashes(self) -> None:
+        class Flaky(DigestGH):
+            def get(self, path, cache=False, conditional=True):
+                if path == "/repos/sensein/tools":
+                    raise urllib.error.HTTPError(path, 502, "bad gateway", {}, None)
+                return super().get(path, cache, conditional)
+        for order in ((item(2, repo="tools", labels=["tier:restricted"]), item(3)), (item(3), item(2, repo="tools"))):
+            gh = Flaky(unreviewed=list(order), reviewers={"2": ["kab"], "3": ["kab"]})
+            w = digest.waiting_reviews(gh, ov.brief_cfg(), sync.Budget(100), NOW)
+            listed = " ".join(" ".join(v) for v in w["by_reviewer"].values())
+            self.assertNotIn("tools#2", listed)
+            self.assertEqual(w["restricted"], 1)
+
     def test_tier_includes_what_the_digest_adds_and_is_checked_against_the_destination(self) -> None:
         gh = DigestGH(readable=("proj",))
         d = digest.build(gh, ov.brief_cfg(), now_t=NOW)
@@ -177,6 +190,19 @@ class DigestPostTests(unittest.TestCase):
         rc, out, err = self.run_cmd(gh, cfg=cfg, do_post=True, env={})
         self.assertEqual((rc, gh.sent, out), (3, [], ""))
         self.assertIn("not posting", err)
+
+    def test_restricted_names_are_caught_inside_the_escaped_state_block(self) -> None:
+        cfg = ov.brief_cfg()
+        cfg["tiers"]["restricted"] = ["child-diarization"]
+        orig = digest.build
+        try:
+            digest.build = lambda *a, **k: {**orig(*a, **k), "markdown": ov.orgview.render_state(
+                {"repos": {"child-diarization": {"first_seen": "2026-11-01", "last_reported": "2026-11-25"}}}) + "\n"}
+            gh = DigestGH()
+            rc, out, err = self.run_cmd(gh, cfg=cfg, do_post=True, env={})
+        finally:
+            digest.build = orig
+        self.assertEqual((rc, gh.sent), (3, []))
 
     def test_restricted_names_are_a_tripwire(self) -> None:
         orig = digest.build

@@ -264,7 +264,7 @@ def gather(gh, config: dict, login: str, now_t: datetime | None = None, board_it
         triage = (config.get("org") or {}).get("triage_space") or colab_orgview.TRIAGE_SPACE
         if triage in (config.get("spaces") or {}) and login in item_stewards(config, [triage]):
             view = colab_orgview.unassigned_repos(gh, config, now_t=now_t, budget=budget,
-                                                  state=colab_orgview.read_digest_state(gh, config, budget)[1])
+                                                  state=colab_orgview.read_digest_state(gh, config, budget, author=login)[1])
             for a in colab_orgview.triage_asks(view, config, login):
                 asks[f"repo:{a['item']}"] = a
             notes += view["notes"]

@@ -96,14 +96,20 @@ def waiting_reviews(gh, config: dict, budget: Budget, now_t: datetime) -> dict:
     for it in sorted(seen.values(), key=lambda i: str(i.get("updated_at") or "")):
         repo = str(it.get("repository_url") or "").rstrip("/").rsplit("/", 1)[-1]
         key = repo_key(repo, org)
-        try:
-            if key not in vis_cache:
+        if key not in vis_cache:
+            try:
                 vis_cache[key] = _repo_vis(gh, f"{org}/{repo}", budget)
-            labels = _labels(it)
-            tier = tier_of(vis_cache[key], labels, _strictest(declared.get(key), *label_space_tiers(config, key, labels)))
-            if tier == "restricted":
-                out["restricted"] += 1
-                continue
+            except DetailBudget:
+                out["notes"].append("budget ran out reading requested reviewers")
+                break
+            except (urllib.error.URLError, OSError):
+                vis_cache[key] = None  # unknown visibility fails closed: counted as restricted
+        labels = _labels(it)
+        tier = tier_of(vis_cache[key], labels, _strictest(declared.get(key), *label_space_tiers(config, key, labels)))
+        if tier == "restricted":
+            out["restricted"] += 1
+            continue
+        try:
             budget.spend()
             rr = gh.get(f"/repos/{org}/{repo}/pulls/{it['number']}/requested_reviewers", conditional=False)
         except DetailBudget:

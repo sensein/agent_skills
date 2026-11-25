@@ -4509,6 +4509,7 @@ def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30
     """`colab.py unassigned`: the org's repos in no space (new and still unassigned, with their age; left out on
     purpose; counts of the rest), read now with your own login. First-seen dates come from the nightly digest's state
     when readable, else creation dates. Writes nothing."""
+    import urllib.error  # noqa: PLC0415
     import colab_orgview  # noqa: PLC0415
     out, err = out or sys.stdout, err or sys.stderr
     sync, gh = client or _sync_client()
@@ -4518,7 +4519,11 @@ def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30
     except ValueError as e:
         print(f"unassigned: {e}", file=err)
         return 2
-    _, state = colab_orgview.read_digest_state(gh, config)  # first-seen dates, when the digest issue is readable
+    try:
+        me = (gh.get("/user", conditional=False) or {}).get("login")
+    except (urllib.error.URLError, OSError):
+        me = None
+    _, state = colab_orgview.read_digest_state(gh, config, author=me)  # first-seen dates, when the digest issue is readable
     view = colab_orgview.unassigned_repos(gh, config, now_t=now_t, since=since_iso, active_days=active_days, state=state)
     if not show_all:
         view = {**view, "dormant_names": []}
@@ -4558,7 +4563,7 @@ def cmd_brief_org(config: dict, since: str | None = None, peek: bool = False, bo
     view = colab_orgview.org_brief(gh, config, start, now_t=now_t, budget=budget, board_items=board_items,
                                    unassigned=colab_orgview.unassigned_repos(
                                        gh, config, now_t=now_t, budget=budget,
-                                       state=colab_orgview.read_digest_state(gh, config, budget)[1]))
+                                       state=colab_orgview.read_digest_state(gh, config, budget, author=login)[1]))
     if text:
         print("\n".join(colab_orgview.brief_lines(view)), file=out)
     else:
@@ -4651,7 +4656,8 @@ def cmd_digest(config: dict, do_post: bool = False, since: str | None = None, bo
                         for k, t in declared_tiers(config).items() if t == "restricted" and "/" not in k]
     if restricted_names:  # a tripwire: no restricted repo name may appear in the digest
         patterns["restricted_name"] = restricted_names
-    hits = scan_text(d["markdown"], patterns)
+    decoded = d["markdown"].replace("\\u002d", "-")  # the state block escapes "-": scan it decoded too
+    hits = scan_text(d["markdown"] + "\n" + decoded, patterns)
     if any(hits.values()):
         print(f"digest: the leak scan found {hits}; not posting", file=err)
         return 3
