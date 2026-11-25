@@ -60,6 +60,9 @@ def search_involved(gh, login: str, budget: Budget, since: str | None = None, op
         else:
             if meta is not None:
                 meta["truncated"] = True
+                last = str((items or [{}])[-1].get("updated_at") or "")
+                if last:  # read up to here for this query: in ascending order nothing later was seen
+                    meta.setdefault("cutoffs", []).append(last)
     return list(seen.values())
 
 
@@ -155,7 +158,10 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
         if smeta.get("truncated"):  # oldest first, so what was read is a prefix: the rest come next run
             out["complete"] = False
             out["notes"].append(f"more than {SEARCH_PAGES * 100} involved items changed; the oldest were read, the rest come next run")
+        cutoff_at = min(smeta.get("cutoffs") or [""]) if order_is_capped(smeta) else ""
         for item in sorted(hits, key=lambda i: i.get("updated_at") or ""):
+            if cutoff_at and str(item.get("updated_at") or "") > cutoff_at:
+                break  # past where a capped query stopped: those items come next run, from the watermark
             full = repo_of(item)
             if not full:
                 continue
@@ -232,6 +238,10 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
             moves.pop(k, None)
     out["threads"].sort(key=lambda t: (t["move"] != "yours", -(t["age_days"] or 0)))
     return out
+
+
+def order_is_capped(meta: dict) -> bool:
+    return bool(meta.get("truncated") and meta.get("cutoffs"))
 
 
 def _age_days(at: str, now_t: datetime) -> float | None:
