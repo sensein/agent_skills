@@ -74,7 +74,8 @@ def thread_speakers(gh, ref: str, item: dict, budget: Budget, since: str,
         batch = batch if isinstance(batch, list) else []
         for c in batch:
             sp = {"by": str((c.get("user") or {}).get("login") or "").lower(), "at": c.get("created_at") or "",
-                  "kind": "comment", "bot": is_bot(c.get("user"), bots), "url": c.get("html_url", ""), "state": ""}
+                  "kind": "comment", "bot": is_bot(c.get("user"), bots), "url": c.get("html_url", ""), "state": "",
+                  "api": c.get("url", "")}
             if sp["at"] >= since:
                 new.append(sp)
             speakers.append(sp)
@@ -83,7 +84,8 @@ def thread_speakers(gh, ref: str, item: dict, budget: Budget, since: str,
             last = gh.get(f"/repos/{ref}/issues/{n}/comments?per_page=1&page={count}", conditional=False)
             for c in last if isinstance(last, list) else []:
                 speakers.append({"by": str((c.get("user") or {}).get("login") or "").lower(), "at": c.get("created_at") or "",
-                                 "kind": "comment", "bot": is_bot(c.get("user"), bots), "url": c.get("html_url", ""), "state": ""})
+                                 "kind": "comment", "bot": is_bot(c.get("user"), bots), "url": c.get("html_url", ""), "state": "",
+                  "api": c.get("url", "")})
     if "pull_request" in item:
         budget.spend()
         reviews = gh.get(f"/repos/{ref}/pulls/{n}/reviews?per_page=100", conditional=False)

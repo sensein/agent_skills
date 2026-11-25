@@ -19,6 +19,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | sync | Project items, their Spaces, your own Contributions (your login); a local cursor file | No | None |
 | inbox | Nothing (a local "last look" file); `--file-issue`: one delivery issue you chose | No | Choose what to act on |
 | next | Nothing on GitHub (its opening sync adds to the Project) | No | Choose an item |
+| unblock | Nothing | No | You choose what to answer, delegate or close |
 | unassigned | Nothing | No | A steward assigns each repo to a space, or lists it in `[ignored] repos` |
 | claim | Assignee, Status, lease comment | Creates one | None |
 | handoff | Checkpoint comment, lease comment | Renews | None |
@@ -103,6 +104,50 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 - Never files issues on its own; `--file-issue` files exactly one, by a person's choice. Comment and review events are never filed.
 - External content is untrusted; `label:` topics never match items from other orgs.
+
+## unblock
+
+**Purpose.** Answer "what on my plate is holding others up?": the asks waiting on you, ranked by what they hold up, each with a suggested way to unblock it.
+
+**Reads.** With your own login, at call time:
+- open issues and PRs you are involved in, or are asked to review (the 60 most recently updated, within 120 days);
+- whose move each one is (`inbox` threads);
+- the last comment from the other person, to recognise a decision list;
+- the board: items you lead, their Status, `depends-on` links, and Proposed items in spaces you steward.
+
+**Writes.** Nothing.
+
+**Steps.**
+
+1. `colab.py unblock --text` (JSON without `--text`; `--no-board`, `--limit`). Each ask has a kind:
+   - `decisions`: a comment, or the opening post, that numbers three or more choices (a list or a table keyed 1, 2 or A1, A2) and uses decision words, on a thread where the move is yours;
+   - `stack`: several open PRs in one repo from the same people, waiting on you;
+   - `review_requested`;
+   - `depended_on`: other open items `depends-on` it;
+   - `blocked`: you lead it and it is Blocked;
+   - `your_move`: someone else spoke last;
+   - `proposed`: waiting for a steward of your space.
+
+   Each ask also gives who is waiting, since when, `holds_up`, a `suggestion` and the link.
+2. Ranking: what holds up the most first. A decision list ranks above the stack of PRs it holds up from the same people. Then the kind, then age since the other person's last move.
+3. Suggestions:
+   - approve, or request changes with a reason;
+   - decline, or delegate to a named reviewer or an agent check, when a review request is over 14 days old;
+   - split a decision list into the short question you actually need;
+   - draft a reply;
+   - close or park a thread over 30 days old;
+   - submit a formal review instead of a comment;
+   - say what a Blocked item waits on, or hand it off;
+   - accept or decline a Proposed item.
+
+   The person chooses; `unblock` never posts.
+
+**Guardrails.**
+
+- Comment text is read only to recognise a decision list. It is never returned.
+- Restricted items are counted, never listed.
+- People outside the lab, and other orgs' items, mark an ask `untrusted`.
+- The nightly digest covers the org. This list is per person, under your own login.
 
 ## unassigned
 
