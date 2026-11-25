@@ -153,16 +153,16 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 ## digest
 
-**Purpose.** A nightly summary of the whole org in one issue of the meta repo: the org-wide brief, PRs waiting on a review for over a week (grouped by the requested reviewer), the repos in no space, and what the token could not read. The per-person list stays `unblock`, under each member's own login.
+**Purpose.** A nightly summary of the whole org in one issue of the meta repo: the org-wide brief, PRs waiting on a review for 7 to 180 days (grouped by the requested reviewer, plus PRs a branch rule says need a review nobody was asked for; older ones as a count), the repos in no space (New and Still unassigned, with their age), and what the token could not read. The issue also keeps the first-seen state for repos in no space, in an HTML comment, carried from night to night. The per-person list stays `unblock`, under each member's own login.
 
 **Reads.** Whatever the token in `GH_TOKEN` (or your `gh` login) can read: the same searches as `brief --org`, each space repo's visibility (for coverage), the requested reviewers of waiting PRs, and the meta repo's open issues, to find the digest issue.
 
-**Writes.** With `--post`, only the digest issue, which carries `<!-- colab-digest -->`. It is opened once, and each later run replaces its body. An issue opened by anyone else is never edited, even if it quotes the marker.
+**Writes.** With `--post`, only the digest issue, which carries `<!-- colab-digest -->`. It is opened once, and each later run replaces its body. Only an issue opened by the same identity, or by the scheduled Action (`github-actions[bot]`), is edited. An issue opened by anyone else is never edited, even if it quotes the marker.
 
 **Steps.**
 
 1. `colab.py digest` prints the digest, and `--post` writes it. The period runs from the previous digest (its `colab-digest-at` stamp), else 24 hours, or `--since`. `--board` adds Blocked counts when the token can read the Project.
-2. Before posting, the text is leak-scanned with `[scan] patterns`. Any finding stops the post (exit 3). The digest is also refused if anything restricted would be shown in detail. Restricted repos are counts only throughout.
+2. Before posting, the text is leak-scanned with `[scan] patterns`. Any finding stops the post (exit 3). The digest's tier is the strictest of everything it shows: the brief, and the repos and PRs it names. It is refused when that tier is stricter than the meta repo's tier (for example, a lab-tier digest and a public meta repo), or when anything restricted would be shown in detail. Restricted repos and `tier:restricted` items are counts only throughout. The names of restricted repos are added to the leak scan as a tripwire. A GitHub error becomes a note, or a clean exit 1 with nothing posted, never a crash.
 3. Coverage depends on the token:
    - With the Action's default `GITHUB_TOKEN`, it covers public repos and the meta repo. Every other space repo is listed under "not readable by this token". Restricted ones are counted, not named. Nothing fails.
    - With a supplied token, it covers everything that token can read.

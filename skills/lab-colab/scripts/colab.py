@@ -4621,13 +4621,28 @@ def cmd_digest(config: dict, do_post: bool = False, since: str | None = None, bo
             board_items = _project_items(config)
         except Exception as e:  # noqa: BLE001
             print(f"digest: board not read ({str(e)[:120]})", file=err)
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    try:
+        meta_info = gh.get(f"/repos/{org}/{meta}", conditional=False) or {}
+    except (urllib.error.URLError, OSError):
+        meta_info = {}
+    dest = sync.dest_tier(meta_info.get("visibility"), None, declared_tiers(config).get(repo_key(meta, org)))
     try:
         d = colab_digest.build(gh, config, now_t=now_t, since=since_iso or colab_digest.previous_at(existing),
-                               budget=sync.Budget(250), token_kind=kind, board_items=board_items)
+                               budget=sync.Budget(250), token_kind=kind, board_items=board_items,
+                               previous=colab_digest.previous_state(existing), dest_tier=dest)
     except ValueError as e:
         print(f"digest: {e}", file=err)
         return 3
-    hits = scan_text(d["markdown"], (config.get("scan") or {}).get("patterns") or {})
+    except (urllib.error.URLError, OSError) as e:
+        print(f"digest: stopped by a GitHub error ({str(e)[:160]}); nothing posted", file=err)
+        return 1
+    patterns = dict((config.get("scan") or {}).get("patterns") or {})
+    restricted_names = [r"(?i)(?<![A-Za-z0-9_.-])" + re.escape(k) + r"(?![A-Za-z0-9_-])"
+                        for k, t in declared_tiers(config).items() if t == "restricted" and "/" not in k]
+    if restricted_names:  # a tripwire: no restricted repo name may appear in the digest
+        patterns["restricted_name"] = restricted_names
+    hits = scan_text(d["markdown"], patterns)
     if any(hits.values()):
         print(f"digest: the leak scan found {hits}; not posting", file=err)
         return 3
