@@ -20,5 +20,8 @@ json-repair>=0.40,<1.0
 pymupdf>=1.24
 feedparser>=6.0
 
+# PubMed search strategy (generate_search_strategy.py)
+requests>=2.28
+
 # regression tests
 pytest
