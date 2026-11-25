@@ -115,7 +115,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 **Steps.**
 
 1. `colab.py unassigned` (`--since <date|30d>` to set the reference date, `--active-days N`, `--all` to name the dormant repos too). It returns `new` (created since the reference date), `active` (pushed in the last N days, default 30), `ignored` (listed on purpose in `[ignored] repos = { name = "reason" }`), `restricted` (declared restricted in `[tiers]`: a count only, never the name) and a count of the rest (`dormant`). Each repo: name, visibility, created, pushed, link.
-2. For each new or active repo, a steward decides: add it to a space, create a space, or add it to `[ignored] repos` with a reason; set the tier of private ones. Then change `.colab/config.toml` by PR.
+2. For each new or active repo, a steward decides: add it to a space, create a space, or add it to `[ignored] repos` with a reason; for a private repo, also decide which `[tiers]` list it belongs in. Then change `.colab/config.toml` by PR.
 3. `brief --org` and the nightly digest call the same function (`colab_orgview.unassigned_repos`).
 
 ## next
