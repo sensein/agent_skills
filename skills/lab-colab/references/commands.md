@@ -19,6 +19,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | sync | Project items, their Spaces, your own Contributions (your login); a local cursor file | No | None |
 | inbox | Nothing (a local "last look" file); `--file-issue`: one delivery issue you chose | No | Choose what to act on |
 | next | Nothing on GitHub (its opening sync adds to the Project) | No | Choose an item |
+| unassigned | Nothing | No | A steward assigns each repo to a space, or lists it in `[ignored] repos` |
 | claim | Assignee, Status, lease comment | Creates one | None |
 | handoff | Checkpoint comment, lease comment | Renews | None |
 | capture | Staging PR in the meta repo | No | Lead reviews the PR |
@@ -102,6 +103,20 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 - Never files issues on its own; `--file-issue` files exactly one, by a person's choice. Comment and review events are never filed.
 - External content is untrusted; `label:` topics never match items from other orgs.
+
+## unassigned
+
+**Purpose.** Show which of the org's repos belong to no space, so a new repo gets a space (or is left out on purpose) instead of being forgotten. `sync`, `inbox` and `brief` see only repos in a space.
+
+**Reads.** The org's repos your login can see (archived ones left out); the date the spaces were last revised (`[org] spaces_revised`, else the last commit to the meta repo's `.colab/config.toml`).
+
+**Writes.** Nothing.
+
+**Steps.**
+
+1. `colab.py unassigned` (`--since <date|30d>` to set the reference date, `--active-days N`, `--all` to name the dormant repos too). It returns `new` (created since the reference date), `active` (pushed in the last N days, default 30), `ignored` (listed on purpose in `[ignored] repos = { name = "reason" }`), `restricted` (declared restricted in `[tiers]`: a count only, never the name) and a count of the rest (`dormant`). Each repo: name, visibility, created, pushed, link.
+2. For each new or active repo, a steward decides: add it to a space, create a space, or add it to `[ignored] repos` with a reason; set the tier of private ones. Then change `.colab/config.toml` by PR.
+3. `brief --org` and the nightly digest call the same function (`colab_orgview.unassigned_repos`).
 
 ## next
 

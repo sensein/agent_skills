@@ -4489,6 +4489,28 @@ def cmd_inbox(config: dict, me: bool = False, space: str | None = None, since: s
     return 0
 
 
+def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30, show_all: bool = False, client=None,
+                   out=None, err=None, now_t: datetime | None = None) -> int:
+    """`colab.py unassigned`: the org's repos in no space (new since the spaces were last revised, recently active,
+    left out on purpose, and a count of the rest), read now with your own login. Writes nothing."""
+    import colab_orgview  # noqa: PLC0415
+    out, err = out or sys.stdout, err or sys.stderr
+    sync, gh = client or _sync_client()
+    now_t = now_t or datetime.now(timezone.utc)
+    try:
+        since_iso = sync.parse_since(since, now_t)
+    except ValueError as e:
+        print(f"unassigned: {e}", file=err)
+        return 2
+    view = colab_orgview.unassigned_repos(gh, config, now_t=now_t, since=since_iso, active_days=active_days)
+    if not show_all:
+        view = {**view, "dormant_names": []}
+    print(json.dumps(view, indent=2), file=out)
+    for line in colab_orgview.unassigned_lines(view) + view["notes"]:
+        print(f"unassigned: {line}", file=err)
+    return 0
+
+
 def session_counts(config: dict, gh=None, now_t: datetime | None = None, jobs=None) -> dict | None:
     """Active, waiting, and stale sessions from the Session activity issue, read now (no relay needed)."""
     gh = gh or _gh_json
@@ -4851,6 +4873,10 @@ def _main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-sync", action="store_true", help="skip the cheap sync at the start")
     p.add_argument("--file-issue", metavar="EVENT_ID", help="file ONE delivery issue for this event, with your login")
     p.add_argument("--to", help="with --file-issue: the repo (in [org] name) to file it in; never a looser tier")
+    p = sub.add_parser("unassigned", help="the org's repos in no space: new, active, left out on purpose (read now)")
+    p.add_argument("--since", help="ISO date or 30d (default: when the spaces were last revised)")
+    p.add_argument("--active-days", type=int, default=30)
+    p.add_argument("--all", action="store_true", help="also list the dormant repos by name")
     p = sub.add_parser("credit", help="sum the Project's Contributions per person and kind, at read time")
     p.add_argument("--items", type=Path, help="saved `gh project item-list` JSON")
     p.add_argument("--space"); g = p.add_mutually_exclusive_group()
@@ -4953,6 +4979,8 @@ def _main(argv: list[str] | None = None) -> int:
                          config_path=args.config or (Path(env_cfg) if env_cfg else None))
     if args.cmd == "credit":
         return cmd_credit(config, args.items, args.space, args.group, args.me)
+    if args.cmd == "unassigned":
+        return cmd_unassigned(config, args.since, args.active_days, args.all)
     if args.cmd == "tag":
         return cmd_tag(config, args.item, args.labels, args.remove, args.dry_run, confirm_steward=args.confirm_steward)
     if args.cmd == "lease":
