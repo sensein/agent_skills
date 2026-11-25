@@ -16,6 +16,7 @@ from colab_sync import Budget, DetailBudget, _labels, _repo_vis, _strictest, quo
 INVOLVED = "involved:me"
 DROP_DAYS = 90       # a thread's "reported up to" entry is dropped this long after its last activity, or when it closes
 SEARCH_PAGES = 3     # pages of 100 search results per query
+COMMENT_PAGES = 5    # pages of 100 new comments read per thread; beyond that the thread is marked truncated
 
 
 def _iso(t: datetime) -> str:
@@ -59,9 +60,10 @@ def search_involved(gh, login: str, budget: Budget, since: str | None = None, op
 
 
 def thread_speakers(gh, ref: str, item: dict, budget: Budget, since: str,
-                    bots: set[str] | frozenset = frozenset()) -> tuple[list[dict], list[dict]]:
+                    bots: set[str] | frozenset = frozenset(), meta: dict | None = None) -> tuple[list[dict], list[dict]]:
     """(new, last): comments and reviews at or after `since` (oldest first), and the item's last few speakers overall
-    (the opening post, the last comment page, all reviews), each {"by", "at", "kind", "bot", "url", "state"}."""
+    (the opening post, the last comment page, all reviews), each {"by", "at", "kind", "bot", "url", "state"}.
+    `meta`, when given, gets "truncated": True if more than COMMENT_PAGES pages of new comments were left unread."""
     n = item["number"]
     opened = {"by": str((item.get("user") or {}).get("login") or "").lower(), "at": item.get("created_at") or "",
               "kind": "opened", "bot": is_bot(item.get("user"), bots), "url": item.get("html_url", ""), "state": ""}
@@ -69,16 +71,24 @@ def thread_speakers(gh, ref: str, item: dict, budget: Budget, since: str,
     new: list[dict] = []
     count = int(item.get("comments") or 0)
     if count:
-        budget.spend()
-        batch = gh.get(f"/repos/{ref}/issues/{n}/comments?per_page=100&since={since}", conditional=False)
-        batch = batch if isinstance(batch, list) else []
+        batch: list = []
+        for page in range(1, COMMENT_PAGES + 1):  # `since` filters on updated_at: an old comment edited later comes too
+            budget.spend()
+            got = gh.get(f"/repos/{ref}/issues/{n}/comments?per_page=100&since={since}&page={page}", conditional=False)
+            got = got if isinstance(got, list) else []
+            batch += got
+            if len(got) < 100:
+                break
+        else:
+            if meta is not None:
+                meta["truncated"] = True
         for c in batch:
             sp = {"by": str((c.get("user") or {}).get("login") or "").lower(), "at": c.get("created_at") or "",
                   "kind": "comment", "bot": is_bot(c.get("user"), bots), "url": c.get("html_url", ""), "state": ""}
             if sp["at"] >= since:
                 new.append(sp)
             speakers.append(sp)
-        if not batch:  # nothing new: read the last comment overall, for whose move it is
+        if not any(str(c.get("created_at") or "") >= since for c in batch):  # nothing new: read the true last comment
             budget.spend()
             last = gh.get(f"/repos/{ref}/issues/{n}/comments?per_page=1&page={count}", conditional=False)
             for c in last if isinstance(last, list) else []:
@@ -132,7 +142,7 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
     declared, opt_in = declared_tiers(config), lab_opt_in(config)
     cursors = state.setdefault("threads", {}) if move_state else dict(state.get("threads") or {})
     bots = {str(b).lower() for b in (config.get("inbox") or {}).get("bots") or []}
-    out = {"events": [], "threads": [], "notes": []}
+    out = {"events": [], "threads": [], "notes": [], "restricted": 0, "complete": True}
     vis_cache: dict[str, str | None] = {}
     try:
         hits = search_involved(gh, login, budget, since=start[:19] + "Z" if len(start) >= 19 else start)
@@ -150,16 +160,23 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
             labels = _labels(item)
             tier = tier_of(vis, labels, _strictest(declared.get(key), *label_space_tiers(config, key, labels)), external, key in opt_in)
             since = max(start, cursors.get(tkey, ""))
-            new, speakers = thread_speakers(gh, full, item, budget, since, bots)
+            meta: dict = {}
+            new, speakers = thread_speakers(gh, full, item, budget, since, bots, meta)
+            if meta.get("truncated"):
+                out["complete"] = False
+                out["notes"].append(f"{tkey}: more than {COMMENT_PAGES * 100} new comments; the rest come next run")
             new = [s for s in new if s["by"] != login and s["at"] > cursors.get(tkey, "")]
-            title = "" if tier == "restricted" else (item.get("title") or "")
+            restricted = tier == "restricted"
+            if restricted and any(not s["bot"] for s in new):
+                out["restricted"] += 1  # counts only: no repo, link, author or time for a restricted item
+            title = "" if restricted else (item.get("title") or "")
             if title and external:
                 title = quote_within(title, 200)
             for transition, group in (("commented", [s for s in new if s["kind"] == "comment"]),
                                       ("reviewed", [s for s in new if s["kind"] == "review"])):
                 people = [s for s in group if not s["bot"]]
                 n_bots = len(group) - len(people)
-                if not people:
+                if not people or restricted:
                     continue
                 authors = sorted({s["by"] for s in people})
                 outsiders = [a for a in authors if members is not None and a not in members]
@@ -175,13 +192,15 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
                     cursors.pop(tkey, None)
                 elif latest:
                     cursors[tkey] = latest
-            if item.get("state") == "open":
+            if item.get("state") == "open" and not restricted:
                 move = whose_move(item, speakers, login, now_t)
                 out["threads"].append({"item": tkey, "kind": kind, "url": item.get("html_url", ""), "tier": tier,
                                        "summary": title, "untrusted": external, **move})
     except DetailBudget:
+        out["complete"] = False
         out["notes"].append("the call budget ran out reading comment threads; run again for the rest")
     except (urllib.error.URLError, OSError) as err:
+        out["complete"] = False
         out["notes"].append(f"comment threads stopped early: {str(err)[:200]}")
     if move_state:
         cutoff = _iso(now_t - timedelta(days=DROP_DAYS))
