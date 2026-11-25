@@ -23,7 +23,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | claim | Assignee, Status, lease comment | Creates one | None |
 | handoff | Checkpoint comment, lease comment | Renews | None |
 | capture | Staging PR in the meta repo | No | Lead reviews the PR |
-| brief | Nothing by default | No | Read the output |
+| brief | Nothing by default (`brief --org`: a local last-look file) | No | Read the output |
 | run | Local run directory; progress comments; staging PR | Renewed by beats | Lead reviews the staging PR |
 | link | Issue body | No | None |
 | tag | Labels on one issue; the label itself on first use | No | A steward confirms a removed tier label |
@@ -229,6 +229,16 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 3. Group the findings under three headings: What happened, Challenges, and Next steps. Challenges include blocked items, open questions, stale leases, and threads waiting on a reply, grouped by who they wait on (`colab_threads.waiting_by_person`; `colab.py inbox --peek` gives your own).
 4. The brief's tier is the strictest tier of the items it includes (`colab.combined_tier`). Check the destination against it: a brief that mixes public and lab items is lab tier and never goes to a public repo. Use pointers for restricted items.
 5. Return the brief. Publish it only when the user asks.
+
+**Org-wide ("what's new?").** For the whole org, for anyone (steward or not), run `colab.py brief --org` (`--text` for plain lines, `--since <date|7d>`, `--peek`, `--no-board`). It reads, with your own login, a few org-wide searches and the board, and returns:
+
+- one row per space: items updated, PRs merged, PRs open, issues opened and closed, PRs waiting on a review for over 7 days, and items Blocked on the board. Spaces whose repos are all in other orgs are marked "not covered": the searches cover `[org] name` only;
+- releases in space repos;
+- activity in repos outside any space;
+- the repos in no space (`unassigned`);
+- notes on anything it could not read (the board, a truncated search, the call budget).
+
+A space with a restricted repo shows counts only. Restricted repos are never named, and their releases are skipped. The view's `tier` is the strictest tier of what it shows in detail. The default period is since your last org look, kept in local state, which `--peek` and `--since` leave alone. Read it out as What happened, Challenges and Next steps, as for a space brief. For what is waiting on you in person, use `unblock`.
 
 **Guardrails.**
 

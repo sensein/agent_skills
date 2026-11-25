@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import json
 import unittest
+import urllib.error
 from datetime import datetime, timezone
 
 import test_lab_colab_people as people  # noqa: E402  (loads colab and colab_sync with the hermetic setup)
@@ -165,3 +166,110 @@ class StateBlockTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def sitem(repo, n, title="t", private=False):
+    return {"number": n, "title": title, "repository_url": f"https://api.github.com/repos/sensein/{repo}",
+            "html_url": f"https://github.com/sensein/{repo}/issues/{n}", "repository": {"private": private}}
+
+
+class SearchGH(OrgGH):
+    """OrgGH plus issue search (by which qualifier the query carries) and releases."""
+
+    def __init__(self, results, releases=None, total=None, **kw):
+        super().__init__(REPOS, **kw)
+        self.results, self.releases, self.total = results, releases or {}, total or {}
+
+    def get(self, path, cache=False, conditional=True):
+        if path.startswith("/search/issues"):
+            self.gets.append(path)
+            import urllib.parse
+            q = urllib.parse.unquote(path.split("q=")[1].split("&")[0])
+            key = next(k for k, marker in (("merged", "is:merged"), ("waiting_review", "review:required"), ("open_prs", "is:pr is:open"),
+                                          ("opened", "created:>="), ("closed", "closed:>="), ("updated", "updated:>=")) if marker in q)
+            items = self.results.get(key, []) if "page=1" in path else []
+            return {"total_count": self.total.get(key, len(self.results.get(key, []))), "items": items}
+        if "/releases?" in path:
+            self.gets.append(path)
+            return self.releases.get(path.split("/repos/sensein/")[1].split("/")[0], [])
+        return super().get(path, cache, conditional)
+
+
+def brief_cfg():
+    c = cfg()
+    c["spaces"]["sails"] = {"stewards": ["me"], "repos": ["sailsprep"]}
+    c["spaces"]["ext"] = {"stewards": ["me"], "repos": ["other/thing"]}
+    c["tiers"]["restricted"] = ["sailsprep", "hush"]
+    return c
+
+
+class OrgBriefTests(unittest.TestCase):
+    def view(self, gh, board=None, **kw):
+        return orgview.org_brief(gh, brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=board, **kw)
+
+    def test_rows_per_space_restricted_counts_only_and_no_space_activity(self) -> None:
+        gh = SearchGH({"updated": [sitem("proj", 1), sitem("sailsprep", 2, "secret plan"), sitem("ontoreview", 3), sitem("hush", 4, "x")],
+                       "merged": [sitem("proj", 5)], "open_prs": [sitem("sailsprep", 6)], "opened": [sitem("proj", 1)]},
+                      releases={"proj": [{"tag_name": "v2", "published_at": "2026-11-20T00:00:00Z", "html_url": "u"}],
+                                "sailsprep": [{"tag_name": "secret", "published_at": "2026-11-20T00:00:00Z"}]})
+        board = [{"status": "Blocked", "spaces": ["proj"]}, {"status": "Ready", "spaces": ["proj"]}]
+        v = self.view(gh, board=board)
+        self.assertEqual((v["spaces"]["proj"]["updated"], v["spaces"]["proj"]["merged"], v["spaces"]["proj"]["blocked"]), (1, 1, 1))
+        self.assertTrue(v["spaces"]["sails"]["restricted"])
+        self.assertEqual(v["spaces"]["sails"]["open_prs"], 1)
+        self.assertTrue(v["spaces"]["ext"]["external_only"])
+        self.assertEqual(list(v["no_space"]), ["ontoreview"])  # the restricted repo outside spaces is never named
+        self.assertEqual([r["tag"] for r in v["releases"]], ["v2"])  # restricted repos' releases are skipped
+        text = "\n".join(orgview.brief_lines(v))
+        for leak in ("secret", "sailsprep", "hush"):
+            self.assertNotIn(leak, json.dumps(v["releases"]) + text)
+        self.assertIn("sails (restricted: counts only)", text)
+        self.assertIn("not covered (their repos are in other orgs): ext", text)
+        self.assertIn("Active outside any space: ontoreview (1 updated)", text)
+        self.assertEqual(v["tier"], "lab")
+
+    def test_board_missing_truncation_and_budget_are_notes(self) -> None:
+        gh = SearchGH({"updated": [sitem("proj", 1)]}, total={"updated": 5000})
+        v = self.view(gh)
+        self.assertIn("the board was not read: Blocked counts are missing", v["notes"])
+        self.assertEqual(v["truncated"], ["updated: 1 of 5000 read"])
+        v = self.view(SearchGH({}), budget=sync.Budget(2))
+        self.assertIn("the call budget ran out; the brief is partial", v["notes"])
+
+    def test_empty_org_is_public_and_quiet(self) -> None:
+        v = self.view(SearchGH({}), board=[])
+        self.assertEqual(v["tier"], "public")
+        self.assertIn("- quiet: proj, infra, sails", "\n".join(orgview.brief_lines(v)))  # config order
+
+    def test_cmd_marks_last_look_unless_peek_or_since(self) -> None:
+        gh = SearchGH({"updated": [sitem("proj", 1)]})
+        run = lambda **kw: colab.cmd_brief_org(brief_cfg(), client=(sync, gh), login="me", out=io.StringIO(), err=io.StringIO(),
+                                               now_t=NOW, board_items=[], **kw)
+        path = sync.state_path("brief", "sensein", "me")
+        if path.exists():
+            path.unlink()
+        self.assertEqual(run(peek=True), 0)
+        self.assertFalse(path.exists())
+        self.assertEqual(run(since="3d"), 0)
+        self.assertFalse(path.exists())
+        self.assertEqual(run(), 0)
+        self.assertEqual(sync.load_state(path)["looks"]["org"], "2026-11-24T12:00:00Z")
+        out = io.StringIO()
+        colab.cmd_brief_org(brief_cfg(), client=(sync, gh), login="me", out=out, err=io.StringIO(), now_t=NOW, board_items=[],
+                            text=True, peek=True)
+        self.assertTrue(out.getvalue().startswith("What's new in sensein since 2026-11-24"))
+
+
+class OrgBriefErrorTests(unittest.TestCase):
+    def test_one_unreadable_repo_skips_only_its_releases(self) -> None:
+        class Flaky(SearchGH):
+            def get(self, path, cache=False, conditional=True):
+                if "/repos/sensein/proj/releases" in path:
+                    raise urllib.error.HTTPError(path, 403, "forbidden", {}, None)
+                return super().get(path, cache, conditional)
+        gh = Flaky({}, releases={"tools": [{"tag_name": "v9", "published_at": "2026-11-20T00:00:00Z", "html_url": "u"}]})
+        c = brief_cfg()
+        c["spaces"]["infra"]["repos"] = ["tools"]
+        v = orgview.org_brief(gh, c, "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertEqual([r["tag"] for r in v["releases"]], ["v9"])
+        self.assertFalse(any("stopped early" in n for n in v["notes"]))
