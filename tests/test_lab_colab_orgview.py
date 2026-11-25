@@ -197,7 +197,8 @@ class SearchGH(OrgGH):
             import urllib.parse
             q = urllib.parse.unquote(path.split("q=")[1].split("&")[0])
             key = next(k for k, marker in (("merged", "is:merged"), ("waiting_review", "review:required"), ("open_prs", "is:pr is:open"),
-                                          ("opened", "created:>="), ("closed", "closed:>="), ("updated", "updated:>=")) if marker in q)
+                                          ("opened", "created:>="), ("closed", "closed:>="), ("updated_pr", "is:pr updated:>="),
+                                          ("updated", "updated:>=")) if marker in q)
             items = self.results.get(key, []) if "page=1" in path else []
             return {"total_count": self.total.get(key, len(self.results.get(key, []))), "items": items}
         if "/releases?" in path:
@@ -284,3 +285,25 @@ class OrgBriefErrorTests(unittest.TestCase):
         v = orgview.org_brief(gh, c, "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
         self.assertEqual([r["tag"] for r in v["releases"]], ["v9"])
         self.assertFalse(any("stopped early" in n for n in v["notes"]))
+
+
+class OrgBrief422Tests(unittest.TestCase):
+    def test_every_query_names_a_type_and_a_rejected_one_is_unknown_not_quiet(self) -> None:
+        import io as _io
+        class Picky(SearchGH):
+            def get(self, path, cache=False, conditional=True):
+                if path.startswith("/search/issues"):
+                    import urllib.parse
+                    q = urllib.parse.unquote(path.split("q=")[1].split("&")[0])
+                    if "is:issue" not in q and "is:pr" not in q:
+                        raise urllib.error.HTTPError(path, 422, "Unprocessable", {}, _io.BytesIO(b'{"message": "needs a type"}'))
+                    if "merged:>=" in q:
+                        raise urllib.error.HTTPError(path, 422, "Unprocessable", {}, _io.BytesIO(b'{"message": "nope"}'))
+                return super().get(path, cache, conditional)
+        v = orgview.org_brief(Picky({"updated": [sitem("proj", 1)]}), brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertEqual(v["spaces"]["proj"]["updated"], 1)  # the typed queries answered
+        self.assertEqual(v["failed"], ["merged"])
+        self.assertIn("search for merged failed: HTTP 422 (nope)", v["notes"])
+        text = "\n".join(orgview.brief_lines(v))
+        self.assertIn("activity not read (a search failed): infra, sails", text)
+        self.assertNotIn("quiet", text)
