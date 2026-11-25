@@ -126,7 +126,8 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
    - `depended_on`: other open items `depends-on` it;
    - `blocked`: you lead it and it is Blocked;
    - `your_move`: someone else spoke last;
-   - `proposed`: waiting for a steward of your space.
+   - `proposed`: waiting for a steward of your space;
+   - `unassigned_repo`: for stewards of the triage space (`[org] triage_space`, default `lab-infra`), a repo in no space for over 14 days: assign it or add it to `[ignored] repos`.
 
    Each ask also gives who is waiting, since when, `holds_up`, a `suggestion` and the link.
 2. Ranking: what holds up the most first. A decision list ranks above the stack of PRs it holds up from the same people. Then the kind, then age since the other person's last move.

@@ -56,7 +56,8 @@ def decision_count(text: str, login: str, addressed: bool = False) -> int:
     return n if n >= 3 else 0
 
 
-KIND_RANK = {"decisions": 0, "stack": 1, "review_requested": 2, "depended_on": 3, "blocked": 4, "your_move": 5, "proposed": 6}
+KIND_RANK = {"decisions": 0, "stack": 1, "review_requested": 2, "depended_on": 3, "blocked": 4, "your_move": 5, "proposed": 6,
+             "unassigned_repo": 7}
 
 
 def group_stacks(asks: list[dict]) -> list[dict]:
@@ -103,6 +104,8 @@ def suggest(ask: dict) -> str:
         return f"finish or hand off: {ask.get('holds_up', 0)} items depend on it"
     if kind == "blocked":
         return "say what it waits on (a person, a decision, a link), or hand it off"
+    if kind == "unassigned_repo":
+        return "assign it to a space, or add it to [ignored] repos with a reason (a config PR in the meta repo)"
     if kind == "proposed":
         return "accept or decline it in the Proposals inbox, with a reason when declining"
     if kind == "your_move":
@@ -256,6 +259,17 @@ def gather(gh, config: dict, login: str, now_t: datetime | None = None, board_it
             c = mine[tgt].get("content") or {}
             add("depended_on", c["repository"], c["number"], c.get("url", ""), c.get("title", ""),
                 [str(x) for x in (mine[tgt].get("labels") or [])], holds_up=len(srcs), depended_on_by=sorted(srcs))
+    try:  # repos in no space for over 14 days: asks for the stewards of the triage space only
+        import colab_orgview  # noqa: PLC0415
+        triage = (config.get("org") or {}).get("triage_space") or colab_orgview.TRIAGE_SPACE
+        if triage in (config.get("spaces") or {}) and login in item_stewards(config, [triage]):
+            view = colab_orgview.unassigned_repos(gh, config, now_t=now_t, budget=budget,
+                                                  state=colab_orgview.read_digest_state(gh, config, budget)[1])
+            for a in colab_orgview.triage_asks(view, config, login):
+                asks[f"repo:{a['item']}"] = a
+            notes += view["notes"]
+    except (DetailBudget, urllib.error.URLError, OSError):
+        notes.append("repos in no space were not checked (budget or an API error)")
     ranked = sorted(group_stacks(list(asks.values())), key=lambda a: (-(a["holds_up"] or 0), KIND_RANK.get(a["kind"], 9),
                                                                     -(a["age_days"] or 0)))
     from colab_threads import is_bot  # noqa: PLC0415
@@ -270,7 +284,8 @@ def gather(gh, config: dict, login: str, now_t: datetime | None = None, board_it
 def unblock_lines(view: dict, limit: int = 25) -> list[str]:
     """A short ranked list for a person: who waits, since when, what they need, the suggestion, the link."""
     labels = {"stack": "PRs from the same people waiting on you", "review_requested": "review requested", "decisions": "decisions for you", "depended_on": "others depend on it",
-              "blocked": "Blocked, you lead it", "proposed": "Proposed, waiting for a steward", "your_move": "your move"}
+              "blocked": "Blocked, you lead it", "proposed": "Proposed, waiting for a steward", "your_move": "your move",
+              "unassigned_repo": "repo in no space"}
     lines = []
     for i, a in enumerate(view["asks"][:limit], 1):
         who = f" — {', '.join(a['who'])} waiting" if a["who"] else ""
