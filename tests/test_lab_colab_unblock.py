@@ -131,3 +131,33 @@ class UnblockTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnblockBudgetTests(unittest.TestCase):
+    def test_budget_spent_before_the_board_fails_closed_instead_of_crashing(self) -> None:
+        v = unblock.gather(UnblockGH(), people.pcfg(), "me", now_t=NOW, board_items=[board(20, "Blocked", lead="me")],
+                           members={"me"}, budget=sync.Budget(3))
+        self.assertEqual(v["asks"], [])
+        self.assertEqual(v["restricted"], 1)  # unknown tier: counted, never listed
+        self.assertTrue(any("counted as restricted" in n for n in v["notes"]))
+
+
+
+class TriageAskTests(unittest.TestCase):
+    def test_repos_unassigned_over_14_days_are_asks_for_triage_stewards_only(self) -> None:
+        import test_lab_colab_orgview as ov
+        class Org(UnblockGH):
+            def get(self, path, cache=False, conditional=True):
+                if path.startswith("/orgs/sensein/repos"):
+                    return ov.REPOS if "page=1" in path else []
+                return super().get(path, cache, conditional)
+        cfg = people.pcfg()
+        cfg["spaces"]["lab-infra"] = {"stewards": ["me"], "repos": ["tools"]}
+        v = unblock.gather(Org(), cfg, "me", now_t=NOW, board_items=[], members={"me"}, budget=sync.Budget(100))
+        repo_asks = [a for a in v["asks"] if a["kind"] == "unassigned_repo"]
+        self.assertIn("busy", [a["item"] for a in repo_asks])
+        self.assertNotIn("fresh", [a["item"] for a in repo_asks])  # only 4 days
+        self.assertIn("assign it to a space, or add it to [ignored] repos", repo_asks[0]["suggestion"])
+        self.assertIn("repo in no space", "\n".join(unblock.unblock_lines(v)))
+        v = unblock.gather(Org(), cfg, "b", now_t=NOW, board_items=[], members={"me"}, budget=sync.Budget(100))
+        self.assertEqual([a for a in v["asks"] if a["kind"] == "unassigned_repo"], [])
