@@ -4511,6 +4511,46 @@ def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30
     return 0
 
 
+def cmd_brief_org(config: dict, since: str | None = None, peek: bool = False, board: bool = True, text: bool = False,
+                  client=None, login: str | None = None, out=None, err=None, now_t: datetime | None = None,
+                  board_items=None) -> int:
+    """`colab.py brief --org`: what's new across the whole org since your last look (or --since), read now with your
+    own login, for anyone (not only stewards): one row per space, releases, activity outside any space, repos in no
+    space. Restricted repos count only. Writes nothing on GitHub; your last look moves unless --peek or --since."""
+    import colab_orgview  # noqa: PLC0415
+    out, err = out or sys.stdout, err or sys.stderr
+    now_t = now_t or datetime.now(timezone.utc)
+    sync, gh = client or _sync_client()
+    login = (login or gh_login()).lower()
+    org = config["org"]["name"]
+    path = sync.state_path("brief", org, login or "anonymous")
+    state = sync.load_state(path)
+    try:
+        since_iso = sync.parse_since(since, now_t)
+    except ValueError as e:
+        print(f"brief: {e}", file=err)
+        return 2
+    start = since_iso or (state.get("looks") or {}).get("org") or (now_t - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if board and board_items is None:
+        try:
+            board_items = _project_items(config)
+        except Exception as e:  # noqa: BLE001  the board is optional: a brief without it says so
+            print(f"brief: board not read ({str(e)[:120]})", file=err)
+            board_items = None
+    budget = sync.Budget(sync.sync_settings(config)["budget_calls"])
+    view = colab_orgview.org_brief(gh, config, start, now_t=now_t, budget=budget, board_items=board_items,
+                                   unassigned=colab_orgview.unassigned_repos(gh, config, now_t=now_t, budget=budget))
+    if text:
+        print("\n".join(colab_orgview.brief_lines(view)), file=out)
+    else:
+        print(json.dumps(view, indent=2), file=out)
+    if not peek and not since_iso:
+        state.setdefault("looks", {})["org"] = now_t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        sync.save_state(path, state)
+    print(f"brief: org {org} since {start}; tier {view['tier']}" + ("" if peek or since_iso else "; marked as seen"), file=err)
+    return 0
+
+
 def session_counts(config: dict, gh=None, now_t: datetime | None = None, jobs=None) -> dict | None:
     """Active, waiting, and stale sessions from the Session activity issue, read now (no relay needed)."""
     gh = gh or _gh_json
@@ -4873,6 +4913,12 @@ def _main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-sync", action="store_true", help="skip the cheap sync at the start")
     p.add_argument("--file-issue", metavar="EVENT_ID", help="file ONE delivery issue for this event, with your login")
     p.add_argument("--to", help="with --file-issue: the repo (in [org] name) to file it in; never a looser tier")
+    p = sub.add_parser("brief", help="what's new across the whole org (--org), read now with your login; writes nothing")
+    p.add_argument("--org", action="store_true", required=True, help="the org-wide view (space briefs stay agent-run)")
+    p.add_argument("--since", help="ISO date or 7d (default: your last look, else 7 days)")
+    p.add_argument("--peek", action="store_true", help="do not move your last look")
+    p.add_argument("--no-board", action="store_true", help="skip the Project (no Blocked counts)")
+    p.add_argument("--text", action="store_true", help="plain lines instead of JSON")
     p = sub.add_parser("unassigned", help="the org's repos in no space: new, active, left out on purpose (read now)")
     p.add_argument("--since", help="ISO date or 30d (default: when the spaces were last revised)")
     p.add_argument("--active-days", type=int, default=30)
@@ -4979,6 +5025,8 @@ def _main(argv: list[str] | None = None) -> int:
                          config_path=args.config or (Path(env_cfg) if env_cfg else None))
     if args.cmd == "credit":
         return cmd_credit(config, args.items, args.space, args.group, args.me)
+    if args.cmd == "brief":
+        return cmd_brief_org(config, args.since, args.peek, not args.no_board, args.text)
     if args.cmd == "unassigned":
         return cmd_unassigned(config, args.since, args.active_days, args.all)
     if args.cmd == "tag":
