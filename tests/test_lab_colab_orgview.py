@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import json
 import unittest
+import urllib.error
 from datetime import datetime, timezone
 
 import test_lab_colab_people as people  # noqa: E402  (loads colab and colab_sync with the hermetic setup)
@@ -184,3 +185,18 @@ class OrgBriefTests(unittest.TestCase):
         colab.cmd_brief_org(brief_cfg(), client=(sync, gh), login="me", out=out, err=io.StringIO(), now_t=NOW, board_items=[],
                             text=True, peek=True)
         self.assertTrue(out.getvalue().startswith("What's new in sensein since 2026-11-24"))
+
+
+class OrgBriefErrorTests(unittest.TestCase):
+    def test_one_unreadable_repo_skips_only_its_releases(self) -> None:
+        class Flaky(SearchGH):
+            def get(self, path, cache=False, conditional=True):
+                if "/repos/sensein/proj/releases" in path:
+                    raise urllib.error.HTTPError(path, 403, "forbidden", {}, None)
+                return super().get(path, cache, conditional)
+        gh = Flaky({}, releases={"tools": [{"tag_name": "v9", "published_at": "2026-11-20T00:00:00Z", "html_url": "u"}]})
+        c = brief_cfg()
+        c["spaces"]["infra"]["repos"] = ["tools"]
+        v = orgview.org_brief(gh, c, "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertEqual([r["tag"] for r in v["releases"]], ["v9"])
+        self.assertFalse(any("stopped early" in n for n in v["notes"]))

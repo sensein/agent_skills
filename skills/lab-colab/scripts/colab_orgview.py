@@ -165,10 +165,9 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
         "waiting_review": f"org:{org} is:pr is:open review:required updated:<={stale}",
     }
     out = {"org": org, "since": since, "spaces": {}, "no_space": {}, "releases": [], "unassigned": unassigned,
-           "notes": [], "tier": "public", "truncated": [], "visibility": {}}
+           "notes": [], "tier": "public", "truncated": []}
     counts: dict[str, dict[str, int]] = {}
     shown_tiers: list[str] = []
-    vis: dict[str, str] = {}
     try:
         for key, q in queries.items():
             items, total = search_all(gh, q, budget)
@@ -178,7 +177,6 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
                 name = _repo_name(it).lower()
                 if not name:
                     continue
-                vis[name] = "private" if (it.get("repository") or {}).get("private") else vis.get(name, "")
                 row_keys = member_of.get(name) or [None]
                 for space in row_keys:
                     bucket = out["spaces"] if space else out["no_space"]
@@ -190,7 +188,10 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
             if declared.get(name) == "restricted":
                 continue
             budget.spend()
-            rels = gh.get(f"/repos/{org}/{name}/releases?per_page=5", conditional=False)
+            try:
+                rels = gh.get(f"/repos/{org}/{name}/releases?per_page=5", conditional=False)
+            except (urllib.error.URLError, OSError):
+                rels = None  # one unreadable repo skips its releases, not everyone's
             for rel in rels if isinstance(rels, list) else []:
                 if rel.get("draft") or str(rel.get("published_at") or "") < since:
                     continue
@@ -226,7 +227,6 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
     if out["no_space"]:
         shown_tiers.append("lab")
     out["tier"] = max(shown_tiers or ["public"], key=lambda t: {"public": 0, "lab": 1, "restricted": 2}[t])
-    out["visibility"] = {"private_repos_seen": sorted(n for n, v in vis.items() if v == "private" and declared.get(n) != "restricted")}
     return out
 
 
