@@ -4511,6 +4511,7 @@ def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30
     """`colab.py unassigned`: the org's repos in no space (new and still unassigned, with their age; left out on
     purpose; counts of the rest), read now with your own login. First-seen dates come from the nightly digest's state
     when readable, else creation dates. Writes nothing."""
+    import urllib.error  # noqa: PLC0415
     import colab_orgview  # noqa: PLC0415
     out, err = out or sys.stdout, err or sys.stderr
     sync, gh = client or _sync_client()
@@ -4520,7 +4521,11 @@ def cmd_unassigned(config: dict, since: str | None = None, active_days: int = 30
     except ValueError as e:
         print(f"unassigned: {e}", file=err)
         return 2
-    _, state = colab_orgview.read_digest_state(gh, config)  # first-seen dates, when the digest issue is readable
+    try:
+        me = (gh.get("/user", conditional=False) or {}).get("login")
+    except (urllib.error.URLError, OSError):
+        me = None
+    _, state = colab_orgview.read_digest_state(gh, config, author=me)  # first-seen dates, when the digest issue is readable
     view = colab_orgview.unassigned_repos(gh, config, now_t=now_t, since=since_iso, active_days=active_days, state=state)
     if not show_all:
         view = {**view, "dormant_names": []}
@@ -4560,7 +4565,7 @@ def cmd_brief_org(config: dict, since: str | None = None, peek: bool = False, bo
     view = colab_orgview.org_brief(gh, config, start, now_t=now_t, budget=budget, board_items=board_items,
                                    unassigned=colab_orgview.unassigned_repos(
                                        gh, config, now_t=now_t, budget=budget,
-                                       state=colab_orgview.read_digest_state(gh, config, budget)[1]))
+                                       state=colab_orgview.read_digest_state(gh, config, budget, author=login)[1]))
     if text:
         print("\n".join(colab_orgview.brief_lines(view)), file=out)
     else:
@@ -4598,6 +4603,72 @@ def cmd_unblock(config: dict, board: bool = True, text: bool = False, limit: int
         print(json.dumps(view, indent=2), file=out)
     print(f"unblock: {len(view['asks'])} asks waiting on {login}" + (f", plus {view['restricted']} restricted (counts only)"
                                                                        if view["restricted"] else ""), file=err)
+    return 0
+
+
+def cmd_digest(config: dict, do_post: bool = False, since: str | None = None, board: bool = False, client=None,
+               out=None, err=None, now_t: datetime | None = None, env=None, board_items=None) -> int:
+    """`colab.py digest`: build the nightly digest (org brief, reviews waiting over a week, repos in no space, coverage)
+    with whatever token GH_TOKEN/gh holds, leak-scan it, and print it; with --post, replace the body of the one digest
+    issue in the meta repo (opening it the first time). That issue is the only write."""
+    import urllib.error  # noqa: PLC0415
+    import colab_digest  # noqa: PLC0415
+    out, err = out or sys.stdout, err or sys.stderr
+    env = os.environ if env is None else env
+    sync, gh = client or _sync_client()
+    now_t = now_t or datetime.now(timezone.utc)
+    kind = env.get("COLAB_DIGEST_TOKEN_KIND") or "member"
+    try:
+        me = (gh.get("/user", conditional=False) or {}).get("login")
+    except (urllib.error.URLError, OSError):
+        me = None  # the default GITHUB_TOKEN cannot read /user
+    author = me or env.get("COLAB_DIGEST_AUTHOR") or "github-actions[bot]"
+    try:
+        since_iso = sync.parse_since(since, now_t)
+        existing = colab_digest.last_digest(gh, config, author)
+    except ValueError as e:
+        print(f"digest: {e}", file=err)
+        return 2
+    except (urllib.error.URLError, OSError) as e:
+        print(f"digest: cannot read the meta repo's issues ({str(e)[:160]})", file=err)
+        return 1
+    if board and board_items is None:
+        try:
+            board_items = _project_items(config)
+        except Exception as e:  # noqa: BLE001
+            print(f"digest: board not read ({str(e)[:120]})", file=err)
+    org, meta = config["org"]["name"], config["org"]["meta_repo"]
+    try:
+        meta_info = gh.get(f"/repos/{org}/{meta}", conditional=False) or {}
+    except (urllib.error.URLError, OSError):
+        meta_info = {}
+    dest = sync.dest_tier(meta_info.get("visibility"), None, declared_tiers(config).get(repo_key(meta, org)))
+    try:
+        d = colab_digest.build(gh, config, now_t=now_t, since=since_iso or colab_digest.previous_at(existing),
+                               budget=sync.Budget(250), token_kind=kind, board_items=board_items,
+                               previous=colab_digest.previous_state(existing), dest_tier=dest)
+    except ValueError as e:
+        print(f"digest: {e}", file=err)
+        return 3
+    except (urllib.error.URLError, OSError) as e:
+        print(f"digest: stopped by a GitHub error ({str(e)[:160]}); nothing posted", file=err)
+        return 1
+    patterns = dict((config.get("scan") or {}).get("patterns") or {})
+    restricted_names = [r"(?i)(?<![A-Za-z0-9_.-])" + re.escape(k) + r"(?![A-Za-z0-9_-])"
+                        for k, t in declared_tiers(config).items() if t == "restricted" and "/" not in k]
+    if restricted_names:  # a tripwire: no restricted repo name may appear in the digest
+        patterns["restricted_name"] = restricted_names
+    decoded = d["markdown"].replace("\\u002d", "-")  # the state block escapes "-": scan it decoded too
+    hits = scan_text(d["markdown"] + "\n" + decoded, patterns)
+    if any(hits.values()):
+        print(f"digest: the leak scan found {hits}; not posting", file=err)
+        return 3
+    print(d["markdown"], file=out, end="")
+    if do_post:
+        issue = colab_digest.post(gh, config, d["markdown"], author, existing)
+        print(f"digest: {'updated' if existing else 'opened'} {(issue or {}).get('html_url') or ''}", file=err)
+    else:
+        print("digest: built (not posted; pass --post)", file=err)
     return 0
 
 
@@ -4973,6 +5044,10 @@ def _main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-board", action="store_true", help="skip the Project (no Blocked, depends-on or Proposed asks)")
     p.add_argument("--text", action="store_true", help="a short ranked list instead of JSON")
     p.add_argument("--limit", type=int, default=25)
+    p = sub.add_parser("digest", help="build the nightly digest; --post replaces the digest issue in the meta repo")
+    p.add_argument("--post", action="store_true", help="write the digest issue (the only write)")
+    p.add_argument("--since", help="ISO date or 1d (default: the last digest, else 24 hours)")
+    p.add_argument("--board", action="store_true", help="read the Project for Blocked counts (needs a token that can)")
     p = sub.add_parser("unassigned", help="the org's repos in no space: new, active, left out on purpose (read now)")
     p.add_argument("--since", help="ISO date or 30d: count repos first seen since then as new (default: the last 7 days)")
     p.add_argument("--active-days", type=int, default=30)
@@ -5083,6 +5158,8 @@ def _main(argv: list[str] | None = None) -> int:
         return cmd_brief_org(config, args.since, args.peek, not args.no_board, args.text)
     if args.cmd == "unblock":
         return cmd_unblock(config, not args.no_board, args.text, args.limit)
+    if args.cmd == "digest":
+        return cmd_digest(config, args.post, args.since, args.board)
     if args.cmd == "unassigned":
         return cmd_unassigned(config, args.since, args.active_days, args.all)
     if args.cmd == "tag":

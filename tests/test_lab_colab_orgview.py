@@ -156,6 +156,17 @@ class StateBlockTests(unittest.TestCase):
         for name in ("fresh", "busy"):
             self.assertNotIn(name, block)
 
+    def test_state_is_read_only_from_the_bots_or_the_callers_issue(self) -> None:
+        block = orgview.MARKER + "\n" + orgview.render_state({"repos": {"busy": {"first_seen": "2026-11-01", "last_reported": "2026-11-02"}}})
+        class Meta:
+            def __init__(self, author):
+                self.author = author
+            def get(self, path, cache=False, conditional=True):
+                return [{"number": 1, "user": {"login": self.author}, "body": block}] if "page=1" in path else []
+        self.assertEqual(orgview.read_digest_state(Meta("someone"), cfg(), author="me"), (None, None))
+        self.assertIn("busy", orgview.read_digest_state(Meta("me"), cfg(), author="me")[1]["repos"])
+        self.assertIn("busy", orgview.read_digest_state(Meta("github-actions[bot]"), cfg())[1]["repos"])
+
     def test_triage_asks_only_for_its_stewards_after_14_days(self) -> None:
         c = cfg()
         c["spaces"]["lab-infra"] = {"stewards": ["me"], "repos": ["tools"]}
