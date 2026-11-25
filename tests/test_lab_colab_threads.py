@@ -144,7 +144,9 @@ class ThreadEventTests(unittest.TestCase):
                       comments={"sensein/proj#7": [comment("b", "2026-11-21T00:00:00Z")]})
         out, state = run(gh, state={"threads": {"proj#7": "2026-11-20T01:00:00Z", "old#1": "2026-01-01T00:00:00Z"}})
         self.assertEqual(out["threads"], [])
-        self.assertEqual(state["threads"], {})  # closed, and older than DROP_DAYS
+        self.assertEqual(list(state["threads"]), ["proj#7"])  # closed keeps its cursor (no double report); old one dropped
+        again, _ = run(gh, state=state)
+        self.assertEqual(again["events"], [])  # the closed item's comment is not reported twice
 
     def test_known_automation_accounts_and_configured_bots_are_not_people(self) -> None:
         cfg = people.pcfg()
@@ -221,18 +223,44 @@ class InboxWithThreadsTests(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertIn("comment or review event", err)
 
-    def test_incomplete_thread_read_keeps_the_last_look(self) -> None:
-        gh = ThreadGH(hits=[hit("sensein/proj", 7, comments=1)], comments={"sensein/proj#7": [comment("b", "2026-11-21T00:00:00Z")]})
+    def test_incomplete_runs_advance_the_thread_watermark_by_the_prefix_read(self) -> None:
+        hits = [hit("sensein/proj", n, comments=1, updated=f"2026-11-2{n}T00:00:00Z") for n in (1, 2, 3)]
+        gh = ThreadGH(hits=hits, comments={f"sensein/proj#{n}": [comment("b", f"2026-11-2{n}T00:00:00Z")] for n in (1, 2, 3)})
         path = sync.state_path("inbox", "sensein", "me")
         if path.exists():
             path.unlink()
         cfg = people.pcfg()
-        cfg["sync"]["budget_calls"] = 2
-        err = io.StringIO()
-        colab.cmd_inbox(cfg, client=(sync, gh), login="me", out=io.StringIO(), err=err, now_t=NOW, no_sync=True)
-        self.assertNotIn("me", (sync.load_state(path).get("looks") or {}))
-        self.assertIn("your last look was kept", err.getvalue())
-        self.assertNotIn("marked as seen", err.getvalue())
+        cfg["sync"]["budget_calls"] = 4  # search (2 queries) + repo visibility + one thread's comments
+        seen = []
+        for _ in range(4):
+            out, err = io.StringIO(), io.StringIO()
+            colab.cmd_inbox(cfg, client=(sync, gh), login="me", out=out, err=err, now_t=NOW, no_sync=True)
+            seen += [e["id"] for e in json.loads(out.getvalue())["events"] if e["transition"] == "commented"]
+        self.assertEqual(sorted(seen), sorted(f"proj:issue:{n}:commented:2026-11-2{n}T00:00:00Z" for n in (1, 2, 3)))  # each once
+        st = sync.load_state(path)
+        self.assertEqual(st["looks"]["me"], "2026-11-24T12:00:00Z")  # the main look always moves
+        self.assertEqual(st["thread_looks"]["me"], "2026-11-24T12:00:00Z")  # the last run completed
+
+    def test_unchanged_threads_skip_detail_reads_and_reuse_whose_move(self) -> None:
+        gh = ThreadGH(hits=[hit("sensein/proj", 7, comments=1, updated="2026-11-21T00:00:00Z")],
+                      comments={"sensein/proj#7": [comment("b", "2026-11-21T00:00:00Z")]})
+        _, state = run(gh)
+        gh.gets.clear()
+        again, _ = run(gh, state=state)
+        self.assertFalse(any("/comments" in p for p in gh.gets))
+        self.assertEqual((again["threads"][0]["move"], again["threads"][0]["last_by"]), ("yours", "b"))
+
+    def test_more_than_300_hits_is_incomplete(self) -> None:
+        many = [hit("sensein/proj", n, updated=f"2026-11-21T{n // 60 % 24:02d}:{n % 60:02d}:00Z") for n in range(1, 301)]
+        class Paged(ThreadGH):
+            def get(self, path, cache=False, conditional=True):
+                if path.startswith("/search/issues") and "involves%3A" in path:
+                    page = int(path.split("&page=")[1])
+                    return {"items": many[(page - 1) * 100:page * 100]}
+                return super().get(path, cache, conditional)
+        out, _ = run(Paged())
+        self.assertFalse(out["complete"])
+        self.assertIn("oldest were read", " ".join(out["notes"]))
 
     def test_personal_subscription_cannot_name_someone_else(self) -> None:
         ok, bad = sync.normalise_subscriptions([{"topic": "involved:me"}, {"topic": "involved:kab"}], "sensein",

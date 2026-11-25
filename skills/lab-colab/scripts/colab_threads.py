@@ -41,21 +41,25 @@ def repo_of(item: dict) -> str:
 
 
 def search_involved(gh, login: str, budget: Budget, since: str | None = None, open_only: bool = False,
-                    extra: str = "") -> list[dict]:
+                    extra: str = "", order: str = "desc", meta: dict | None = None) -> list[dict]:
     """Issues and PRs the caller is involved in (author, assignee, mentioned, commenter: GitHub's `involves:`) or asked
-    to review (`review-requested:`), anywhere the caller can see, newest first. Deduplicated by URL."""
+    to review (`review-requested:`), anywhere the caller can see, by last update (`order`). Deduplicated by URL.
+    `meta`, when given, gets "truncated": True if a query had more than SEARCH_PAGES pages."""
     seen: dict[str, dict] = {}
     for qual in (f"involves:{login}", f"review-requested:{login}"):
         q = qual + (f" updated:>={since}" if since else "") + (" is:open" if open_only else "") + (f" {extra}" if extra else "")
         for page in range(1, SEARCH_PAGES + 1):
             budget.spend()
-            res = gh.get(f"/search/issues?q={urllib.parse.quote(q)}&sort=updated&order=desc&per_page=100&page={page}",
+            res = gh.get(f"/search/issues?q={urllib.parse.quote(q)}&sort=updated&order={order}&per_page=100&page={page}",
                          conditional=False)
             items = (res or {}).get("items") if isinstance(res, dict) else None
             for it in items or []:
                 seen.setdefault(it.get("html_url") or str(it.get("id")), it)
             if not items or len(items) < 100:
                 break
+        else:
+            if meta is not None:
+                meta["truncated"] = True
     return list(seen.values())
 
 
@@ -143,11 +147,16 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
     login = login.lower()
     declared, opt_in = declared_tiers(config), lab_opt_in(config)
     cursors = state.setdefault("threads", {}) if move_state else dict(state.get("threads") or {})
+    moves = state.setdefault("moves", {}) if move_state else dict(state.get("moves") or {})  # whose move, last computed
     bots = {str(b).lower() for b in (config.get("inbox") or {}).get("bots") or []}
-    out = {"events": [], "threads": [], "notes": [], "restricted": 0, "complete": True}
+    out = {"events": [], "threads": [], "notes": [], "restricted": 0, "complete": True, "processed_until": None}
     vis_cache: dict[str, str | None] = {}
     try:
-        hits = search_involved(gh, login, budget, since=start[:19] + "Z" if len(start) >= 19 else start)
+        smeta: dict = {}
+        hits = search_involved(gh, login, budget, since=start[:19] + "Z" if len(start) >= 19 else start, order="asc", meta=smeta)
+        if smeta.get("truncated"):  # oldest first, so what was read is a prefix: the rest come next run
+            out["complete"] = False
+            out["notes"].append(f"more than {SEARCH_PAGES * 100} involved items changed; the oldest were read, the rest come next run")
         for item in sorted(hits, key=lambda i: i.get("updated_at") or ""):
             full = repo_of(item)
             if not full:
@@ -161,6 +170,18 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
             external = is_external(key)
             labels = _labels(item)
             tier = tier_of(vis, labels, _strictest(declared.get(key), *label_space_tiers(config, key, labels)), external, key in opt_in)
+            restricted = tier == "restricted"
+            updated = str(item.get("updated_at") or "")
+            cached = moves.get(tkey)
+            if cursors.get(tkey, "") >= updated and isinstance(cached, dict) and not restricted:
+                # nothing changed since it was last reported: no detail reads, whose move from the last read
+                if item.get("state") == "open":
+                    title = quote_within(item.get("title") or "", 200) if external else (item.get("title") or "")
+                    out["threads"].append({"item": tkey, "kind": kind, "url": item.get("html_url", ""), "tier": tier,
+                                           "summary": title, "untrusted": external, **cached,
+                                           "age_days": _age_days(cached.get("last_at", ""), now_t)})
+                out["processed_until"] = updated
+                continue
             since = max(start, cursors.get(tkey, ""))
             meta: dict = {}
             new, speakers = thread_speakers(gh, full, item, budget, since, bots, meta)
@@ -168,7 +189,6 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
                 out["complete"] = False
                 out["notes"].append(f"{tkey}: more than {COMMENT_PAGES * 100} new comments; the rest come next run")
             new = [s for s in new if s["by"] != login and s["at"] > cursors.get(tkey, "")]
-            restricted = tier == "restricted"
             if restricted and any(not s["bot"] for s in new):
                 out["restricted"] += 1  # counts only: no repo, link, author or time for a restricted item
             title = "" if restricted else (item.get("title") or "")
@@ -188,16 +208,19 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
                     "topics": [INVOLVED], "summary": title, "count": len(people), "authors": authors, "bots": n_bots,
                     "states": sorted({s["state"] for s in people if s["state"]}) if transition == "reviewed" else [],
                     "untrusted": bool(external or outsiders), "_env": None})
-            if move_state:
-                latest = max([s["at"] for s in new] + [cursors.get(tkey, "")])
-                if item.get("state") == "closed":
-                    cursors.pop(tkey, None)
-                elif latest:
+            if move_state:  # closed items keep their cursor too (dropped after DROP_DAYS), so nothing is reported twice
+                latest = max([s["at"] for s in new] + [cursors.get(tkey, ""), updated if not meta.get("truncated") else ""])
+                if latest:
                     cursors[tkey] = latest
             if item.get("state") == "open" and not restricted:
                 move = whose_move(item, speakers, login, now_t)
+                moves[tkey] = {k: move[k] for k in ("move", "last_by", "last_at", "waiting_on")}
                 out["threads"].append({"item": tkey, "kind": kind, "url": item.get("html_url", ""), "tier": tier,
                                        "summary": title, "untrusted": external, **move})
+            else:
+                moves.pop(tkey, None)
+            if not meta.get("truncated"):
+                out["processed_until"] = updated
     except DetailBudget:
         out["complete"] = False
         out["notes"].append("the call budget ran out reading comment threads; run again for the rest")
@@ -208,8 +231,16 @@ def thread_events(gh, config: dict, login: str, start: str, state: dict, now_t: 
         cutoff = _iso(now_t - timedelta(days=DROP_DAYS))
         for k in [k for k, v in cursors.items() if v < cutoff]:
             cursors.pop(k)
+            moves.pop(k, None)
     out["threads"].sort(key=lambda t: (t["move"] != "yours", -(t["age_days"] or 0)))
     return out
+
+
+def _age_days(at: str, now_t: datetime) -> float | None:
+    try:
+        return round((now_t - datetime.fromisoformat(str(at).replace("Z", "+00:00"))).total_seconds() / 86400, 1)
+    except ValueError:
+        return None
 
 
 def waiting_by_person(threads: list[dict]) -> dict[str, list[dict]]:
