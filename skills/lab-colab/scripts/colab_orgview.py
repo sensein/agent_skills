@@ -281,6 +281,7 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
     shown_tiers: list[str] = []
     try:
         for key, q in searches:
+            label = key + (" (issues)" if key == "updated" and "is:issue" in q else " (PRs)" if key == "updated" else "")
             try:
                 items, total = search_all(gh, q, budget)
             except urllib.error.HTTPError as err:  # one rejected search costs its counter, not the whole brief
@@ -289,11 +290,13 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
                     detail = json.loads(err.read() or b"{}").get("message", "")
                 except (ValueError, OSError, AttributeError):
                     pass
-                out["failed"].append(key)
-                out["notes"].append(f"search for {key} failed: HTTP {err.code}" + (f" ({str(detail)[:160]})" if detail else ""))
+                if key not in out["failed"]:
+                    out["failed"].append(key)
+                detail = " ".join(str(detail).split())[:160]  # one line: it lands in a markdown bullet
+                out["notes"].append(f"search for {label} failed: HTTP {err.code}" + (f" ({detail})" if detail else ""))
                 continue
             if total > len(items):
-                out["truncated"].append(f"{key}: {len(items)} of {total} read")
+                out["truncated"].append(f"{label}: {len(items)} of {total} read")
             for it in items:
                 name = _repo_name(it).lower()
                 if not name:
@@ -321,8 +324,10 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
                 shown_tiers.append(declared.get(name) or "lab")
     except DetailBudget:
         out["notes"].append("the call budget ran out; the brief is partial")
+        out["failed"].append("budget")  # zero rows are unknown, not quiet
     except (urllib.error.URLError, OSError) as err:
-        out["notes"].append(f"stopped early: {str(err)[:200]}")
+        out["notes"].append(f"stopped early: {' '.join(str(err).split())[:200]}")
+        out["failed"].append("error")
     if board_items is not None:  # Blocked items on the board, per space (the board shows only what this login can see)
         for it in board_items:
             if str(field_value(it, "Status") or "").strip().lower() != "blocked":
