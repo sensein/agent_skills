@@ -132,7 +132,12 @@ def gather(gh, config: dict, login: str, now_t: datetime | None = None, board_it
     def tier_for(full: str, labels: list[str]) -> str:
         key = repo_key(full, org)
         if full not in vis_cache:
-            vis_cache[full] = _repo_vis(gh, full, budget)
+            try:
+                vis_cache[full] = _repo_vis(gh, full, budget)
+            except (DetailBudget, urllib.error.URLError, OSError):
+                vis_cache[full] = None  # unknown visibility fails closed: the item is counted as restricted
+                if "some repos' tiers could not be checked; their items are counted as restricted" not in notes:
+                    notes.append("some repos' tiers could not be checked; their items are counted as restricted")
         return tier_of(vis_cache[full], labels, _strictest(declared.get(key), *label_space_tiers(config, key, labels)),
                        is_external(key), key in opt_in)
 

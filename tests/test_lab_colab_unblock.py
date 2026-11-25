@@ -131,3 +131,12 @@ class UnblockTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnblockBudgetTests(unittest.TestCase):
+    def test_budget_spent_before_the_board_fails_closed_instead_of_crashing(self) -> None:
+        v = unblock.gather(UnblockGH(), people.pcfg(), "me", now_t=NOW, board_items=[board(20, "Blocked", lead="me")],
+                           members={"me"}, budget=sync.Budget(3))
+        self.assertEqual(v["asks"], [])
+        self.assertEqual(v["restricted"], 1)  # unknown tier: counted, never listed
+        self.assertTrue(any("counted as restricted" in n for n in v["notes"]))
