@@ -20,6 +20,7 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 | inbox | Nothing (a local "last look" file); `--file-issue`: one delivery issue you chose | No | Choose what to act on |
 | next | Nothing on GitHub (its opening sync adds to the Project) | No | Choose an item |
 | unblock | Nothing | No | You choose what to answer, delegate or close |
+| digest | With `--post`: the one digest issue in the meta repo (opened once, then its body replaced) | No | Read it; act on your own asks with `unblock` |
 | unassigned | Nothing | No | A steward assigns each repo to a space, or lists it in `[ignored] repos` |
 | claim | Assignee, Status, lease comment | Creates one | None |
 | handoff | Checkpoint comment, lease comment | Renews | None |
@@ -148,6 +149,32 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 - Restricted items are counted, never listed.
 - People outside the lab, and other orgs' items, mark an ask `untrusted`.
 - The nightly digest covers the org. This list is per person, under your own login.
+
+## digest
+
+**Purpose.** A nightly summary of the whole org in one issue of the meta repo: the org-wide brief, PRs waiting on a review for over a week (grouped by the requested reviewer), the repos in no space, and what the token could not read. The per-person list stays `unblock`, under each member's own login.
+
+**Reads.** Whatever the token in `GH_TOKEN` (or your `gh` login) can read: the same searches as `brief --org`, each space repo's visibility (for coverage), the requested reviewers of waiting PRs, and the meta repo's open issues, to find the digest issue.
+
+**Writes.** With `--post`, only the digest issue, which carries `<!-- colab-digest -->`. It is opened once, and each later run replaces its body. An issue opened by anyone else is never edited, even if it quotes the marker.
+
+**Steps.**
+
+1. `colab.py digest` prints the digest, and `--post` writes it. The period runs from the previous digest (its `colab-digest-at` stamp), else 24 hours, or `--since`. `--board` adds Blocked counts when the token can read the Project.
+2. Before posting, the text is leak-scanned with `[scan] patterns`. Any finding stops the post (exit 3). The digest is also refused if anything restricted would be shown in detail. Restricted repos are counts only throughout.
+3. Coverage depends on the token:
+   - With the Action's default `GITHUB_TOKEN`, it covers public repos and the meta repo. Every other space repo is listed under "not readable by this token". Restricted ones are counted, not named. Nothing fails.
+   - With a supplied token, it covers everything that token can read.
+
+**The scheduled run** is a workflow in the meta repo, `.github/workflows/colab-digest.yml`. It runs nightly and on `workflow_dispatch`, with `permissions: issues: write, contents: read` and a concurrency group so runs never overlap. It runs this code at a pinned agent_skills commit, with `GH_TOKEN` set to the `COLAB_DIGEST_TOKEN` secret when that secret exists, and to the default token otherwise.
+
+To cover private repos, an org admin creates a fine-grained token with:
+- resource owner: the org;
+- repository access: all repositories;
+- repository permissions: Metadata read, Contents read, Issues read and write, Pull requests read;
+- optionally, organization Projects read, for `--board`.
+
+The admin saves it as the meta repo's `COLAB_DIGEST_TOKEN` secret.
 
 ## unassigned
 

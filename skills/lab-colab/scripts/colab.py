@@ -4580,6 +4580,56 @@ def cmd_unblock(config: dict, board: bool = True, text: bool = False, limit: int
     return 0
 
 
+def cmd_digest(config: dict, do_post: bool = False, since: str | None = None, board: bool = False, client=None,
+               out=None, err=None, now_t: datetime | None = None, env=None, board_items=None) -> int:
+    """`colab.py digest`: build the nightly digest (org brief, reviews waiting over a week, repos in no space, coverage)
+    with whatever token GH_TOKEN/gh holds, leak-scan it, and print it; with --post, replace the body of the one digest
+    issue in the meta repo (opening it the first time). That issue is the only write."""
+    import urllib.error  # noqa: PLC0415
+    import colab_digest  # noqa: PLC0415
+    out, err = out or sys.stdout, err or sys.stderr
+    env = os.environ if env is None else env
+    sync, gh = client or _sync_client()
+    now_t = now_t or datetime.now(timezone.utc)
+    kind = env.get("COLAB_DIGEST_TOKEN_KIND") or "member"
+    try:
+        me = (gh.get("/user", conditional=False) or {}).get("login")
+    except (urllib.error.URLError, OSError):
+        me = None  # the default GITHUB_TOKEN cannot read /user
+    author = me or env.get("COLAB_DIGEST_AUTHOR") or "github-actions[bot]"
+    try:
+        since_iso = sync.parse_since(since, now_t)
+        existing = colab_digest.last_digest(gh, config, author)
+    except ValueError as e:
+        print(f"digest: {e}", file=err)
+        return 2
+    except (urllib.error.URLError, OSError) as e:
+        print(f"digest: cannot read the meta repo's issues ({str(e)[:160]})", file=err)
+        return 1
+    if board and board_items is None:
+        try:
+            board_items = _project_items(config)
+        except Exception as e:  # noqa: BLE001
+            print(f"digest: board not read ({str(e)[:120]})", file=err)
+    try:
+        d = colab_digest.build(gh, config, now_t=now_t, since=since_iso or colab_digest.previous_at(existing),
+                               budget=sync.Budget(250), token_kind=kind, board_items=board_items)
+    except ValueError as e:
+        print(f"digest: {e}", file=err)
+        return 3
+    hits = scan_text(d["markdown"], (config.get("scan") or {}).get("patterns") or {})
+    if any(hits.values()):
+        print(f"digest: the leak scan found {hits}; not posting", file=err)
+        return 3
+    print(d["markdown"], file=out, end="")
+    if do_post:
+        issue = colab_digest.post(gh, config, d["markdown"], author, existing)
+        print(f"digest: {'updated' if existing else 'opened'} {(issue or {}).get('html_url') or ''}", file=err)
+    else:
+        print("digest: built (not posted; pass --post)", file=err)
+    return 0
+
+
 def session_counts(config: dict, gh=None, now_t: datetime | None = None, jobs=None) -> dict | None:
     """Active, waiting, and stale sessions from the Session activity issue, read now (no relay needed)."""
     gh = gh or _gh_json
@@ -4952,6 +5002,10 @@ def _main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-board", action="store_true", help="skip the Project (no Blocked, depends-on or Proposed asks)")
     p.add_argument("--text", action="store_true", help="a short ranked list instead of JSON")
     p.add_argument("--limit", type=int, default=25)
+    p = sub.add_parser("digest", help="build the nightly digest; --post replaces the digest issue in the meta repo")
+    p.add_argument("--post", action="store_true", help="write the digest issue (the only write)")
+    p.add_argument("--since", help="ISO date or 1d (default: the last digest, else 24 hours)")
+    p.add_argument("--board", action="store_true", help="read the Project for Blocked counts (needs a token that can)")
     p = sub.add_parser("unassigned", help="the org's repos in no space: new, active, left out on purpose (read now)")
     p.add_argument("--since", help="ISO date or 30d (default: when the spaces were last revised)")
     p.add_argument("--active-days", type=int, default=30)
@@ -5062,6 +5116,8 @@ def _main(argv: list[str] | None = None) -> int:
         return cmd_brief_org(config, args.since, args.peek, not args.no_board, args.text)
     if args.cmd == "unblock":
         return cmd_unblock(config, not args.no_board, args.text, args.limit)
+    if args.cmd == "digest":
+        return cmd_digest(config, args.post, args.since, args.board)
     if args.cmd == "unassigned":
         return cmd_unassigned(config, args.since, args.active_days, args.all)
     if args.cmd == "tag":
