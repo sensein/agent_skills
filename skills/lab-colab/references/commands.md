@@ -108,15 +108,21 @@ Every session begins by reading the claimed issue and its ledger, and ends with 
 
 **Purpose.** Show which of the org's repos belong to no space, so a new repo gets a space (or is left out on purpose) instead of being forgotten. `sync`, `inbox` and `brief` see only repos in a space.
 
-**Reads.** The org's repos your login can see (archived ones left out); the date the spaces were last revised (`[org] spaces_revised`, else the last commit to the meta repo's `.colab/config.toml`).
+**Reads.** The org's repos your login can see (archived ones left out). The nightly digest issue's state block, when you can read it, for when each repo was first seen.
 
-**Writes.** Nothing.
+**Writes.** Nothing. The digest keeps the first-seen state, not this command.
 
 **Steps.**
 
-1. `colab.py unassigned` (`--since <date|30d>` to set the reference date, `--active-days N`, `--all` to name the dormant repos too). It returns `new` (created since the reference date), `active` (pushed in the last N days, default 30), `ignored` (listed on purpose in `[ignored] repos = { name = "reason" }`), `restricted` (declared restricted in `[tiers]`: a count only, never the name) and a count of the rest (`dormant`). Each repo: name, visibility, created, pushed, link.
-2. For each new or active repo, a steward decides: add it to a space, create a space, or add it to `[ignored] repos` with a reason; for a private repo, also decide which `[tiers]` list it belongs in. Then change `.colab/config.toml` by PR.
-3. `brief --org` and the nightly digest call the same function (`colab_orgview.unassigned_repos`).
+1. `colab.py unassigned` (`--active-days N`, default 30; `--since <date|30d>` to count repos first seen since then as new; `--all` to name the dormant repos too).
+2. It returns:
+   - **`unassigned`:** every non-archived repo in no space, not in `[ignored] repos`, and pushed in the last N days. Each entry has its creation date, `first_seen`, `age_days`, and `new` (first seen in the last 7 days). A repo stays listed until it is in a space or ignored; being reported does not clear it.
+   - **`ignored`:** repos listed in `[ignored] repos = { name = "reason" }`, with the reason.
+   - **`restricted`:** repos declared restricted in `[tiers]`, a count only, never names.
+   - **`dormant`:** a count; with `--all`, the names too.
+3. First-seen dates come from the digest's state block when readable, else from each repo's creation date (`first_seen_from` says which). `[org] spaces_revised`, if set, is only a floor: nothing first seen before it counts as new.
+4. For each listed repo, a steward decides: add it to a space, create a space, or add it to `[ignored] repos` with a reason. For a private repo, also decide which `[tiers]` list it belongs in. Then change `.colab/config.toml` by PR. A repo unassigned for over 14 days becomes an `unblock` ask for the stewards of the triage space (`[org] triage_space`, default `lab-infra`).
+5. `brief --org`, `unblock` and the nightly digest call the same function (`colab_orgview.unassigned_repos`).
 
 ## next
 
