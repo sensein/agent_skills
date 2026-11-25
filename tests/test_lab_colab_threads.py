@@ -230,6 +230,7 @@ class InboxWithThreadsTests(unittest.TestCase):
         if path.exists():
             path.unlink()
         cfg = people.pcfg()
+        self.addCleanup(lambda: path.exists() and path.unlink())
         cfg["sync"]["budget_calls"] = 4  # search (2 queries) + repo visibility + one thread's comments
         seen = []
         for _ in range(4):
@@ -240,6 +241,22 @@ class InboxWithThreadsTests(unittest.TestCase):
         st = sync.load_state(path)
         self.assertEqual(st["looks"]["me"], "2026-11-24T12:00:00Z")  # the main look always moves
         self.assertEqual(st["thread_looks"]["me"], "2026-11-24T12:00:00Z")  # the last run completed
+
+    def test_a_first_run_that_reads_nothing_pins_the_thread_watermark_at_its_start(self) -> None:
+        gh = ThreadGH(hits=[hit("sensein/proj", 7, comments=1)], comments={"sensein/proj#7": [comment("b", "2026-11-21T00:00:00Z")]})
+        path = sync.state_path("inbox", "sensein", "me")
+        if path.exists():
+            path.unlink()
+        self.addCleanup(lambda: path.exists() and path.unlink())
+        cfg = people.pcfg()
+        cfg["sync"]["budget_calls"] = 0
+        colab.cmd_inbox(cfg, client=(sync, gh), login="me", out=io.StringIO(), err=io.StringIO(), now_t=NOW, no_sync=True)
+        st = sync.load_state(path)
+        self.assertLess(st["thread_looks"]["me"], st["looks"]["me"])  # threads restart where this run began
+        cfg["sync"]["budget_calls"] = 200
+        out = io.StringIO()
+        colab.cmd_inbox(cfg, client=(sync, gh), login="me", out=out, err=io.StringIO(), now_t=NOW, no_sync=True)
+        self.assertEqual([e["transition"] for e in json.loads(out.getvalue())["events"] if e["transition"] == "commented"], ["commented"])
 
     def test_unchanged_threads_skip_detail_reads_and_reuse_whose_move(self) -> None:
         gh = ThreadGH(hits=[hit("sensein/proj", 7, comments=1, updated="2026-11-21T00:00:00Z")],

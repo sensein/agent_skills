@@ -4493,6 +4493,8 @@ def cmd_inbox(config: dict, me: bool = False, space: str | None = None, since: s
         state.setdefault("looks", {})[key] = stamp
         if complete:
             state.setdefault("thread_looks", {})[key] = stamp
+        elif not result.get("threads_until") and not (state.get("thread_looks") or {}).get(key):
+            state.setdefault("thread_looks", {})[key] = thread_start  # nothing read yet: start here next time
         elif result.get("threads_until"):
             # stopped early: threads are read oldest first, so their watermark moves to the last one fully read and
             # the rest come next run (a later run never re-reads the same prefix)
