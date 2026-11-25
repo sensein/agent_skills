@@ -451,7 +451,7 @@ def project_field_ids(gh, org: str, number: int) -> tuple[dict, list[str]]:
 
 # --------------------------------------------------------------------------- subscriptions
 
-SUB_SCHEMES = ("repo", "label", "space")
+SUB_SCHEMES = ("repo", "label", "space", "involved")  # involved:me = items you opened, commented on, reviewed, are assigned or asked to review
 SUB_KINDS = ("issue", "pull_request", "release")
 
 
@@ -478,6 +478,8 @@ def normalise_subscriptions(subs, org: str, require_subscriber: bool = True) -> 
                 raise ValueError(f"tier must be one of {', '.join(RANK)}")
             if s.get("deliver", "issue") != "issue":
                 raise ValueError("deliver must be issue")
+            if scheme == "involved" and (value != "me" or require_subscriber):
+                raise ValueError("involved:me is a personal inbox topic only")
             topic = f"repo:{repo_key(value, org)}" if scheme == "repo" else f"{scheme}:{value}"
             entry = {**s, "topic": topic}
             if isinstance(s.get("subscriber"), str):
@@ -866,7 +868,10 @@ def inbox_topics(config: dict, login: str, space: str | None, lab_subs: list[dic
         repos = {repo_key(r, config["org"]["name"]) for r in space_repos(config).get(space) or []}
         return [{"topic": f"space:{space}"}] + [s for s in lab_subs if s.get("subscriber") in repos]
     mine = [name for name in (config.get("spaces") or {}) if login.lower() in item_stewards(config, [name])]
-    return list(personal) + [{"topic": f"space:{name}"} for name in mine]
+    topics = list(personal) + [{"topic": f"space:{name}"} for name in mine]
+    if (config.get("inbox") or {}).get("involved", True) and not any(t.get("topic") == "involved:me" for t in topics):
+        topics.append({"topic": "involved:me"})  # on by default; [inbox] involved = false turns it off
+    return topics
 
 
 def inbox_events(gh, config: dict, topics: list[dict], since: str, budget_calls: int = 200) -> dict:

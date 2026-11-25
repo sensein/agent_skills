@@ -303,7 +303,11 @@ class InboxTests(unittest.TestCase):
         cfg = pcfg()
         lab = [{"topic": "repo:senselab", "subscriber": "tools"}, {"topic": "label:x", "subscriber": "other"}]
         self.assertEqual(sync.inbox_topics(cfg, "me", None, lab, [{"topic": "repo:proj"}]),
+                         [{"topic": "repo:proj"}, {"topic": "space:infra"}, {"topic": "involved:me"}])  # + items I'm in
+        cfg["inbox"] = {"involved": False}
+        self.assertEqual(sync.inbox_topics(cfg, "me", None, lab, [{"topic": "repo:proj"}]),
                          [{"topic": "repo:proj"}, {"topic": "space:infra"}])  # own subscriptions + spaces I steward
+        del cfg["inbox"]
         self.assertEqual(sync.inbox_topics(cfg, "me", "infra", lab, []),
                          [{"topic": "space:infra"}, {"topic": "repo:senselab", "subscriber": "tools"}])
         ok, bad = sync.normalise_subscriptions([{"topic": "repo:proj"}, {"topic": "nope"}], "sensein", require_subscriber=False)
@@ -351,6 +355,7 @@ class InboxTests(unittest.TestCase):
     def test_no_topics_says_how_to_add_one(self) -> None:
         cfg = pcfg()
         cfg["spaces"]["infra"]["stewards"] = ["someone"]
+        cfg["inbox"] = {"involved": False}
         out, err = io.StringIO(), io.StringIO()
         colab.cmd_inbox(cfg, client=(sync, FakeSyncGH()), login="me", out=out, err=err, now_t=NOW, no_sync=True)
         self.assertIn("no topics", json.loads(out.getvalue())["notes"][-1])
