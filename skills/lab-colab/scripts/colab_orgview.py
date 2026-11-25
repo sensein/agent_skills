@@ -264,23 +264,39 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
     member_of, declared = repo_spaces(config), declared_tiers(config)
     day = since[:10]
     stale = (now_t - timedelta(days=STALE_REVIEW_DAYS)).strftime("%Y-%m-%d")
-    queries = {
-        "updated": f"org:{org} updated:>={day}",
-        "merged": f"org:{org} is:pr is:merged merged:>={day}",
-        "open_prs": f"org:{org} is:pr is:open",
-        "opened": f"org:{org} is:issue created:>={day}",
-        "closed": f"org:{org} is:issue is:closed closed:>={day}",
-        "waiting_review": f"org:{org} is:pr is:open review:required updated:<={stale}",
-    }
+    # Every query names is:issue or is:pr: GitHub's issue search can reject one that names neither (HTTP 422).
+    searches = [
+        ("updated", f"org:{org} is:issue updated:>={day}"),
+        ("updated", f"org:{org} is:pr updated:>={day}"),
+        ("merged", f"org:{org} is:pr is:merged merged:>={day}"),
+        ("open_prs", f"org:{org} is:pr is:open"),
+        ("opened", f"org:{org} is:issue created:>={day}"),
+        ("closed", f"org:{org} is:issue is:closed closed:>={day}"),
+        ("waiting_review", f"org:{org} is:pr is:open review:required updated:<={stale}"),
+    ]
+    queries = dict.fromkeys(k for k, _ in searches)  # the row's counters, in order
     out = {"org": org, "since": since, "spaces": {}, "no_space": {}, "releases": [], "unassigned": unassigned,
-           "notes": [], "tier": "public", "truncated": []}
+           "notes": [], "tier": "public", "truncated": [], "failed": []}
     counts: dict[str, dict[str, int]] = {}
     shown_tiers: list[str] = []
     try:
-        for key, q in queries.items():
-            items, total = search_all(gh, q, budget)
+        for key, q in searches:
+            label = key + (" (issues)" if key == "updated" and "is:issue" in q else " (PRs)" if key == "updated" else "")
+            try:
+                items, total = search_all(gh, q, budget)
+            except urllib.error.HTTPError as err:  # one rejected search costs its counter, not the whole brief
+                detail = ""
+                try:
+                    detail = json.loads(err.read() or b"{}").get("message", "")
+                except (ValueError, OSError, AttributeError):
+                    pass
+                if key not in out["failed"]:
+                    out["failed"].append(key)
+                detail = " ".join(str(detail).split())[:160]  # one line: it lands in a markdown bullet
+                out["notes"].append(f"search for {label} failed: HTTP {err.code}" + (f" ({detail})" if detail else ""))
+                continue
             if total > len(items):
-                out["truncated"].append(f"{key}: {len(items)} of {total} read")
+                out["truncated"].append(f"{label}: {len(items)} of {total} read")
             for it in items:
                 name = _repo_name(it).lower()
                 if not name:
@@ -308,8 +324,10 @@ def org_brief(gh, config: dict, since: str, now_t: datetime | None = None, budge
                 shown_tiers.append(declared.get(name) or "lab")
     except DetailBudget:
         out["notes"].append("the call budget ran out; the brief is partial")
+        out["failed"].append("budget")  # zero rows are unknown, not quiet
     except (urllib.error.URLError, OSError) as err:
-        out["notes"].append(f"stopped early: {str(err)[:200]}")
+        out["notes"].append(f"stopped early: {' '.join(str(err).split())[:200]}")
+        out["failed"].append("error")
     if board_items is not None:  # Blocked items on the board, per space (the board shows only what this login can see)
         for it in board_items:
             if str(field_value(it, "Status") or "").strip().lower() != "blocked":
@@ -356,6 +374,11 @@ def brief_lines(view: dict) -> list[str]:
         if row.get("updated", 0) or row.get("blocked") or row.get("open_prs"):
             lines.append(f"- {space}{' (restricted: counts only)' if row.get('restricted') else ''}: {fmt(row)}")
     idle = [(s, row) for s, row in active if not (row.get("updated", 0) or row.get("blocked") or row.get("open_prs"))]
+    if view.get("failed"):  # a search failed: a row of zeros is unknown, not quiet
+        unread = [s for s, row in idle if not row.get("external_only")]
+        if unread:
+            lines.append(f"- activity not read (a search failed): {', '.join(unread)}")
+        idle = [(s, row) for s, row in idle if row.get("external_only")]
     quiet = [s for s, row in idle if not row.get("external_only")]
     external = [s for s, row in idle if row.get("external_only")]
     if quiet:

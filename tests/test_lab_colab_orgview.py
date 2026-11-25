@@ -197,7 +197,8 @@ class SearchGH(OrgGH):
             import urllib.parse
             q = urllib.parse.unquote(path.split("q=")[1].split("&")[0])
             key = next(k for k, marker in (("merged", "is:merged"), ("waiting_review", "review:required"), ("open_prs", "is:pr is:open"),
-                                          ("opened", "created:>="), ("closed", "closed:>="), ("updated", "updated:>=")) if marker in q)
+                                          ("opened", "created:>="), ("closed", "closed:>="), ("updated_pr", "is:pr updated:>="),
+                                          ("updated", "updated:>=")) if marker in q)
             items = self.results.get(key, []) if "page=1" in path else []
             return {"total_count": self.total.get(key, len(self.results.get(key, []))), "items": items}
         if "/releases?" in path:
@@ -243,7 +244,7 @@ class OrgBriefTests(unittest.TestCase):
         gh = SearchGH({"updated": [sitem("proj", 1)]}, total={"updated": 5000})
         v = self.view(gh)
         self.assertIn("the board was not read: Blocked counts are missing", v["notes"])
-        self.assertEqual(v["truncated"], ["updated: 1 of 5000 read"])
+        self.assertEqual(v["truncated"], ["updated (issues): 1 of 5000 read"])
         v = self.view(SearchGH({}), budget=sync.Budget(2))
         self.assertIn("the call budget ran out; the brief is partial", v["notes"])
 
@@ -284,3 +285,46 @@ class OrgBriefErrorTests(unittest.TestCase):
         v = orgview.org_brief(gh, c, "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
         self.assertEqual([r["tag"] for r in v["releases"]], ["v9"])
         self.assertFalse(any("stopped early" in n for n in v["notes"]))
+
+
+class OrgBrief422Tests(unittest.TestCase):
+    def test_every_query_names_a_type_and_a_rejected_one_is_unknown_not_quiet(self) -> None:
+        import io as _io
+        class Picky(SearchGH):
+            def get(self, path, cache=False, conditional=True):
+                if path.startswith("/search/issues"):
+                    import urllib.parse
+                    q = urllib.parse.unquote(path.split("q=")[1].split("&")[0])
+                    if "is:issue" not in q and "is:pr" not in q:
+                        raise urllib.error.HTTPError(path, 422, "Unprocessable", {}, _io.BytesIO(b'{"message": "needs a type"}'))
+                    if "merged:>=" in q:
+                        raise urllib.error.HTTPError(path, 422, "Unprocessable", {}, _io.BytesIO(b'{"message": "nope"}'))
+                return super().get(path, cache, conditional)
+        v = orgview.org_brief(Picky({"updated": [sitem("proj", 1)]}), brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertEqual(v["spaces"]["proj"]["updated"], 1)  # the typed queries answered
+        self.assertEqual(v["failed"], ["merged"])
+        self.assertIn("search for merged failed: HTTP 422 (nope)", v["notes"])
+        text = "\n".join(orgview.brief_lines(v))
+        self.assertIn("activity not read (a search failed): infra, sails", text)
+        self.assertNotIn("quiet", text)
+
+
+class OrgBriefPartialTests(unittest.TestCase):
+    def test_issue_and_pr_halves_add_up_and_a_spent_budget_is_not_quiet(self) -> None:
+        gh = SearchGH({"updated": [sitem("proj", 1)], "updated_pr": [sitem("proj", 2), sitem("proj", 3)]})
+        v = orgview.org_brief(gh, brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertEqual(v["spaces"]["proj"]["updated"], 3)
+        v = orgview.org_brief(SearchGH({}), brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=[], budget=sync.Budget(1))
+        text = "\n".join(orgview.brief_lines(v))
+        self.assertIn("activity not read", text)
+        self.assertNotIn("quiet", text)
+
+    def test_an_empty_error_body_gives_a_plain_note(self) -> None:
+        class Fails(SearchGH):
+            def get(self, path, cache=False, conditional=True):
+                if path.startswith("/search/issues") and "is%3Apr%20updated" in path:
+                    raise urllib.error.HTTPError(path, 422, "x", {}, None)
+                return super().get(path, cache, conditional)
+        v = orgview.org_brief(Fails({}), brief_cfg(), "2026-11-17T00:00:00Z", now_t=NOW, board_items=[])
+        self.assertIn("search for updated (PRs) failed: HTTP 422", v["notes"])
+        self.assertEqual(v["failed"], ["updated"])
