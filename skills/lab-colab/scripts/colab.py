@@ -4572,6 +4572,35 @@ def cmd_brief_org(config: dict, since: str | None = None, peek: bool = False, bo
     return 0
 
 
+def cmd_unblock(config: dict, board: bool = True, text: bool = False, limit: int = 25, client=None, login: str | None = None,
+                out=None, err=None, now_t: datetime | None = None, board_items=None) -> int:
+    """`colab.py unblock`: what is waiting on you, ranked by what it holds up, with a suggested way to unblock each,
+    read now with your own login. Writes nothing (lab-colab#37)."""
+    import colab_unblock  # noqa: PLC0415
+    out, err = out or sys.stdout, err or sys.stderr
+    sync, gh = client or _sync_client()
+    login = (login or gh_login()).lower()
+    if not login:
+        print("unblock: could not resolve your gh login (gh auth status)", file=err)
+        return 1
+    if board and board_items is None:
+        try:
+            board_items = _project_items(config)
+        except Exception as e:  # noqa: BLE001  the board is optional: the list says what it is missing
+            print(f"unblock: board not read ({str(e)[:120]})", file=err)
+            board_items = None
+    view = colab_unblock.gather(gh, config, login, now_t=now_t, board_items=board_items,
+                                members=sync.org_members(gh, config["org"]["name"]),
+                                budget=sync.Budget(sync.sync_settings(config)["budget_calls"]))
+    if text:
+        print("\n".join(colab_unblock.unblock_lines(view, limit)), file=out)
+    else:
+        print(json.dumps(view, indent=2), file=out)
+    print(f"unblock: {len(view['asks'])} asks waiting on {login}" + (f", plus {view['restricted']} restricted (counts only)"
+                                                                       if view["restricted"] else ""), file=err)
+    return 0
+
+
 def session_counts(config: dict, gh=None, now_t: datetime | None = None, jobs=None) -> dict | None:
     """Active, waiting, and stale sessions from the Session activity issue, read now (no relay needed)."""
     gh = gh or _gh_json
@@ -4940,6 +4969,10 @@ def _main(argv: list[str] | None = None) -> int:
     p.add_argument("--peek", action="store_true", help="do not move your last look")
     p.add_argument("--no-board", action="store_true", help="skip the Project (no Blocked counts)")
     p.add_argument("--text", action="store_true", help="plain lines instead of JSON")
+    p = sub.add_parser("unblock", help="what is waiting on you, ranked, with a way to unblock each (read now; writes nothing)")
+    p.add_argument("--no-board", action="store_true", help="skip the Project (no Blocked, depends-on or Proposed asks)")
+    p.add_argument("--text", action="store_true", help="a short ranked list instead of JSON")
+    p.add_argument("--limit", type=int, default=25)
     p = sub.add_parser("unassigned", help="the org's repos in no space: new, active, left out on purpose (read now)")
     p.add_argument("--since", help="ISO date or 30d: count repos first seen since then as new (default: the last 7 days)")
     p.add_argument("--active-days", type=int, default=30)
@@ -5048,6 +5081,8 @@ def _main(argv: list[str] | None = None) -> int:
         return cmd_credit(config, args.items, args.space, args.group, args.me)
     if args.cmd == "brief":
         return cmd_brief_org(config, args.since, args.peek, not args.no_board, args.text)
+    if args.cmd == "unblock":
+        return cmd_unblock(config, not args.no_board, args.text, args.limit)
     if args.cmd == "unassigned":
         return cmd_unassigned(config, args.since, args.active_days, args.all)
     if args.cmd == "tag":
