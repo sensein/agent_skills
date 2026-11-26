@@ -1,6 +1,6 @@
 # ============================================================================
 # SHACL shapes for per-paper instance data of the Named Entity Ontology
-# (https://brainkb.org/ner/, named_entity_ontology.owl v2.5.0).
+# (https://brainkb.org/ner/, named_entity_ontology.owl v2.6.0).
 #
 # The OWL file says what terms exist and their domains/ranges; it cannot say
 # "an entity MUST have a mention" or "an external IRI MUST be backed by a
@@ -32,7 +32,7 @@
 nsh: a owl:Ontology ;
     rdfs:label "Named Entity Ontology — instance-data SHACL shapes" ;
     owl:versionInfo "1.1.0" ;
-    rdfs:comment "Targets named_entity_ontology.owl 2.5.0. Validate with the ontology as ont_graph and inference='rdfs'." ;
+    rdfs:comment "Targets named_entity_ontology.owl 2.6.0. Validate with the ontology as ont_graph and inference='rdfs'." ;
     sh:declare [
         sh:prefix "ner" ; sh:namespace "https://brainkb.org/ner/"^^xsd:anyURI
     ] , [
@@ -551,3 +551,55 @@ nsh:RelationAssertionShape a sh:NodeShape ;
                 ?mention ner:partOfDocumentVersion/ner:versionOfDocument ?source .
             }
         }""" ] .
+
+# ---------------------------------------------------------------------------
+# Cell type taxonomy mappings (AIT mode, scripts/ait_export.py) — 2.6.0
+#
+# A mapping to a taxonomy node is made by a model or a curator, not resolved by a
+# tool, so it is never a bare skos:*Match on the entity (MatchBackedByConceptShape
+# would rightly reject that). It is a TaxonomyMappingAssertion carrying the SKOS
+# relation, who made it, its basis, and the verified mentions that support it.
+# ---------------------------------------------------------------------------
+
+nsh:TaxonomyMappingAssertionShape a sh:NodeShape ;
+    sh:targetClass ner:TaxonomyMappingAssertion ;
+    sh:property [ sh:path ner:mappingSubject ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:NamedEntity ] ;
+    sh:property [ sh:path ner:mappingTarget ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:TaxonomyNode ] ;
+    sh:property [ sh:path ner:taxonomyMappingRelation ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:MappingRelationType ] ;
+    sh:property [ sh:path ner:mappedByRaw ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "code"^^xsd:string "llm"^^xsd:string "human"^^xsd:string ) ] ;
+    sh:property [ sh:path prov:hadPrimarySource ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:SourceDocument ] ;
+    sh:property [
+        sh:path ner:hasTaxonomyMappingEvidence ; sh:minCount 1 ; sh:class ner:EntityMention ;
+        sh:message "A taxonomy mapping needs at least one verified mention of its entity as evidence." ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "Taxonomy mapping evidence {?m} is not a mention of the mapped entity." ;
+        sh:select """SELECT $this ?m WHERE {
+            $this ner:mappingSubject ?e ; ner:hasTaxonomyMappingEvidence ?m .
+            FILTER NOT EXISTS { ?e ner:hasMention ?m }
+        }""" ] .
+
+nsh:TaxonomyNodeShape a sh:NodeShape ;
+    sh:targetClass ner:TaxonomyNode ;
+    sh:property [ sh:path ner:taxonomyNodeIdentifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path ner:inTaxonomy ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:CellTypeTaxonomy ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+nsh:CellTypeTaxonomyShape a sh:NodeShape ;
+    sh:targetClass ner:CellTypeTaxonomy ;
+    sh:property [ sh:path ner:taxonomyIdentifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+# Where a mention's evidence lies: computed from the layout map, never model-reported.
+nsh:MentionLocationShape a sh:NodeShape ;
+    sh:targetClass ner:EntityMention ;
+    sh:property [ sh:path ner:onPage ; sh:datatype xsd:positiveInteger ] ;
+    sh:property [ sh:path ner:inDocumentPart ; sh:maxCount 1 ; sh:class ner:DocumentPart ] ;
+    sh:property [ sh:path ner:evidenceLocatorTypeRaw ; sh:maxCount 1 ;
+                  sh:in ( "body"^^xsd:string "figure_caption"^^xsd:string "figure"^^xsd:string "table"^^xsd:string
+                         "supplementary"^^xsd:string "reference_list"^^xsd:string ) ] .
+
+nsh:FigureOrTableShape a sh:NodeShape ;
+    sh:targetClass ner:Figure , ner:Table ;
+    sh:property [ sh:path ner:documentPartLabel ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path ner:partOfDocumentVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:class ner:DocumentVersion ] .

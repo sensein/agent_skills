@@ -56,7 +56,9 @@ applicable.
    ```
 
    Hand back a Turtle file only when validation succeeds. ABCD/HBCD and AIT have
-   their own output and validation contracts; follow their references.
+   their own output and validation contracts; follow their references. AIT Turtle
+   comes from the validated tables, never by hand:
+   `python -m scripts.ait_export out/ --text paper.txt --source paper.pdf`.
 
    For resources, the conversion also checks whether each resource's code or
    package is still maintained (active, stale, inactive, archived, deprecated),

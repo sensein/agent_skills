@@ -1,5 +1,67 @@
 # Changelog
 
+## Unreleased — AIT mode: parse-artifact check, evidence location, Turtle export
+
+- **Verbatim junk no longer passes as evidence.** The lexical check proves a quote is
+  in `paper.txt`, so text a bad PDF parse garbled (`(cid:12)` glyphs, `â€™` mojibake,
+  `c e l l s` letter-spacing, run-together columns, fused words) verified as `exact`
+  against itself. New `scripts/text_quality.py`:
+  - a Pass 0 gate on the whole text, scored per paragraph so one bad table does not
+    taint the prose around it (`ok` / `degraded` / `unusable`, exit 1 on unusable,
+    with which backend to re-extract with);
+  - per-entity checks in `ait_evidence`, written to the new `entities.quality_issues`
+    column (closed vocabulary `quality_issue`). A garbled label, a label that occurs
+    nowhere in the paper (repaired or invented), or evidence that is all junk holds
+    the entity back as the new `extraction_flag = parse_artifact`: kept and visible,
+    never a mapping edge, card or graph node, like `unverified_evidence`.
+  - the returned evidence must contain the extracted phrase (label or alias, case
+    and typography folded). A sentence that does not is not returned (review sheet,
+    entity cards, Turtle); an entity none of whose found sentences contains it is
+    held back (`label_not_in_evidence`), and `validate` rejects such an entity left
+    unflagged. In the match, a space, hyphen or slash between words are
+    interchangeable (`Sst Chodl` = `Sst-Chodl` = `Sst/Chodl`); a comma is not (`Sst,
+    Chodl` is two genes). The Turtle mention keeps the paper's own characters. Reported case (doi 10.64898/2026.02.03.703645): "STR SST GABA"
+    returned with figure text that does not contain the phrase.
+- **Provenance is computed, not reported.** New `scripts/doc_layout.py` maps
+  `paper.txt` to sections, figure captions, tables (with their rows), the reference
+  list, appended supplements (`[SUPPLEMENTARY FILE: <name>]` marker) and physical PDF
+  pages (`--pdf`, or form feeds). `ait_evidence --layout` writes the new aligned
+  columns `evidence_page`, `evidence_locator_type`, `evidence_locator` and the
+  section (`code:layout_lookup`), in `entities.csv` and `methods.csv` (which also
+  gains `evidence_section`). `review_sheet.source_in_paper` and the new
+  `entity_cards.source_in_paper` read `Results; Fig. 3; p. 4`.
+- **Tested on a real preprint** (doi 10.64898/2026.02.03.703645), which showed three
+  general gaps, now fixed:
+  - manuscript line numbers (`1947    ...` on every line) broke quotes that cross a
+    line break (only `fuzzy`); they are now ignored when matching, when the text is
+    line-numbered (a rising sequence of line-start numbers), and offsets still index
+    the raw text;
+  - legends written `1947    Figure 1 Title` (line number, no period) and a
+    `FIGURE LEGEND` heading were not recognised; they are now captions and a
+    `Figure legends` section, and back-to-back legends end where the next begins;
+  - figure pages after the reference list were located as References. With `--pdf`,
+    a page that is an image with almost no text, or labels scattered over the page
+    with almost no sentences, is a figure page: its text is located as
+    `evidence_locator_type = figure`, section `Figure page`. Evidence that is only
+    figure text is recorded (`evidence_figure_only`), not held back.
+- **AIT Turtle export.** New `scripts/ait_export.py` turns validated tables into one
+  Turtle file through `json_to_ttl` (same IRIs as a NER run of the paper) and gates it
+  with `validate_ttl`. Mapping edges are `ner:TaxonomyMappingAssertion` nodes to
+  shared `ner:TaxonomyNode`s, so "which papers map to this AIT node, on what evidence,
+  where" is one query. Held-back entities and `none` rows stay out and are listed in
+  the export report. `json_to_ttl.result_to_ttl` gains `source_text` and an `extend`
+  hook for mode-specific triples.
+- **Contract change.** The AIT tables have 156 columns (was 147): `entities.csv` 33,
+  `methods.csv` 34, `entity_cards.csv` 25. Outputs written before this change fail
+  `ait_tables validate` on the header; re-run `ait_tables init` and Pass 2.
+- **Named Entity Ontology 2.6.0.** Adds `CellTypeTaxonomy`, `TaxonomyNode`,
+  `TaxonomyMappingAssertion` and their properties, plus `onPage`, `inDocumentPart`,
+  `documentPartLabel`, `evidenceLocatorTypeRaw`; SHACL shapes for each. Additive: graphs
+  valid under 2.5.0 stay valid. `ttl_config.json` gains the `taxonomy` and
+  `taxonomy_node` global names and the `document_part` paper-shared kind.
+- Tests: `Layout`, `TextQuality`, `ParseArtifactsAndLocation`, `TurtleExport`
+  (skipped without rdflib/pyshacl) in `tests/test_structsense_ait.py`.
+
 ## Unreleased — Scopes on modality or topic alone; controlled access with no named committee
 
 - **A scope pinned only by a modality or a topic failed `ApplicabilityScopeShape`.**

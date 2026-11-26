@@ -461,7 +461,7 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?cell ?region ?pub ?doi ?negated ?modality ?context ?evidence WHERE {
-  # every subclass of ner:CellType in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:CellType in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?cellClass {
     ner:Astrocyte ner:CellSubtype ner:CellType ner:EpendymalCell ner:ExcitatoryNeuron
     ner:GlialCell ner:InhibitoryNeuron ner:Interneuron ner:Microglia ner:MotorNeuron
@@ -499,7 +499,7 @@ PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?pub ?doi ?kind ?key WHERE {
   ?e a ?kind ; ner:normalizedEntityKey ?key ; prov:hadPrimarySource ?pub .
-  # every subclass of ner:OrganismEntity in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:OrganismEntity in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?kind {
     ner:DevelopmentalStage ner:Genotype ner:LifeStage ner:Organism ner:Species
     ner:Strain
@@ -529,7 +529,7 @@ PREFIX ner: <https://brainkb.org/ner/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?method ?participant WHERE {
-  # every subclass of ner:Method, ner:ImagingModality, ner:ElectrophysiologyModality, ner:Intervention in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Method, ner:ImagingModality, ner:ElectrophysiologyModality, ner:Intervention in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?methodClass {
     ner:Assay ner:ComputationalMethod ner:ElectrophysiologyModality
     ner:ExperimentalMethod ner:GeneticIntervention ner:ImagingModality ner:Intervention
@@ -549,11 +549,11 @@ PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?assay ?stimulus ?class WHERE {
-  # every subclass of ner:Assay in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Assay in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?assayClass {
     ner:Assay
   }
-  # every subclass of ner:ChemicalEntity in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:ChemicalEntity in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?stimulusClass {
     ner:AminoAcid ner:Carbohydrate ner:ChemicalEntity ner:Drug ner:Hormone ner:Ion
     ner:Lipid ner:Metabolite ner:Neuromodulator ner:Neurotransmitter
@@ -625,7 +625,7 @@ PREFIX ner: <https://brainkb.org/ner/>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?measure ?derivedFrom WHERE {
-  # every subclass of ner:Measurement in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Measurement in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?measureClass {
     ner:ElectrophysiologicalMeasurement ner:ImagingMeasurement ner:Measurement
     ner:MolecularMeasurement
@@ -736,7 +736,7 @@ PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT ?kind ?key ?field ?old ?new ?reason ?licensedBy WHERE {
   ?cr a ?kind ; ner:changedField ?field ; ner:triggeredByActivity ?act .
-  # every subclass of ner:ChangeRecord in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:ChangeRecord in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?kind {
     ner:CanonicalFormChangedChange ner:CausalConfidenceChangedChange
     ner:CausalContextChangedChange ner:CausalDirectionChangedChange
@@ -854,7 +854,7 @@ SELECT ?acronym (COUNT(DISTINCT ?e) AS ?entities) (COUNT(DISTINCT ?c) AS ?concep
 PREFIX ner:  <https://brainkb.org/ner/>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 SELECT DISTINCT ?pub ?level ?key ?doi WHERE {
-  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?level {
     ner:BehavioralPhenotype ner:CellularPhenotype ner:ClinicalPhenotype
     ner:CognitivePhenotype ner:ElectrophysiologicalPhenotype ner:MolecularPhenotype
@@ -888,7 +888,7 @@ SELECT DISTINCT ?bearer ?phenotype ?pub ?doi ?evidence ?negated ?modality ?conte
 PREFIX ner:  <https://brainkb.org/ner/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT ?vocab ?tier (COUNT(DISTINCT ?e) AS ?n) WHERE {
-  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?cls {
     ner:BehavioralPhenotype ner:CellularPhenotype ner:ClinicalPhenotype
     ner:CognitivePhenotype ner:ElectrophysiologicalPhenotype ner:MolecularPhenotype
@@ -909,7 +909,7 @@ SELECT ?vocab ?tier (COUNT(DISTINCT ?e) AS ?n) WHERE {
 PREFIX ner:  <https://brainkb.org/ner/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?causeKey ?phenotype ?negated ?hypothetical ?measure ?value WHERE {
-  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.5.0 (generated)
+  # every subclass of ner:Phenotype in named_entity_ontology.owl 2.6.0 (generated)
   VALUES ?cls {
     ner:BehavioralPhenotype ner:CellularPhenotype ner:ClinicalPhenotype
     ner:CognitivePhenotype ner:ElectrophysiologicalPhenotype ner:MolecularPhenotype

@@ -2,7 +2,7 @@
 
 **The result of a NER or resource run is Turtle: one `<stem>.ttl` per paper**,
 instances of the default ontology (the Named Entity Ontology,
-`default_ontology/named_entity_ontology.owl`, v2.5.0, namespace
+`default_ontology/named_entity_ontology.owl`, v2.6.0, namespace
 `https://brainkb.org/ner/`), gated by its SHACL shapes. Entity-focused `.entities.json` and `.entities.ttl`
 are companion views (see `entity-identity.md`). Raw working JSON is internal:
 the stages still hand each other JSON (extract → align → judge), but that is

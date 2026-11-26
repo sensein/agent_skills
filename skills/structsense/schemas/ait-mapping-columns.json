@@ -58,7 +58,8 @@
       "uncertain",
       "unverified_evidence",
       "generic_phrase",
-      "duplicate_merged"
+      "duplicate_merged",
+      "parse_artifact"
     ],
     "evidence_verified": [
       "exact",
@@ -102,6 +103,38 @@
       "code",
       "llm",
       "human"
+    ],
+    "locator_type": [
+      "body",
+      "figure_caption",
+      "figure",
+      "table",
+      "supplementary",
+      "reference_list"
+    ],
+    "quality_issue": [
+      "label_glyph_artifact",
+      "label_mojibake",
+      "label_letter_spaced",
+      "label_low_alpha",
+      "label_sentence_like",
+      "label_too_long",
+      "label_unbalanced_brackets",
+      "label_not_gene_symbol",
+      "label_not_in_text",
+      "label_not_in_evidence",
+      "evidence_glyph_artifact",
+      "evidence_mojibake",
+      "evidence_letter_spaced",
+      "evidence_low_alpha",
+      "evidence_fused_words",
+      "evidence_in_junk_region",
+      "evidence_without_label",
+      "evidence_too_short",
+      "evidence_boilerplate",
+      "evidence_in_reference_list",
+      "evidence_figure_only",
+      "all_evidence_junk"
     ]
   },
   "tables": {
@@ -496,11 +529,39 @@
           "required": false
         },
         {
+          "name": "evidence_page",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_locator_type",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "locator_type",
+          "required": false
+        },
+        {
+          "name": "evidence_locator",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
           "name": "extraction_flag",
           "type": "string",
           "multivalued": false,
           "vocabulary": "extraction_flag",
           "required": true
+        },
+        {
+          "name": "quality_issues",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "quality_issue",
+          "required": false
         },
         {
           "name": "field_provenance",
@@ -531,7 +592,10 @@
         "evidence_char_start",
         "evidence_char_end",
         "evidence_verified",
-        "evidence_similarity"
+        "evidence_similarity",
+        "evidence_page",
+        "evidence_locator_type",
+        "evidence_locator"
       ]
     },
     "methods.csv": {
@@ -733,6 +797,34 @@
           "required": true
         },
         {
+          "name": "evidence_section",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_page",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
+          "name": "evidence_locator_type",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": "locator_type",
+          "required": false
+        },
+        {
+          "name": "evidence_locator",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
           "name": "field_provenance",
           "type": "string",
           "multivalued": true,
@@ -750,7 +842,11 @@
       "aligned_multivalue": [
         "evidence_sentence",
         "evidence_chunk_id",
-        "evidence_verified"
+        "evidence_verified",
+        "evidence_section",
+        "evidence_page",
+        "evidence_locator_type",
+        "evidence_locator"
       ]
     },
     "mappings.csv": {
@@ -1165,6 +1261,13 @@
           "required": true
         },
         {
+          "name": "source_in_paper",
+          "type": "string",
+          "multivalued": true,
+          "vocabulary": null,
+          "required": false
+        },
+        {
           "name": "field_provenance",
           "type": "string",
           "multivalued": true,
@@ -1181,7 +1284,8 @@
       ],
       "aligned_multivalue": [
         "evidence_sentence",
-        "evidence_verified"
+        "evidence_verified",
+        "source_in_paper"
       ]
     }
   }

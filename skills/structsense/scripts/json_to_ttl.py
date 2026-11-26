@@ -2035,8 +2035,16 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
                   variant: Optional[str] = None,
                   check_activity: Optional[bool] = False,
                   text_out: Optional[Path] = None,
-                  resolve_doi: Optional[bool] = False) -> tuple[str, dict]:
+                  resolve_doi: Optional[bool] = False,
+                  source_text: Optional[str] = None,
+                  extend=None) -> tuple[str, dict]:
     """Library entry point. Returns (turtle_text, report).
+
+    source_text overrides the text loaded from source_path (the text the offsets
+    index, when it is not the source's sibling .txt). extend, if given, is called
+    with the TurtleBuilder after the graph is built and before it is serialized, so
+    a mode with its own triples (scripts/ait_export.py) adds them to the same graph,
+    with the same IRIs, instead of re-deriving them.
 
     check_activity applies to a resource result only (resource_kg.build): None
     follows the config's `activity.enabled`; the default False stays offline.
@@ -2070,8 +2078,10 @@ def result_to_ttl(result: dict, *, kg_plan: Optional[dict] = None,
         declared=declared, ontology_version=onto_version, paper_slug=slug, kb_ns=kb_ns,
         profile=profile, run_id=run_id or f"structsense-{date}-{digest}",
         checked_date=date, source_checksum=checksum, media_type=media_type, cfg=cfg, variant=variant,
-        source_text=load_source_text(source_path))
+        source_text=source_text if source_text is not None else load_source_text(source_path))
     graph = builder.build()
+    if extend is not None:
+        extend(builder)
     if n_dropped:
         builder.counts["non_entity_mentions_dropped"] = n_dropped
     report = {"paper_slug": slug, "namespace": str(builder.EX), "profile": profile, "variant": builder.variant,

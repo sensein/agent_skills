@@ -9,10 +9,12 @@ deterministic — the parts of the output that must not be model judgement:
   (`cell_type_name_as_in_paper`, `species_experimental`) from `entities.csv`.
 * `review-sheet`  writes `review_sheet.csv` as the join of entities + methods +
   mappings. It introduces no new values, and keeps only evidence sentences whose
-  `evidence_verified` is `exact` or `exact_offset_corrected`.
+  `evidence_verified` is `exact` or `exact_offset_corrected` and that contain the
+  entity's phrase (label or alias).
 * `validate`  checks headers, types, vocabularies, multi-value formatting, the
-  crosswalk, the quarantine rule, the SKOS/match_confidence crosswalk, the
-  same-taxonomy `exactMatch` house rule, and that `review_sheet.csv` equals the join.
+  crosswalk, the hold-back rules (`unverified_evidence`, `parse_artifact`), the
+  SKOS/match_confidence crosswalk, the same-taxonomy `exactMatch` house rule, the
+  evidence location columns, and that `review_sheet.csv` equals the join.
 * `init`  writes header-only files so an extraction starts from the contract.
 
     python -m scripts.ait_tables init out/
@@ -36,6 +38,8 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from scripts import ait_taxonomy
+from scripts.doc_layout import format_source
+from scripts.text_quality import HOLD_BACK, label_in_sentence
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "ait-mapping-columns.json"
 
@@ -45,8 +49,11 @@ TABLES = ("paper.csv", "sources.csv", "entities.csv", "methods.csv", "mappings.c
 NA = "NA"
 VERIFIED = ("exact", "exact_offset_corrected")
 PROVENANCE_LABELS = ("code:pdf_parse", "code:regex", "code:lexical_verify",
-                     "code:ontology_lookup", "code:supplement_table", "llm:extract",
-                     "llm:review", "human:curator")
+                     "code:ontology_lookup", "code:supplement_table", "code:layout_lookup",
+                     "code:text_quality", "llm:extract", "llm:review", "human:curator")
+# Flags that keep an entity out of mappings, cards and the graph. It stays in
+# entities.csv, visible, so a curator can see what was held back and why.
+HELD_BACK_FLAGS = ("unverified_evidence", "parse_artifact")
 PROVENANCE_MIN_ENTITY = ("label_verbatim", "marker_genes", "brain_region", "species")
 
 SKOS_TO_CONFIDENCE = {
@@ -63,6 +70,7 @@ EXACT_MATCH_BASIS = {"author_statement", "supplementary_mapping"}
 
 _MULTI_SPLIT = re.compile(r"(?<!\\)\|")
 _MENTION_ID = re.compile(r"^(?P<paper>.+):M\d{3,}$")
+_PAGE = re.compile(r"^\d+(-\d+)?$")
 _DATE = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
 _DATETIME = re.compile(r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$")
 
@@ -154,11 +162,39 @@ def current_mappings(mappings: Sequence[Dict[str, str]]) -> List[Dict[str, str]]
 
 
 def is_quarantined(entity: Dict[str, str]) -> bool:
-    """Only evidence is `not_found` (or the row is already flagged): never an edge."""
-    if entity.get("extraction_flag") == "unverified_evidence":
+    """Held back: only evidence is `not_found`, or the entity is a parse artifact
+    (`extraction_flag` in HELD_BACK_FLAGS). Never an edge, a card or a graph node."""
+    if entity.get("extraction_flag") in HELD_BACK_FLAGS:
         return True
     statuses = split_multi(entity.get("evidence_verified", ""))
     return bool(statuses) and all(s == "not_found" for s in statuses)
+
+
+def source_in_paper(section: str, locator: str, page: str) -> str:
+    """`Results; Fig. 3; p. 4` from the aligned location columns. With no locator or
+    page (no layout was used) this is the section alone, as before."""
+    if any(v not in ("", NA) for v in (locator, page)):
+        return format_source(section, locator, page)
+    return section
+
+
+def sources_in_paper(row: Dict[str, str]) -> List[str]:
+    """One `source_in_paper` string per evidence sentence of an entities/methods row."""
+    n = len(split_multi(row.get("evidence_sentence", "")))
+
+    def col(name: str) -> List[str]:
+        vals = split_multi(row.get(name, ""))
+        return vals + [""] * (n - len(vals))
+    return [source_in_paper(s, loc, pg) for s, loc, pg in
+            zip(col("evidence_section"), col("evidence_locator"), col("evidence_page"))]
+
+
+def names_entity(entity: Dict[str, str], sentence: str) -> bool:
+    """True if the sentence contains the entity's phrase: `label_verbatim` or one of its
+    `aliases` (case and typography folded). A sentence that does not is not returned
+    as evidence for the entity."""
+    return label_in_sentence([entity.get("label_verbatim", ""), *split_multi(entity.get("aliases", ""))],
+                             sentence)
 
 
 def experimental_species(entity: Dict[str, str]) -> str:
@@ -200,8 +236,9 @@ def build_review_sheet(data: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, 
             continue
         sentences = split_multi(ent.get("evidence_sentence", ""))
         statuses = split_multi(ent.get("evidence_verified", ""))
-        sections = split_multi(ent.get("evidence_section", ""))
-        keep = [i for i, s in enumerate(statuses) if s in VERIFIED and i < len(sentences)]
+        sections = sources_in_paper(ent)
+        keep = [i for i, s in enumerate(statuses)
+                if s in VERIFIED and i < len(sentences) and names_entity(ent, sentences[i])]
         if not keep:
             continue
         assay_names = [assays[a]["assay_name"] for a in split_multi(ent.get("assay_id", ""))
@@ -212,7 +249,7 @@ def build_review_sheet(data: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, 
             "ait_taxonomy_used": m.get("ait_taxonomy_used", ""),
             "evidence_sentence": join_multi(sentences[i] for i in keep),
             "asserted_or_inferred": ent.get("assertion_type", ""),
-            "source_in_paper": join_multi(sections[i] for i in keep if i < len(sections)),
+            "source_in_paper": join_multi(sections[i] for i in keep if sections[i] != ""),
             "brain_region": ent.get("brain_region", ""),
             "marker_genes": ent.get("marker_genes", ""),
             "assay": join_multi(assay_names),
@@ -342,14 +379,33 @@ def validate(out_dir: Path, schema: Optional[dict] = None, catalog: Optional[Pat
         if mid in by_mention:
             issues.append(Issue("error", "entities.csv", n, "mention_id", f"duplicate mention_id {mid!r}"))
         by_mention[mid] = e
-        if is_quarantined(e) and e.get("extraction_flag") != "unverified_evidence":
+        statuses = split_multi(e.get("evidence_verified", ""))
+        if statuses and all(s == "not_found" for s in statuses) and e.get("extraction_flag") not in HELD_BACK_FLAGS:
             issues.append(Issue("error", "entities.csv", n, "extraction_flag",
                                 "all evidence is not_found but the row is not flagged unverified_evidence"))
+        found = [s for s, st in zip(split_multi(e.get("evidence_sentence", "")), statuses) if st != "not_found"]
+        if found and e.get("extraction_flag") not in HELD_BACK_FLAGS and not any(names_entity(e, s) for s in found):
+            issues.append(Issue("error", "entities.csv", n, "evidence_sentence",
+                                f"no evidence sentence contains {e.get('label_verbatim')!r} or an alias: "
+                                f"the returned evidence must contain the phrase (run ait_evidence to hold it back)"))
+        hard = HOLD_BACK & set(split_multi(e.get("quality_issues", "")))
+        if hard and e.get("extraction_flag") not in HELD_BACK_FLAGS:
+            issues.append(Issue("error", "entities.csv", n, "extraction_flag",
+                                f"quality_issues {sorted(hard)} hold the entity back but it is not flagged "
+                                f"parse_artifact (run ait_evidence)"))
+        for page in split_multi(e.get("evidence_page", "")):
+            if page not in ("", NA) and not _PAGE.match(page):
+                issues.append(Issue("error", "entities.csv", n, "evidence_page", f"{page!r} is not N or N-M"))
         if e.get("entity_type") == "cell_type" and e.get("field_provenance"):
             prov = parse_provenance(e["field_provenance"])
             missing = [f for f in PROVENANCE_MIN_ENTITY if f not in prov]
             if missing:
                 issues.append(Issue("warning", "entities.csv", n, "field_provenance", f"no provenance for {missing}"))
+
+    if entities and not any(e.get("evidence_locator_type") for e in entities):
+        issues.append(Issue("warning", "entities.csv", None, "evidence_locator_type",
+                            "no evidence location computed: build paper.layout.json (scripts/doc_layout.py) "
+                            "and run ait_evidence with --layout"))
 
     for n, m in enumerate(data.get("methods.csv", []), 1):
         if m.get("targeted") == "true" and m.get("gene_panel_size", "") == "":
@@ -388,7 +444,8 @@ def validate(out_dir: Path, schema: Optional[dict] = None, catalog: Optional[Pat
             issues.append(Issue("error", t, n, "species_experimental",
                                 "must equal entities.species where species_role = experimental, else empty (run derive)"))
         if node and is_quarantined(ent):
-            issues.append(Issue("error", t, n, "ait_node_id", "entity is quarantined (unverified evidence) and cannot be an edge"))
+            why = "a parse artifact" if ent.get("extraction_flag") == "parse_artifact" else "quarantined (unverified evidence)"
+            issues.append(Issue("error", t, n, "ait_node_id", f"entity is {why} and cannot be an edge"))
 
         ait_id = m.get("ait_id", "")
         covered = None
